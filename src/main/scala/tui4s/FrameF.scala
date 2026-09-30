@@ -3,11 +3,9 @@ package tui4s
 import cats.data.OptionT
 import cats.effect.Ref
 import cats.syntax.all.given
-import cats.{Applicative, Functor}
-import fs2.concurrent.Signal
+import cats.{Applicative, Functor, Monad}
 import tui.{Rect, crossterm}
 import tui4s.interfaces.Widget
-import cats.Monad
 
 final case class FrameF[F[_]](
     buffer: BufferF[F],
@@ -17,9 +15,9 @@ final case class FrameF[F[_]](
   def renderWidget(
       widget: Widget[F],
       area: Rect,
-      eventSignal: Signal[F, Option[crossterm.Event]],
+      lastEvent: crossterm.Event,
   )(using Monad[F]): F[Unit] =
-    widget.createElement.flatMap(_.render(buffer, area, eventSignal))
+    widget.createElement.flatMap(_.render(buffer, area,   lastEvent))
 
   def setCursorPosition(x: Int, y: Int)(using
       Applicative[F],

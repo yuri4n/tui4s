@@ -4,7 +4,6 @@ import cats.effect.std.Console
 import cats.effect.{Async, Ref, Sync}
 import cats.syntax.all.given
 import cats.{Functor, NonEmptyParallel}
-import fs2.concurrent.Signal
 import tui.{Rect, ResizeBehavior, TerminalOptions, Viewport, crossterm}
 import tui4s.interfaces.Widget
 
@@ -73,7 +72,7 @@ final case class TerminalF[F[_]](
 
   def draw(
       widget: Widget[F],
-      eventSignal: Signal[F, Option[crossterm.Event]],
+      lastEvent: crossterm.Event,
   )(using
       F: Sync[F],
       N: NonEmptyParallel[F],
@@ -82,7 +81,7 @@ final case class TerminalF[F[_]](
       _              <- autoresize
       frame          <- getFrame
       viewport       <- viewportRef.get
-      _              <- frame.renderWidget(widget, viewport.area, eventSignal)
+      _              <- frame.renderWidget(widget, viewport.area, lastEvent)
       cursorPosition <- frame.getCursorPostion.value
       _              <- flush
       _              <- cursorPosition match

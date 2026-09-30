@@ -1,10 +1,8 @@
 package tui4s
 
 import cats.NonEmptyParallel
-import cats.effect.syntax.all.*
-import cats.effect.{Async, Resource, Temporal}
+import cats.effect.{Async, Resource}
 import cats.syntax.all.*
-import fs2.Stream
 import fs2.concurrent.Signal
 import tui.crossterm
 import tui.crossterm.{Command, CrosstermJni}
@@ -32,76 +30,83 @@ type StartedTerminalResources[F[_]] = (
 type FramesPerUnit = (frames: Int, per: TimeUnit)
 
 object FramesPerUnit:
-  def fromFps(fps: Int): FramesPerUnit =
-    (fps, TimeUnit.SECONDS)
 
-  extension (fpu: FramesPerUnit)
-    def toDuration: FiniteDuration =
-      val (frames, per) = fpu
-      FiniteDuration(1, per) / frames
+    def fromFps(fps: Int): FramesPerUnit =
+      (fps, TimeUnit.SECONDS)
 
-  extension (fps: Int) def fps: FramesPerUnit = FramesPerUnit.fromFps(fps)
+    extension (fpu: FramesPerUnit)
+      def toDuration: FiniteDuration =
+          val (frames, per) = fpu
+          FiniteDuration(1, per) / frames
+
+    extension (fps: Int) def fps: FramesPerUnit = FramesPerUnit.fromFps(fps)
 end FramesPerUnit
 
 /** Resource for building and working with the [[TerminalF]]. */
 object withTerminal:
-  import FramesPerUnit.toDuration
 
-  private def renderUi[F[_]: Async: NonEmptyParallel: Temporal](
-      app: Widget[F],
-      terminal: TerminalF[F],
-      eventSignal: Signal[F, Option[crossterm.Event]],
-      frameRate: FramesPerUnit,
-  ): Resource[F, Unit] =
-    Stream
-      .repeatEval(terminal.draw(app, eventSignal))
-      .meteredStartImmediately(frameRate.toDuration)
-      .compile
-      .drain
-      .background
-      .void
+    // private def renderUi[F[_]: Async: NonEmptyParallel: Temporal](
+    //     app: Widget[F],
+    //     terminal: TerminalF[F],
+    //     eventSignal: Signal[F, Option[crossterm.Event]],
+    //     frameRate: FramesPerUnit,
+    // ): Resource[F, Unit] =
+    //   Stream
+    //     .repeatEval(terminal.draw(app, eventSignal))
+    //     .meteredStartImmediately(frameRate.toDuration)
+    //     .compile
+    //     .drain
+    //     .background
+    //     .void
 
-  def apply[F[_]: NonEmptyParallel](
-      app: Widget[F],
-      frameRate: FramesPerUnit = 60.fps,
-  )(using
-      F: Async[F],
-  ): Resource[F, (TerminalResources[F], Signal[F, Option[crossterm.Event]])] =
-    Resource
-      .make(
-        for
-          jni      <- F.delay(new CrosstermJni())
-          jniF      = CrosstermJniF[F](jni)
-          _        <- jniF.enableRawMode
-          _        <- jniF.execute(
-                        new Command.EnterAlternateScreen(),
-                        new Command.EnableMouseCapture(),
-                      )
-          backend   = CrosstermBackendF[F](jniF)
-          terminal <- TerminalF.init[F](backend)
-        yield (jniF, backend, terminal),
-      ) { case (jniF, backend, _) =>
-        for
-          _ <- jniF.disableRawMode
-          _ <- jniF.execute(
-                 new Command.LeaveAlternateScreen(),
-                 new Command.DisableMouseCapture(),
-               )
-          _ <- backend.showCursor
-        yield ()
-      }
-      .flatMap { case t @ (jniF, _, terminal) =>
-        for
-          eventSignal <- jniF.events().holdOptionResource
-          _           <- renderUi(app, terminal, eventSignal, frameRate) /* Start background
-         * rendering */
-        yield (t, eventSignal)
-      }
+    def apply[F[_]: NonEmptyParallel](
+        app: Widget[F],
+        frameRate: FramesPerUnit = 60.fps,
+    )(using
+        F: Async[F],
+    ): Resource[
+      F,
+      (TerminalResources[F], Signal[F, Option[CompletedFrameF[F]]]),
+    ] =
+      Resource
+        .make(
+          for
+              jni      <- F.delay(new CrosstermJni())
+              jniF      = CrosstermJniF[F](jni)
+              _        <- jniF.enableRawMode
+              _        <- jniF.execute(
+                            new Command.EnterAlternateScreen(),
+                            new Command.EnableMouseCapture(),
+                          )
+              backend   = CrosstermBackendF[F](jniF)
+              terminal <- TerminalF.init[F](backend)
+          yield (jniF, backend, terminal),
+        ) { case (jniF, backend, _) =>
+          for
+              _ <- jniF.disableRawMode
+              _ <- jniF.execute(
+                     new Command.LeaveAlternateScreen(),
+                     new Command.DisableMouseCapture(),
+                   )
+              _ <- backend.showCursor
+          yield ()
+        }
+        .flatMap { case t @ (jniF, _, terminal) =>
+          for completedFrameSignal <-
+                jniF
+                  .events()
+                  .evalMap(e => terminal.draw(app, e))
+                  .holdOptionResource
+              /* _ <- renderUi(app, terminal, eventSignal, frameRate) /* Start
+               * background */
+          //  * rendering */
+          yield (t, completedFrameSignal)
+        }
 
-  /** Simplified version that only returns the terminal for basic usage */
-  def terminal[F[_]: Async: NonEmptyParallel](
-      app: Widget[F],
-      frameRate: FramesPerUnit = 60.fps,
-  ): Resource[F, TerminalF[F]] =
-    apply[F](app, frameRate).map(_._1.terminal)
+    /** Simplified version that only returns the terminal for basic usage */
+    def terminal[F[_]: Async: NonEmptyParallel](
+        app: Widget[F],
+        frameRate: FramesPerUnit = 60.fps,
+    ): Resource[F, TerminalF[F]] =
+      apply[F](app, frameRate).map(_._1.terminal)
 end withTerminal
