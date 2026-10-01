@@ -104,4 +104,49 @@ class SessionTest extends Test[Any]:
           }
       }
     }
+
+    "a failure after the session is built closes the whole session".timeout(
+      30.seconds,
+    ) in {
+      val steps   = java.util.concurrent.ConcurrentLinkedQueue[String]()
+      val control = new tui4s.internal.TerminalControl:
+          def enter(opts: TuiOptions): jatatui.core.backend.Backend =
+              val _ = steps.add("enter")
+              jatatui.core.backend.TestBackend(10, 2)
+          override def step(name: String): Unit                     =
+              val _ = steps.add(name)
+          override def opened(
+              terminal: jatatui.core.terminal.Terminal[?],
+              release: () => Unit,
+          ): Unit                                                   = throw IllegalStateException("no hook")
+          def leave(opts: TuiOptions): Unit                         =
+              val _ = steps.add("leave")
+      inbox(16).map { box =>
+        Session
+          .open(TuiOptions(), control, Some(ScriptedInput.never), box)
+          .map { r =>
+            val all = scala.jdk.CollectionConverters
+              .IteratorHasAsScala(steps.iterator())
+              .asScala
+              .toVector
+            assert(
+              r match
+                  case Left(TuiError.TerminalIO(_)) => true
+                  case _                            => false
+              ,
+              r.toString,
+            )
+            assert(
+              all == Seq(
+                "enter",
+                "input-started",
+                "input-stopped",
+                "input-joined",
+                "leave",
+              ),
+              all.toString,
+            )
+          }
+      }
+    }
 end SessionTest

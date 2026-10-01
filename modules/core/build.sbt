@@ -16,6 +16,11 @@ Test / testFrameworks += new TestFramework("kyo.test.runner.SbtFramework")
 // Run the tests in a forked JVM. Kyo starts one scheduler per class loader and
 // nothing stops it, so each test run inside a long-lived sbt (a shell, `~`,
 // BSP) would leave one more scheduler and its threads running. A forked JVM
-// exits after the tests. The flag stops JDK 25 warnings about sun.misc.Unsafe.
+// exits after the tests. The flags stop JDK 25 warnings about sun.misc.Unsafe
+// and about the native crossterm library (NativeTerminalTest loads it).
 Test / fork := true
-Test / javaOptions ++= Seq("-Xmx1g", "--sun-misc-unsafe-memory-access=allow")
+Test / javaOptions ++= Seq(
+  "-Xmx1g",
+  "--sun-misc-unsafe-memory-access=allow",
+  "--enable-native-access=ALL-UNNAMED",
+)

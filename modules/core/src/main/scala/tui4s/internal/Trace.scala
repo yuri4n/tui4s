@@ -35,10 +35,12 @@ end MemoryTrace
 /** The trace file of `TuiOptions.trace`: UTF-8 JSON lines, buffered. A line is
   * written out when 100 ms passed since the last write-out, when the render
   * fiber goes idle (see [[flush]]), and at the release. An I/O error stops the
-  * trace and never the app.
+  * trace and never the app; `warn` reports it once.
   */
 private[tui4s] final class TraceWriter private (
     out: java.io.BufferedWriter,
+    path: Path,
+    warn: (String, Throwable) => Unit,
 ) extends Tracer:
     private var lastFlush = java.lang.System.nanoTime()
     private var dirty     = false
@@ -52,7 +54,7 @@ private[tui4s] final class TraceWriter private (
               dirty = true
               val now = java.lang.System.nanoTime()
               if now - lastFlush >= TraceWriter.FlushNanos then flush()
-          catch case NonFatal(_) => broken = true
+          catch case NonFatal(e) => stop(e)
 
     override def flush(): Unit =
       if dirty && !broken then
@@ -60,7 +62,17 @@ private[tui4s] final class TraceWriter private (
               out.flush()
               dirty = false
               lastFlush = java.lang.System.nanoTime()
-          catch case NonFatal(_) => broken = true
+          catch case NonFatal(e) => stop(e)
+
+    private def stop(e: Throwable): Unit =
+        broken = true
+        try
+            warn(
+              s"tui4s: writing the trace file $path failed; the trace stops",
+              e,
+            )
+        catch case NonFatal(_) => ()
+    end stop
 
     override def close(): Unit =
         flush()
@@ -71,12 +83,28 @@ end TraceWriter
 private[tui4s] object TraceWriter:
     private val FlushNanos = 100_000_000L
 
-    /** A writer that truncates `path`; `null` when the file cannot be opened
-      * (the app runs without a trace).
+    /** A writer that truncates `path`; `null` when the file cannot be opened:
+      * then `warn` gets the reason and the app runs without a trace.
       */
-    def open(path: Path): TraceWriter | Null =
-      try new TraceWriter(Files.newBufferedWriter(path, StandardCharsets.UTF_8))
-      catch case NonFatal(_) => null
+    def open(
+        path: Path,
+        warn: (String, Throwable) => Unit,
+    ): TraceWriter | Null =
+      try
+          new TraceWriter(
+            Files.newBufferedWriter(path, StandardCharsets.UTF_8),
+            path,
+            warn,
+          )
+      catch
+          case NonFatal(e) =>
+            try
+                warn(
+                  s"tui4s: the trace file $path cannot be written; the app runs without a trace",
+                  e,
+                )
+            catch case NonFatal(_) => ()
+            null
 end TraceWriter
 
 /** JSON text for trace lines. */

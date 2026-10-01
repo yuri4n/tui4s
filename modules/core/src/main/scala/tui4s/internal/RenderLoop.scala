@@ -218,35 +218,42 @@ private[tui4s] object Runner:
           opened => Sync.Unsafe.defer(opened.foreach(_.close())),
         ) { opened =>
           Abort.get(opened).map { session =>
-            Sync.Unsafe
-              .defer {
-                val tracer =
-                  opts.trace.map(TraceWriter.open).getOrElse(null)
-                val sup    = Supervisor[S]()
-                val engine = Engine(app, opts, Painter(opts.theme), sup, tracer)
-                (engine, Launcher(sup, inbox), tracer)
-              }
-              .map { (engine, launcher, tracer) =>
-                Sync.ensure(
-                  launcher.stopAll.andThen(Sync.Unsafe.defer {
-                    engine.finish("interrupted")
-                    if observer != null then observer.ended(engine)
-                    Session.closeInbox(inbox)
-                    engine.completeAllProbes()
-                    if tracer != null then tracer.close()
-                  }),
-                )(
-                  RenderLoop(
-                    engine,
-                    launcher,
-                    inbox,
-                    session.terminal,
-                    control,
-                    frameNanos,
-                    observer,
-                  ).run,
-                )
-              }
+            // A trace file that cannot be written is a warning in the run's
+            // Kyo log (TuiLog under Tui.run).
+            Log.use { log =>
+              Sync.Unsafe
+                .defer {
+                  val warn: (String, Throwable) => Unit =
+                    (msg, e) => log.unsafe.warn(msg, e)
+                  val tracer                            =
+                    opts.trace.map(TraceWriter.open(_, warn)).getOrElse(null)
+                  val sup                               = Supervisor[S]()
+                  val engine                            =
+                    Engine(app, opts, Painter(opts.theme), sup, tracer)
+                  (engine, Launcher(sup, inbox), tracer)
+                }
+                .map { (engine, launcher, tracer) =>
+                  Sync.ensure(
+                    launcher.stopAll.andThen(Sync.Unsafe.defer {
+                      engine.finish("interrupted")
+                      if observer != null then observer.ended(engine)
+                      Session.closeInbox(inbox)
+                      engine.completeAllProbes()
+                      if tracer != null then tracer.close()
+                    }),
+                  )(
+                    RenderLoop(
+                      engine,
+                      launcher,
+                      inbox,
+                      session.terminal,
+                      control,
+                      frameNanos,
+                      observer,
+                    ).run,
+                  )
+                }
+            }
           }
         }
     end runOn

@@ -35,6 +35,18 @@ private[tui4s] trait TerminalControl:
       */
     def resize(width: Int, height: Int): Unit = ()
 
+    /** The input of this terminal (the crossterm reader), asked once after
+      * [[enter]] when the run has no input of its own. The default has none.
+      */
+    def input(): Option[InputPort] = None
+
+    /** The session is open: `terminal` draws on the backend of [[enter]], the
+      * input thread runs, and `release` is the synchronous, idempotent release
+      * of the whole session (the real terminal runs it from a JVM shutdown
+      * hook). The default does nothing.
+      */
+    def opened(terminal: Terminal[?], release: () => Unit): Unit = ()
+
     /** Leaves the terminal modes: the last step of the release. Never throws. */
     def leave(opts: TuiOptions): Unit
 end TerminalControl
@@ -78,10 +90,13 @@ private[tui4s] final class Session private (
       * thread, then leave the terminal modes. Synchronous, idempotent, never
       * throws; every step runs even if an earlier one failed. An interrupt of
       * the calling thread does not cut the release short: the interrupt flag is
-      * set again after the last step.
+      * set again after the last step. A second caller (the shutdown hook and
+      * the run's own release) waits until the first one is done. The backend
+      * draws nothing once the release started.
       */
-    def close()(using AllowUnsafe, Frame): Unit =
+    def close()(using AllowUnsafe, Frame): Unit = synchronized {
       if closed.compareAndSet(false, true) then
+          safely(terminal.backend().close())
           if thread != null then safely(thread.requestStop())
           safely(Session.closeInbox(inbox))
           if thread != null then
@@ -93,6 +108,7 @@ private[tui4s] final class Session private (
               }
           safely(control.leave(opts))
           if interrupted then Thread.currentThread().interrupt()
+    }
 
     /** Waits at most `timeoutMillis` for `t` to end; true when it ended. An
       * interrupt is remembered and the wait goes on.
@@ -134,7 +150,8 @@ private[tui4s] object Session:
       Sync.Unsafe
         .defer {
           try
-              val backend = control.enter(opts)
+              val backend                 = control.enter(opts)
+              var session: Session | Null = null
               try
                   val counting = CountingBackend(backend)
                   val terminal = opts.viewport match
@@ -144,17 +161,24 @@ private[tui4s] object Session:
                           counting,
                           TerminalOptions(JViewport.inline(h)),
                         )
-                  val thread   = input.map { port =>
+                  val thread   = input.orElse(control.input()).map { port =>
                     val t = InputThread(port, inbox, opts.pollMillis)
                     t.start()
                     control.step("input-started")
                     t
                   }
-                  Right(Session(terminal, control, opts, inbox, thread.orNull))
+                  val s        =
+                    Session(terminal, control, opts, inbox, thread.orNull)
+                  session = s
+                  control.opened(terminal, () => s.close())
+                  Right(s)
               catch
                   case NonFatal(e) =>
-                    try control.leave(opts)
-                    catch case NonFatal(_) => ()
+                    val s = session
+                    if s != null then s.close()
+                    else
+                        try control.leave(opts)
+                        catch case NonFatal(_) => ()
                     throw e
               end try
           catch

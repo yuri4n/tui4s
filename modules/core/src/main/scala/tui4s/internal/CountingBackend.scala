@@ -15,12 +15,19 @@ private[tui4s] final class CountingBackend(val underlying: Backend)
     extends Backend:
     private var count = 0
 
+    // Set by the release: a frame that is still being drawn (the shutdown
+    // hook can release while the render fiber runs) writes nothing more.
+    @volatile private var closed = false
+
+    /** Stops all output: later calls that write to the terminal do nothing. */
+    def close(): Unit = closed = true
+
     /** The cell updates that the last `draw` sent. */
     def lastCount: Int = count
 
     def draw(content: java.lang.Iterable[BufferUpdate]): Unit =
         count = 0
-        underlying.draw(Counted(content))
+        if !closed then underlying.draw(Counted(content))
 
     /** `content`; each iteration counts again from 0. */
     private final class Counted(content: java.lang.Iterable[BufferUpdate])
@@ -36,20 +43,23 @@ private[tui4s] final class CountingBackend(val underlying: Backend)
         end iterator
     end Counted
 
-    override def appendLines(n: Int): Unit                       = underlying.appendLines(n)
-    def hideCursor(): Unit                                       = underlying.hideCursor()
-    def showCursor(): Unit                                       = underlying.showCursor()
+    override def appendLines(n: Int): Unit                       =
+      if !closed then underlying.appendLines(n)
+    def hideCursor(): Unit                                       =
+      if !closed then underlying.hideCursor()
+    def showCursor(): Unit                                       =
+      if !closed then underlying.showCursor()
     def getCursorPosition(): Position                            = underlying.getCursorPosition()
     def setCursorPosition(position: Position): Unit              =
-      underlying.setCursorPosition(position)
-    def clear(): Unit                                            = underlying.clear()
+      if !closed then underlying.setCursorPosition(position)
+    def clear(): Unit                                            = if !closed then underlying.clear()
     def clearRegion(clearType: ClearType): Unit                  =
-      underlying.clearRegion(clearType)
+      if !closed then underlying.clearRegion(clearType)
     def size(): Size                                             = underlying.size()
     def windowSize(): WindowSize                                 = underlying.windowSize()
-    def flush(): Unit                                            = underlying.flush()
+    def flush(): Unit                                            = if !closed then underlying.flush()
     def scrollRegionUp(start: Int, end: Int, lines: Int): Unit   =
-      underlying.scrollRegionUp(start, end, lines)
+      if !closed then underlying.scrollRegionUp(start, end, lines)
     def scrollRegionDown(start: Int, end: Int, lines: Int): Unit =
-      underlying.scrollRegionDown(start, end, lines)
+      if !closed then underlying.scrollRegionDown(start, end, lines)
 end CountingBackend
