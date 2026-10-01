@@ -1,0 +1,11 @@
+# Settings for this standalone pnpm project (pnpm >= 10.26). Same as the Docus repo.
+allowBuilds:
+  better-sqlite3: true
+  sharp: true
+  '@parcel/watcher': false
+  '@tailwindcss/oxide': false
+  esbuild: false
+  unrs-resolver: false
+  vue-demi: false
+# Docus troubleshooting: fixes "Can't resolve 'tailwindcss' / '@nuxt/ui'" with pnpm.
+shamefullyHoist: true

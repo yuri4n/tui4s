@@ -1,0 +1,42 @@
+name: Docs
+
+# Checks that the documentation site (docs/, Nuxt Docus) builds.
+# Vercel deploys the site (project Root Directory = docs). This workflow does not deploy.
+on:
+  pull_request:
+    paths: ["docs/**", ".github/workflows/docs.yml"]
+  push:
+    branches: [main]
+    paths: ["docs/**", ".github/workflows/docs.yml"]
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build the docs site
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: docs/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: docs/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - name: Check the files for agents
+        run: |
+          for f in llms.txt llms-full.txt raw/getting-started/installation.md; do
+            test -s ".output/public/$f" || { echo "::error::missing .output/public/$f"; exit 1; }
+          done

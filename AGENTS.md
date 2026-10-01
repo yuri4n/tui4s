@@ -41,6 +41,25 @@ Cats Effect users write tui4s apps without Kyo types in their code.
 
 Run `sbt fmt` and `sbt check` before each push.
 
+## Documentation
+
+The documentation site is in `docs/`. It uses Nuxt Docus 5.13.0 and Node.js 24
+with pnpm 10. Vercel builds and hosts it (the Vercel project has Root Directory
+`docs`). CI only checks that the site builds (`.github/workflows/docs.yml`).
+
+| Command (in `docs/`)  | What it does                                  |
+| --------------------- | --------------------------------------------- |
+| `pnpm install`        | Installs the dependencies.                    |
+| `pnpm dev`            | Serves the site at http://localhost:3000.     |
+| `pnpm build`          | Builds the site, as Vercel and CI do.         |
+
+- Write pages in `docs/content/` as Markdown with Docus components (MDC).
+  Use `scala` as the language of Scala code blocks.
+- Keep `docus` at an exact version in `docs/package.json`. Its next release
+  changes the configuration keys for agent features.
+- When a public API changes, change its page in the same pull request.
+- Never deploy the site from an agent. Vercel deploys it from the repository.
+
 ## Rules for code
 
 - Do not write to stdout or stderr while a terminal UI runs. The output
