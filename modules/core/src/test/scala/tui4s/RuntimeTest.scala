@@ -174,6 +174,27 @@ class RuntimeTest extends Test[Any]:
       }
     }
 
+    "an inline viewport draws in its rows only".timeout(30.seconds) in {
+      val control = RecordingControl(20, 10)
+      val app     = App[Int](
+        0,
+        n => text(s"n=$n"),
+        (n, e) => if e == Key.Char('q') then Quit else n + 1,
+        options = TuiOptions(viewport = Viewport.Inline(3)),
+      )
+      val input   = ScriptedInput('+')
+      Fiber.initUnscoped(Tui.runWith(app, control, input)).map { fiber =>
+        eventually()(control.screen.contains("n=1"))
+          .andThen(Sync.defer(input.push(Key.Char('q'))))
+          .andThen(fiber.get)
+          .map { n =>
+            val rows = control.screen.rows
+            assert(n == 1 && rows.count(_.contains("n=1")) == 1)
+            assert(rows.indexWhere(_.contains("n=1")) < 3)
+          }
+      }
+    }
+
     "the trace file has a start line, batch lines and a quit line; replay reads it"
       .timeout(30.seconds) in {
       val file = Files.createTempFile("tui4s-runtime", ".jsonl")
