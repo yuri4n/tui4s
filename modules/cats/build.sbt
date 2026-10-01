@@ -1,4 +1,4 @@
-// tui4s-cats. Versions shared with other modules live in project/Versions.scala.
+// tui4s-cats. Versions shared by modules are in project/Versions.scala.
 description := "Cats Effect integration for tui4s."
 
 libraryDependencies ++= Seq(

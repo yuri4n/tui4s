@@ -1,4 +1,4 @@
-// tui4s-core. Versions shared with other modules live in project/Versions.scala.
+// tui4s-core. Versions shared by modules are in project/Versions.scala.
 description := "Declarative terminal UIs for Scala 3 on Kyo, rendered with jatatui."
 
 libraryDependencies ++= Seq(

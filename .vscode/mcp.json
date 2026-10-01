@@ -1,8 +1,0 @@
-{
-  "servers": {
-    "tui4s-metals": {
-      "url": "http://localhost:52302/sse",
-      "type": "sse"
-    }
-  }
-}

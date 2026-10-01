@@ -14,6 +14,9 @@ src_managed/
 
 # IDEs
 .idea/
+.cursor/
+# Metals writes this file with a local port.
+.vscode/mcp.json
 *.iml
 out/
 

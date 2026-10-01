@@ -1,15 +1,16 @@
 // tui4s: declarative terminal UIs for Scala 3.
 //
-// Published modules (each one is released on its own; see AGENTS.md, "Releasing"):
+// Published modules (each one has its own releases; see AGENTS.md):
 //   core -> io.github.yuri4n::tui4s-core  (Kyo + jatatui)
 //   zio  -> io.github.yuri4n::tui4s-zio   (ZIO integration)
 //   cats -> io.github.yuri4n::tui4s-cats  (Cats Effect integration)
-// Never set `version` or `publishTo` here: ModuleVersioning and sbt-ci-release own them.
+// ModuleVersioning and sbt-ci-release set `version` and `publishTo`. Never set
+// them here.
 
-ThisBuild / organization := "io.github.yuri4n"
-ThisBuild / homepage     := Some(url("https://github.com/yuri4n/tui4s"))
-ThisBuild / licenses     := List(License.Apache2)
-ThisBuild / developers   := List(
+ThisBuild / organization      := "io.github.yuri4n"
+ThisBuild / homepage          := Some(url("https://github.com/yuri4n/tui4s"))
+ThisBuild / licenses          := List(License.Apache2)
+ThisBuild / developers        := List(
   Developer(
     "yuri4n",
     "yuri4n",
@@ -27,11 +28,12 @@ ThisBuild / scalacOptions ++= Seq(
   "-Wnonunit-statement",
   "-Yexplicit-nulls",
 )
-// Inter-project dependencies on unreleased modules have dynver versions like 0.2.0+3-1a2b3c4d.
+
+// Unreleased inter-project deps have dynver versions like 0.2.0+3-1a2b3c4d.
 ThisBuild / versionPolicyIgnoredInternalDependencyVersions :=
   Some("^\\d+\\.\\d+\\.\\d+\\+\\d+".r)
 
-/** A published module in `modules/<id>`, versioned from its own `<id>-v*` git tags. */
+/** A published module in `modules/<id>`, versioned from its `<id>-v*` tags. */
 def module(id: String): Project =
   Project(id, file(s"modules/$id"))
     .settings(
@@ -58,14 +60,18 @@ lazy val examples = project
   .in(file("examples"))
   .dependsOn(core, zio, cats)
   .settings(
-    name           := "tui4s-examples",
-    publish / skip := true,
-    // A terminal app needs the real TTY: fork a JVM and connect stdin and stdout to it.
+    name               := "tui4s-examples",
+    publish / skip     := true,
+    // A terminal app needs the real TTY: fork a JVM, connect stdin and stdout.
     run / fork         := true,
     run / connectInput := true,
     outputStrategy     := Some(StdoutOutput),
-    // crossterm is a JNI library; JDK 24+ warns about native access unless it is enabled.
-    run / javaOptions += "--enable-native-access=ALL-UNNAMED",
+    // Without these flags JDK 25 prints warnings over the UI: crossterm is a
+    // JNI library, and Kyo and Scala use sun.misc.Unsafe.
+    run / javaOptions ++= Seq(
+      "--enable-native-access=ALL-UNNAMED",
+      "--sun-misc-unsafe-memory-access=allow",
+    ),
   )
 
 Global / commands ++= Seq(

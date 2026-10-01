@@ -1,4 +1,4 @@
-// tui4s-zio. Versions shared with other modules live in project/Versions.scala.
+// tui4s-zio. Versions shared by modules are in project/Versions.scala.
 description := "ZIO integration for tui4s."
 
 libraryDependencies ++= Seq(
