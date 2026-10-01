@@ -56,6 +56,15 @@ class RuntimeContractTest extends Test[Any]:
         end published
     end Watcher
 
+    /** C9 times each batch against one frame budget (16.6 ms at 60 fps). On a
+      * cold JVM the first keys, views and paints take longer (class loading,
+      * JIT), more so on a loaded machine; the timed contracts first run the
+      * same code once.
+      */
+    private def warmUp(): Unit =
+        val t = TuiTest(CounterApp, 40, 5)
+        (1 to 2000).foreach(_ => t.press('+'))
+
     /** Waits (real time, at most `max`) until `cond` holds. */
     private def eventually(max: Duration = 10.seconds)(
         cond: => Boolean < Sync,
@@ -71,6 +80,7 @@ class RuntimeContractTest extends Test[Any]:
     "C4: 10 000 keys queued at once: no loss, few frames".timeout(
       60.seconds,
     ) in {
+      warmUp()
       val file  = Files.createTempFile("tui4s-c4", ".jsonl")
       val app   = App[Int](
         0,
@@ -201,6 +211,7 @@ class RuntimeContractTest extends Test[Any]:
 
     "C7: an app with no sources, idle for 1 s: no batch, no frame after the first"
       .timeout(30.seconds) in {
+      warmUp()
       val file = Files.createTempFile("tui4s-c7", ".jsonl")
       Scope
         .run(

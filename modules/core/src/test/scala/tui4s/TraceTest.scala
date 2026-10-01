@@ -18,6 +18,9 @@ class TraceTest extends Test[Any]:
     private val time   = "\"t\":[0-9]+\\.[0-9]{3}"
 
     "the first line says the size and the declared sources" in {
+      // A cold first `sources(init)` can be slower than one frame and write a
+      // slow line before the start line: warm it up once.
+      val _ = TuiTest(DashboardApp, 72, 16)
       val t = TuiTest(DashboardApp, 72, 16)
       assert(
         t.trace.head.matches(
