@@ -178,7 +178,9 @@ final class TuiTest[S] private (app: App[S], width: Int, height: Int):
       * stream source is one element.
       *
       * Throws an `AssertionError` when no source or task `label` runs (the
-      * message lists the known labels) or when `value` does not fit the fold.
+      * message lists the known labels) or when `value` does not fit the fold
+      * (its cast fails). A fold that throws for a value that fits ends the run
+      * with an [[TuiError.AppFailed]], as any user code does.
       */
     def emit(label: String, value: Any): this.type =
         if !ended then
@@ -189,7 +191,7 @@ final class TuiTest[S] private (app: App[S], width: Int, height: Int):
               if r.source.kind == Source.Kind.Task then
                   Seq(Fold(r.token, v), Done(r.token, Result.succeed(())))
               else Seq(Fold(r.token, v))
-            engine.rethrowClassCast = true
+            engine.emittedClass = if value == null then null else value.getClass
             try batch(items)
             catch
                 case c: ClassCastException =>
@@ -201,7 +203,7 @@ final class TuiTest[S] private (app: App[S], width: Int, height: Int):
                       s"source $label",
                     c,
                   )
-            finally engine.rethrowClassCast = false
+            finally engine.emittedClass = null
             end try
         end if
         this
@@ -335,7 +337,10 @@ object TuiTest:
     /** The real loop (fibers, supervisor, frame rules) on a test terminal,
       * under `Clock.withTimeControl` and `Random.withSeed(0)`, with no frame
       * cap (`fps = 0`, whatever the app's options say). The app stops when
-      * `test` ends. Kyo-typed; see [[liveBlocking]] for other frameworks.
+      * `test` ends. When the app failed ([[TuiError.AppFailed]],
+      * [[TuiError.SourceFailed]]), `live` fails with that error after `test`
+      * (`LiveTest.error` reads it during the test). Kyo-typed; see
+      * [[liveBlocking]] for other frameworks.
       *
       * {{{
       * TuiTest.live(DashboardApp, 72, 16) { t =>

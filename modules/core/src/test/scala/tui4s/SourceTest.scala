@@ -361,4 +361,26 @@ class SourceTest extends Test[Any]:
         !t.lastTrace.contains("\"start\"") && !t.lastTrace.contains("\"stop\""),
       )
     }
+
+    "a cast that fails inside a fold is AppFailed, not a value that does not fit" in {
+      val s    = Source.For[Int]
+      val app  = App[Int](
+        0,
+        n => text(n.toString),
+        (n, _) => n,
+        _ =>
+          Seq(
+            s.poll(1.second)(Kyo.lift("1"))((n, a: String) =>
+              n + (List(a): Any).asInstanceOf[Map[String, Int]].size,
+            ).id("feed"),
+          ),
+      )
+      val t    = TuiTest(app, 10, 1)
+      t.emit("feed", "1")
+      assert(t.quit)
+      val fail = t.error match
+          case Some(TuiError.AppFailed(where, _: ClassCastException)) => where
+          case other                                                  => other.toString
+      assert(fail == "fold of feed")
+    }
 end SourceTest

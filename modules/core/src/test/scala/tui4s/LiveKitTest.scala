@@ -131,4 +131,187 @@ class LiveKitTest extends Test[Any]:
         }
         .map(n => assert(n == 5))
     }
+
+    "live: a task asleep on the virtual clock does not hold press; advance wakes it"
+      .timeout(30.seconds) in {
+      final case class Toast(toast: Option[String] = None) derives CanEqual
+      val s   = Source.For[Toast]
+      val app = App[Toast](
+        Toast(),
+        t => text(t.toast.getOrElse("-")),
+        (t, e) =>
+          if e == Key.Char('x') then
+              t.copy(toast = Some("saved"))
+                .withTask(
+                  s.task(Async.sleep(2.seconds))((t, _: Unit) =>
+                    t.copy(toast = None),
+                  ),
+                )
+          else t,
+      )
+      TuiTest.live(app, 20, 2) { t =>
+        t.press('x')
+          .andThen(t.state)
+          .map(s => assert(s.toast.contains("saved")))
+          .andThen(t.stats)
+          .map(st => assert(st.tasks == 1))
+          .andThen(t.advance(1.second))
+          .andThen(t.state)
+          .map(s => assert(s.toast.contains("saved")))
+          .andThen(t.advance(1.second))
+          .andThen(t.state)
+          .map(s => assert(s.toast.isEmpty))
+          .andThen(t.screen)
+          .map(sc => assert(sc.row(0) == "-"))
+          .andThen(t.stats)
+          .map(st => assert(st.tasks == 0))
+      }
+    }
+
+    "live: a standing task asleep on the clock does not hold the first settle"
+      .timeout(30.seconds) in {
+      final case class Splash(on: Boolean = true) derives CanEqual
+      val s   = Source.For[Splash]
+      val app = App[Splash](
+        Splash(),
+        sp => text(if sp.on then "splash" else "ready"),
+        (sp, _) => sp,
+        sp =>
+          if !sp.on then Nil
+          else
+              Seq(
+                s.task(Async.sleep(500.millis).andThen(1))((sp, _: Int) =>
+                  sp.copy(on = false),
+                ).id("splash"),
+              ),
+      )
+      TuiTest.live(app, 20, 2) { t =>
+        t.state
+          .map(sp => assert(sp.on))
+          .andThen(t.advance(499.millis))
+          .andThen(t.state)
+          .map(sp => assert(sp.on))
+          .andThen(t.advance(1.millis))
+          .andThen(t.screen)
+          .map(sc => assert(sc.row(0) == "ready"))
+          .andThen(t.sources)
+          .map(l => assert(l.isEmpty))
+      }
+    }
+
+    "live: a periodic fold starts a task that sleeps; advance steps through both"
+      .timeout(30.seconds) in {
+      final case class Beat(beats: Int = 0, done: Int = 0) derives CanEqual
+      val s   = Source.For[Beat]
+      val app = App[Beat](
+        Beat(),
+        b => text(s"${b.beats}/${b.done}"),
+        (b, _) => b,
+        _ =>
+          Seq(
+            s.every(1.second)(b =>
+              b.copy(beats = b.beats + 1)
+                .withTask(
+                  s.task(Async.sleep(300.millis).andThen(1))((b, a: Int) =>
+                    b.copy(done = b.done + a),
+                  ),
+                ),
+            ).id("beat"),
+          ),
+      )
+      TuiTest.live(app, 20, 2) { t =>
+        t.advance(2.seconds)
+          .andThen(t.state)
+          .map(b => assert(b == Beat(2, 1), b.toString))
+          .andThen(t.advance(299.millis))
+          .andThen(t.state)
+          .map(b => assert(b == Beat(2, 1), b.toString))
+          .andThen(t.advance(1.millis))
+          .andThen(t.state)
+          .map(b => assert(b == Beat(2, 2), b.toString))
+      }
+    }
+
+    "live: a stream that sleeps and ends no longer counts as a sleeper"
+      .timeout(30.seconds) in {
+      val s   = Source.For[Vector[Int]]
+      val few = Stream.unfold(0, chunkSize = 1)(i =>
+        Async
+          .sleep(100.millis)
+          .andThen(if i < 3 then Present((i, i + 1)) else Absent),
+      )
+      val app = App[Vector[Int]](
+        Vector.empty,
+        v => text(v.mkString(",")),
+        (v, _) => v,
+        _ => Seq(s.stream(few)(_ :+ _).id("few")),
+      )
+      TuiTest.live(app, 20, 2) { t =>
+        t.advance(1.second)
+          .andThen(t.state)
+          .map(v => assert(v == Vector(0, 1, 2)))
+          .andThen(t.advance(1.second))
+          .andThen(t.stats)
+          .map(st => assert(st.sources == 0))
+      }
+    }
+
+    "live: an app that fails fails the run; error says why".timeout(
+      30.seconds,
+    ) in {
+      val boom = new IllegalStateException("bad")
+      val app  = App[Int](
+        0,
+        n => text(s"Count: $n"),
+        (n, e) => if e == Key.Char('x') then throw boom else n + 1,
+      )
+      Abort
+        .run[Throwable](
+          TuiTest.live(app, 20, 2) { t =>
+            t.press('+', 'x', '+')
+              .andThen(t.quit)
+              .map(q => assert(q))
+              .andThen(t.error)
+              .map(e =>
+                assert(e == Some(TuiError.AppFailed("update on key:x", boom))),
+              )
+              .andThen(t.screen)
+              .map(sc => assert(sc.contains("Count: 1")))
+          },
+        )
+        .map {
+          case Result.Failure(TuiError.AppFailed(where, e)) =>
+            assert(where == "update on key:x" && (e eq boom))
+          case other                                        =>
+            assert(false, s"unexpected: $other")
+        }
+    }
+
+    "live: typeText sends keys as a terminal does ('\\n' is Enter)".timeout(
+      30.seconds,
+    ) in {
+      Files.deleteIfExists(TodoStore.file)
+      TuiTest.live(TodoApp, 48, 12) { t =>
+        t.typeText("milk\n")
+          .andThen(t.state)
+          .map(s => assert(s.items.map(_.title) == Vector("milk")))
+      }
+    }
+
+    "live: the state an app quits with is the last state".timeout(
+      30.seconds,
+    ) in {
+      val app = App[Int](
+        1,
+        n => text(n.toString),
+        (n, e) => if e == Key.Char('q') then Quit(n * 10) else n + 1,
+      )
+      TuiTest.live(app, 10, 1) { t =>
+        t.press('+', 'q')
+          .andThen(t.state)
+          .map(n => assert(n == 20))
+          .andThen(t.quit)
+          .map(q => assert(q))
+      }
+    }
 end LiveKitTest

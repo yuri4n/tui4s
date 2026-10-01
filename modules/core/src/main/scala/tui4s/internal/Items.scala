@@ -23,13 +23,16 @@ private[tui4s] final class Done(
     val result: Result[Throwable, Any],
 )
 
-/** A request for a notice after the batch that holds it: `settle`. The render
-  * fiber completes `promise` after the draw decision of that batch; with
-  * `untilIdle`, only once no `task` body is running.
+/** A request for a notice from the render fiber (the live kit's `settle`). It
+  * completes `promise` after the first draw decision at which more than `after`
+  * batches of the app were folded (`Stats.batches`): with -1, the decision of
+  * the batch that holds it (everything put before it is folded and drawn); with
+  * the count that the caller last saw, the decision after the next news from
+  * the app. A probe whose promise is already complete is dropped.
   */
 private[tui4s] final class Probe(
     val promise: Promise.Unsafe[Stats, Any],
-    val untilIdle: Boolean,
+    val after: Long,
 )
 
 /** The input thread failed. */

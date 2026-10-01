@@ -60,10 +60,12 @@ private[tui4s] final class Engine[S](
       */
     var quitReason: String | Null = null
 
-    /** When true, a `ClassCastException` from a fold leaves [[fold]] instead of
-      * ending the run (`TuiTest.emit` turns it into an assertion error).
+    /** The class of a value that `TuiTest.emit` folds now; `null` otherwise. A
+      * `ClassCastException` from a fold that names this class (the value does
+      * not fit the fold) leaves [[fold]] instead of ending the run: `emit`
+      * turns it into an assertion error. Any other one is an `AppFailed`.
       */
-    var rethrowClassCast: Boolean = false
+    var emittedClass: Class[?] | Null = null
 
     /** The last folded resize; the runtime resizes a test backend before the
       * next draw.
@@ -158,7 +160,7 @@ private[tui4s] final class Engine[S](
                         quit = true
                         quitReason = "ctrl-c"
                       case _                                =>
-                        val ev   = e match
+                        val ev = e match
                             case r: Resize =>
                               resize = true
                               pendingResize = r
@@ -166,8 +168,8 @@ private[tui4s] final class Engine[S](
                             case m: Mouse  =>
                               m.copy(tags = painter.tagsAt(m.x, m.y))
                             case other     => other
-                        val code = EventCode(ev)
                         if tracing then
+                            val code = EventCode(ev)
                             recIn += code
                             where = "update on " + code
                         try
@@ -176,7 +178,7 @@ private[tui4s] final class Engine[S](
                                 quitReason = "update"
                         catch
                             case NonFatal(t) =>
-                              fail("update on " + code, t)
+                              fail("update on " + EventCode(ev), t)
                               failed = true
                         end try
                   end match
@@ -214,13 +216,14 @@ private[tui4s] final class Engine[S](
                                   quit = true
                                   quitReason = "fold"
                           catch
-                              case c: ClassCastException if rethrowClassCast =>
+                              case c: ClassCastException
+                                  if Engine.castOf(c, emittedClass) =>
                                 // The value never folded: undo its counts.
                                 folds -= 1
                                 batches -= 1
                                 clearRecord()
                                 throw c
-                              case NonFatal(t)                               =>
+                              case NonFatal(t) =>
                                 fail("fold of " + label, t)
                                 failed = true
                           end try
@@ -432,15 +435,16 @@ private[tui4s] final class Engine[S](
     /** Writes out buffered trace lines (the render fiber goes idle). */
     def flushTrace(): Unit = if tracing then tracer.nn.flush()
 
-    /** Completes the probes of the decided batches: at once, or (`untilIdle`)
-      * once no `task` body runs.
+    /** After a draw decision: completes each probe whose batch count is reached
+      * (a plain probe at once, a news probe once the app folded a new batch),
+      * and forgets the probes that their caller completed.
       */
     def completeProbes()(using AllowUnsafe): Unit =
       if probes.nonEmpty then
-          val idle = sup.busyTasks == 0
-          val st   = stats
+          val st = stats
           probes.filterInPlace { p =>
-            if !p.untilIdle || idle then
+            if p.promise.done() then false
+            else if batches > p.after then
                 p.promise.completeDiscard(Result.succeed(st))
                 false
             else true
@@ -560,6 +564,14 @@ private[tui4s] final class Engine[S](
 end Engine
 
 private[tui4s] object Engine:
+    /** True when `c` is the cast of a value of class `cls` (the JVM message
+      * starts with "class <name> cannot be cast").
+      */
+    def castOf(c: ClassCastException, cls: Class[?] | Null): Boolean =
+        val m = c.getMessage
+        cls != null && m != null &&
+        m.startsWith("class " + cls.getName + " cannot be cast")
+
     /** Level 1: the same object. Boxed primitives and strings compare with `==`
       * (an `Int` above 127 is boxed again by each `+ 1`).
       */
