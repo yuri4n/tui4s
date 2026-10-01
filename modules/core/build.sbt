@@ -6,5 +6,9 @@ libraryDependencies ++= Seq(
   "com.olvind.jatatui" % "jatatui-core"      % Versions.jatatui,
   "com.olvind.jatatui" % "jatatui-widgets"   % Versions.jatatui,
   "com.olvind.jatatui" % "jatatui-crossterm" % Versions.jatatui,
-  "org.scalameta"     %% "munit"             % Versions.munit % Test,
+  "io.getkyo"         %% "kyo-test-runner"   % Versions.kyo % Test,
 )
+
+// kyo-test (the Kyo project's own test framework, released with Kyo).
+// Use `+=`: `:=` would drop the other frameworks.
+Test / testFrameworks += new TestFramework("kyo.test.runner.SbtFramework")

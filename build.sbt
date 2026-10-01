@@ -27,6 +27,9 @@ ThisBuild / scalacOptions ++= Seq(
   "-Wvalue-discard",
   "-Wnonunit-statement",
   "-Yexplicit-nulls",
+  // Each inlined Kyo method that carries @nowarn adds this warning, with no
+  // source position, under -Wunused:all. It says nothing about our code.
+  "-Wconf:msg=@nowarn annotation does not suppress any warnings:s",
 )
 
 // Unreleased inter-project deps have dynver versions like 0.2.0+3-1a2b3c4d.
