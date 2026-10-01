@@ -14,7 +14,8 @@ import tui4s.*
   *
   * Java records are not Scala extractors, so the matches use type patterns.
   * Every match lists all cases of the sealed Java interface, so a new crossterm
-  * case is a compile warning here.
+  * case is a compile error here (`modules/core/build.sbt` makes the
+  * exhaustivity warning of this file an error).
   */
 private[tui4s] object EventMapping:
     /** The tui4s event for `e`; `null` for an event that tui4s ignores (a key

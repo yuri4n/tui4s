@@ -26,3 +26,9 @@ Test / javaOptions ++= Seq(
   "--sun-misc-unsafe-memory-access=allow",
   "--enable-native-access=ALL-UNNAMED",
 )
+
+// SPEC 2.4: the matches in EventMapping list every case of crossterm's sealed
+// Java types. A case that a jatatui upgrade adds must stop the build: as a
+// warning it would only show at run time, as a MatchError on the input thread.
+Compile / scalacOptions +=
+  "-Wconf:msg=match may not be exhaustive&src=.*/EventMapping\\.scala:e"
