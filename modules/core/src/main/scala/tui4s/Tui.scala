@@ -5,13 +5,48 @@ import _root_.kyo.*
 import _root_.tui4s.internal.Fold
 import _root_.tui4s.internal.HandleObserver
 import _root_.tui4s.internal.Item
+import _root_.tui4s.internal.NativeCrossterm
 import _root_.tui4s.internal.Runner
 import _root_.tui4s.internal.Stop
 import _root_.tui4s.internal.TerminalControl
+import _root_.tui4s.internal.TuiRun
 import _root_.tui4s.spi.InputPort
 
-/** Runs apps. */
+/** Runs apps in the real terminal. A Kyo app with its own `main` uses these;
+  * [[TuiApp]] calls [[run]] for you.
+  *
+  * The JVM needs `--enable-native-access=ALL-UNNAMED` (crossterm is a native
+  * library) and a terminal on stdin and stdout.
+  */
 object Tui:
+    /** Runs `app` in the real terminal until it quits, and returns the last
+      * state.
+      *
+      * The terminal is restored before this computation completes, also when
+      * the app fails and when the fiber is interrupted. While the UI is up, the
+      * Kyo log goes to `TuiOptions.logFile` or to memory, and (with
+      * `TuiOptions.captureOutput`) so does `System.out` and `System.err`; what
+      * was kept in memory is printed to stderr after the restore.
+      *
+      * Fails with `TuiError.NotATerminal` when stdin or stdout is not a
+      * terminal, and with `TuiError.NativeAccessDenied` when the JVM does not
+      * allow the native library.
+      */
+    def run[S](app: App[S])(using Frame): S < (Async & Abort[TuiError]) =
+      TuiRun.run(app, NativeCrossterm())
+
+    /** Starts `app` in the real terminal on its own fiber and returns a handle
+      * once the first frame is drawn. The end of the scope stops the app.
+      *
+      * On an interrupted scope the restore can finish shortly after the scope
+      * ends (Kyo runs `Scope` finalizers of an interrupted fiber on another
+      * fiber); `handle.stop` and `handle.await` wait for it. When the app fails
+      * before its first frame, the start fails with that [[TuiError]] as a
+      * panic.
+      */
+    def start[S](app: App[S])(using Frame): TuiHandle[S] < (Async & Scope) =
+      TuiRun.start(app, NativeCrossterm())
+
     /** The run seam of the facades and the tests: `app` on `control` (the
       * terminal side of SPEC 5.9) with input from `input`. The terminal is
       * released before the result is visible, also on interruption.
