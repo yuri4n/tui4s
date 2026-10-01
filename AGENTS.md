@@ -80,29 +80,35 @@ request, and the release runs `<m>/versionCheck`.
 
 ## Releasing
 
-Each module has its own version and its own tag. A tag push publishes only that
-module to Maven Central (see `.github/workflows/release.yml`).
+Each module has its own version and its own tag. A tag push uploads only that
+module to Maven Central (see `.github/workflows/release.yml`). The upload is
+not public: Central keeps it until a human publishes it.
 
 1. Merge to `main` and wait until CI is green.
 2. Do a dry run: `scripts/release.sh <module> <version> --dry-run`.
 3. Release: `scripts/release.sh <module> <version>`. The script checks the
    module, creates the tag `<module>-v<version>`, and pushes only that tag.
+4. Wait until the release run is green. Then, at
+   https://central.sonatype.com/publishing/deployments, click **Publish**
+   (or **Drop** to cancel). Then publish the draft GitHub release.
 
 If the script says that an inter-project dependency is unreleased, release that
-module first (`core` before `zio` and `cats`). Wait until its release run is
-complete, then try again. Push only one release tag at a time: GitHub ignores a
-push of more than three tags.
+module first (`core` before `zio` and `cats`). Publish it on Central, then try
+again. Push only one release tag at a time: GitHub ignores a push of more than
+three tags.
 
-**Agents:** a release tag publishes a public artifact to Maven Central, and you
-cannot remove it. You can run `--dry-run` at any time. You must get approval
-from a human in the chat before you run `scripts/release.sh` without
-`--dry-run`. Never use `--yes` on your own decision.
+**Agents:** a published release is public on Maven Central, and you cannot
+remove it. You can run `--dry-run` at any time. You must get approval from a
+human in the chat before you run `scripts/release.sh` without `--dry-run`.
+Never use `--yes` on your own decision. Never publish or drop a deployment on
+central.sonatype.com: only a human does that.
 
 One-time setup (human): sign in to central.sonatype.com with GitHub (this
 verifies `io.github.yuri4n`), make a user token, make a GPG key, and put its
 public key on a key server. Then add these secrets to the GitHub environment
 `maven-central`: `PGP_SECRET`, `PGP_PASSPHRASE`, `SONATYPE_USERNAME`,
-`SONATYPE_PASSWORD`.
+`SONATYPE_PASSWORD`. The environment accepts only the tags `core-v*`, `zio-v*`
+and `cats-v*`.
 
 | Error message                                          | Cause and fix                                                       |
 | ------------------------------------------------------ | ------------------------------------------------------------------- |

@@ -69,9 +69,11 @@ RELEASE_VERSION=$version sbt -batch "stageModule $module" "$module/versionCheck"
 if $dry_run; then echo "==> Dry run OK: $tag is releasable."; exit 0; fi
 
 if ! $assume_yes; then
-  read -r -p "Push $tag to $REMOTE and publish tui4s-$module $version to Maven Central? [y/N] " answer
+  read -r -p "Push $tag to $REMOTE and upload tui4s-$module $version to Maven Central? [y/N] " answer
   [[ $answer == y || $answer == Y ]] || die "aborted"
 fi
 git push "$REMOTE" "refs/tags/$tag"
 pushed=true
 echo "==> Pushed $tag. Follow the release: gh run list --workflow release.yml --limit 1"
+echo "==> When the run is green, publish the deployment at https://central.sonatype.com/publishing/deployments"
+echo "    (nothing is public before that), then publish the draft GitHub release."

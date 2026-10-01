@@ -17,7 +17,8 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment: maven-central # holds the secrets; add required reviewers for a manual gate
+    # Holds the secrets. Only tags core-v*, zio-v* and cats-v* can use it.
+    environment: maven-central
     steps:
       - uses: actions/checkout@v7
         with:
@@ -52,28 +53,38 @@ jobs:
           MODULE: ${{ steps.tag.outputs.module }}
         run: sbt -v "$MODULE/test"
 
-      - name: Publish to Maven Central
+      - name: Upload to Maven Central (you publish it by hand)
         env:
           MODULE: ${{ steps.tag.outputs.module }}
           RELEASE_VERSION: ${{ steps.tag.outputs.version }}
           # sbt-ci-release runs: $CI_CLEAN (default "; clean") ; $CI_RELEASE ; $CI_SONATYPE_RELEASE
           CI_RELEASE: "; ${{ steps.tag.outputs.module }}/assertReleasable; ${{ steps.tag.outputs.module }}/versionCheck; ${{ steps.tag.outputs.module }}/publishSigned"
-          # sonaRelease must run with the module as current project (root version is a snapshot)
-          CI_SONATYPE_RELEASE: "; project ${{ steps.tag.outputs.module }}; sonaRelease"
+          # sonaUpload = Central "user managed" deployment: Central validates the bundle, then waits
+          # until a human clicks Publish (or Drop) at central.sonatype.com/publishing/deployments.
+          # It must run with the module as the current project (the root version is a snapshot).
+          CI_SONATYPE_RELEASE: "; project ${{ steps.tag.outputs.module }}; sonaUpload"
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
         run: sbt -v ci-release
 
-      - name: GitHub release
+      # A draft: publish it after you publish the deployment on Central.
+      - name: GitHub release (draft)
         env:
           GH_TOKEN: ${{ github.token }}
           MODULE: ${{ steps.tag.outputs.module }}
           VERSION: ${{ steps.tag.outputs.version }}
         run: |
           PREV=$(git describe --tags --abbrev=0 --match "${MODULE}-v[0-9]*" "${GITHUB_SHA}^" 2>/dev/null || true)
-          ARGS=(--title "tui4s-${MODULE} ${VERSION}" --generate-notes --verify-tag)
+          ARGS=(--title "tui4s-${MODULE} ${VERSION}" --generate-notes --verify-tag --draft)
           [[ -n "$PREV" ]] && ARGS+=(--notes-start-tag "$PREV")
           [[ "$VERSION" == *-* ]] && ARGS+=(--prerelease)
           gh release create "$GITHUB_REF_NAME" "${ARGS[@]}"
+          {
+            echo "## tui4s-${MODULE} ${VERSION} is uploaded, not published"
+            echo
+            echo "1. Check and publish the deployment: https://central.sonatype.com/publishing/deployments"
+            echo "   (or click Drop to cancel the release)."
+            echo "2. Publish the draft GitHub release: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases"
+          } >> "$GITHUB_STEP_SUMMARY"
