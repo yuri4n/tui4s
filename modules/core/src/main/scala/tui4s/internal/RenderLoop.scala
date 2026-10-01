@@ -214,44 +214,51 @@ private[tui4s] object Runner:
         val frameNanos = if opts.fps <= 0 then 0L else 1_000_000_000L / opts.fps
         // A synchronous release (F8): it has run when the result is visible,
         // also on interruption. Never a Scope finalizer for the terminal.
-        Sync.acquireReleaseWith(Session.open(opts, control, input, inbox))(s =>
-          Sync.Unsafe.defer(s.close()),
-        ) { session =>
-          Sync.Unsafe
-            .defer {
-              val tracer =
-                opts.trace.map(TraceWriter.open).getOrElse(null)
-              val sup    = Supervisor[S]()
-              val engine = Engine(app, opts, Painter(opts.theme), sup, tracer)
-              (engine, Launcher(sup, inbox), tracer)
-            }
-            .map { (engine, launcher, tracer) =>
-              Sync.ensure(
-                launcher.stopAll.andThen(Sync.Unsafe.defer {
-                  engine.finish("interrupted")
-                  if observer != null then observer.ended(engine)
-                  Session.closeInbox(inbox)
-                  engine.completeAllProbes()
-                  if tracer != null then tracer.close()
-                }),
-              )(
-                RenderLoop(
-                  engine,
-                  launcher,
-                  inbox,
-                  session.terminal,
-                  control,
-                  frameNanos,
-                  observer,
-                ).run,
-              )
-            }
+        Sync.acquireReleaseWith(Session.open(opts, control, input, inbox))(
+          opened => Sync.Unsafe.defer(opened.foreach(_.close())),
+        ) { opened =>
+          Abort.get(opened).map { session =>
+            Sync.Unsafe
+              .defer {
+                val tracer =
+                  opts.trace.map(TraceWriter.open).getOrElse(null)
+                val sup    = Supervisor[S]()
+                val engine = Engine(app, opts, Painter(opts.theme), sup, tracer)
+                (engine, Launcher(sup, inbox), tracer)
+              }
+              .map { (engine, launcher, tracer) =>
+                Sync.ensure(
+                  launcher.stopAll.andThen(Sync.Unsafe.defer {
+                    engine.finish("interrupted")
+                    if observer != null then observer.ended(engine)
+                    Session.closeInbox(inbox)
+                    engine.completeAllProbes()
+                    if tracer != null then tracer.close()
+                  }),
+                )(
+                  RenderLoop(
+                    engine,
+                    launcher,
+                    inbox,
+                    session.terminal,
+                    control,
+                    frameNanos,
+                    observer,
+                  ).run,
+                )
+              }
+          }
         }
     end runOn
 
     /** Starts `app` on its own fiber, without a scope, and returns its handle
-      * once the first frame is drawn (or the run ended). The caller stops it:
-      * the facades use their own bracket, never a Kyo `Scope` (F8).
+      * once the first frame is drawn. The caller stops it: the facades use
+      * their own bracket, never a Kyo `Scope` (F8).
+      *
+      * When the run ends before its first frame (`init`, `sources` or the first
+      * paint threw, or the terminal could not be opened), there is no state for
+      * a handle: the start fails with that [[TuiError]] as a panic (the public
+      * start signatures have no `Abort[TuiError]`; see [[startOrFail]]).
       */
     def startUnscoped[S](
         app: App[S],
@@ -259,6 +266,24 @@ private[tui4s] object Runner:
         input: Option[spi.InputPort],
         extra: Observer[S] | Null = null,
     )(using Frame): TuiHandle[S] < Async =
+      Abort.recover[TuiError](e => Abort.panic(e))(
+        startOrFail(app, control, input, extra),
+      )
+
+    /** [[startUnscoped]], failing with the [[TuiError]] of a run that ended
+      * before its first frame.
+      *
+      * The run fiber is the acquire of a bracket: if the caller is interrupted
+      * (or fails) before it has the handle, the release interrupts the run,
+      * which then releases the terminal. Nothing else holds the fiber (it is
+      * unparented) until the handle is returned.
+      */
+    def startOrFail[S](
+        app: App[S],
+        control: TerminalControl,
+        input: Option[spi.InputPort],
+        extra: Observer[S] | Null = null,
+    )(using Frame): TuiHandle[S] < (Async & Abort[TuiError]) =
         val opts = app.options
         Channel
           .initUnscoped[Item](
@@ -267,17 +292,37 @@ private[tui4s] object Runner:
           )
           .map { inbox =>
             Sync.Unsafe.defer(HandleObserver[S](extra)).map { obs =>
-              Fiber
-                .initUnscoped(runOn(app, opts, control, input, inbox, obs))
-                .map { fiber =>
-                  Sync.Unsafe
-                    .defer(fiber.unsafe.onComplete(_ => obs.release()))
-                    .andThen(obs.ready.safe.get)
-                    .andThen(TuiHandle[S](inbox, fiber, obs))
-                }
+              Sync.acquireReleaseWith(
+                Fiber.initUnscoped(runOn(app, opts, control, input, inbox, obs)),
+              )(fiber =>
+                Sync.Unsafe.defer(
+                  if !obs.handedOut then discard(fiber.unsafe.interrupt()),
+                ),
+              ) { fiber =>
+                Sync.Unsafe
+                  .defer(fiber.unsafe.onComplete(_ => obs.release()))
+                  .andThen(obs.ready.safe.get)
+                  .andThen(Sync.Unsafe.defer(obs.states))
+                  .map { ref =>
+                    if ref != null then
+                        Sync.Unsafe.defer {
+                          obs.handedOut = true
+                          TuiHandle[S](inbox, fiber, obs, ref)
+                        }
+                    else
+                        fiber.getResult.map {
+                          case Result.Failure(e) => Abort.fail(e)
+                          case Result.Panic(t)   => Abort.panic(t)
+                          case Result.Success(_) =>
+                            Abort.panic(
+                              IllegalStateException("the run ended unseen"),
+                            )
+                        }
+                  }
+              }
             }
           }
-    end startUnscoped
+    end startOrFail
 
     /** [[startUnscoped]]; the end of the scope stops the app and waits for the
       * release.
@@ -301,6 +346,9 @@ private[tui4s] final class HandleObserver[S](extra: Observer[S] | Null)(using
     /** Completed after the first frame, or when the run ended without one. */
     val ready: Promise.Unsafe[Unit, Any] = Promise.Unsafe.init[Unit, Any]()
 
+    /** Set by the starter once the caller has the handle (and stops it). */
+    var handedOut: Boolean = false
+
     @volatile private var ref: Signal.SignalRef[S] | Null = null
     @volatile var stats: Stats                            = Session.noStats
 
@@ -322,8 +370,13 @@ private[tui4s] final class HandleObserver[S](extra: Observer[S] | Null)(using
         if extra != null then extra.published(engine, terminal, drawn)
     end published
 
+    /** The state the run ended with (`Quit(last)`, the state of a quitting
+      * batch) is the last one of [[states]].
+      */
     override def ended(engine: Engine[S])(using AllowUnsafe): Unit =
         stats = engine.stats
+        val r = ref
+        if r != null then r.unsafe.set(engine.state)
         if extra != null then extra.ended(engine)
 
     /** The run ended: release a caller that waits for the first frame. */

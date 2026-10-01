@@ -223,4 +223,93 @@ class RuntimeTest extends Test[Any]:
           Files.delete(file)
         }
     }
+
+    "the handle's states end with the state the app quits with".timeout(
+      30.seconds,
+    ) in {
+      val app = App[Int](
+        1,
+        n => text(n.toString),
+        (n, e) => if e == Key.Char('q') then Quit(n * 10) else n + 1,
+      )
+      Scope.run(
+        spi.Headless
+          .start(
+            app,
+            jatatui.core.backend.TestBackend(10, 1),
+            ScriptedInput('+', 'q'),
+          )
+          .map(h =>
+            h.await.map(last =>
+              h.states.current.map(now => assert(last == 20 && now == 20)),
+            ),
+          ),
+      )
+    }
+
+    "a caller interrupted before the first frame stops the run it started"
+      .timeout(30.seconds) in {
+      val control = RecordingControl(20, 2)
+      val first   = java.util.concurrent.atomic.AtomicBoolean(true)
+      val slow    = App[Int](
+        0,
+        n =>
+            if first.getAndSet(false) then Thread.sleep(300)
+            text(n.toString)
+        ,
+        (n, _) => n,
+      )
+      Abort
+        .run[Timeout](
+          Async.timeout(50.millis)(
+            Tui.startWith(slow, control, ScriptedInput.never),
+          ),
+        )
+        .map { r =>
+          eventually()(control.events.contains("leave-raw-mode"))
+            .map(left => assert(r.isFailure && left, s"$r ${control.events}"))
+        }
+    }
+
+    "a run that fails before its first frame gives no handle: start panics"
+      .timeout(30.seconds) in {
+      val boom = new IllegalStateException("no init")
+      val app  = new App[Int]:
+          def init: Int                           = throw boom
+          def view(n: Int): View                  = text(n.toString)
+          def update(n: Int, e: Event): Next[Int] = n
+      Abort
+        .run[Throwable](
+          Scope.run(
+            spi.Headless.start(
+              app,
+              jatatui.core.backend.TestBackend(10, 1),
+              ScriptedInput.empty,
+            ),
+          ),
+        )
+        .map { r =>
+          r.failureOrPanic match
+              case Present(TuiError.AppFailed("init", e)) => assert(e eq boom)
+              case _                                      =>
+                assert(false, s"unexpected: $r")
+        }
+    }
+
+    "RecordingControl.screen is the frame copied at the last flush".timeout(
+      30.seconds,
+    ) in {
+      val control = RecordingControl(40, 5)
+      val input   = ScriptedInput('+')
+      Fiber.initUnscoped(Tui.runWith(CounterApp, control, input)).map { fiber =>
+        eventually()(control.screen.contains("Count: 1"))
+          .andThen(Sync.defer(input.push(Key.Char('q'))))
+          .andThen(fiber.get)
+          .map { n =>
+            control.backend.resize(5, 1) /* the live buffer changes, the copy
+             * not */
+            assert(n == 1 && control.screen.contains("Count: 1"))
+          }
+      }
+    }
 end RuntimeTest

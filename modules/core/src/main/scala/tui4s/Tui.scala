@@ -24,7 +24,9 @@ object Tui:
       Runner.run(app, control, Some(input))
 
     /** The start seam: `app` on its own fiber; the handle comes after the first
-      * frame. The caller stops it.
+      * frame. The caller stops it. A caller interrupted before it has the
+      * handle stops the app. When the app fails before its first frame, the
+      * start fails with that [[TuiError]] as a panic.
       */
     private[tui4s] def startWith[S](
         app: App[S],
@@ -41,6 +43,7 @@ final class TuiHandle[S] private[tui4s] (
     private[tui4s] val inbox: Channel[Item],
     fiber: Fiber[S, Abort[TuiError]],
     observer: HandleObserver[S],
+    signal: Signal.SignalRef[S],
 ):
     /** Folds `f` into the state, like a source would. Dropped after the end. */
     def update(f: S => Next[S])(using Frame): Unit < Async =
@@ -50,16 +53,10 @@ final class TuiHandle[S] private[tui4s] (
     def send(event: Event)(using Frame): Unit < Async =
       Abort.run[Closed](inbox.put(event)).unit
 
-    /** The state after each batch, from `init` on (equal states once). When the
-      * app failed before its first frame, the signal holds `null`.
+    /** The state after each batch, from `init` on (equal states once), up to
+      * the state the app ended with.
       */
-    def states: Signal[S] =
-        val s = observer.states
-        if s != null then s
-        else
-            import AllowUnsafe.embrace.danger
-            given CanEqual[S, S] = CanEqual.derived
-            Signal.SignalRef.Unsafe.init[S](null.asInstanceOf[S]).safe
+    def states: Signal[S] = signal
 
     /** A snapshot of the counters, taken after the last batch. */
     def stats(using Frame): Stats < Sync = Sync.defer(observer.stats)
@@ -70,6 +67,10 @@ final class TuiHandle[S] private[tui4s] (
     /** Stops the app like `Quit`; returns when the terminal is released. */
     def stop(using Frame): Unit < Async =
       Abort.run[Closed](inbox.put(Stop)).andThen(fiber.getResult).unit
+
+    /** The result of the run, failure included, once it ended. */
+    private[tui4s] def result(using Frame): Result[TuiError, S] < Async =
+      fiber.getResult
 
     /** True after the run ended. */
     private[tui4s] def ended(using Frame): Boolean < Sync = fiber.done

@@ -65,6 +65,9 @@ private[tui4s] final class Session private (
 ):
     private val closed = AtomicBoolean(false)
 
+    // The thread that runs `close` was interrupted during the release.
+    private var interrupted = false
+
     /** The first error of the release, if any (the app classes print it after
       * the restore).
       */
@@ -73,7 +76,9 @@ private[tui4s] final class Session private (
     /** The release (SPEC 5.9, G8): stop the input thread and close the inbox (a
       * put that waits for room ends, so the thread is released), join the
       * thread, then leave the terminal modes. Synchronous, idempotent, never
-      * throws; every step runs even if an earlier one failed.
+      * throws; every step runs even if an earlier one failed. An interrupt of
+      * the calling thread does not cut the release short: the interrupt flag is
+      * set again after the last step.
       */
     def close()(using AllowUnsafe, Frame): Unit =
       if closed.compareAndSet(false, true) then
@@ -82,28 +87,50 @@ private[tui4s] final class Session private (
           if thread != null then
               safely(control.step("input-stopped"))
               safely {
-                if thread.stopAndJoin(2L * opts.pollMillis.max(0) + 50) then
+                if join(thread, 2L * opts.pollMillis.max(0) + 50) then
                     control.step("input-joined")
                 else control.step("input-hung")
               }
           safely(control.leave(opts))
+          if interrupted then Thread.currentThread().interrupt()
+
+    /** Waits at most `timeoutMillis` for `t` to end; true when it ended. An
+      * interrupt is remembered and the wait goes on.
+      */
+    private def join(t: Thread, timeoutMillis: Long): Boolean =
+        val deadline = java.lang.System.nanoTime() + timeoutMillis * 1_000_000
+        var left     = timeoutMillis
+        while t.isAlive && left > 0 do
+            try t.join(left)
+            catch case _: InterruptedException => interrupted = true
+            left =
+              (deadline - java.lang.System.nanoTime() + 999_999) / 1_000_000
+        !t.isAlive
+    end join
 
     private def safely(f: => Unit): Unit =
       try f
-      catch case NonFatal(e) => if releaseError == null then releaseError = e
+      catch
+          case _: InterruptedException => interrupted = true
+          case NonFatal(e)             =>
+            if releaseError == null then releaseError = e
 end Session
 
 private[tui4s] object Session:
     /** Opens the terminal through `control` and starts the input thread on
       * `input` (none for `None`). A failure leaves the terminal modes again and
-      * fails with a [[TuiError]].
+      * gives the [[TuiError]].
+      *
+      * One step, with no `map` after it: as the acquire of a bracket, its value
+      * reaches the bracket with no point in between where an interrupt could
+      * drop an open session.
       */
     def open(
         opts: TuiOptions,
         control: TerminalControl,
         input: Option[InputPort],
         inbox: Channel[Item],
-    )(using Frame): Session < (Sync & Abort[TuiError]) =
+    )(using Frame): Either[TuiError, Session] < Sync =
       Sync.Unsafe
         .defer {
           try
@@ -134,7 +161,6 @@ private[tui4s] object Session:
               case e: TuiError => Left(e)
               case NonFatal(e) => Left(TuiError.TerminalIO(e))
         }
-        .map(r => Abort.get(r))
 
     /** Closes the inbox. The items that were still in it are dropped, except
       * that a waiting `settle` (a [[Probe]]) is released.
@@ -188,16 +214,12 @@ private[tui4s] final class InputThread(
         catch
             case _: InterruptedException => ()
             case NonFatal(e)             =>
-              discard(inbox.unsafe.offer(Failed(TuiError.TerminalIO(e))))
+              // A put that waits for room (an offer drops the failure when the
+              // inbox is full); closing the inbox ends it.
+              discard(inbox.unsafe.putFiber(Failed(TuiError.TerminalIO(e))))
         end try
     end run
 
     /** Asks the thread to stop after its current poll. */
     def requestStop(): Unit = running = false
-
-    /** Stops the thread and waits at most `timeoutMillis`; true when it ended. */
-    def stopAndJoin(timeoutMillis: Long): Boolean =
-        running = false
-        join(timeoutMillis)
-        !isAlive
 end InputThread

@@ -329,4 +329,36 @@ class SourceTest extends Test[Any]:
       val gone    = intercept[AssertionError](u.fail("nope", new RuntimeException))
       assert(gone.getMessage.contains("fail(nope)"))
     }
+
+    "the declared sources keep the order of sources(state)" in {
+      final case class P(paused: Boolean = false, flip: Boolean = false)
+          derives CanEqual
+      val s   = Source.For[P]
+      val app = App[P](
+        P(),
+        _ => text("x"),
+        (p, e) =>
+          e match
+              case Key.Char('p') => p.copy(paused = !p.paused)
+              case Key.Char('f') => p.copy(flip = !p.flip)
+              case _             => p
+        ,
+        p =>
+            val cpu  = s.every(1.second)(identity).id("cpu")
+            val logs = s.every(1.second)(identity).id("logs")
+            val all  = (if p.paused then Nil else Seq(cpu)) ++ Seq(logs)
+            if p.flip then all.reverse else all,
+      )
+      val t   = TuiTest(app, 10, 1)
+      assert(t.sources == Seq("cpu", "logs"))
+      t.press('p')
+      assert(t.sources == Seq("logs"))
+      t.press('p')
+      assert(t.sources == Seq("cpu", "logs"))
+      t.press('f')
+      assert(t.sources == Seq("logs", "cpu"))
+      assert(
+        !t.lastTrace.contains("\"start\"") && !t.lastTrace.contains("\"stop\""),
+      )
+    }
 end SourceTest

@@ -24,7 +24,9 @@ object Headless:
       Runner.run(app, HeadlessControl(backend), Some(input))
 
     /** Starts `app` on its own fiber; the end of the scope stops it. The handle
-      * comes after the first frame.
+      * comes after the first frame. When the app fails before its first frame
+      * (`init`, `sources` or the first paint threw), there is no state for a
+      * handle: the start fails with that [[TuiError]] as a panic.
       */
     def start[S](app: App[S], backend: Backend, input: InputPort)(using
         Frame,

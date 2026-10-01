@@ -74,7 +74,8 @@ private[tui4s] final class Supervisor[S]:
 
     /** After a change: diff the declared sources by label (SPEC 2.13 rule 6).
       * Duplicate labels get `#1`, `#2` suffixes. Missing labels stop, new
-      * labels start, kept labels take the newest declaration.
+      * labels start, kept labels take the newest declaration. The declared
+      * order is the order of `wanted`.
       */
     def sync(wanted: Seq[Source[S]]): Unit =
         val labelled = Supervisor.suffixed(wanted)
@@ -93,6 +94,18 @@ private[tui4s] final class Supervisor[S]:
           if r != null then r.source = s
           else discard(standing.put(s.label, fresh(s, isStanding = true)))
         }
+        // A kept label stays where it was and a new one comes last: put them
+        // in the declared order again when that order changed.
+        val keys     = standing.keySet().iterator()
+        val inOrder  =
+          labelled.forall(s => keys.hasNext && keys.next() == s.label)
+        if !inOrder then
+            val ordered = new java.util.LinkedHashMap[String, Running[S]]()
+            labelled.foreach(s =>
+              discard(ordered.put(s.label, standing.get(s.label))),
+            )
+            standing.clear()
+            standing.putAll(ordered)
     end sync
 
     /** One-shot tasks returned with a transition, in order (SPEC 2.13 rule 9).
@@ -270,20 +283,29 @@ private[tui4s] final class Launcher[S](
       * control in tests, the facades' ambient runtimes). A scoped `Fiber.init`
       * would add one finalizer per start to a scope that lives as long as the
       * app.
+      *
+      * The start is the acquire of a bracket: its release is owed as the fiber
+      * exists. An interrupt of the render fiber before the fiber is recorded in
+      * `r` interrupts it there (nothing else could: [[stopAll]] finds no fiber
+      * in `r`).
       */
     private def startOne(r: Running[S])(using Frame): Unit < Sync =
       if r.stopped then Kyo.unit
       else
-          Fiber
-            .initUnscoped(r.source.body(TokenEmitter(inbox, r.token)))
-            .map { fiber =>
-              Sync.Unsafe.defer {
-                r.fiber = fiber
-                fiber.unsafe.onComplete { result =>
-                  discard(inbox.unsafe.putFiber(Done(r.token, result)))
-                }
+          Sync.acquireReleaseWith(
+            Fiber.initUnscoped(r.source.body(TokenEmitter(inbox, r.token))),
+          )(fiber =>
+            Sync.Unsafe.defer(
+              if r.fiber == null then discard(fiber.unsafe.interrupt()),
+            ),
+          ) { fiber =>
+            Sync.Unsafe.defer {
+              r.fiber = fiber
+              fiber.unsafe.onComplete { result =>
+                discard(inbox.unsafe.putFiber(Done(r.token, result)))
               }
             }
+          }
 
     /** Interrupts every fiber and forgets every declaration. */
     def stopAll(using Frame): Unit < Sync =
@@ -295,12 +317,18 @@ private[tui4s] final class Launcher[S](
 end Launcher
 
 /** The emitter of one generation: each value carries the token, so a value of a
-  * stopped generation is dropped by the fold.
+  * stopped generation is dropped by the fold. After the run ended (the inbox is
+  * closed) an emit ends the body with a panic, so a body that escaped its
+  * interrupt stops at its next value.
   */
 private[tui4s] final class TokenEmitter(inbox: Channel[Item], token: Long)
     extends tui4s.spi.Emitter[Any]:
     def apply(value: Any)(using Frame): Unit < Async =
-      Abort.run[Closed](inbox.put(Fold(token, value))).unit
+      Abort.run[Closed](inbox.put(Fold(token, value))).map {
+        case Result.Success(_) => Kyo.unit
+        case Result.Failure(c) => Abort.panic(c)
+        case Result.Panic(t)   => Abort.panic(t)
+      }
 
     val unsafe: tui4s.spi.Emitter.Unsafe[Any] =
       new tui4s.spi.Emitter.Unsafe[Any]:
