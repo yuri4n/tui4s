@@ -3,16 +3,18 @@ package tui4s
 import kyo.*
 import kyo.test.*
 import tui4s.*
+import tui4s.testkit.*
 
-/** A file with `import kyo.*` and `import tui4s.*` that uses every name of the
-  * model and the view once: no name is ambiguous.
+/** A file with `import kyo.*`, `import kyo.test.*`, `import tui4s.*` and
+  * `import tui4s.testkit.*` that uses the public names of the model, the view
+  * and the test kit: no name is ambiguous.
   */
 class NameClashTest extends Test[Any]:
-    "kyo.* and tui4s.* together" in {
-      val keys                   = Keymap[Int](Bind[Int]('a', "a")(_ + 1).or(Key.Up))
-      val app: App[Int]          = App[Int](0, _ => empty, (n, _) => n)
-      val next: Next[Int]        = Quit(1)
-      val events: Seq[Event]     = Seq(
+    "kyo.*, kyo.test.*, tui4s.* and tui4s.testkit.* together" in {
+      val keys                     = Keymap[Int](Bind[Int]('a', "a")(_ + 1).or(Key.Up))
+      val app: App[Int]            = App[Int](0, _ => empty, (n, _) => n)
+      val next: Next[Int]          = Quit(1)
+      val events: Seq[Event]       = Seq(
         Key.Char('a'),
         Mouse(MouseKind.Down(Button.Left), 0, 0, Mods(), Nil),
         Resize(1, 1),
@@ -20,16 +22,16 @@ class NameClashTest extends Test[Any]:
         FocusGained,
         FocusLost,
       )
-      val focus                  = Focus(1, 2)
-      val field                  = TextField("x")
-      val span: Line.Span        = "x".bold
-      val kyoSpan: kyo.Span[Int] = kyo.Span(1, 2)
-      val style: Style           =
+      val focus                    = Focus(1, 2)
+      val field                    = TextField("x")
+      val span: Line.Span          = "x".bold
+      val kyoSpan: kyo.Span[Int]   = kyo.Span(1, 2)
+      val style: Style             =
         Style.bold.fg(Color.Red) ++ Style.bg(Color.rgb(1, 2, 3))
-      val options                = TuiOptions(viewport = Viewport.Inline(5), theme = Theme())
-      val error: TuiError        = TuiError.AppFailed("x", new Exception)
-      val stats                  = Stats(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-      val views: Seq[View]       = Seq(
+      val options                  = TuiOptions(viewport = Viewport.Inline(5), theme = Theme())
+      val error: TuiError          = TuiError.AppFailed("x", new Exception)
+      val stats                    = Stats(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+      val views: Seq[View]         = Seq(
         text("a", span).centered.right.wrap(false).scroll(1),
         paragraph("a", line("b".dim.italic.underlined.reversed.crossedOut)),
         column(empty, clear).gap(1).flex(Flex.Center),
@@ -66,13 +68,18 @@ class NameClashTest extends Test[Any]:
           .atMost(2),
         text("x".fg(Color.Gray).bg(Color.Black).styled(Style.default)),
       )
-      val withTask: Next[Int]    = 1.withTask()
-      val align: Seq[Align]      = Seq(Align.Left, Align.Center, Align.Right)
+      val withTask: Next[Int]      = 1.withTask()
+      val source: Seq[Source[Int]] = Seq.empty
+      val t: TuiTest[Int]          = TuiTest(app, 3, 1)
+      val screen: Screen           = t.screen
+      assertScreen(screen, "")
+      val align: Seq[Align]        = Seq(Align.Left, Align.Center, Align.Right)
       assert(
         keys(0, Key.Char('a')) == 1 && app.init == 0 && next != withTask &&
           events.size == 6 && focus.is(1) && field.cursor == 1 &&
           kyoSpan.size == 2 && options.paste && error.getMessage == "x threw" &&
-          stats.frames == 0 && views.size == 18 && align.size == 3,
+          stats.frames == 0 && views.size == 18 && align.size == 3 &&
+          source.isEmpty && diffScreen(screen, "").isEmpty,
       )
     }
 end NameClashTest

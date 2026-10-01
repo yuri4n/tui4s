@@ -78,6 +78,9 @@ object Color:
     def indexed(i: Int): Color = JColor.Indexed(i)
 
     private[tui4s] def toJ(c: Color): JColor = c
+
+    /** Colors compare with `==`, also under `-language:strictEquality`. */
+    given CanEqual[Color, Color] = CanEqual.derived
 end Color
 
 /** How text looks: colors and modifiers (bold, dim, ...). Styles combine:
@@ -117,6 +120,9 @@ object Style:
 
     private[tui4s] def toJ(s: Style): JStyle   = s
     private[tui4s] def fromJ(s: JStyle): Style = s
+
+    /** Styles compare with `==`, also under `-language:strictEquality`. */
+    given CanEqual[Style, Style] = CanEqual.derived
 
     /** Extension methods on [[Style]]. `dsl` (and so `import tui4s.*`)
       * re-exports them.
@@ -173,6 +179,12 @@ object Line:
 
     /** The empty line. */
     val empty: Line = JLine.empty()
+
+    /** Lines compare with `==`, also under `-language:strictEquality`. */
+    given CanEqual[Line, Line] = CanEqual.derived
+
+    /** Spans compare with `==`, also under `-language:strictEquality`. */
+    given CanEqual[Span, Span] = CanEqual.derived
 
     private[tui4s] def toSpan(p: String | Span): JSpan = p match
         case s: String => JSpan.raw(s)

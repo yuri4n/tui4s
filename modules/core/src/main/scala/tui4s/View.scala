@@ -19,7 +19,7 @@ import _root_.jatatui.core.widgets.Widget as JWidget
   * `x.size(3).bordered("t") == x.bordered("t").size(3)`. A decoration lifts the
   * size outside, so the size always applies to the decorated view.
   */
-sealed abstract class View:
+sealed abstract class View derives CanEqual:
     /** Exactly `cells` rows in a column, or columns in a row. */
     def size(cells: Int): View = sized(Constraint.Length(cells))
 

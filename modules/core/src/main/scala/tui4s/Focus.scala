@@ -17,7 +17,8 @@ package tui4s
   * @param index
   *   the position of the focused part in `order`
   */
-final class Focus[A] private (val order: Vector[A], val index: Int):
+final class Focus[A] private (val order: Vector[A], val index: Int)
+    derives CanEqual:
     /** The focused part. */
     def current: A = order(index)
 
