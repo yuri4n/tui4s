@@ -112,6 +112,6 @@ and `cats-v*`.
 
 | Error message                                          | Cause and fix                                                       |
 | ------------------------------------------------------ | ------------------------------------------------------------------- |
-| `SNAPSHOTs are not supported on the Central Portal`    | `sonaRelease` ran on the root project. Use `; project <m>; sonaRelease`. |
+| `SNAPSHOTs are not supported on the Central Portal`    | `sonaUpload` ran on the root project. Use `; project <m>; sonaUpload`. |
 | `Not releasable: ...`                                  | The tree is dirty, the tag and version are different, or a dependency is unreleased. |
 | `no credentials are found for central.sonatype.com`    | The `SONATYPE_*` variables are missing.                             |
