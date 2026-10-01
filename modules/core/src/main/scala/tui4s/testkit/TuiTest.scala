@@ -332,6 +332,37 @@ object TuiTest:
         t
     end replay
 
+    /** The real loop (fibers, supervisor, frame rules) on a test terminal,
+      * under `Clock.withTimeControl` and `Random.withSeed(0)`, with no frame
+      * cap (`fps = 0`, whatever the app's options say). The app stops when
+      * `test` ends. Kyo-typed; see [[liveBlocking]] for other frameworks.
+      *
+      * {{{
+      * TuiTest.live(DashboardApp, 72, 16) { t =>
+      *   t.advance(1.second).andThen(t.state).map(d => assert(d.history.size == 5))
+      * }
+      * }}}
+      */
+    def live[S, A](app: App[S], width: Int = 80, height: Int = 24)(
+        test: LiveTest[S] => A < (Async & Abort[Throwable]),
+    )(using Frame): A < (Async & Abort[Throwable]) =
+      LiveRun(app, width, height)(test)
+
+    /** [[live]] for blocking test frameworks (munit, JUnit): blocks the calling
+      * thread until `test` ends, at most `timeout`.
+      */
+    def liveBlocking[S, A](
+        app: App[S],
+        width: Int = 80,
+        height: Int = 24,
+        timeout: Duration = 30.seconds,
+    )(test: LiveTest[S] => A < (Async & Abort[Throwable]))(using Frame): A =
+        import AllowUnsafe.embrace.danger
+        KyoApp.Unsafe
+          .runAndBlock(timeout)(live(app, width, height)(test))
+          .getOrThrow
+    end liveBlocking
+
     /** The events of typing `text`, one per grapheme. */
     private[testkit] def typed(text: String): Vector[Event] =
       TextField.graphemes(text).map { g =>

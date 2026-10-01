@@ -76,6 +76,7 @@ private[tui4s] final class Engine[S](
     private var lastView: View | Null = null
     private var resized               = false
     private var ended                 = false
+    private var probeOnly             = false
 
     private var frames, viewBuilds, skippedSame, skippedEqualView = 0L
     private var batches, events, folds, droppedFolds              = 0L
@@ -130,8 +131,7 @@ private[tui4s] final class Engine[S](
 
     /** Folds one batch, in order, until a quit or a failure (SPEC 5.5). */
     def fold(batch: Iterable[Item]): Step =
-        batches += 1
-        if tracing && !recOpen then openRecord()
+        probeOnly = true
         val before    = state
         var quit      = false
         var failed    = false
@@ -143,7 +143,13 @@ private[tui4s] final class Engine[S](
         while !quit && !failed && it.hasNext do
             val itemStart     = if tracing then java.lang.System.nanoTime() else 0L
             var where: String = ""
-            it.next() match
+            val item          = it.next()
+            if probeOnly && !item.isInstanceOf[Probe] then
+                // A batch of probes only (a settle) is not a batch of the app.
+                probeOnly = false
+                batches += 1
+                if tracing && !recOpen then openRecord()
+            item match
                 case e: Event  =>
                   events += 1
                   e match
@@ -263,6 +269,12 @@ private[tui4s] final class Engine[S](
                     slowItem = took
                     slowWhere = where
         end while
+        // Not folded after a quit or a failure, but a waiting settle is
+        // still released (when the run ends).
+        while it.hasNext do
+            it.next() match
+                case p: Probe => probes += p
+                case _        => ()
         if resize then resized = true
         val step      =
           if failed then Step.Failed
@@ -322,8 +334,9 @@ private[tui4s] final class Engine[S](
 
     /** The decision for a batch whose state is the same object. */
     def skipSame(): Unit =
-        skippedSame += 1
-        if tracing then writeBatch("same", "skip-same", 0L, 0)
+      if !probeOnly then
+          skippedSame += 1
+          if tracing then writeBatch("same", "skip-same", 0L, 0)
 
     /** Builds the view and draws it unless it equals the last drawn view (and
       * no resize happened since). `draw` paints a view and returns the number
