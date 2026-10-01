@@ -13,8 +13,8 @@ import tastyquery.jdk.ClasspathLoaders
   * classes (SPEC 6.5). Java reflection cannot do it: Kyo's `A < S` is an opaque
   * type that erases to `Object`.
   *
-  * The facades can run the same check on their packages
-  * (`dependsOn(core % "compile->compile;test->test")`).
+  * The facades can run the same check on their own packages: their tests then
+  * depend on the core tests (`core % "test->test"`).
   */
 object SurfaceCheck:
     /** A context over this JVM's class path without the test classes, and the
@@ -32,14 +32,15 @@ object SurfaceCheck:
           .getFileSystem(URI.create("jrt:/"))
           .getPath("modules", "java.base")
         Context.initialize(ClasspathLoaders.read(jrt :: entries))
+    end context
 
     /** One signature that names a Kyo type: "<owner>.<member>: <type>". */
     final case class Leak(where: String, signature: String):
         override def toString: String = s"$where: $signature"
 
-    /** The public and protected members of every class and object in
-      * `packages` (also nested classes) whose signature names a type of
-      * package `kyo`. `exclude` gets the full name of a class or of a member
+    /** The public and protected members of every class and object in `packages`
+      * (also nested classes) whose signature names a type of package `kyo`.
+      * `exclude` gets the full name of a class or of a member
       * ("tui4s.TuiTest$.live") and leaves it out (with its nested classes).
       */
     def leaks(packages: Seq[String], exclude: String => Boolean): Seq[Leak] =
@@ -65,8 +66,8 @@ object SurfaceCheck:
             if !exclude(name) then
                 cls.parents.foreach(p => check(s"$name (parent)", p.showBasic))
                 cls.declarations.foreach {
-                  case c: ClassSymbol if visible(c)     => visit(c)
-                  case t: TermSymbol if visible(t)      =>
+                  case c: ClassSymbol if visible(c)      => visit(c)
+                  case t: TermSymbol if visible(t)       =>
                     val member = s"$name.${t.name}"
                     if !exclude(member) then
                         check(member, t.declaredType.showBasic)
@@ -74,8 +75,9 @@ object SurfaceCheck:
                     val member = s"$name.${t.name}"
                     if !exclude(member) then
                         check(member, t.declaredBounds.showBasic)
-                  case _                                => ()
+                  case _                                 => ()
                 }
+            end if
         end visit
 
         packages.foreach { p =>

@@ -5,6 +5,7 @@ import _root_.java.io.PrintStream
 import _root_.java.util.concurrent.CountDownLatch
 import _root_.java.util.concurrent.TimeUnit
 import _root_.kyo.*
+import _root_.scala.annotation.unused
 import _root_.tui4s.internal.Crossterm
 import _root_.tui4s.internal.Hooks
 import _root_.tui4s.internal.NativeCrossterm
@@ -52,35 +53,10 @@ abstract class TuiApp[S] extends App[S]:
     ): Int =
         SchedulerDefaults.applyIfUnset()
         arguments = args.toSeq
-        import AllowUnsafe.embrace.danger
-        val program: S < (Async & Abort[Throwable]) =
-          TuiRun
-            .run(this, crossterm, hooks, () => err)
-            .map(s => onExit(s).andThen(s))
-        val result                                  = KyoApp.Unsafe.runAndBlock(Duration.Infinity)(
-          Fiber.initUnscoped(program).map { fiber =>
-            Sync.Unsafe
-              .defer {
-                // SIGTERM or `kill -INT`: interrupt the run (its release
-                // restores the terminal) and wait for it at most 2 s.
-                val done = CountDownLatch(1)
-                fiber.unsafe.onComplete(_ => done.countDown())
-                val hook = Thread(
-                  () =>
-                      discard(fiber.unsafe.interrupt())
-                      discard(done.await(2, TimeUnit.SECONDS))
-                  ,
-                  "tui4s-stop",
-                )
-                hooks.add(hook)
-                hook
-              }
-              .map(hook =>
-                Sync.ensure(Sync.defer(hooks.remove(hook)))(fiber.get),
-              )
-          },
-        )
-        TuiApp.report(result, err)
+        val run = TuiRun
+          .run(this, crossterm, hooks, () => err)
+          .map(s => onExit(s).andThen(s))
+        TuiApp.report(TuiApp.block(run, hooks), err)
     end runMain
 
     /** The command-line arguments of [[main]]. */
@@ -92,12 +68,44 @@ abstract class TuiApp[S] extends App[S]:
     /** Runs after the terminal is restored, with the last state: print a
       * result, write a file. The default does nothing.
       */
-    protected def onExit(
-        @ _root_.scala.annotation.unused state: S,
-    ): Unit < (Async & Abort[Throwable]) = ()
+    protected def onExit(@unused state: S): Unit < (Async & Abort[Throwable]) =
+      ()
 end TuiApp
 
 private[tui4s] object TuiApp:
+    /** Runs `program` on a fiber and blocks until it ends. While it runs, a
+      * shutdown hook (SIGTERM, `kill -INT`) interrupts the fiber, whose release
+      * restores the terminal, and waits for it at most 2 s.
+      */
+    def block[S](
+        program: S < (Async & Abort[Throwable]),
+        hooks: Hooks,
+    )(using Frame): Result[Throwable, S] =
+        import AllowUnsafe.embrace.danger
+        KyoApp.Unsafe.runAndBlock(Duration.Infinity)(
+          Fiber.initUnscoped(program).map { fiber =>
+            Sync.Unsafe
+              .defer {
+                val done = CountDownLatch(1)
+                fiber.unsafe.onComplete(_ => done.countDown())
+                val hook = Thread(() => stop(fiber, done), "tui4s-stop")
+                hooks.add(hook)
+                hook
+              }
+              .map(hook =>
+                Sync.ensure(Sync.defer(hooks.remove(hook)))(fiber.get),
+              )
+          },
+        )
+    end block
+
+    private def stop[A](
+        fiber: Fiber[A, Abort[Throwable]],
+        done: CountDownLatch,
+    )(using Frame, AllowUnsafe): Unit =
+        discard(fiber.unsafe.interrupt())
+        discard(done.await(2, TimeUnit.SECONDS))
+
     /** Prints a failed run to `err` and gives the exit code. */
     def report(result: Result[Throwable, Any], err: PrintStream): Int =
         result match

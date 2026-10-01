@@ -127,6 +127,37 @@ class TerminalIOTest extends Test[Any]:
         }
     }
 
+    "an app failure restores the streams too".timeout(30.seconds) in {
+      val broken = App[Int](
+        0,
+        CounterApp.view,
+        (n, e) =>
+          if e == Key.Char('x') then
+              java.lang.System.out.println("before the failure")
+              throw IllegalStateException("boom")
+          else CounterApp.update(n, e),
+      )
+      val fake   = FakeCrossterm(events = Seq(char('x')))
+      val err    = FakeErr(fake.log)
+      Abort
+        .run(TuiRun.run(broken, fake, FakeHooks(fake.log), () => err.stream))
+        .map { r =>
+          assert(
+            r match
+                case Result.Failure(TuiError.AppFailed(_, _)) => true
+                case _                                        => false
+            ,
+            r.toString,
+          )
+          assert(err.lines.contains("before the failure"), err.lines.toString)
+          val sink  = LogSink(None)
+          val c     = OutputCapture.start(sink)
+          val taken = c.capturing
+          c.stop()
+          assert(taken, "the output capture was not stopped")
+        }
+    }
+
     "a native library that cannot load: NativeAccessDenied".timeout(
       30.seconds,
     ) in {
