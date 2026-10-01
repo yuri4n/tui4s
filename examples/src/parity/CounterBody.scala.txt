@@ -1,0 +1,28 @@
+package @PACKAGE@
+
+@IMPORT@
+
+/** Generated from examples/src/parity/CounterBody.scala.txt by
+  * project/FacadeParity.scala: the same Counter text for every ecosystem
+  * (SPEC 6.5). Do not edit the generated copy.
+  */
+object CounterBody extends App[Int]:
+    val keys: Keymap[Int] = Keymap(
+      bind('+', "increment")(_ + 1),
+      bind('-', "decrement")(_ - 1),
+      bind('q', "quit")(_ => Quit),
+    )
+
+    def init: Int = 0
+
+    def update(n: Int, event: Event): Next[Int] = event match
+        case Key.Char('0') => 0
+        case Resize(_, _)  => n
+        case other         => keys(n, other)
+
+    def view(n: Int): View =
+      column(
+        text("Count: ", n.toString.bold.yellow).centered.size(1),
+        help(keys).centered.size(1),
+      ).flex(Flex.Center).bordered(" Counter ")
+end CounterBody
