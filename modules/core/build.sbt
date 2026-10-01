@@ -12,3 +12,10 @@ libraryDependencies ++= Seq(
 // kyo-test (the Kyo project's own test framework, released with Kyo).
 // Use `+=`: `:=` would drop the other frameworks.
 Test / testFrameworks += new TestFramework("kyo.test.runner.SbtFramework")
+
+// Run the tests in a forked JVM. Kyo starts one scheduler per class loader and
+// nothing stops it, so each test run inside a long-lived sbt (a shell, `~`,
+// BSP) would leave one more scheduler and its threads running. A forked JVM
+// exits after the tests. The flag stops JDK 25 warnings about sun.misc.Unsafe.
+Test / fork := true
+Test / javaOptions ++= Seq("-Xmx1g", "--sun-misc-unsafe-memory-access=allow")
