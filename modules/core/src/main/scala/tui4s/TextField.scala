@@ -1,7 +1,7 @@
 package tui4s
 
-import java.text.BreakIterator
-import tui4s.internal.discard
+import _root_.java.text.BreakIterator
+import _root_.tui4s.internal.discard
 
 /** A single-line text editor value. Keep it in the app state and show it with
   * `input(field)`.

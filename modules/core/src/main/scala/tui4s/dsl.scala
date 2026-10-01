@@ -3,7 +3,7 @@ package tui4s
 import _root_.jatatui.core.buffer.Buffer as JBuffer
 import _root_.jatatui.core.layout.Rect as JRect
 import _root_.jatatui.core.widgets.Widget as JWidget
-import scala.reflect.ClassTag
+import _root_.scala.reflect.ClassTag
 
 /** The view constructors and all extension methods. Package `tui4s` exports
   * this object, so `import tui4s.*` brings everything in.

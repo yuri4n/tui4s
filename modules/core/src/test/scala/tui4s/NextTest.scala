@@ -1,17 +1,25 @@
 package tui4s
 
+import kyo.Kyo
 import kyo.test.*
 import tui4s.internal.Engine
 import tui4s.internal.Painter
 import tui4s.internal.Step
+import tui4s.internal.Supervisor
 import tui4s.testkit.*
 
 class NextTest extends Test[Any]:
-    private val save = new Source[Int]("save", null, keyed = true)
+    private def plain(label: String): Source[Int] =
+      Source.make[Int, Any](label, Source.Kind.General)(_ => Kyo.unit)((n, _) =>
+        n,
+      )
+
+    private val save = plain("save").id("save")
 
     private def engine(update: (Int, Event) => Next[Int]): Engine[Int] =
         val app = App[Int](0, n => dsl.text(n.toString), update)
-        val e   = Engine(app, app.options, Painter(Theme()))
+        val e   =
+          Engine(app, app.options, Painter(Theme()), Supervisor[Int](), null)
         require(e.start())
         e
 
@@ -44,18 +52,21 @@ class NextTest extends Test[Any]:
     }
 
     "withTask sets the state and keeps the tasks in order" in {
-      val other = new Source[Int]("other", null, keyed = false)
+      val other = plain("other")
       val e     = engine((n, _) => (n + 1).withTask(save, other))
       assert(e.fold(Seq(Key.Char('a'))) == Step.Changed)
       assert(e.state == 1)
-      assert(e.takePending() == Seq(save, other))
-      assert(e.takePending().isEmpty)
+      assert(e.pendingTasks == Seq(save, other))
+      assert(e.syncWork())
+      assert(e.pendingTasks.isEmpty)
+      assert(e.sup.toStart.map(_.source) == Seq(save, other))
     }
 
     "the same state with new tasks is work, not a change" in {
       val e = engine((n, _) => n.withTask(save))
       assert(e.fold(Seq(Key.Char('a'))) == Step.WorkOnly)
-      assert(e.takePending() == Seq(save))
+      assert(e.pendingTasks == Seq(save))
+      assert(e.syncWork() && e.pendingTasks.isEmpty)
       assert(e.fold(Seq(Resize(1, 1))) == Step.Changed) // a resize always draws
     }
 
@@ -82,7 +93,7 @@ class NextTest extends Test[Any]:
     }
 
     "a source has the identity of its label" in {
-      assert(save == new Source[Int]("save", null, keyed = false))
+      assert(save == plain("save"))
       assert(save.hashCode == "save".hashCode)
       assert(save.id("load").label == "load" && save.id("load").keyed)
       assert(save.recover((n, _) => n).label == "save")

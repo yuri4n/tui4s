@@ -4,7 +4,7 @@ import kyo.test.*
 import tui4s.fixtures.CounterApp
 import tui4s.testkit.*
 
-/** SPEC 6.3 CounterTest, the parts without the trace. */
+/** SPEC 6.3 CounterTest. */
 class CounterTest extends TuiSuite:
     "update is a pure function" in {
       assert(CounterApp.update(1, Key.Char('+')) == 2)
@@ -20,6 +20,16 @@ class CounterTest extends TuiSuite:
       assert(t.screen.contains("+ increment · - decrement · q quit"))
       t.press('-')
       assert(t.screen.contains("Count: 1") && t.frames == 4)
+    }
+
+    "a key that changes nothing builds no view and draws no frame" in {
+      val t      = TuiTest(CounterApp)
+      val before = t.stats
+      t.press('x', Key.Up)
+      assert(t.stats.viewBuilds == before.viewBuilds)
+      assert(t.stats.frames == before.frames)
+      assert(t.lastTrace.contains("\"in\":[\"key:↑\"]"))
+      assert(t.lastTrace.contains("\"state\":\"same\",\"frame\":\"skip-same\""))
     }
 
     "q quits; Ctrl-C quits; later keys are ignored" in {

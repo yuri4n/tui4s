@@ -1,6 +1,6 @@
 package tui4s
 
-import tui4s.internal.discard
+import _root_.tui4s.internal.discard
 
 /** One key binding: its keys, its help text and its transition.
   *
