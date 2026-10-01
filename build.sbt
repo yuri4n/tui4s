@@ -14,7 +14,7 @@ ThisBuild / developers        := List(
   Developer(
     "yuri4n",
     "yuri4n",
-    "admin@yurian.land",
+    "oss.juli@pm.me",
     url("https://github.com/yuri4n"),
   ),
 )
