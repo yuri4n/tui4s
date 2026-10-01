@@ -16,7 +16,9 @@ import _root_.tui4s.spi.InputPort
   * [[TuiApp]] calls [[run]] for you.
   *
   * The JVM needs `--enable-native-access=ALL-UNNAMED` (crossterm is a native
-  * library) and a terminal on stdin and stdout.
+  * library) and a terminal on stdin. The frames go to stdout. It can be a pipe
+  * to the terminal (the forked `run` of sbt does this), but do not redirect it
+  * to a file: nothing checks stdout.
   */
 object Tui:
     /** Runs `app` in the real terminal until it quits, and returns the last
@@ -28,9 +30,9 @@ object Tui:
       * `TuiOptions.captureOutput`) so does `System.out` and `System.err`; what
       * was kept in memory is printed to stderr after the restore.
       *
-      * Fails with `TuiError.NotATerminal` when stdin or stdout is not a
-      * terminal, and with `TuiError.NativeAccessDenied` when the JVM does not
-      * allow the native library.
+      * Fails with `TuiError.NotATerminal` when stdin is not a terminal or the
+      * process has no terminal, and with `TuiError.NativeAccessDenied` when the
+      * JVM does not allow the native library. Stdout is not checked.
       */
     def run[S](app: App[S])(using Frame): S < (Async & Abort[TuiError]) =
       TuiRun.run(app, NativeCrossterm())

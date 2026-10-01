@@ -23,6 +23,10 @@ The build forks a JVM, connects stdin, and gives the JVM these flags:
 - `--enable-native-access=ALL-UNNAMED`: crossterm is a native library.
 - `--sun-misc-unsafe-memory-access=allow`: Kyo and Scala use `sun.misc.Unsafe`.
 
+Stdin must be a terminal. The app draws on stdout: sbt sends the stdout of the
+forked JVM to the terminal through a pipe, and that is correct. Do not redirect
+stdout to a file. Nothing checks stdout, so the frames go into the file.
+
 The Todo app reads and writes `~/.tui4s-todo.txt`.
 
 ## Test the examples
@@ -69,12 +73,29 @@ iTerm2. Write the result in the pull request.
       terminal is restored (no raw mode, no alternate screen, the cursor shows).
 - [ ] Start an example with `--illegal-native-access=deny` in place of
       `--enable-native-access=ALL-UNNAMED`. The app stops with "start the JVM
-      with --enable-native-access=ALL-UNNAMED", before raw mode.
+      with --enable-native-access=ALL-UNNAMED", before raw mode:
+
+      ```sh
+      sbt 'set examples / run / javaOptions := Seq("--illegal-native-access=deny", "--sun-misc-unsafe-memory-access=allow")' "examples/runMain examples.counter.CounterApp"
+      ```
+
 - [ ] Start an example without `--enable-native-access`. JDK 25 prints its
-      JEP 472 warning before raw mode, and the app starts.
-- [ ] Start an example with stdin from a pipe and no terminal (for example from
-      a CI job). It prints "stdin/stdout is not a terminal" and the exit code is
-      1.
+      JEP 472 warning before raw mode, and the app starts:
+
+      ```sh
+      sbt 'set examples / run / javaOptions := Seq("--sun-misc-unsafe-memory-access=allow")' "examples/runMain examples.counter.CounterApp"
+      ```
+
+- [ ] Start an example with stdin that is not a terminal. It prints
+      "stdin/stdout is not a terminal" (cause: "stdin is not a terminal")
+      before raw mode, and the exit code is 1:
+
+      ```sh
+      sbt "examples/runMain examples.counter.CounterApp" < /dev/null
+      ```
+
+`sbt -J<flag>` does not work for these steps: it changes the JVM of sbt, not
+the forked JVM of the app.
 
 ### Known risks to look at
 

@@ -36,9 +36,9 @@ abstract class TuiApp[S] extends App[S]:
 
     /** Runs the app in the terminal until it quits, then [[onExit]] with the
       * last state. On a failure it prints the error to stderr after the
-      * terminal is restored and exits with code 1; without a terminal it prints
-      * "stdin/stdout is not a terminal". SIGTERM and Ctrl-C from outside (`kill
-      * -INT`) stop the app and restore the terminal.
+      * terminal is restored and exits with code 1; when stdin is not a terminal
+      * it prints "stdin/stdout is not a terminal". SIGTERM and Ctrl-C from
+      * outside (`kill -INT`) stop the app and restore the terminal.
       */
     final def main(args: Array[String]): Unit =
         val code = runMain(args, NativeCrossterm(), Hooks.runtime)

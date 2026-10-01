@@ -62,7 +62,9 @@ enum Viewport derives CanEqual:
   */
 enum TuiError(message: String, cause: Throwable | Null)
     extends Exception(message, cause):
-    /** Standard input or output is not a terminal. */
+    /** Standard input is not a terminal, or the process has no terminal.
+      * Standard output is not checked: it can be a pipe to the terminal.
+      */
     case NotATerminal(error: Throwable)
         extends TuiError("stdin/stdout is not a terminal", error)
 

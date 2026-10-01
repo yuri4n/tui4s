@@ -28,7 +28,8 @@ end Hooks
 /** The real terminal (SPEC 5.9): a [[TerminalControl]] over [[Crossterm]].
   *
   * `enter` does the first steps of the acquire: (1) load the native library,
-  * (2) start the output capture, (3) raw mode, (4) the alternate screen (or
+  * (2) start the output capture, (3) raw mode (`NotATerminal` when stdin is
+  * not a terminal or raw mode fails), (4) the alternate screen (or
   * not, for an inline viewport), hide the cursor, and the bracketed paste,
   * mouse and focus modes that the options ask for. A failing step undoes the
   * earlier ones. The [[Session]] then creates the jatatui terminal (5), starts
@@ -71,6 +72,12 @@ private[tui4s] final class TerminalIO(
                 val c = OutputCapture.start(sink)
                 capture = c
                 undo = (() => c.stop()) :: undo
+            // crossterm takes /dev/tty when stdin is not a terminal, so raw
+            // mode alone does not see a piped or redirected stdin.
+            if !crossterm.stdinIsTerminal() then
+                throw TuiError.NotATerminal(
+                  java.io.IOException("stdin is not a terminal"),
+                )
             try crossterm.enableRawMode()
             catch case NonFatal(e) => throw TuiError.NotATerminal(e)
             undo = (() => crossterm.disableRawMode()) :: undo

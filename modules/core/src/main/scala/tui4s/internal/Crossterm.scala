@@ -2,6 +2,10 @@ package tui4s.internal
 
 import jatatui.core.backend.Backend
 import jatatui.crossterm.CrosstermBackend
+import java.lang.foreign.FunctionDescriptor
+import java.lang.foreign.Linker
+import java.lang.foreign.ValueLayout
+import scala.jdk.OptionConverters.*
 import scala.util.control.NonFatal
 import tui.crossterm.Command
 import tui.crossterm.CrosstermJni
@@ -21,6 +25,12 @@ private[tui4s] trait Crossterm:
       * not allow it.
       */
     def load(): Unit
+
+    /** False when stdin is not a terminal. crossterm then uses `/dev/tty` for
+      * raw mode and input, so [[enableRawMode]] alone does not see a piped or
+      * redirected stdin. True when it cannot be known (Windows).
+      */
+    def stdinIsTerminal(): Boolean
 
     /** Raw mode: no line buffering, no echo, no signals from Ctrl-C. */
     def enableRawMode(): Unit
@@ -59,6 +69,8 @@ private[tui4s] final class NativeCrossterm extends Crossterm:
           try jni = new CrosstermJni()
           catch case e: Throwable => throw NativeCrossterm.loadError(e)
 
+    def stdinIsTerminal(): Boolean = Tty.isatty(0).getOrElse(true)
+
     def enableRawMode(): Unit                 = native.enableRawMode()
     def disableRawMode(): Unit                = native.disableRawMode()
     def execute(commands: Seq[Command]): Unit =
@@ -93,6 +105,40 @@ private[tui4s] object NativeCrossterm:
             case fatal                         => fatal
     end loadError
 end NativeCrossterm
+
+/** `isatty` of the C library, through the foreign function API. It needs the
+  * same native access as the crossterm library, so call it after that loaded.
+  */
+private[tui4s] object Tty:
+    private lazy val handle: Option[java.lang.invoke.MethodHandle] =
+      if java.lang.System
+            .getProperty("os.name", "")
+            .nn
+            .toLowerCase
+            .nn
+            .contains("win")
+      then None
+      else
+          try
+              val linker = Linker.nativeLinker().nn
+              val int    = ValueLayout.JAVA_INT
+              linker.defaultLookup().nn.find("isatty").nn.toScala.map(at =>
+                linker.downcallHandle(at, FunctionDescriptor.of(int, int)).nn,
+              )
+          catch case NonFatal(_) => None
+
+    /** True when `fd` is a terminal; `None` when this cannot be known. */
+    def isatty(fd: Int): Option[Boolean] =
+      handle.flatMap { h =>
+        try
+            Some(
+              h.invokeWithArguments(Integer.valueOf(fd)) match
+                  case n: Integer => n.intValue == 1
+                  case _          => false,
+            )
+        catch case NonFatal(_) => None
+      }
+end Tty
 
 /** crossterm as the [[InputPort]] of the input thread (SPEC 5.3): `poll` with
   * the poll timeout, then `read`, mapped by [[EventMapping]].

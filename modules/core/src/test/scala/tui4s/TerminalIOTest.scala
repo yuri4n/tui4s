@@ -127,6 +127,30 @@ class TerminalIOTest extends Test[Any]:
         }
     }
 
+    "stdin is not a terminal: NotATerminal before raw mode".timeout(
+      30.seconds,
+    ) in {
+      // crossterm would take /dev/tty: raw mode alone does not see this.
+      val fake  = FakeCrossterm(stdinTty = false)
+      val hooks = FakeHooks(fake.log)
+      val err   = FakeErr(fake.log)
+      Abort
+        .run(TuiRun.run(CounterApp, fake, hooks, () => err.stream))
+        .map { r =>
+          assert(
+            r match
+                case Result.Failure(e @ TuiError.NotATerminal(_)) =>
+                  e.getMessage == "stdin/stdout is not a terminal" &&
+                  String.valueOf(e.getCause).contains("stdin is not a terminal")
+                case _                                            => false
+            ,
+            r.toString,
+          )
+          assert(fake.calls == Seq("load"), fake.calls.toString)
+          assert(hooks.added.isEmpty)
+        }
+    }
+
     "an app failure restores the streams too".timeout(30.seconds) in {
       val broken = App[Int](
         0,

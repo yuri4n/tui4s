@@ -22,12 +22,15 @@ import tui4s.testkit.Screen
   * @param failAt
   *   the call that throws: "load", "raw", "enter" (the first `execute`),
   *   "leave" (the second `execute`) or "" for none
+  * @param stdinTty
+  *   what [[stdinIsTerminal]] says
   */
 final class FakeCrossterm(
     width: Int = 40,
     height: Int = 10,
     failAt: String = "",
     events: Seq[CEvent] = Nil,
+    stdinTty: Boolean = true,
     val log: ConcurrentLinkedQueue[String] = ConcurrentLinkedQueue[String](),
 ) extends Crossterm:
     val backendT: TestBackend = TestBackend(width, height)
@@ -55,6 +58,8 @@ final class FakeCrossterm(
             throw TuiError.NativeAccessDenied(
               UnsatisfiedLinkError("no crossterm"),
             )
+
+    def stdinIsTerminal(): Boolean = stdinTty
 
     def enableRawMode(): Unit =
         record("raw-mode-on")
