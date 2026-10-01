@@ -132,12 +132,16 @@ object Keymap:
     /** A keymap of `binds`, in help order.
       *
       * @throws IllegalArgumentException
-      *   when two bindings of the list share a key: a duplicate is a bug
+      *   when two bindings of the list share a key (a duplicate is a bug), or
+      *   when a key is one that a terminal never sends: a control character as
+      *   `Key.Char` ('\t' arrives as `Key.Tab`), or `Key.Ctrl` with an
+      *   upper-case letter (Ctrl-S arrives as `Key.Ctrl('s')`)
       */
     def apply[S](binds: Bind[S]*): Keymap[S] =
         val seen = scala.collection.mutable.HashSet.empty[Key]
         binds.foreach(b =>
           b.keys.foreach { k =>
+            checkSent(k)
             if !seen.add(k) then
                 throw new IllegalArgumentException(
                   s"key ${k.quoted} is bound twice in one Keymap",
@@ -146,4 +150,28 @@ object Keymap:
         )
         new Keymap(binds)
     end apply
+
+    /** Rejects a key that never reaches `update`, so that a binding cannot pass
+      * in the test kit and never fire in a terminal.
+      */
+    private def checkSent(k: Key): Unit =
+        val sent = Key.sent(k)
+        if sent != k then
+            throw new IllegalArgumentException(
+              s"a terminal never sends ${name(k)}: bind ${sent.show}",
+            )
+        k match
+            case Key.Char(c) if Character.isISOControl(c) =>
+              throw new IllegalArgumentException(
+                s"a terminal never sends the control character ${name(k)}: " +
+                  "bind a named key or Key.Ctrl",
+              )
+            case _                                        => ()
+    end checkSent
+
+    private def name(k: Key): String = k match
+        case Key.Char(c) if Character.isISOControl(c) =>
+          "Key.Char(" + "U+%04X".format(c.toInt) + ")"
+        case Key.Ctrl(c)                              => s"Key.Ctrl('$c')"
+        case other                                    => other.quoted
 end Keymap

@@ -88,6 +88,28 @@ class KeymapTest extends TuiSuite:
       assert(viaOr.getMessage.contains("↑"))
     }
 
+    "a key that a terminal never sends is rejected, with the right key" in {
+      val tab   = intercept[IllegalArgumentException](
+        Keymap[Int](Bind[Int]('\t', "x")(identity)),
+      )
+      assert(tab.getMessage.contains("bind tab"))
+      val enter = intercept[IllegalArgumentException](
+        Keymap[Int](Bind[Int]('a', "x")(identity).or('\n')),
+      )
+      assert(enter.getMessage.contains("bind enter"))
+      val ctrl  = intercept[IllegalArgumentException](
+        Keymap[Int](Bind[Int](Key.Ctrl('S'), "save")(identity)),
+      )
+      assert(ctrl.getMessage.contains("bind ctrl+s"))
+      val bell  = intercept[IllegalArgumentException](
+        Keymap[Int](Bind[Int]('\u0007', "x")(identity)),
+      )
+      assert(bell.getMessage.contains("control character"))
+      assert(
+        Keymap[Int](Bind[Int](Key.Ctrl('s'), "save")(identity)).binds.size == 1,
+      )
+    }
+
     "help lists the visible bindings in order" in {
       val map = Keymap(
         Bind[Int](Key.Up, "up")(identity).or('k'),

@@ -25,6 +25,14 @@ import tui4s.internal.discard
   * code that throws does not throw into the test: the run ends, `quit` is true
   * and `error` says where.
   *
+  * Input arrives as a terminal sends it. A key goes through the mapping of a
+  * terminal: '\n' and '\r' are `Key.Enter`, '\t' is `Key.Tab`, ESC is
+  * `Key.Esc`, DEL and '\b' are `Key.Backspace`, and `Key.Ctrl('S')` is
+  * `Key.Ctrl('s')`. A [[Mouse]] event needs `TuiOptions(mouse = true)`, and
+  * [[FocusGained]] / [[FocusLost]] need `TuiOptions(focusEvents = true)`: the
+  * runtime reports them only then, so without the option the input method
+  * throws an `AssertionError`.
+  *
   * The input methods return this driver; write one call per statement (a
   * chained call used as a statement warns under `-Wnonunit-statement`).
   */
@@ -35,6 +43,12 @@ final class TuiTest[S] private (app: App[S], width: Int, height: Int):
     private val options  = app.options
     private val engine   = Engine(app, options, Painter(options.theme))
     private var ended    = false
+    // The size of the last Resize folded; the backend takes it when the next
+    // frame is drawn, so a batch that draws nothing keeps the last frame.
+    private var newSize  = Option.empty[Resize]
+    // A copy of the last drawn frame while the backend does not hold it (a
+    // resized frame whose paint failed: jatatui clears before the paint).
+    private var kept     = Option.empty[Screen]
 
     if engine.start() then after(Step.Changed) else ended = true
 
@@ -42,7 +56,8 @@ final class TuiTest[S] private (app: App[S], width: Int, height: Int):
     def state: S = engine.state
 
     /** True after `Quit`, Ctrl-C (with `TuiOptions.ctrlCQuits`) or a failure of
-      * user code. Later input is ignored.
+      * user code. Later input is ignored, and the screen stays the last drawn
+      * frame.
       */
     def quit: Boolean = ended
 
@@ -58,7 +73,8 @@ final class TuiTest[S] private (app: App[S], width: Int, height: Int):
     def stats: Stats = engine.stats
 
     /** An immutable copy of the last drawn frame. */
-    def screen: Screen = Screen.of(backend.buffer(), engine.painter.cursor)
+    def screen: Screen =
+      kept.getOrElse(Screen.of(backend.buffer(), engine.painter.cursor))
 
     /** The view of the current state (calls `view`). */
     def view: View = app.view(engine.state)
@@ -67,24 +83,28 @@ final class TuiTest[S] private (app: App[S], width: Int, height: Int):
     def cursor: Option[(Int, Int)] = engine.painter.cursor
 
     /** Presses each key in its own batch, like a person typing. A `Char` is
-      * `Key.Char(c)`.
+      * `Key.Char(c)`, a control character the named key ('\n' is Enter).
       */
     def press(keys: (Key | Char)*): this.type =
         keys.foreach(k => batch(Seq(Bind.toKey(k))))
         this
 
-    /** Sends all `events` in one batch: at most one frame for all of them. */
+    /** Sends all `events` in one batch: at most one frame for all of them. A
+      * [[Resize]] resizes the test terminal for that frame.
+      */
     def send(events: Event*): this.type =
         batch(events)
         this
 
     /** Types `text`, one batch per grapheme: a one-char grapheme is a
-      * `Key.Char`, a longer one (an emoji, a letter with a combining mark) is a
-      * `Paste`, because a terminal cannot send it as one key.
+      * `Key.Char` (a control character the named key: "\n" and "\r\n" are
+      * Enter, "\t" is Tab), a longer one (an emoji, a letter with a combining
+      * mark) is a `Paste`, because a terminal cannot send it as one key.
       */
     def typeText(text: String): this.type =
         TextField.graphemes(text).foreach { g =>
           if g.length == 1 then batch(Seq(Key.Char(g.charAt(0))))
+          else if g == "\r\n" then batch(Seq(Key.Enter))
           else batch(Seq(Paste(g)))
         }
         this
@@ -95,7 +115,8 @@ final class TuiTest[S] private (app: App[S], width: Int, height: Int):
         this
 
     /** A click at the cell (x, y): button down and up in one batch. Their
-      * [[Mouse.tags]] come from the last drawn frame.
+      * [[Mouse.tags]] come from the last drawn frame. Needs
+      * `TuiOptions(mouse = true)`.
       */
     def click(x: Int, y: Int, button: Button = Button.Left): this.type =
         batch(
@@ -107,16 +128,42 @@ final class TuiTest[S] private (app: App[S], width: Int, height: Int):
         this
     end click
 
-    /** Resizes the terminal and sends [[Resize]]. The next frame is drawn even
-      * when the view is equal.
+    /** Sends [[Resize]] (as `send(Resize(width, height))` does). The next frame
+      * is drawn even when the view is equal, on a terminal of the new size.
       */
     def resize(width: Int, height: Int): this.type =
-        backend.resize(width, height)
-        batch(Seq(Resize(width, height)))
-        this
+      send(Resize(width, height))
 
     private def batch(events: Seq[Event]): Unit =
-      if !ended then after(engine.fold(events))
+        events.foreach(reported)
+        if !ended then
+            val sent = events.map {
+              case k: Key => Key.sent(k)
+              case other  => other
+            }
+            sent.foreach {
+              case r: Resize => newSize = Some(r)
+              case _         => ()
+            }
+            after(engine.fold(sent))
+        end if
+    end batch
+
+    /** Fails the test for an event that the runtime does not report with the
+      * app's options: such a test would pass, and the app would not work.
+      */
+    private def reported(event: Event): Unit = event match
+        case _: Mouse if !options.mouse                      =>
+          throw AssertionError(
+            "a Mouse event needs TuiOptions(mouse = true): " +
+              "the runtime reports no mouse events without it",
+          )
+        case FocusGained | FocusLost if !options.focusEvents =>
+          throw AssertionError(
+            s"$event needs TuiOptions(focusEvents = true): " +
+              "the runtime reports no focus events without it",
+          )
+        case _                                               => ()
 
     /** What the runtime does after a batch, without fibers: draw when needed.
       * One-shot tasks are not run here.
@@ -132,8 +179,15 @@ final class TuiTest[S] private (app: App[S], width: Int, height: Int):
     end after
 
     private def draw(view: View): Int =
+        newSize.foreach { r =>
+          kept = Some(screen)
+          backend.resize(r.width, r.height)
+          newSize = None
+        }
         discard(terminal.draw(frame => engine.painter.paint(view, frame)))
+        kept = None
         counting.lastCount
+    end draw
 end TuiTest
 
 /** Builds test drivers. */

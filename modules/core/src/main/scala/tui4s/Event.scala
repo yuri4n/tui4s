@@ -74,6 +74,19 @@ object Key:
     private def charName(c: scala.Char): String =
       if c == ' ' then "space" else c.toString
 
+    /** `k` as a terminal sends it: '\n' and '\r' are Enter, '\t' is Tab, ESC is
+      * Esc, DEL and '\b' are Backspace, and Ctrl with an upper-case letter is
+      * Ctrl with the lower-case letter. Other keys are unchanged.
+      */
+    private[tui4s] def sent(k: Key): Key = k match
+        case Key.Char('\n' | '\r')     => Key.Enter
+        case Key.Char('\t')            => Key.Tab
+        case Key.Char('\u001b')        => Key.Esc
+        case Key.Char('\u007f' | '\b') => Key.Backspace
+        case Key.Ctrl(c) if c.isUpper  => Key.Ctrl(c.toLower)
+        case other                     => other
+end Key
+
 /** Modifier keys held with a named key or a mouse event. */
 final case class Mods(
     shift: Boolean = false,
