@@ -186,9 +186,6 @@ object Line:
         case s: String => JLine.raw(s)
         case l: JLine  => l
 
-    private[tui4s] def spanOf(s: String, st: JStyle): Span =
-      JSpan.styled(s, st)
-
     /** Extension methods on `String` and [[Line.Span]]. Each returns a span, so
       * calls chain: `"x".bold.red`. `dsl` (and so `import tui4s.*`) re-exports
       * them.

@@ -71,9 +71,6 @@ private[tui4s] final class Painter(theme: Theme):
     /** The cursor of the last painted frame, if a focused input set it. */
     def cursor: Option[(Int, Int)] = lastCursor
 
-    /** The number of kept widget states (lists, tables, stateful nodes). */
-    def slotCount: Int = slots.size
-
     /** The tags under (x, y) in the last painted frame, top-most first. */
     def tagsAt(x: Int, y: Int): List[String] =
         var tags = List.empty[String]
