@@ -1,12 +1,28 @@
 package tui4s
 
 import java.util.concurrent.atomic.AtomicInteger
+import jatatui.core.buffer.Buffer
+import jatatui.core.layout.Rect
 import jatatui.core.style.Style as JStyle
 import jatatui.widgets.paragraph.Paragraph
 import kyo.test.*
+import scala.reflect.ClassTag
 import tui4s.testkit.*
 
 class PainterTest extends TuiSuite:
+    /** An app that shows `view(b)`: '+' draws again, 's' flips `b`. */
+    private def swapper(view: Boolean => View): App[(Int, Boolean)] =
+      App[(Int, Boolean)](
+        (0, false),
+        // The hidden count makes each '+' a new view, so a frame is drawn.
+        s => column(text(s._1.toString).size(0), view(s._2)),
+        (s, e) =>
+          e match
+              case Key.Char('+') => (s._1 + 1, s._2)
+              case Key.Char('s') => (s._1, !s._2)
+              case _             => s,
+      )
+
     "text: alignment" in {
       assertShows(render(text("hi"), 8, 1), "hi")
       assertShows(render(text("hi").centered, 8, 1), "   hi")
@@ -126,6 +142,85 @@ class PainterTest extends TuiSuite:
       assertShows(swept.screen, "  item2\n  item3\n> item4")
     }
 
+    // Two lists side by side; Down and Up move the selection of the right one.
+    private def twoLists(view: (Seq[String], Int) => View)(using
+        AssertScope,
+    ): Screen =
+        val items = (0 until 10).map(i => s"item$i")
+        val app   = App[Int](
+          0,
+          n => view(items, n),
+          (n, e) =>
+            e match
+                case Key.Down => n + 1
+                case Key.Up   => n - 1
+                case _        => n,
+        )
+        val t     = TuiTest(app, 20, 3)
+        t.press(Key.Down, Key.Down, Key.Down, Key.Down, Key.Down, Key.Up)
+        assert(t.error.isEmpty)
+        t.screen
+    end twoLists
+
+    // The right list keeps its offset: item3..item5, the highlight in the
+    // middle. A state shared with the left list (offset 0) shows item2..item4.
+    private val rightKept =
+      "> item0     item3\n  item1   > item4\n  item2     item5"
+
+    "two ids with the same String hash keep two states" in {
+      assert("Aa".hashCode == "BB".hashCode)
+      assertShows(
+        twoLists((xs, n) => row(list(xs, 0).id("Aa"), list(xs, n).id("BB"))),
+        rightKept,
+      )
+    }
+
+    "one id used twice: each use keeps its own state, by paint order" in {
+      assertShows(
+        twoLists((xs, n) => row(list(xs, 0).id("x"), list(xs, n).id("x"))),
+        rightKept,
+      )
+    }
+
+    "a container with more than 31 children: no shared widget state" in {
+      // The left list is child 31 of the first column, the right list child
+      // 0 of the second column.
+      val pad = Seq.fill(31)(empty.size(0))
+      assertShows(
+        twoLists((xs, n) =>
+          row(column((pad :+ list(xs, 0))*), column(list(xs, n))),
+        ),
+        rightKept,
+      )
+    }
+
+    "a node of another kind at the same position gets a fresh state" in {
+      final case class S(selected: Int = 0, asTable: Boolean = false)
+      val items = (0 until 10).map(i => s"item$i")
+      val app   = App[S](
+        S(),
+        s =>
+          if s.asTable then table(Nil, items.map(Seq(_)), Nil, s.selected)
+          else list(items, s.selected),
+        (s, e) =>
+          e match
+              case Key.Down      => s.copy(selected = s.selected + 1)
+              case Key.Up        => s.copy(selected = s.selected - 1)
+              case Key.Char('t') => s.copy(asTable = !s.asTable)
+              case _             => s,
+      )
+      val t     = TuiTest(app, 10, 3)
+      t.press(Key.Down, Key.Down, Key.Down, Key.Down, Key.Down, Key.Up)
+      assertShows(t.screen, "  item3\n> item4\n  item5") // the kept offset
+      t.press('t')
+      assertShows(t.screen, "  item2\n  item3\n> item4") // a fresh TableState
+      t.press(Key.Down, Key.Down, Key.Up, Key.Up)
+      assertShows(t.screen, "> item4\n  item5\n  item6") // the kept offset
+      t.press('t')
+      assertShows(t.screen, "  item2\n  item3\n> item4") // a fresh ListState
+      assert(t.error.isEmpty)
+    }
+
     "table: header, rows, widths, selection" in {
       val view  = table(
         Seq("Name", "Qty"),
@@ -140,6 +235,32 @@ class PainterTest extends TuiSuite:
         render(table(Seq("a", "b"), Seq(Seq("1", "2")), Nil), 8, 2),
         "a    b\n1    2", // equal widths, then one cell of spacing
       )
+    }
+
+    "table without titles: no header row" in {
+      assertShows(
+        render(table(Nil, Seq(Seq("a"), Seq("b")), Nil), 4, 2),
+        "a\nb",
+      )
+    }
+
+    "a line break in a string: paragraph and logPane start a new line" in {
+      assertShows(
+        render(paragraph("first line\nsecond line"), 30, 2),
+        "first line\nsecond line",
+      )
+      assertShows(render(paragraph("a\r\nb", "", "c"), 5, 4), "a\nb\n\nc")
+      assertShows(render(logPane(Seq("1", "2\n3")), 5, 3), "1\n2\n3")
+      assertShows(render(logPane(Seq("1", "2\n3")), 5, 2), "2\n3")
+    }
+
+    "a line break or a tab in a one-line node becomes a space" in {
+      assertShows(render(text("a\nb"), 5, 1), "a b")
+      assertShows(render(text("a\tb".bold), 5, 1), "a b")
+      assertShows(render(paragraph(line("a\nb")), 5, 2), "a b")
+      assertShows(render(list(Seq("a\r\nb"), -1), 5, 1), "a b")
+      assertShows(render(table(Nil, Seq(Seq("a\nb")), Nil), 5, 1), "a b")
+      assertShows(render(tabs(Seq("a\nb"), 0), 8, 1), " a b")
     }
 
     "tabs: the selected title in the accent color" in {
@@ -192,6 +313,15 @@ class PainterTest extends TuiSuite:
       assert(start.cursor == Some((1, 0)))
     }
 
+    "input: a wide grapheme under the cursor at the right edge shows" in {
+      val edge = render(input(TextField("abcd日").edit(Key.Left)), 5, 1)
+      assertShows(edge, "bcd日")
+      assert(edge.cursor == Some((3, 0)))
+      val wide = render(input(TextField("日日日").edit(Key.Left)), 5, 1)
+      assertShows(wide, "日日")
+      assert(wide.cursor == Some((2, 0)))
+    }
+
     "log: the newest lines, bottom-aligned" in {
       assertShows(render(logPane(Seq("1", "2", "3", "4")), 5, 3), "2\n3\n4")
       assertShows(render(logPane(Seq("1", line("2".red))), 5, 4), "\n\n1\n2")
@@ -205,8 +335,15 @@ class PainterTest extends TuiSuite:
         "+ increment · - decrement · q quit",
       )
       assertShows(render(help(keys), 30, 1), "+ increment · - decrement …")
-      assertShows(render(help(keys), 12, 1), "+ increment")
-      assertShows(render(help(keys), 8, 1), "+ increm")
+      assertShows(render(help(keys), 13, 1), "+ increment …")
+      // Not even one entry and " …" fit: the first entry is cut, "…" ends it.
+      assertShows(render(help(keys), 12, 1), "+ increment…")
+      assertShows(render(help(keys), 8, 1), "+ incre…")
+      assertShows(render(help(keys), 1, 1), "…")
+      val quit   = Keymap[Int](Bind[Int]('q', "quit")(_ => Quit))
+      assertShows(render(help(quit), 6, 1), "q quit")
+      assertShows(render(help(quit), 5, 1), "q qu…")
+      assert(render(help(keys), 8, 1).styleAt(7, 0) == Style.dim)
       assertShows(
         render(help(keys).right, 30, 1),
         "   + increment · - decrement …",
@@ -307,6 +444,60 @@ class PainterTest extends TuiSuite:
       assertShows(t.screen, "1\n1") // swept while hidden, fresh again
     }
 
+    "stateful: another paint at the same position gets a fresh state" in {
+      val count: (Rect, Buffer, AtomicInteger) => Unit        =
+        (area, buf, st) =>
+          buf.setString(
+            area.x,
+            area.y,
+            st.incrementAndGet().toString,
+            JStyle.empty(),
+          )
+      val xs: (Rect, Buffer, java.lang.StringBuilder) => Unit =
+        (area, buf, sb) =>
+          buf.setString(area.x, area.y, sb.append('x').toString, JStyle.empty())
+      val t                                                   = TuiTest(
+        swapper(b =>
+          if b then stateful(java.lang.StringBuilder())(xs)
+          else stateful(AtomicInteger())(count),
+        ),
+        5,
+        1,
+      )
+      t.press('+', '+')
+      assertShows(t.screen, "3")
+      t.press('s')
+      assertShows(t.screen, "x")
+      t.press('+')
+      assertShows(t.screen, "xx")
+      t.press('s')
+      assertShows(t.screen, "1") // fresh, not the count of before
+      assert(t.error.isEmpty)
+    }
+
+    "stateful: one generic helper, two state types, two states" in {
+      // One lambda class for both uses: the state type tells them apart.
+      def labeled[St: ClassTag](fresh: => St)(show: St => String): View =
+        stateful(fresh)((area, buf, st) =>
+          buf.setString(area.x, area.y, show(st), JStyle.empty()),
+        )
+      val t                                                             = TuiTest(
+        swapper(b =>
+          if b then labeled(java.lang.StringBuilder())(_.append('x').toString)
+          else labeled(AtomicInteger())(_.incrementAndGet().toString),
+        ),
+        5,
+        1,
+      )
+      t.press('+')
+      assertShows(t.screen, "2")
+      t.press('s')
+      assert(t.error.isEmpty)
+      assertShows(t.screen, "x")
+      t.press('s')
+      assertShows(t.screen, "1")
+    }
+
     "mouse tags: the tagged areas under the pointer, top-most first" in {
       val view = layers(
         row(text("left").tag("left"), text("right").tag("right")).tag("base"),
@@ -319,6 +510,7 @@ class PainterTest extends TuiSuite:
           e match
               case m: Mouse => m.tags
               case _        => s,
+        options = TuiOptions(mouse = true),
       )
       val t    = TuiTest(app, 10, 3)
       t.click(0, 0)

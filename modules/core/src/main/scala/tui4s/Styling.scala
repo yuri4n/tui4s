@@ -162,7 +162,8 @@ object Style:
 end Style
 
 /** One line of styled text: a sequence of [[Line.Span]]s. Build it with
-  * `line("✔ ".green, title)` or `Line(...)`.
+  * `line("✔ ".green, title)` or `Line(...)`. A line break or a tab in a string
+  * becomes a space: a line never breaks.
   */
 opaque type Line = JLine
 
@@ -187,16 +188,51 @@ object Line:
     given CanEqual[Span, Span] = CanEqual.derived
 
     private[tui4s] def toSpan(p: String | Span): JSpan = p match
-        case s: String => JSpan.raw(s)
+        case s: String => JSpan.raw(oneLine(s))
         case s: JSpan  => s
 
     private[tui4s] def toJ(l: Line): JLine = l
 
-    private[tui4s] def fromJ(l: JLine): Line = l
-
+    /** One line: a string with its line breaks and tabs as spaces. */
     private[tui4s] def lineOf(p: String | Line): JLine = p match
-        case s: String => JLine.raw(s)
+        case s: String => JLine.raw(oneLine(s))
         case l: JLine  => l
+
+    /** The lines of a `paragraph` or `logPane` part. A string breaks at '\n'
+      * and "\r\n", as ratatui's `Text::raw` does: "" is one empty line, and a
+      * line break at the end adds no line. A [[Line]] is one line.
+      */
+    private[tui4s] def linesOf(p: String | Line): IndexedSeq[Line] = p match
+        case s: String =>
+          if s.indexOf('\n') < 0 then Vector(JLine.raw(oneLine(s)))
+          else
+              val lines = Vector.newBuilder[Line]
+              var from  = 0
+              var more  = true
+              while more do
+                  val nl  = s.indexOf('\n', from)
+                  val end = if nl < 0 then s.length else nl
+                  val cut =
+                    if end > from && s.charAt(end - 1) == '\r' then end - 1
+                    else end
+                  lines += JLine.raw(oneLine(s.substring(from, cut)))
+                  if nl < 0 || nl == s.length - 1 then more = false
+                  else from = nl + 1
+              end while
+              lines.result()
+        case l: JLine  => Vector(l)
+
+    /** `s` with each line break ("\r\n", '\n', '\r') and tab as one space.
+      * jatatui drops control characters, so "a\nb" would show "ab".
+      */
+    private[tui4s] def oneLine(s: String): String =
+      if s.indexOf('\n') < 0 && s.indexOf('\r') < 0 && s.indexOf('\t') < 0
+      then s
+      else
+          s.replace("\r\n", " ")
+            .replace('\n', ' ')
+            .replace('\r', ' ')
+            .replace('\t', ' ')
 
     /** Extension methods on `String` and [[Line.Span]]. Each returns a span, so
       * calls chain: `"x".bold.red`. `dsl` (and so `import tui4s.*`) re-exports
@@ -212,7 +248,7 @@ object Line:
         private def back(sp: JSpan, c: JColor): Span =
           sp.patchStyle(JStyle.empty().withBg(c))
 
-        private def raw(s: String): JSpan = JSpan.raw(s)
+        private def raw(s: String): JSpan = JSpan.raw(oneLine(s))
 
         extension (s: String)
             /** `s`, bold. */
@@ -240,7 +276,8 @@ object Line:
             def bg(c: Color): Span = back(raw(s), Color.toJ(c))
 
             /** `s` in the style `st`. */
-            def styled(st: Style): Span = JSpan.styled(s, Style.toJ(st))
+            def styled(st: Style): Span =
+              JSpan.styled(oneLine(s), Style.toJ(st))
 
             /** `s` in red. */
             def red: Span = col(raw(s), JColor.RED)

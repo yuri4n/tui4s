@@ -66,7 +66,9 @@ sealed abstract class View derives CanEqual:
     /** The identity of the widget state that the runtime keeps for this subtree
       * (the scroll offset of a list or a table). Without an id, the identity is
       * the position in the tree, so a view that appears before a list resets
-      * its scroll offset; an id prevents that.
+      * its scroll offset; an id prevents that. Use each name once per frame:
+      * when two subtrees use the same name, each keeps its own state, matched
+      * by paint order.
       */
     def id(name: String): View = decorate(View.Identified(_, name))
 
@@ -162,7 +164,7 @@ object View:
     /** A table with a header row. The runtime keeps its scroll offset.
       *
       * @param header
-      *   the column titles
+      *   the column titles; empty: no header row
       * @param rows
       *   the rows, one cell per column
       * @param widths
@@ -234,12 +236,16 @@ object View:
         placeholder: String,
     ) extends View
 
-    /** The newest lines that fit, bottom-aligned, cut at the right edge. */
+    /** The newest lines that fit, bottom-aligned, cut at the right edge. A line
+      * break in a string starts a new row.
+      */
     final case class Log private[tui4s] (lines: Seq[String | Line]) extends View
 
     /** A help bar: "+ increment · - decrement · q quit", in the theme's help
       * styles. When the bar is wider than the area, the entries that do not fit
-      * are left out and "…" ends the bar.
+      * are left out and " …" ends the bar. When not even the first entry fits
+      * with " …", the first entry is cut and "…" ends it. So a bar that does
+      * not show every entry always ends with "…".
       *
       * @param entries
       *   (keys, help) pairs, in order
@@ -279,10 +285,14 @@ object View:
       *   makes the state the first time
       * @param paint
       *   paints the area with the kept state
+      * @param kind
+      *   the class of the state; a kept state goes only to a node with the same
+      *   paint class and the same state class
       */
     final case class Stateful private[tui4s] (
         fresh: () => Any,
         paint: (JRect, JBuffer, Any) => Unit,
+        kind: Class[?],
     ) extends View
 
     /** Escape hatch: a paint function. Equality is by function reference. */

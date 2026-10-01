@@ -38,11 +38,14 @@ import tui4s.*
   *   - Walk: containers split their area with `Layout` once per frame and read
   *     the returned (shared, cached) array at once; wrappers change the area or
   *     the style.
-  *   - Positions: the root is 1, a child is `parent * 31 + index + 1`; `.id`
-  *     replaces the position of its subtree with a value from the name.
+  *   - Positions: the root is 1, a child is a 64-bit mix of its parent and its
+  *     index (a `Long`, no allocation); `.id` replaces the position of its
+  *     subtree with a 64-bit hash of the name.
   *   - Widget-state slots: lists, tables and stateful nodes keep their state
-  *     per position. After each frame the slots that were not painted are
-  *     removed (the sweep).
+  *     per position. A node that finds its position already used in this frame
+  *     (one `.id` used twice, or a hash collision) takes a derived position, in
+  *     paint order, so two nodes never share one state. After each frame the
+  *     slots that were not painted are removed (the sweep).
   *   - Hit map: tagged areas in paint order, for `Mouse.tags`.
   *   - Cursor: a focused input sets it; otherwise the terminal hides it.
   *
@@ -52,7 +55,10 @@ import tui4s.*
 private[tui4s] final class Painter(theme: Theme):
     import Painter.*
 
-    private final class Slot(val tag: AnyRef, val state: Any):
+    /** A kept state. `tag` is the node kind (for a stateful node, the class of
+      * its paint function); `kind` is the class of the state.
+      */
+    private final class Slot(val tag: AnyRef, val kind: AnyRef, val state: Any):
         var visited: Boolean = true
 
     private val slots      = new java.util.HashMap[Long, Slot]()
@@ -100,54 +106,61 @@ private[tui4s] final class Painter(theme: Theme):
     end paint
 
     /** The kept state for `pos`, or a new one from `make`. A slot of another
-      * kind at `pos` is replaced.
+      * kind at `pos` is replaced. When another node already used `pos` in this
+      * frame, the next derived position that is free in this frame is used.
       */
-    private def slot[A](pos: Long, tag: AnyRef)(make: => A): A =
-        val s = slots.get(pos)
-        if s != null && (s.tag eq tag) then
+    private def slot[A](pos: Long, tag: AnyRef, kind: AnyRef)(make: => A): A =
+        var at   = pos
+        var s    = slots.get(at)
+        var used = 0
+        while s != null && s.visited do
+            used += 1
+            at = childPosition(pos, -used) // never the index of a real child
+            s = slots.get(at)
+        if s != null && (s.tag eq tag) && (s.kind eq kind) then
             s.visited = true
             s.state.asInstanceOf[A]
         else
             val state = make
-            discard(slots.put(pos, Slot(tag, state)))
+            discard(slots.put(at, Slot(tag, kind, state)))
             state
     end slot
 
     private def walk(view: View, area: Rect, buf: Buffer, pos: Long): Unit =
       if area.width > 0 && area.height > 0 then
           view match
-              case t: View.Text                     => text(t, area, buf)
-              case s: View.Stack                    => stack(s, area, buf, pos)
-              case View.Layers(children)            =>
+              case t: View.Text                      => text(t, area, buf)
+              case s: View.Stack                     => stack(s, area, buf, pos)
+              case View.Layers(children)             =>
                 var i  = 0
                 val it = children.iterator
                 while it.hasNext do
                     walk(it.next(), area, buf, childPosition(pos, i))
                     i += 1
-              case l: View.Items                    => items(l, area, buf, pos)
-              case t: View.Table                    => table(t, area, buf, pos)
-              case t: View.Tabs                     => tabs(t, area, buf)
-              case g: View.Gauge                    => gauge(g, area, buf)
-              case s: View.Sparkline                => sparkline(s, area, buf)
-              case i: View.Input                    => input(i, area, buf)
-              case l: View.Log                      => log(l, area, buf)
-              case h: View.Help                     => help(h, area, buf)
-              case View.Clear                       => JClear.INSTANCE.render(area, buf)
-              case View.Empty                       => ()
-              case View.Widget(w)                   => w.render(area, buf)
-              case View.Stateful(fresh, paint)      =>
-                // The class of the paint function tells two stateful
-                // nodes at one position apart.
-                paint(area, buf, slot(pos, paint.getClass)(fresh()))
-              case View.Draw(paint)                 => paint(area, buf)
-              case View.Sized(child, _)             => walk(child, area, buf, pos)
-              case b: View.Bordered                 => bordered(b, area, buf, pos)
-              case View.Padded(child, h, v)         =>
+              case l: View.Items                     => items(l, area, buf, pos)
+              case t: View.Table                     => table(t, area, buf, pos)
+              case t: View.Tabs                      => tabs(t, area, buf)
+              case g: View.Gauge                     => gauge(g, area, buf)
+              case s: View.Sparkline                 => sparkline(s, area, buf)
+              case i: View.Input                     => input(i, area, buf)
+              case l: View.Log                       => log(l, area, buf)
+              case h: View.Help                      => help(h, area, buf)
+              case View.Clear                        => JClear.INSTANCE.render(area, buf)
+              case View.Empty                        => ()
+              case View.Widget(w)                    => w.render(area, buf)
+              case View.Stateful(fresh, paint, kind) =>
+                // The class of the paint function and the class of the
+                // state tell two stateful nodes at one position apart.
+                paint(area, buf, slot(pos, paint.getClass, kind)(fresh()))
+              case View.Draw(paint)                  => paint(area, buf)
+              case View.Sized(child, _)              => walk(child, area, buf, pos)
+              case b: View.Bordered                  => bordered(b, area, buf, pos)
+              case View.Padded(child, h, v)          =>
                 walk(child, area.inner(Margin(h, v)), buf, pos)
-              case View.Styled(child, style)        =>
+              case View.Styled(child, style)         =>
                 buf.setStyle(area, Style.toJ(style))
                 walk(child, area, buf, pos)
-              case View.Popup(child, width, height) =>
+              case View.Popup(child, width, height)  =>
                 val w    = width.min(area.width)
                 val h    = height.min(area.height)
                 val x    = area.x + (area.width - w) / 2
@@ -155,9 +168,9 @@ private[tui4s] final class Painter(theme: Theme):
                 val rect = Rect(x, y, w, h)
                 JClear.INSTANCE.render(rect, buf)
                 walk(child, rect, buf, pos)
-              case View.Identified(child, name)     =>
+              case View.Identified(child, name)      =>
                 walk(child, area, buf, idPosition(name))
-              case View.Tagged(child, name)         =>
+              case View.Tagged(child, name)          =>
                 hits += Hit(area, name)
                 walk(child, area, buf, pos)
 
@@ -187,7 +200,7 @@ private[tui4s] final class Painter(theme: Theme):
               i += 1
 
     private def items(l: View.Items, area: Rect, buf: Buffer, pos: Long): Unit =
-        val state = slot(pos, ListTag)(ListState.empty())
+        val state = slot(pos, ListTag, ListTag)(ListState.empty())
         state.select(selection(l.selected))
         val rows  = new java.util.ArrayList[ListItem](l.items.size)
         l.items.foreach(i => discard(rows.add(ListItem.of(Line.lineOf(i)))))
@@ -199,7 +212,7 @@ private[tui4s] final class Painter(theme: Theme):
     end items
 
     private def table(t: View.Table, area: Rect, buf: Buffer, pos: Long): Unit =
-        val state  = slot(pos, TableTag)(TableState())
+        val state  = slot(pos, TableTag, TableTag)(TableState())
         state.select(selection(t.selected))
         val rows   = new java.util.ArrayList[Row](t.rows.size)
         t.rows.foreach { r =>
@@ -211,19 +224,23 @@ private[tui4s] final class Painter(theme: Theme):
         }
         val widths = new java.util.ArrayList[JConstraint](t.widths.size)
         t.widths.foreach(w => discard(widths.add(constraint(w))))
-        val header = new java.util.ArrayList[TableCell](t.header.size)
-        t.header.foreach(h => discard(header.add(TableCell.of(h))))
-        JTable
+        val base   = JTable
           .of(rows, widths)
-          .withHeader(Row.of(header).withStyle(HeaderStyle))
           .withHighlightSymbol(HighlightSymbol)
           .withRowHighlightStyle(if t.focused then highlight else dimmed)
-          .render(area, buf, state)
+        // A jatatui header row takes one row even with no cells.
+        val w      =
+          if t.header.isEmpty then base
+          else
+              val header = new java.util.ArrayList[TableCell](t.header.size)
+              t.header.foreach(h => discard(header.add(TableCell.of(h))))
+              base.withHeader(Row.of(header).withStyle(HeaderStyle))
+        w.render(area, buf, state)
     end table
 
     private def tabs(t: View.Tabs, area: Rect, buf: Buffer): Unit =
         val titles = new java.util.ArrayList[JLine](t.titles.size)
-        t.titles.foreach(s => discard(titles.add(JLine.raw(s))))
+        t.titles.foreach(s => discard(titles.add(Line.lineOf(s))))
         var w      = JTabs.of(titles).withHighlightStyle(accent.bold())
         if t.titles.nonEmpty then
             w = w.withSelected(t.selected.max(0).min(t.titles.size - 1))
@@ -255,7 +272,8 @@ private[tui4s] final class Painter(theme: Theme):
     end sparkline
 
     /** A grapheme-aware single-line field. A text wider than the area scrolls
-      * so that the cursor cell stays visible.
+      * so that the cursor cell, and the whole grapheme under the cursor, stay
+      * visible.
       */
     private def input(in: View.Input, area: Rect, buf: Buffer): Unit =
         val field = in.field
@@ -281,7 +299,12 @@ private[tui4s] final class Painter(theme: Theme):
             while i < field.cursor do
                 before += widths(i)
                 i += 1
-            while before > area.width - 1 && start < field.cursor do
+            // The cells the cursor needs: the grapheme under it (two for a
+            // wide one), or one cell after the end.
+            val need      =
+              if field.cursor < widths.size then widths(field.cursor).max(1)
+              else 1
+            while before + need > area.width && start < field.cursor do
                 before -= widths(start)
                 start += 1
             val visible   = graphemes.iterator.drop(start).mkString
@@ -303,54 +326,74 @@ private[tui4s] final class Painter(theme: Theme):
         cursorY = y
 
     private def log(l: View.Log, area: Rect, buf: Buffer): Unit =
-        val shown = l.lines.takeRight(area.height)
-        var y     = area.y + area.height - shown.size
-        shown.foreach { line =>
-          discard(buf.setLine(area.x, y, Line.lineOf(line), area.width))
-          y += 1
-        }
+        // The newest rows that fit; a string with line breaks is several rows.
+        val rows = ArrayBuffer.empty[Line]
+        val it   = l.lines.reverseIterator
+        while rows.size < area.height && it.hasNext do
+            val lines = Line.linesOf(it.next())
+            var i     = lines.size - 1
+            while i >= 0 && rows.size < area.height do
+                rows += lines(i)
+                i -= 1
+        var y    = area.y + area.height - rows.size
+        var i    = rows.size - 1
+        while i >= 0 do
+            discard(buf.setLine(area.x, y, Line.toJ(rows(i)), area.width))
+            y += 1
+            i -= 1
+    end log
 
-    /** Whole entries that fit; " …" when some do not. When not even the first
-      * entry fits, the first entry is cut at the edge.
+    /** Whole entries that fit, then " …" when some are left out. When not even
+      * the first entry and " …" fit, the first entry is cut and "…" ends it. So
+      * a bar that does not show everything always ends with "…".
       */
     private def help(h: View.Help, area: Rect, buf: Buffer): Unit =
-        val n      = h.entries.size
-        val sizes  = h.entries.iterator.map((k, t) => width(k) + 1 + width(t))
-        // ends(i): the width of the first i entries with their separators.
-        val ends   = sizes.zipWithIndex
-          .scanLeft(0) { case (sum, (w, i)) =>
-            sum + (if i == 0 then 0 else SeparatorWidth) + w
+      if h.entries.nonEmpty then
+          val n     = h.entries.size
+          val sizes = h.entries.iterator.map((k, t) => width(k) + 1 + width(t))
+          // ends(i): the width of the first i entries with their separators.
+          val ends  = sizes.zipWithIndex
+            .scanLeft(0) { case (sum, (w, i)) =>
+              sum + (if i == 0 then 0 else SeparatorWidth) + w
+            }
+            .toArray
+          val max   = area.width
+          // The whole entries shown; 0: the first entry, cut.
+          val whole =
+            if ends(n) <= max then n
+            else
+                (n - 1 to 1 by -1)
+                  .find(i => ends(i) + EllipsisWidth <= max)
+                  .getOrElse(0)
+          val spans = new java.util.ArrayList[JSpan](whole.max(1) * 3 + 1)
+          h.entries.iterator.take(whole.max(1)).zipWithIndex.foreach {
+            case ((k, t), i) =>
+              if i > 0 then
+                  discard(spans.add(JSpan.styled(Separator, helpText)))
+              discard(spans.add(JSpan.styled(k, helpKey)))
+              discard(spans.add(JSpan.styled(" " + t, helpText)))
           }
-          .toArray
-        val max    = area.width
-        val shown  =
-          if ends(n) <= max then n
+          if whole == 0 then
+              val end =
+                buf.setLine(area.x, area.y, JLine.fromSpans(spans), max - 1)
+              discard(buf.setStringn(end.x, area.y, Cut, 1, helpText))
           else
-              (n - 1 to 1 by -1)
-                .find(i => ends(i) + EllipsisWidth <= max)
-                .getOrElse(1)
-        val spans  = new java.util.ArrayList[JSpan](shown * 3 + 1)
-        h.entries.iterator.take(shown).zipWithIndex.foreach {
-          case ((k, t), i) =>
-            if i > 0 then discard(spans.add(JSpan.styled(Separator, helpText)))
-            discard(spans.add(JSpan.styled(k, helpKey)))
-            discard(spans.add(JSpan.styled(" " + t, helpText)))
-        }
-        val cut    = shown < n && ends(shown) + EllipsisWidth <= max
-        if cut then discard(spans.add(JSpan.styled(Ellipsis, helpText)))
-        val used   = (ends(shown) + (if cut then EllipsisWidth else 0)).min(max)
-        val offset = h.align match
-            case Align.Left   => 0
-            case Align.Center => (max - used) / 2
-            case Align.Right  => max - used
-        discard(
-          buf.setLine(
-            area.x + offset,
-            area.y,
-            JLine.fromSpans(spans),
-            max - offset,
-          ),
-        )
+              if whole < n then
+                  discard(spans.add(JSpan.styled(Ellipsis, helpText)))
+              val used   = ends(whole) + (if whole < n then EllipsisWidth else 0)
+              val offset = h.align match
+                  case Align.Left   => 0
+                  case Align.Center => (max - used) / 2
+                  case Align.Right  => max - used
+              discard(
+                buf.setLine(
+                  area.x + offset,
+                  area.y,
+                  JLine.fromSpans(spans),
+                  max - offset,
+                ),
+              )
+          end if
     end help
 
     private def bordered(
@@ -395,17 +438,35 @@ private[tui4s] object Painter:
     private val SeparatorWidth   = 3
     private val Ellipsis         = " …"
     private val EllipsisWidth    = 2
+    private val Cut              = "…"
     private val HeaderStyle      = JStyle.empty().bold()
     private val PlaceholderStyle = JStyle.empty().dim()
 
+    /** The position of child `index` of `parent`. Siblings never meet (`mix` is
+      * a bijection); two other paths meet with a chance of about 2^-64, and
+      * `slot` separates them when they do in one frame.
+      */
     private def childPosition(parent: Long, index: Int): Long =
-      parent * 31 + index + 1
+      mix(parent ^ mix(index.toLong + 0x632be59bd9b4e019L))
 
-    /** A position for `.id(name)`: negative, so it does not meet the positive
-      * tree positions of a shallow tree.
+    /** The position of a subtree with `.id(name)`: a 64-bit FNV-1a hash of the
+      * name, mixed. (A 32-bit `String.hashCode` collides too often: "Aa" and
+      * "BB".)
       */
     private def idPosition(name: String): Long =
-      -(name.hashCode.toLong & 0xffffffffL) - 2
+        var h = 0xcbf29ce484222325L
+        var i = 0
+        while i < name.length do
+            h = (h ^ name.charAt(i)) * 0x100000001b3L
+            i += 1
+        mix(h)
+
+    /** The MurmurHash3 64-bit finalizer: a bijection that spreads every bit. */
+    private def mix(x: Long): Long =
+        var z = x
+        z = (z ^ (z >>> 33)) * 0xff51afd7ed558ccdL
+        z = (z ^ (z >>> 33)) * 0xc4ceb9fe1a85ec53L
+        z ^ (z >>> 33)
 
     private def width(s: String): Int = JSpan.raw(s).width()
 

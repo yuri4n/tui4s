@@ -3,6 +3,7 @@ package tui4s
 import _root_.jatatui.core.buffer.Buffer as JBuffer
 import _root_.jatatui.core.layout.Rect as JRect
 import _root_.jatatui.core.widgets.Widget as JWidget
+import scala.reflect.ClassTag
 
 /** The view constructors and all extension methods. Package `tui4s` exports
   * this object, so `import tui4s.*` brings everything in.
@@ -11,23 +12,27 @@ object dsl:
     // ---- text
 
     /** One line of text from strings and spans:
-      * `text("Count: ", n.toString.bold)`. Long lines are cut.
+      * `text("Count: ", n.toString.bold)`. Long lines are cut. A line break or
+      * a tab in a string becomes a space.
       */
     def text(parts: (String | Line.Span)*): View.Text =
       View.Text(Seq(Line(parts*)), Align.Left, wraps = false, scrollY = 0)
 
-    /** Several lines. Long lines wrap at word boundaries (`.wrap(false)` cuts
-      * them).
+    /** Several lines: each argument starts a new line, and so does a line break
+      * ('\n' or "\r\n") in a string (one at the end adds no line). Long lines
+      * wrap at word boundaries (`.wrap(false)` cuts them).
       */
     def paragraph(lines: (String | Line)*): View.Text =
       View.Text(
-        lines.map(l => Line.fromJ(Line.lineOf(l))),
+        lines.flatMap(Line.linesOf),
         Align.Left,
         wraps = true,
         scrollY = 0,
       )
 
-    /** A line of strings and spans, for `paragraph`, `list` and `logPane`. */
+    /** A line of strings and spans, for `paragraph`, `list` and `logPane`. A
+      * line break or a tab in a string becomes a space.
+      */
     def line(parts: (String | Line.Span)*): Line = Line(parts*)
 
     // ---- layout
@@ -53,8 +58,8 @@ object dsl:
 
     // ---- widgets
 
-    /** A selectable list. The runtime keeps the scroll offset, so moving the
-      * selection moves the highlight, not the page.
+    /** A selectable list, one line per item. The runtime keeps the scroll
+      * offset, so moving the selection moves the highlight, not the page.
       *
       * @param selected
       *   the highlighted item; `-1`: none
@@ -68,8 +73,10 @@ object dsl:
     ): View =
       View.Items(items, selected, focused)
 
-    /** A table with a header row.
+    /** A table with a header row, one line per cell.
       *
+      * @param header
+      *   the column titles; empty: no header row
       * @param widths
       *   one constraint per column; empty: equal columns
       * @param selected
@@ -131,7 +138,9 @@ object dsl:
     ): View =
       View.Input(field, focused, placeholder)
 
-    /** The newest lines that fit, bottom-aligned. */
+    /** The newest lines that fit, bottom-aligned. A line break in a string
+      * starts a new row, as in `paragraph`.
+      */
     def logPane(lines: Seq[String | Line]): View = View.Log(lines)
 
     /** The help bar of a keymap: "+ increment · - decrement · q quit". Hidden
@@ -147,14 +156,22 @@ object dsl:
 
     /** A paint function with a state of its own (for example a jatatui
       * `ScrollbarState`). The runtime makes the state with `fresh` the first
-      * time and keeps it while this node is painted at the same tree position.
+      * time and keeps it while this node is painted at the same tree position,
+      * with a paint function of the same class and a state of the same class. A
+      * generic helper that calls `stateful` needs a `ClassTag` for its state
+      * type too: `def wrap[St: ClassTag](...)`.
       */
-    def stateful[St](fresh: => St)(paint: (JRect, JBuffer, St) => Unit): View =
-      // No wrapper lambda: the class of `paint` tells two stateful nodes at
-      // one position apart, so a kept state never reaches the wrong paint.
+    def stateful[St: ClassTag](fresh: => St)(
+        paint: (JRect, JBuffer, St) => Unit,
+    ): View =
+      // No wrapper lambda: the class of `paint` and the class of the state
+      // tell two stateful nodes at one position apart, so a kept state never
+      // reaches a paint for another state type (a generic helper has one
+      // lambda class for every state type).
       View.Stateful(
         () => fresh,
         paint.asInstanceOf[(JRect, JBuffer, Any) => Unit],
+        summon[ClassTag[St]].runtimeClass,
       )
 
     /** A paint function on the area and the buffer. */
