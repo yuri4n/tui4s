@@ -63,16 +63,24 @@ lazy val examples = project
   .in(file("examples"))
   .dependsOn(core, zio, cats)
   .settings(
-    name               := "tui4s-examples",
-    publish / skip     := true,
+    name                                   := "tui4s-examples",
+    publish / skip                         := true,
     // A terminal app needs the real TTY: fork a JVM, connect stdin and stdout.
-    run / fork         := true,
-    run / connectInput := true,
-    outputStrategy     := Some(StdoutOutput),
+    run / fork                             := true,
+    run / connectInput                     := true,
+    outputStrategy                         := Some(StdoutOutput),
     // Without these flags JDK 25 prints warnings over the UI: crossterm is a
     // JNI library, and Kyo and Scala use sun.misc.Unsafe.
     run / javaOptions ++= Seq(
       "--enable-native-access=ALL-UNNAMED",
+      "--sun-misc-unsafe-memory-access=allow",
+    ),
+    // The example tests use munit, as most users do. A forked JVM, as in core:
+    // Kyo starts one scheduler per class loader.
+    libraryDependencies += "org.scalameta" %% "munit" % Versions.munit % Test,
+    Test / fork                            := true,
+    Test / javaOptions ++= Seq(
+      "-Xmx1g",
       "--sun-misc-unsafe-memory-access=allow",
     ),
   )
