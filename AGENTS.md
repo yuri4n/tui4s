@@ -15,6 +15,7 @@ replaces tui-scala.
 | `modules/zio`   | `zio`      | `io.github.yuri4n::tui4s-zio`    | `zio-v<semver>`  | yes      |
 | `modules/cats`  | `cats`     | `io.github.yuri4n::tui4s-cats`   | `cats-v<semver>` | yes      |
 | `examples`      | `examples` | none                             | none             | no       |
+| `bench`         | `bench`    | none                             | none             | no       |
 | `docs`          | none       | none (Nuxt Docus site)           | none             | no       |
 
 The core uses [Kyo](https://getkyo.io). The `zio` and `cats` modules let ZIO and
@@ -38,8 +39,14 @@ Cats Effect users write tui4s apps without Kyo types in their code.
 | `sbt versions`                 | Shows the version of each module (released or snapshot).   |
 | `sbt core/test`                | Runs the tests of one module.                              |
 | `sbt "examples/runMain <main>"` | Runs an example in the real terminal (forked JVM).         |
+| `sbt "bench/runMain tui4s.bench.<Probe>"` | Runs one performance probe (see `bench/BASELINE.md`). |
+| `sbt "bench/Jmh/run -i 5 -wi 5 -f 1 tui4s.bench.PaintBench"` | Runs a JMH benchmark. |
 
 Run `sbt fmt` and `sbt check` before each push.
+
+Run the benchmarks and the probes alone: no other build, test or agent on the
+machine. A high load average makes the numbers useless. Write the numbers of a
+release in `bench/BASELINE.md`.
 
 ## Rules for code
 
