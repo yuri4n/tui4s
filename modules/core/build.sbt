@@ -7,6 +7,8 @@ libraryDependencies ++= Seq(
   "com.olvind.jatatui" % "jatatui-widgets"   % Versions.jatatui,
   "com.olvind.jatatui" % "jatatui-crossterm" % Versions.jatatui,
   "io.getkyo"         %% "kyo-test-runner"   % Versions.kyo % Test,
+  // Reads the TASTy of the shared surface: no kyo type in it (SPEC 6.5).
+  "ch.epfl.scala"     %% "tasty-query"       % "1.9.0"      % Test,
 )
 
 // kyo-test (the Kyo project's own test framework, released with Kyo).
