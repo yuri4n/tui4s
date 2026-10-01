@@ -1,5 +1,8 @@
 # sbt / Scala
 target/
+# Probe output (one JSON line per run); the numbers of a release go to
+# bench/BASELINE.md.
+bench/results/
 project/project/
 project/target/
 project/metals.sbt

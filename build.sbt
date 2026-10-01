@@ -49,7 +49,7 @@ def module(id: String): Project =
 
 lazy val root = project
   .in(file("."))
-  .aggregate(core, zio, cats, examples)
+  .aggregate(core, zio, cats, examples, bench)
   .settings(
     name           := "tui4s",
     publish / skip := true,
@@ -89,6 +89,22 @@ lazy val examples = project
   // One Counter text compiled under the import of each ecosystem (SPEC 6.5).
   .settings(
     FacadeParity.settings(file("examples/src/parity/CounterBody.scala.txt")),
+  )
+
+// Benchmarks and probes (SPEC 7.4). Not published. Run them alone: other
+// builds on the machine make the numbers useless. See bench/BASELINE.md.
+lazy val bench = project
+  .in(file("bench"))
+  .dependsOn(core, zio, cats, examples)
+  .enablePlugins(JmhPlugin)
+  .settings(
+    name           := "tui4s-bench",
+    publish / skip := true,
+    run / fork     := true,
+    run / javaOptions ++= Seq(
+      "--enable-native-access=ALL-UNNAMED",
+      "--sun-misc-unsafe-memory-access=allow",
+    ),
   )
 
 Global / commands ++= Seq(
