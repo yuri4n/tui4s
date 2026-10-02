@@ -6,3 +6,14 @@
 // import. It must come after `FacadeParity.settings(...)`, which sets the list
 // to Kyo only: this file does.
 FacadeParity.ecosystems += "zio" -> "import tui4s.interop.zio.*"
+
+// zio-test for the example tests (TestClock), at the ZIO version of the zio
+// module (modules/zio/build.sbt), so that the two cannot drift.
+libraryDependencies += {
+  val zioVersion = (LocalProject("zio") / libraryDependencies).value
+    .collectFirst {
+      case m if m.organization == "dev.zio" && m.name == "zio" => m.revision
+    }
+    .getOrElse(sys.error("modules/zio/build.sbt has no dev.zio::zio"))
+  "dev.zio" %% "zio-test" % zioVersion % Test
+}

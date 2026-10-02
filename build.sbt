@@ -107,7 +107,7 @@ lazy val examples = project
         .filter(_.startsWith("examples."))
       IO.write(bin / "classpath", cp)
       mains.map { main =>
-        val name = main.split('.').last.stripSuffix("App").toLowerCase
+        val name = main.split('.')(1)
         val file = bin / name
         IO.write(
           file,
