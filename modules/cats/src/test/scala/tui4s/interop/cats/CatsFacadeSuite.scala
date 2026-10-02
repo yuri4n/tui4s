@@ -2,6 +2,7 @@ package tui4s.interop.cats
 
 import _root_.cats.effect.IO
 import _root_.cats.effect.unsafe.IORuntime
+import _root_.cats.syntax.all.*
 import java.util.concurrent.Executors
 import munit.CatsEffectSuite
 import scala.concurrent.ExecutionContext
@@ -106,6 +107,23 @@ class CatsFacadeSuite extends CatsEffectSuite:
           assert(outcome.isCanceled, outcome.toString)
           assertEquals(log.events.lastOption, Some("leave-raw-mode"))
         }
+    }
+
+    test("a cancel at any time leaves no terminal entered (30 rounds)") {
+      val rounds = (0 until 30).toList.traverse { i =>
+        val log = RecordingControl()
+        Tui
+          .runWith[IO, Int](CounterApp, log, ScriptedInput.never)
+          .start
+          .flatMap(f => IO.sleep((i % 10).millis) *> f.cancel)
+          .map(_ => log.events)
+      }
+      rounds.map { all =>
+        val bad = all.filter(e =>
+          e.nonEmpty && !e.lastOption.contains("leave-raw-mode"),
+        )
+        assert(bad.isEmpty, bad.mkString("\n"))
+      }
     }
 
     test("user code that throws fails the run with TuiError.AppFailed") {
