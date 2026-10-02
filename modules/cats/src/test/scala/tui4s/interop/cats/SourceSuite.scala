@@ -26,15 +26,28 @@ class SourceSuite extends CatsEffectSuite:
     test(
       "fs2 backpressure: 10 000 elements through an inbox of 16, none lost",
     ) {
-      val n      = 10000
-      val stream = Stream.iterate(0)(_ + 1).take(n.toLong).covary[IO]
-      val app    = Apps.tally(
-        _ => Seq(source.stream(stream)(_.add(_, n)).id("numbers")),
+      val n        = 10000
+      // How far the stream runs ahead of the folds: with backpressure, about
+      // the inbox (16) plus the batch that the app folds (16); without it,
+      // thousands.
+      val produced = new java.util.concurrent.atomic.AtomicInteger(0)
+      val ahead    = new java.util.concurrent.atomic.AtomicInteger(0)
+      val stream   = Stream
+        .iterate(0)(_ + 1)
+        .take(n.toLong)
+        .covary[IO]
+        .evalTap(_ => IO(produced.incrementAndGet()).void)
+      val fold     = (t: Tally, v: Int) =>
+          val _ = ahead.accumulateAndGet(produced.get - t.count, math.max)
+          t.add(v, n)
+      val app      = Apps.tally(
+        _ => Seq(source.stream(stream)(fold).id("numbers")),
         TuiOptions(inboxCapacity = 16),
       )
       run(app).map { t =>
         assertEquals(t.count, n)
         assertEquals(t.sum, n.toLong * (n - 1) / 2)
+        assert(ahead.get <= 64, s"the stream ran ${ahead.get} elements ahead")
       }
     }
 
