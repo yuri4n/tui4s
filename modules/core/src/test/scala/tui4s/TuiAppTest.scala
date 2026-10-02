@@ -219,9 +219,9 @@ class TuiAppTest extends Test[Any]:
 
     "the restore hook first, then the stop hook: the run is interrupted"
       .timeout(30.seconds) in {
-      val fake  = FakeCrossterm()
-      val hooks = FakeHooks(fake.log)
-      val err   = FakeErr(fake.log)
+      val fake                          = FakeCrossterm()
+      val hooks                         = FakeHooks(fake.log)
+      val err                           = FakeErr(fake.log)
       def named(n: String): Seq[Thread] =
         hooks.added.asScala.toSeq.filter(_.getName == n)
       Sync

@@ -14,8 +14,8 @@ class ParitySuite extends FunSuite:
 
     private val expected = run(examples.counter.CounterApp)
 
-    /** The ecosystems that must have a parity app. The ZIO and Cats Effect
-      * pull requests add "zio" and "cats" here and in the build (see
+    /** The ecosystems that must have a parity app. The ZIO and Cats Effect pull
+      * requests add "zio" and "cats" here and in the build (see
       * project/FacadeParity.scala): a name in only one place makes this fail.
       */
     private val ecosystems = Set("kyo")

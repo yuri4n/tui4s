@@ -28,13 +28,13 @@ end Hooks
 /** The real terminal (SPEC 5.9): a [[TerminalControl]] over [[Crossterm]].
   *
   * `enter` does the first steps of the acquire: (1) load the native library,
-  * (2) start the output capture, (3) raw mode (`NotATerminal` when stdin is
-  * not a terminal or raw mode fails), (4) the alternate screen (or
-  * not, for an inline viewport), hide the cursor, and the bracketed paste,
-  * mouse and focus modes that the options ask for. A failing step undoes the
-  * earlier ones. The [[Session]] then creates the jatatui terminal (5), starts
-  * the input thread on [[input]] (6) and calls [[opened]], which registers the
-  * shutdown hook (7).
+  * (2) start the output capture, (3) raw mode (`NotATerminal` when stdin is not
+  * a terminal or raw mode fails), (4) the alternate screen (or not, for an
+  * inline viewport), hide the cursor, and the bracketed paste, mouse and focus
+  * modes that the options ask for. A failing step undoes the earlier ones. The
+  * [[Session]] then creates the jatatui terminal (5), starts the input thread
+  * on [[input]] (6) and calls [[opened]], which registers the shutdown hook
+  * (7).
   *
   * `leave` is the end of the release, after the input thread stopped: (3) leave
   * the modes and show the cursor (below an inline viewport), (4) leave raw mode

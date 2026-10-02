@@ -59,8 +59,7 @@ object Probes:
 
     /** Runs `f` on a platform thread of its own and waits for it without
       * blocking a Kyo worker. A blocked worker (a full GC, a sleep) makes the
-      * Kyo scheduler start another worker, and a thread count would include
-      * it.
+      * Kyo scheduler start another worker, and a thread count would include it.
       */
     def offWorker[A](f: => A)(using Frame): A < Async =
       Sync.Unsafe

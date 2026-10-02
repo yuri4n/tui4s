@@ -9,8 +9,8 @@ import tui4s.*
   * `Log.let`) and its captured output.
   */
 private[tui4s] object TuiRun:
-    /** Runs `app` on the terminal of `crossterm` until it quits. `restored`
-      * is called when the release has restored the terminal.
+    /** Runs `app` on the terminal of `crossterm` until it quits. `restored` is
+      * called when the release has restored the terminal.
       */
     def run[S](
         app: App[S],

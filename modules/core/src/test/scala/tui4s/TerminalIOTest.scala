@@ -395,9 +395,7 @@ class TerminalIOTest extends Test[Any]:
           CounterApp.update,
           sources = _ =>
             Seq(
-              source.task(Log.info("detail at info").andThen(1))((_, _) =>
-                Quit,
-              ),
+              source.task(Log.info("detail at info").andThen(1))((_, _) => Quit),
             ),
           options = TuiOptions(logFile = Some(file)),
         )
@@ -426,8 +424,7 @@ class TerminalIOTest extends Test[Any]:
           0,
           CounterApp.view,
           CounterApp.update,
-          sources = _ =>
-            Seq(source.task(logAll.andThen(1))((_, _) => Quit)),
+          sources = _ => Seq(source.task(logAll.andThen(1))((_, _) => Quit)),
           options = TuiOptions(logFile = Some(file)),
         )
         val fake   = FakeCrossterm()

@@ -82,8 +82,9 @@ private[tui4s] object TuiLog:
     def let[A, S](sink: LogSink)(v: A < S)(using Frame): A < S =
       Log.use(current => Log.let(Log(TuiLog(sink, current.level)))(v))
 
-    /** Waits (at most `max`) until Kyo has written every log line that was
-      * sent before: Kyo writes its log on its own fiber.
+    /** Waits (at most `max`) until Kyo has written every log line that was sent
+      * before: Kyo writes its log on its own fiber.
       */
     def flush(max: Duration)(using Frame): Unit < Async =
       Abort.run[Timeout](Async.timeout(max)(Log.flush)).unit
+end TuiLog

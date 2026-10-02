@@ -122,9 +122,15 @@ private[tui4s] object Tty:
           try
               val linker = Linker.nativeLinker().nn
               val int    = ValueLayout.JAVA_INT
-              linker.defaultLookup().nn.find("isatty").nn.toScala.map(at =>
-                linker.downcallHandle(at, FunctionDescriptor.of(int, int)).nn,
-              )
+              linker
+                .defaultLookup()
+                .nn
+                .find("isatty")
+                .nn
+                .toScala
+                .map(at =>
+                  linker.downcallHandle(at, FunctionDescriptor.of(int, int)).nn,
+                )
           catch case NonFatal(_) => None
 
     /** True when `fd` is a terminal; `None` when this cannot be known. */

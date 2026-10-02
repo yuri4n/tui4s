@@ -49,11 +49,11 @@ private[tui4s] object OutputCapture:
       installStreams()
     }
 
-    /** Installs the forwarders of the current `System.out` and `System.err`.
-      * A forwarder is made again only when the program has set its own stream
+    /** Installs the forwarders of the current `System.out` and `System.err`. A
+      * forwarder is made again only when the program has set its own stream
       * since: the new forwarder writes to that stream, and a stop restores it.
-      * A forwarder never changes its stream, so forwarders cannot write to
-      * each other in a loop.
+      * A forwarder never changes its stream, so forwarders cannot write to each
+      * other in a loop.
       */
     private def installStreams(): Unit =
         val sysOut = java.lang.System.out.nn
@@ -128,7 +128,7 @@ private[tui4s] object OutputCapture:
       */
     private final class Forward(original: PrintStream, charset: Charset)
         extends OutputStream:
-        private val partial = ByteArrayOutputStream()
+        private val partial  = ByteArrayOutputStream()
         // The last byte was a '\r'.
         private var carriage = false
 
@@ -173,7 +173,7 @@ private[tui4s] object OutputCapture:
 
         /** Sends a line without its line break to `s`. */
         def drain(s: LogSink): Unit =
-          if partial.size > 0 then emit(s)
-          carriage = false
+            if partial.size > 0 then emit(s)
+            carriage = false
     end Forward
 end OutputCapture
