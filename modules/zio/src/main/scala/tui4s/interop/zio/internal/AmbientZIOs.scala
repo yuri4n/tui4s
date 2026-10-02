@@ -78,9 +78,6 @@ private[tui4s] object AmbientZIOs:
     ): A < (Abort[E] & Async) =
       callerRuntime.use(rt => getOn(rt.getOrElse(Runtime.default))(v))
 
-    /** The runtime that [[get]] would use here: `Absent` outside [[run]]. */
-    def current(using Frame): Maybe[Runtime[Any]] < Sync = callerRuntime.get
-
     /** Runs the ZIO `v` on `rt` (derived from kyo-zio's `ZIOs.get`). */
     def getOn[E, A](rt: Runtime[Any])(v: => ZIO[Any, E, A])(using
         frame: Frame,
