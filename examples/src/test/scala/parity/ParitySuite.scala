@@ -18,7 +18,7 @@ class ParitySuite extends FunSuite:
       * requests add "zio" and "cats" here and in the build (see
       * project/FacadeParity.scala): a name in only one place makes this fail.
       */
-    private val ecosystems = Set("kyo")
+    private val ecosystems = Set("kyo", "cats")
 
     test("the parity apps are exactly the expected ecosystems") {
       assertEquals(Parity.apps.map(_._1).toSet, ecosystems)
