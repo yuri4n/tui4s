@@ -107,7 +107,9 @@ lazy val examples = project
         .filter(_.startsWith("examples."))
       IO.write(bin / "classpath", cp)
       mains.map { main =>
-        val name = main.split('.').last.stripSuffix("App").toLowerCase
+        // The package names the script (counter, catscounter): the examples
+        // of the facades use the same class names as the Kyo examples.
+        val name = main.split('.').init.last
         val file = bin / name
         IO.write(
           file,
