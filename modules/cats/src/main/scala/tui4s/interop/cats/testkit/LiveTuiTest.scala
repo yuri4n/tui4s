@@ -147,16 +147,18 @@ object LiveTuiTest:
               Runner.startOrFail(live, control, None, view),
             ),
           )
-          F.flatMap(start) { handle =>
-            val kit  = LiveRun[F, S](fixed, handle, view)
-            val body =
-              F.flatMap(F.attempt(F.productR(kit.settle)(test(kit))))(result =>
-                F.flatMap(
-                  CatsBridge.runF(handle.stop.andThen(handle.result)),
-                )(ended => outcome(result, ended)),
-              )
-            F.guarantee(body, F.void(CatsBridge.runF(handle.kill)))
-          }
+          // The release also runs on a cancel: it interrupts the app and
+          // waits for its end (the terminal is released then).
+          F.bracket(start) { handle =>
+            val kit = LiveRun[F, S](fixed, handle, view)
+            F.flatMap(F.attempt(F.productR(kit.settle)(test(kit))))(result =>
+              F.flatMap(
+                CatsBridge.runF(handle.stop.andThen(handle.result)),
+              )(ended => outcome(result, ended)),
+            )
+          }(handle =>
+            F.void(CatsBridge.runF(handle.kill.andThen(handle.result))),
+          )
         }
     end run
 

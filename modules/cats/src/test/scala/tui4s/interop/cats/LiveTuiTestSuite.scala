@@ -82,4 +82,19 @@ class LiveTuiTestSuite extends CatsEffectSuite:
         case other                       => fail(s"not AppFailed: $other")
       }
     }
+    test("a cancelled live test stops the app and its sources") {
+      for
+          started   <- IO.deferred[Unit]
+          cancelled <- IO.deferred[Unit]
+          work       = (started.complete(()) *> IO.never[Int])
+                         .onCancel(cancelled.complete(()).void)
+          app        = Apps.tally(_ =>
+                         Seq(Source.For[IO, Tally].poll(1.second)(work)(_.add(_, 1))),
+                       )
+          result    <- LiveTuiTest[IO](app)(_ => started.get *> IO.never[Unit])
+                         .timeout(2.seconds)
+                         .attempt
+          _         <- cancelled.get.timeout(10.seconds)
+      yield assert(result.isLeft, result.toString)
+    }
 end LiveTuiTestSuite
