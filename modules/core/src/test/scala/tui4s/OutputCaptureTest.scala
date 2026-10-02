@@ -146,6 +146,27 @@ class OutputCaptureTest extends Test[Any]:
       assert(text == "after the run\n", text)
     }
 
+    "a stream that wraps the installed forwarder does not make a loop" in {
+      val real          = OutputCapture.realOut
+      // As TuiApp does: the forwarders stay installed after a stop.
+      OutputCapture.install()
+      val (bytes, mine) = stream()
+      java.lang.System.setOut(mine)
+      OutputCapture.start(LogSink(None)).stop()
+      // A library wraps System.out (now the forwarder) in a stream of its own.
+      java.lang.System.setOut(PrintStream(java.lang.System.out.nn, true))
+      val sink          = LogSink(None)
+      val capture       = OutputCapture.start(sink)
+      java.lang.System.out.println("captured")
+      capture.stop()
+      java.lang.System.out.println("after the run")
+      val text          = bytes.toString(StandardCharsets.UTF_8)
+      java.lang.System.setOut(real)
+      OutputCapture.start(LogSink(None)).stop()
+      assert(sink.kept == Seq("captured"), sink.kept.toString)
+      assert(text == "after the run\n", text)
+    }
+
     "only one capture at a time; stop is idempotent" in {
       val first  = OutputCapture.start(LogSink(None))
       val second = OutputCapture.start(LogSink(None))

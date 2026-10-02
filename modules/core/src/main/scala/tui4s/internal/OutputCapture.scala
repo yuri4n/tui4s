@@ -21,8 +21,9 @@ import java.nio.charset.Charset
 private[tui4s] object OutputCapture:
     private var originalOut: PrintStream | Null = null
     private var originalErr: PrintStream | Null = null
-    private var outForward: Forward | Null      = null
-    private var errForward: Forward | Null      = null
+    // Every forwarder made so far (an older one can still be in use, for
+    // example by scala.Console), newest first.
+    private var forwards: List[Forward]         = Nil
     private var out: PrintStream | Null         = null
     private var err: PrintStream | Null         = null
     private var pinned                          = false
@@ -48,32 +49,25 @@ private[tui4s] object OutputCapture:
       installStreams()
     }
 
-    /** Makes the forwarders once. Later, when the program has set its own
-      * `System.out` or `System.err` since, the forwarder writes to that stream
-      * from now on, and a stop restores it.
+    /** Installs the forwarders of the current `System.out` and `System.err`.
+      * A forwarder is made again only when the program has set its own stream
+      * since: the new forwarder writes to that stream, and a stop restores it.
+      * A forwarder never changes its stream, so forwarders cannot write to
+      * each other in a loop.
       */
     private def installStreams(): Unit =
         val sysOut = java.lang.System.out.nn
         val sysErr = java.lang.System.err.nn
-        val of     = outForward
-        val ef     = errForward
-        if of == null || ef == null then
-            val nof = Forward(sysOut, sysOut.charset.nn)
-            val nef = Forward(sysErr, sysErr.charset.nn)
-            outForward = nof
-            errForward = nef
-            out = PrintStream(nof, true, sysOut.charset.nn)
-            err = PrintStream(nef, true, sysErr.charset.nn)
+        if out == null || ((sysOut ne out) && (sysOut ne originalOut)) then
+            val f = Forward(sysOut, sysOut.charset.nn)
+            forwards = f :: forwards
+            out = PrintStream(f, true, sysOut.charset.nn)
             originalOut = sysOut
+        if err == null || ((sysErr ne err) && (sysErr ne originalErr)) then
+            val f = Forward(sysErr, sysErr.charset.nn)
+            forwards = f :: forwards
+            err = PrintStream(f, true, sysErr.charset.nn)
             originalErr = sysErr
-        else
-            if sysOut ne out then
-                of.original = sysOut
-                originalOut = sysOut
-            if sysErr ne err then
-                ef.original = sysErr
-                originalErr = sysErr
-        end if
         java.lang.System.setOut(out)
         java.lang.System.setErr(err)
         // Loads scala.Console now, bound to the forwarders, if nothing used it
@@ -108,9 +102,7 @@ private[tui4s] object OutputCapture:
         def stop(): Unit = OutputCapture.synchronized {
           val s = sink
           if s != null && (active eq this) then
-              Seq(outForward, errForward).foreach(f =>
-                if f != null then f.drain(s),
-              )
+              forwards.foreach(_.drain(s))
               active = null
               if !pinned then
                   if java.lang.System.out eq out then
@@ -134,7 +126,7 @@ private[tui4s] object OutputCapture:
       * progress bar writes its updates this way), and a line is cut at
       * [[MaxLine]] bytes, so a long-running capture keeps little in memory.
       */
-    private final class Forward(var original: PrintStream, charset: Charset)
+    private final class Forward(original: PrintStream, charset: Charset)
         extends OutputStream:
         private val partial = ByteArrayOutputStream()
         // The last byte was a '\r'.
