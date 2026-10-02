@@ -384,6 +384,65 @@ class TerminalIOTest extends Test[Any]:
       }
     }
 
+    "the Kyo log of the run has the level of the caller's logger".timeout(
+      30.seconds,
+    ) in {
+      Sync.defer(Files.createTempFile("tui4s-log", ".txt")).map { file =>
+        val source = Source.For[Int]
+        val app    = App[Int](
+          0,
+          CounterApp.view,
+          CounterApp.update,
+          sources = _ =>
+            Seq(
+              source.task(Log.info("detail at info").andThen(1))((_, _) =>
+                Quit,
+              ),
+            ),
+          options = TuiOptions(logFile = Some(file)),
+        )
+        val fake   = FakeCrossterm()
+        val err    = FakeErr(fake.log)
+        Log
+          .withConsoleLogger("app", Log.Level.info)(
+            TuiRun.run(app, fake, FakeHooks(fake.log), () => err.stream),
+          )
+          .andThen(Sync.defer(Files.readString(file, StandardCharsets.UTF_8)))
+          .map(text => assert(text.contains("detail at info"), text))
+      }
+    }
+
+    "every Kyo log line of the run is in the log file when the run returns"
+      .timeout(30.seconds) in {
+      Sync.defer(Files.createTempFile("tui4s-log", ".txt")).map { file =>
+        val lines  = 3000
+        val source = Source.For[Int]
+        // Kyo writes the lines later, on its own fiber: the release can come
+        // before the last of them.
+        val logAll = Kyo.foreachDiscard(1 to lines)(i =>
+          Log.warn(s"line $i of the run " + "x" * 200),
+        )
+        val app    = App[Int](
+          0,
+          CounterApp.view,
+          CounterApp.update,
+          sources = _ =>
+            Seq(source.task(logAll.andThen(1))((_, _) => Quit)),
+          options = TuiOptions(logFile = Some(file)),
+        )
+        val fake   = FakeCrossterm()
+        val err    = FakeErr(fake.log)
+        TuiRun
+          .run(app, fake, FakeHooks(fake.log), () => err.stream)
+          .andThen(Sync.defer(Files.readString(file, StandardCharsets.UTF_8)))
+          .map { text =>
+            val written = text.linesIterator.count(_.contains("of the run"))
+            assert(written == lines, s"$written of $lines lines in the file")
+            assert(!err.lines.exists(_.contains("of the run")))
+          }
+      }
+    }
+
     "the shutdown hook restores the terminal while the app runs".timeout(
       30.seconds,
     ) in {

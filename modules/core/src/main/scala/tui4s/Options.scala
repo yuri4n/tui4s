@@ -30,7 +30,10 @@ package tui4s
   * @param logFile
   *   where the Kyo log of the run and the captured output go (appended);
   *   `None`: the last 200 lines of output and of log lines at warn or above
-  *   stay in memory and are printed to stderr after the terminal is restored
+  *   stay in memory and are printed to stderr after the terminal is restored.
+  *   The log lines are those at or above the level of the Kyo logger where the
+  *   run starts: Kyo's default is warn; set `-Dkyo.Log.defaultLevel=info` (or
+  *   bind a logger with `Log.let`) to get info and debug lines
   * @param trace
   *   a file that gets one JSON line per batch of events
   */

@@ -23,13 +23,19 @@ private[tui4s] object TuiRun:
         // The release finishes the sink; this also covers a run that failed
         // before it had a terminal.
         Sync.ensure(Sync.Unsafe.defer(sink.finish(err())))(
-          TuiLog.let(sink)(
-            Runner.run(
-              app,
-              TerminalIO(crossterm, sink, hooks, err, restored),
-              None,
-            ),
-          ),
+          Abort
+            .run[TuiError](
+              TuiLog.let(sink)(
+                Runner.run(
+                  app,
+                  TerminalIO(crossterm, sink, hooks, err, restored),
+                  None,
+                ),
+              ),
+            )
+            // The lines that Kyo has not written yet go to the log file (or
+            // to stderr) before the run returns.
+            .map(r => TuiLog.flush(2.seconds).andThen(Abort.get(r))),
         )
       }
 

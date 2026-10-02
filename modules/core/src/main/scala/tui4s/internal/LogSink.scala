@@ -13,8 +13,12 @@ import scala.util.control.NonFatal
   *
   * The ring keeps only the lines to print after the restore (captured output,
   * log lines at warn or above): the newest [[capacity]], and a count of the
-  * older ones. After [[finish]], such a line goes to the real stderr at once
-  * and the others are dropped.
+  * older ones.
+  *
+  * Kyo writes its log lines later, on its own fiber, so lines can come after
+  * [[finish]]. Such a line is still appended to the log file. Without a log
+  * file, an important line goes to the real stderr at once and the others are
+  * dropped.
   *
   * @param file
   *   the log file (appended to), or `None` for the memory ring
@@ -27,6 +31,8 @@ private[tui4s] final class LogSink(file: Option[Path], val capacity: Int = 200):
     private var out: java.io.Writer | Null   = null
     private var finished: PrintStream | Null = null
     private var problem: String | Null       = null
+    // The log file for the lines that come after `finish`.
+    private var lateFile: Path | Null        = null
 
     file.foreach { path =>
       try
@@ -51,7 +57,9 @@ private[tui4s] final class LogSink(file: Option[Path], val capacity: Int = 200):
     def line(text: String, important: Boolean): Unit = synchronized {
       val done = finished
       if done != null then
-          if important then done.println(text)
+          val late = lateFile
+          if late != null then appendLate(late, text, important, done)
+          else if important then done.println(text)
       else
           val w = out
           if w != null then
@@ -69,6 +77,29 @@ private[tui4s] final class LogSink(file: Option[Path], val capacity: Int = 200):
       end if
     }
 
+    /** Appends a line that came after [[finish]] to the log file. */
+    private def appendLate(
+        path: Path,
+        text: String,
+        important: Boolean,
+        err: PrintStream,
+    ): Unit =
+      try
+          discard(
+            Files.writeString(
+              path,
+              text + "\n",
+              StandardCharsets.UTF_8,
+              StandardOpenOption.CREATE,
+              StandardOpenOption.APPEND,
+            ),
+          )
+      catch
+          case NonFatal(e) =>
+            lateFile = null
+            err.println(s"tui4s: writing the log file failed: $e")
+            if important then err.println(text)
+
     private def keep(text: String, important: Boolean): Unit =
       if important then
           if ring.size >= capacity then
@@ -77,7 +108,8 @@ private[tui4s] final class LogSink(file: Option[Path], val capacity: Int = 200):
           ring += text
 
     /** The terminal is restored: closes the file, prints the kept lines to
-      * `err`, and sends later important lines to `err` at once. Idempotent.
+      * `err`. Later lines go to the file, or (important ones) to `err` at once.
+      * Idempotent.
       */
     def finish(err: PrintStream): Unit = synchronized {
       if finished == null then
@@ -87,6 +119,7 @@ private[tui4s] final class LogSink(file: Option[Path], val capacity: Int = 200):
               try w.close()
               catch case NonFatal(_) => ()
               out = null
+              lateFile = file.orNull
           if dropped > 0 then
               err.println(s"tui4s: $dropped earlier output lines are not shown")
           ring.foreach(err.println)

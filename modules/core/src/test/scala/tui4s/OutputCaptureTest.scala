@@ -60,6 +60,21 @@ class OutputCaptureTest extends Test[Any]:
       }
     }
 
+    "with a file, a line after finish is still appended to the file" in {
+      // Kyo writes its log on its own fiber: a line can come after the release.
+      Sync.defer(Files.createTempFile("tui4s-sink", ".log")).map { file =>
+        val sink        = LogSink(Some(file))
+        sink.line("before", important = false)
+        val (bytes, ps) = stream()
+        sink.finish(ps)
+        sink.line("late detail", important = false)
+        sink.line("late warning", important = true)
+        val text        = Files.readString(file, StandardCharsets.UTF_8)
+        assert(text == "before\nlate detail\nlate warning\n", text)
+        assert(bytes.size == 0, bytes.toString(StandardCharsets.UTF_8))
+      }
+    }
+
     "a log file that cannot be opened: the ring, and a note after the restore" in {
       val sink        =
         LogSink(Some(java.nio.file.Path.of("/nonexistent-tui4s/x.log")))

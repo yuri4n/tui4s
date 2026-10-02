@@ -12,8 +12,8 @@ import kyo.*
   * @param sink
   *   where the lines go
   * @param level
-  *   the lowest level that is written: the level of Kyo's own logger
-  *   (`-Dkyo.Log.defaultLevel`, default warn)
+  *   the lowest level that is written: the level of the Kyo logger where the
+  *   run starts (Kyo's own: `-Dkyo.Log.defaultLevel`, default warn)
   * @param name
   *   the logger name
   */
@@ -76,6 +76,14 @@ end TuiLog
 private[tui4s] object TuiLog:
     private val Time = DateTimeFormatter.ofPattern("HH:mm:ss.SSS").nn
 
-    /** Runs `v` with a [[TuiLog]] into `sink` as the Kyo logger. */
+    /** Runs `v` with a [[TuiLog]] into `sink` as the Kyo logger, at the level
+      * of the logger that `v` had.
+      */
     def let[A, S](sink: LogSink)(v: A < S)(using Frame): A < S =
-      Log.let(Log(TuiLog(sink, Log.live.level)))(v)
+      Log.use(current => Log.let(Log(TuiLog(sink, current.level)))(v))
+
+    /** Waits (at most `max`) until Kyo has written every log line that was
+      * sent before: Kyo writes its log on its own fiber.
+      */
+    def flush(max: Duration)(using Frame): Unit < Async =
+      Abort.run[Timeout](Async.timeout(max)(Log.flush)).unit
