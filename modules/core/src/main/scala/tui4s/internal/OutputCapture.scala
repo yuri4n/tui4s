@@ -34,6 +34,12 @@ private[tui4s] object OutputCapture:
       if e != null then e else java.lang.System.err.nn
     }
 
+    /** The real stdout: `System.out` as it was before tui4s replaced it. */
+    def realOut: PrintStream = synchronized {
+      val o = originalOut
+      if o != null then o else java.lang.System.out.nn
+    }
+
     /** Installs the forwarding streams for good (transparent while no capture
       * runs), so that `scala.Console` binds to them. Idempotent.
       */
@@ -42,18 +48,31 @@ private[tui4s] object OutputCapture:
       installStreams()
     }
 
+    /** Makes the forwarders once. Later, when the program has set its own
+      * `System.out` or `System.err` since, the forwarder writes to that stream
+      * from now on, and a stop restores it.
+      */
     private def installStreams(): Unit =
-        if out == null then
-            val sysOut = java.lang.System.out.nn
-            val sysErr = java.lang.System.err.nn
-            val of     = Forward(sysOut, sysOut.charset.nn)
-            val ef     = Forward(sysErr, sysErr.charset.nn)
+        val sysOut = java.lang.System.out.nn
+        val sysErr = java.lang.System.err.nn
+        val of     = outForward
+        val ef     = errForward
+        if of == null || ef == null then
+            val nof = Forward(sysOut, sysOut.charset.nn)
+            val nef = Forward(sysErr, sysErr.charset.nn)
+            outForward = nof
+            errForward = nef
+            out = PrintStream(nof, true, sysOut.charset.nn)
+            err = PrintStream(nef, true, sysErr.charset.nn)
             originalOut = sysOut
             originalErr = sysErr
-            outForward = of
-            errForward = ef
-            out = PrintStream(of, true, sysOut.charset.nn)
-            err = PrintStream(ef, true, sysErr.charset.nn)
+        else
+            if sysOut ne out then
+                of.original = sysOut
+                originalOut = sysOut
+            if sysErr ne err then
+                ef.original = sysErr
+                originalErr = sysErr
         end if
         java.lang.System.setOut(out)
         java.lang.System.setErr(err)
@@ -83,8 +102,8 @@ private[tui4s] object OutputCapture:
 
         /** Stops capturing: the forwarders write to the original streams again
           * and, unless `TuiApp` installed them for good, `System.out` and
-          * `System.err` are the original streams again. A last line without its
-          * line break goes to the sink.
+          * `System.err` are again the streams they were at the start of this
+          * capture. A last line without its line break goes to the sink.
           */
         def stop(): Unit = OutputCapture.synchronized {
           val s = sink
@@ -107,18 +126,24 @@ private[tui4s] object OutputCapture:
         val c = active
         if c == null then null else c.sink
 
+    /** The longest line the capture keeps, in bytes; a longer one is cut. */
+    val MaxLine: Int = 8192
+
     /** Writes to `original`, or line by line to the sink of the running
-      * capture.
+      * capture. A '\r' that is not followed by '\n' starts the line again (a
+      * progress bar writes its updates this way), and a line is cut at
+      * [[MaxLine]] bytes, so a long-running capture keeps little in memory.
       */
-    private final class Forward(original: PrintStream, charset: Charset)
+    private final class Forward(var original: PrintStream, charset: Charset)
         extends OutputStream:
         private val partial = ByteArrayOutputStream()
+        // The last byte was a '\r'.
+        private var carriage = false
 
         override def write(b: Int): Unit = OutputCapture.synchronized {
           val s = sinkNow
           if s == null then original.write(b)
-          else if b == '\n' then emit(s)
-          else partial.write(b)
+          else put(s, b & 0xff)
         }
 
         override def write(b: Array[Byte], off: Int, len: Int): Unit =
@@ -128,8 +153,7 @@ private[tui4s] object OutputCapture:
             else
                 var i = off
                 while i < off + len do
-                    if b(i) == '\n' then emit(s)
-                    else partial.write(b(i).toInt)
+                    put(s, b(i) & 0xff)
                     i += 1
           }
 
@@ -137,14 +161,27 @@ private[tui4s] object OutputCapture:
           if sinkNow == null then original.flush()
         }
 
+        private def put(s: LogSink, b: Int): Unit =
+          if b == '\n' then emit(s)
+          else
+              if carriage then
+                  partial.reset()
+                  carriage = false
+              if b == '\r' then carriage = true
+              else
+                  // Cut only before the first byte of a character.
+                  if partial.size >= MaxLine && (b & 0xc0) != 0x80 then emit(s)
+                  partial.write(b)
+
         private def emit(s: LogSink): Unit =
-            var text = partial.toString(charset)
-            if text.endsWith("\r") then text = text.dropRight(1)
+            val text = partial.toString(charset)
             partial.reset()
+            carriage = false
             s.line(text, important = true)
 
         /** Sends a line without its line break to `s`. */
         def drain(s: LogSink): Unit =
           if partial.size > 0 then emit(s)
+          carriage = false
     end Forward
 end OutputCapture

@@ -101,6 +101,51 @@ class OutputCaptureTest extends Test[Any]:
       assert(!capture.capturing)
     }
 
+    "a progress line ('\\r') keeps only its last update" in {
+      val sink    = LogSink(None)
+      val capture = OutputCapture.start(sink)
+      java.lang.System.out.print("progress 1\rprogress 2\rprogress 3\n")
+      java.lang.System.out.print("windows line\r\n")
+      java.lang.System.out.print("50%\r")
+      capture.stop()
+      assert(
+        sink.kept == Seq("progress 3", "windows line", "50%"),
+        sink.kept.toString,
+      )
+    }
+
+    "a line is cut at MaxLine bytes, never inside a character" in {
+      val sink    = LogSink(None)
+      val capture = OutputCapture.start(sink)
+      java.lang.System.out.print("a" * 20_000)
+      java.lang.System.out.print("\u00e9" * 5_000 + "\n")
+      capture.stop()
+      val kept    = sink.kept
+      val bytes   = kept.map(_.getBytes(StandardCharsets.UTF_8).length)
+      assert(bytes.forall(_ <= OutputCapture.MaxLine), bytes.toString)
+      assert(kept.mkString == "a" * 20_000 + "\u00e9" * 5_000)
+      assert(!kept.exists(_.contains('\ufffd')))
+    }
+
+    "a capture restores the streams of its own start" in {
+      // The program sets its own System.out between two runs.
+      val real          = OutputCapture.realOut
+      OutputCapture.start(LogSink(None)).stop()
+      val (bytes, mine) = stream()
+      java.lang.System.setOut(mine)
+      val sink          = LogSink(None)
+      val capture       = OutputCapture.start(sink)
+      java.lang.System.out.println("captured")
+      capture.stop()
+      java.lang.System.out.println("after the run")
+      val text          = bytes.toString(StandardCharsets.UTF_8)
+      // Forward to the real stdout again, for the other tests.
+      java.lang.System.setOut(real)
+      OutputCapture.start(LogSink(None)).stop()
+      assert(sink.kept == Seq("captured"), sink.kept.toString)
+      assert(text == "after the run\n", text)
+    }
+
     "only one capture at a time; stop is idempotent" in {
       val first  = OutputCapture.start(LogSink(None))
       val second = OutputCapture.start(LogSink(None))
