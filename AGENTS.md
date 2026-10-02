@@ -38,7 +38,8 @@ Cats Effect users write tui4s apps without Kyo types in their code.
 | `sbt check`                    | Does the same checks as CI: format, compile, test, compat. |
 | `sbt versions`                 | Shows the version of each module (released or snapshot).   |
 | `sbt core/test`                | Runs the tests of one module.                              |
-| `sbt "examples/runMain <main>"` | Runs an example in the real terminal (forked JVM).         |
+| `sbt examples/launchers`       | Writes `examples/target/bin/<app>` start scripts.          |
+| `examples/ptycheck/run.sh`     | Runs the real-terminal checklist in a pseudo-terminal.     |
 | `sbt "bench/runMain tui4s.bench.<Probe>"` | Runs one performance probe (see `bench/BASELINE.md`). |
 | `sbt "bench/Jmh/run -i 5 -wi 5 -f 1 tui4s.bench.PaintBench"` | Runs a JMH benchmark. |
 
@@ -60,6 +61,10 @@ release in `bench/BASELINE.md`.
   read input, call `poll(<short timeout>)` in a loop, then call `read()`.
 - Tests must not need a real terminal. Render into a jatatui `TestBackend` or
   into a `Buffer`.
+- Do not start a terminal UI with `sbt run`: sbt also reads the keyboard and
+  takes some keys. Use the start scripts of `sbt examples/launchers`.
+- Before a release, and after a change to the terminal or input code, run
+  `examples/ptycheck/run.sh`. It needs a shell with `expect` (no human).
 
 ## Dependencies and versions
 

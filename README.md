@@ -65,7 +65,11 @@ run / javaOptions ++= Seq(
 )
 ```
 
-Then `sbt run`. `TuiApp` sets the Kyo scheduler flags that cut the idle CPU of
+`sbt run` is good for a quick look only: sbt also reads the keyboard, so some
+keys never get to the app. To use the app, start it in its own JVM with the two
+flags above, for example from a script that sbt-native-packager (`sbt stage`)
+or `sbt export Runtime/fullClasspath` gives you. The `examples/launchers` task
+of this repository shows one way. `TuiApp` sets the Kyo scheduler flags that cut the idle CPU of
 a waiting app. With your own `KyoApp`, call `Tui.run(app)` and pass these flags
 yourself:
 

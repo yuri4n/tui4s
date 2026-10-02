@@ -38,7 +38,8 @@ abstract class TuiApp[S] extends App[S]:
       * last state. On a failure it prints the error to stderr after the
       * terminal is restored and exits with code 1; when stdin is not a terminal
       * it prints "stdin/stdout is not a terminal". SIGTERM and Ctrl-C from
-      * outside (`kill -INT`) stop the app and restore the terminal.
+      * outside (`kill -INT`) stop the app and restore the terminal; the JVM
+      * then exits with 143 or 130 (128 + the signal), as other JVM programs do.
       */
     final def main(args: Array[String]): Unit =
         val code = runMain(args, NativeCrossterm(), Hooks.runtime)

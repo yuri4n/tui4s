@@ -30,3 +30,19 @@ jobs:
       - run: sbt -v check
       - name: Show module versions
         run: sbt -v versions
+
+  terminal:
+    name: Real-terminal checklist (pseudo-terminal)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - run: sudo apt-get install -y expect
+      # Starts each example in a pseudo-terminal, sends keys, checks the screen
+      # and that the terminal is restored (examples/README.md).
+      - run: examples/ptycheck/run.sh

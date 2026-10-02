@@ -10,22 +10,28 @@ This project has the sample apps of tui4s. They are not published.
 
 ## Run an example
 
-Use a real terminal (not the sbt shell of an IDE):
+Write the start scripts, then start an app in a real terminal:
 
 ```sh
-sbt "examples/runMain examples.counter.CounterApp"
-sbt "examples/runMain examples.todo.TodoApp"
-sbt "examples/runMain examples.dashboard.DashboardApp"
+sbt examples/launchers
+examples/target/bin/counter
+examples/target/bin/todo
+examples/target/bin/dashboard
 ```
 
-The build forks a JVM, connects stdin, and gives the JVM these flags:
+Each script starts the app in its own JVM with these flags:
 
 - `--enable-native-access=ALL-UNNAMED`: crossterm is a native library.
 - `--sun-misc-unsafe-memory-access=allow`: Kyo and Scala use `sun.misc.Unsafe`.
 
-Stdin must be a terminal. The app draws on stdout: sbt sends the stdout of the
-forked JVM to the terminal through a pipe, and that is correct. Do not redirect
-stdout to a file. Nothing checks stdout, so the frames go into the file.
+Put more JVM options in `JAVA_OPTS`, for example
+`JAVA_OPTS=-Duser.home=/tmp/x examples/target/bin/todo`.
+
+Do not use `sbt run` or `sbt runMain` to use an app. The app starts, but sbt
+also reads the keyboard, so some keys never get to the app (a `q` can be lost).
+With `sbt -batch`, sbt gives the app a pipe as stdin, and the app stops with
+"stdin is not a terminal". This is true for every terminal UI that sbt starts,
+not only for tui4s.
 
 The Todo app reads and writes `~/.tui4s-todo.txt`.
 
@@ -39,9 +45,23 @@ The tests do not need a terminal. They use `tui4s.testkit.TuiTest` with munit.
 
 ## Real-terminal checklist
 
-The automatic tests cannot open a real terminal. Before each release, a human
-(or an agent with a terminal) does this checklist on macOS Terminal and on
-iTerm2. Write the result in the pull request.
+The unit tests cannot open a real terminal. Before each release, do this
+checklist.
+
+Most of it runs without a human:
+
+```sh
+examples/ptycheck/run.sh
+```
+
+The script starts each example in a pseudo-terminal (with `expect`), sends the
+keys of the checklist, replays the output in a small terminal emulator, and
+checks the screen. After each run it checks with `stty` that the terminal is
+back in cooked mode with echo. It needs `expect` and `python3`.
+
+Then a human does the steps that a pseudo-terminal cannot show (colors, real
+window resizes, look and feel) on macOS Terminal and on iTerm2. Write the
+result in the pull request.
 
 ### Counter
 
@@ -71,12 +91,14 @@ iTerm2. Write the result in the pull request.
 
 - [ ] Start an example. In a second terminal, run `kill -TERM <pid>`. The
       terminal is restored (no raw mode, no alternate screen, the cursor shows).
+      The exit code is 143 (128 + SIGTERM), as for other JVM programs.
 - [ ] Start an example with `--illegal-native-access=deny` in place of
       `--enable-native-access=ALL-UNNAMED`. The app stops with "start the JVM
       with --enable-native-access=ALL-UNNAMED", before raw mode:
 
       ```sh
-      sbt 'set examples / run / javaOptions := Seq("--illegal-native-access=deny", "--sun-misc-unsafe-memory-access=allow")' "examples/runMain examples.counter.CounterApp"
+      java --illegal-native-access=deny --sun-misc-unsafe-memory-access=allow \
+        -cp "$(cat examples/target/bin/classpath)" examples.counter.CounterApp
       ```
 
 - [ ] Start an example without `--enable-native-access`. JDK 25 prints its

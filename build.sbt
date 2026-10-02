@@ -59,6 +59,9 @@ lazy val core = module("core")
 lazy val zio  = module("zio").dependsOn(core)
 lazy val cats = module("cats").dependsOn(core)
 
+lazy val launchers =
+  taskKey[Seq[File]]("Writes a start script for each example in target/bin")
+
 lazy val examples = project
   .in(file("examples"))
   .dependsOn(core, zio, cats)
@@ -89,6 +92,36 @@ lazy val examples = project
   // One Counter text compiled under the import of each ecosystem (SPEC 6.5).
   .settings(
     FacadeParity.settings(file("examples/src/parity/CounterBody.scala.txt")),
+  )
+  // `sbt run` is not a good way to use a terminal UI: sbt also reads the
+  // keyboard, so some keys never reach the app (and `sbt -batch` gives the app
+  // a pipe as stdin). `examples/launchers` writes target/bin/<app>, a script
+  // that starts the app in its own JVM, and target/bin/classpath.
+  .settings(
+    launchers := {
+      val cp    = (Runtime / fullClasspath).value.files
+        .mkString(java.io.File.pathSeparator)
+      val flags = (run / javaOptions).value.mkString(" ")
+      val bin   = target.value / "bin"
+      val mains = (Compile / discoveredMainClasses).value
+        .filter(_.startsWith("examples."))
+      IO.write(bin / "classpath", cp)
+      mains.map { main =>
+        val name = main.split('.').last.stripSuffix("App").toLowerCase
+        val file = bin / name
+        IO.write(
+          file,
+          s"""#!/bin/sh
+             |# Starts $main in its own JVM. Written by `sbt examples/launchers`.
+             |# Extra JVM options: JAVA_OPTS. Program arguments: the arguments.
+             |exec "$${JAVA_HOME:+$$JAVA_HOME/bin/}java" $flags $$JAVA_OPTS \\
+             |  -cp "$cp" $main "$$@"
+             |""".stripMargin,
+        )
+        file.setExecutable(true)
+        file
+      }
+    },
   )
 
 // Benchmarks and probes (SPEC 7.4). Not published. Run them alone: other
