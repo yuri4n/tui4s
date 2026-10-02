@@ -41,10 +41,11 @@ end SoakApp
 
 /** B8 (SPEC 7.3): soak. The Dashboard and one task every 100 ms for `seconds`
   * (default 600). Every 10 s: the heap after a full GC, the thread count, and
-  * the sources and tasks of the run. Budget: the heap at the end within +-5% of
-  * the heap at two thirds of the run; sources and tasks bounded; the thread
-  * count constant (here: it varies by at most 4, as Kyo adds and removes
-  * workers).
+  * the sources and tasks of the run. The GC and the count run on a platform
+  * thread (`Probes.offWorker`), so they block no Kyo worker. Budget: the heap
+  * at the end within +-5% of the heap at two thirds of the run; sources and
+  * tasks bounded; the thread count constant (one thread of tolerance: the JVM
+  * and Kyo's worker pool start and end a thread now and then; a leak grows).
   *
   * `sbt "bench/runMain tui4s.bench.SoakProbe [seconds]"`
   */
@@ -65,15 +66,19 @@ object SoakProbe:
                           .andThen(h.stats)
                           .map(st =>
                             h.states.current.map { s =>
-                              val heap = Probes.heapAfterGc()
-                              val row  =
-                                (t + 10, heap, Probes.threadCount, st, s.done)
-                              println(
-                                f"[soak] t=${t + 10}%4d s heap=${heap / 1e6}%.1f MB " +
-                                  f"threads=${Probes.threadCount} sources=${st.sources} " +
-                                  f"tasks=${st.tasks} done=${s.done} dropped=${st.droppedFolds}",
-                              )
-                              Loop.continue(t + 10, acc :+ row)
+                              Probes
+                                .offWorker(
+                                  (Probes.heapAfterGc(), Probes.threadCount),
+                                )
+                                .map { (heap, threads) =>
+                                  val row = (t + 10, heap, threads, st, s.done)
+                                  println(
+                                    f"[soak] t=${t + 10}%4d s heap=${heap / 1e6}%.1f MB " +
+                                      f"threads=$threads sources=${st.sources} " +
+                                      f"tasks=${st.tasks} done=${s.done} dropped=${st.droppedFolds}",
+                                  )
+                                  Loop.continue(t + 10, acc :+ row)
+                                }
                             },
                           )
                 }.map(rows => h.stop.andThen(rows))
@@ -83,7 +88,7 @@ object SoakProbe:
         val mid          = samples((samples.size * 2) / 3)
         val last         = samples.last
         val drift        = 100.0 * (last._2 - mid._2) / mid._2
-        // Kyo's scheduler adds and removes workers; a leak grows without end.
+        // The first sample also counts the sampler thread starting up.
         val threads      = samples.drop(1).map(_._3)
         val maxSrc       = samples.map(_._4.sources).max
         val maxTask      = samples.map(_._4.tasks).max
@@ -99,7 +104,7 @@ object SoakProbe:
           "maxTasks"     -> maxTask,
           "tasksDone"    -> last._5,
           "withinBudget" -> (drift.abs <= 5.0 && maxSrc <= 3 && maxTask <= 5 &&
-            threads.max - threads.min <= 4),
+            threads.max - threads.min <= 1),
         )
     end main
 end SoakProbe

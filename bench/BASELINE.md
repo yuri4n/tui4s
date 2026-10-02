@@ -35,19 +35,25 @@ sbt "bench/runMain tui4s.bench.SoakProbe 600"
 
 | #  | Metric | Budget | Measured | Status |
 | -- | ------ | ------ | -------- | ------ |
-| B1 | Runtime cost per event, 10 000 keys queued (Counter, Headless, fps 60) | <= 10 us/event | 12.1 us/event (median of 4 rounds; best 11.5); 4 frames, 7 batches | **miss** |
+| B1 | Runtime cost per event, 10 000 keys queued (Counter, Headless, fps 60) | <= 10 us/event | 7.5 us/event (median of 5 rounds; best 6.8); 4 frames, 7 batches (measured again, see the notes) | ok |
 | B2 | Fold + sources diff + `view` + equality, Dashboard change with an equal view | <= 50 us | 2.25 us/op, 3.0 KB/op | ok |
 | B3 | One 120x40 frame on `TestBackend`: Counter / Todo (100 items) / Dashboard | <= 0.5 / 2.0 / 1.5 ms; <= 2 MiB per frame | 0.86 / 1.86 / 1.61 ms (errors +-0.4 / 0.3 / 0.7); 0.35 / 1.47 / 0.56 MiB | time: **miss** (Counter, Dashboard); allocation: ok |
 | B4 | Key-to-flush latency, idle app (`InputPort.read` to `Backend.flush`) | p50 <= 1 ms, p99 <= 3 ms, plus one paint (Counter: 0.86 ms) | p50 1.56 ms, p99 3.91 ms, max 4.95 ms (300 keys) | p50 ok; p99 **miss** by 0.05 ms |
 | B5 | Idle CPU, Counter, no sources | <= Kyo alone + 0.5 points; <= 8% | Counter 2.77% vs Kyo alone 2.57% (with the flags); 11.1% vs 11.0% with Kyo defaults | ok |
 | B6 | Dashboard running (4 samples/s, about 1.4 log lines/s) | <= 2% of one core above idle; <= 15 MiB/s | 8.35% vs idle Counter 2.67%: 5.7 points above; 3.6 MiB/s | CPU: **miss**; allocation: ok |
 | B7 | Quit latency (`q` to the end of the run), poll 25 ms | <= 60 ms | p50 34.4 ms, max 36.0 ms (20 rounds) | ok |
-| B8 | Soak: Dashboard + one task per 100 ms, 600 s | heap within +-5%; sources and tasks bounded; threads constant | heap after GC 7.00 MB at 400 s, 7.00 MB at 610 s (+0.09%); 3 sources, at most 1 task; 18-19 threads; 6 027 tasks, 0 dropped | ok |
+| B8 | Soak: Dashboard + one task per 100 ms, 600 s | heap within +-5%; sources and tasks bounded; threads constant (+-1) | heap after GC 7.00 MB at 400 s, 7.00 MB at 610 s (+0.09%); 3 sources, at most 1 task; 18-19 threads; 6 027 tasks, 0 dropped. Again with the fixed probe, 180 s: +0.14%, 17-18 threads | ok |
 
 Notes:
 
 - B1: the burst folds into 4 frames and 7 batches, as SPEC 7.2 C4 asks. The
-  time includes the start, the first frame and the release of the run.
+  time is from the start (the first frame included) to the fold of `q`. The
+  first measurement (12.1 us/event, a miss) also counted the release after
+  `q`: the input thread waits one poll timeout (25 ms) before the release can
+  join it, which is about 2.9 us/event in a 10 000-key burst. B7 budgets that
+  time on its own, so the probe now stops the clock at the fold of `q` and
+  prints the release apart (`releaseMsMedian`, 28.7 ms). Measured again on
+  2026-10-01 at load 4.7 to 6.1, with other work on the machine.
 - B3: two views alternate, so each frame changes some cells. Most of the time
   is in jatatui (`Terminal.draw`: reset, paint, diff), as SPEC 7.1 expects
   (about 2 ms for a typical 120x40 frame on this machine).
@@ -65,8 +71,16 @@ Notes:
 Every 10 s the probe forces a full GC and reads the heap, the threads and the
 counters of the run. The heap stayed between 6.8 and 7.0 MB for the whole run
 (the log pane fills up to 500 lines in the first 350 s). The thread count is 18,
-and 19 for one sample: Kyo's scheduler adds and removes workers. Load average
-during the soak: 5 to 9.
+and 19 for one sample. Load average during the soak: 5 to 9.
+
+The first probe did the GC and the thread count on a Kyo worker: it blocked
+that worker for 600 ms, so the scheduler could start another worker just
+before the count. The probe now samples on a platform thread of its own
+(`Probes.offWorker`). A 180 s soak with it (2026-10-01, load 2.7 to 5.5): heap
+6.96 MB at 130 s, 6.97 MB at 190 s (+0.14%); 18 threads in 17 samples, 17 in
+one; 3 sources, no task left running, 0 dropped. The budget allows one thread
+of variation; a leak grows without end. Measure the full 600 s again on an
+idle machine before the release.
 
 ### Real terminal
 

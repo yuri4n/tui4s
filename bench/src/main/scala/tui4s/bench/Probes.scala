@@ -49,6 +49,33 @@ object Probes:
     /** Live threads now. */
     def threadCount: Int = threads.getThreadCount
 
+    // One platform thread for `offWorker`, made at the first call.
+    private lazy val sampler = java.util.concurrent.Executors
+      .newSingleThreadExecutor { r =>
+        val t = Thread(r, "tui4s-bench-sampler")
+        t.setDaemon(true)
+        t
+      }
+
+    /** Runs `f` on a platform thread of its own and waits for it without
+      * blocking a Kyo worker. A blocked worker (a full GC, a sleep) makes the
+      * Kyo scheduler start another worker, and a thread count would include
+      * it.
+      */
+    def offWorker[A](f: => A)(using Frame): A < Async =
+      Sync.Unsafe
+        .defer {
+          val p = Promise.Unsafe.init[A, Any]()
+          sampler.execute(() =>
+            p.completeDiscard(
+              try Result.succeed(f)
+              catch case e: Throwable => Result.panic(e),
+            ),
+          )
+          p.safe
+        }
+        .map(_.get)
+
     /** The heap in use after a full collection, in bytes. */
     def heapAfterGc(): Long =
         var i = 0
