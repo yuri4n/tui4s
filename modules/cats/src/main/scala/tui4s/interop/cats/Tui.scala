@@ -113,20 +113,29 @@ object Tui:
         start: tui4s.TuiHandle[S] < kyo.Async,
     )(using F: Async[F]): Resource[F, TuiHandle[F, S]] =
       Dispatcher.parallel[F](await = false).flatMap { d =>
-        Resource.make(
-          F.map(CatsBridge.runF(AmbientDispatcher.let(d)(start)))(h =>
-            TuiHandle[F, S](h),
-          ),
-        )(_.stop)
+        val started = AmbientDispatcher
+          .let(d)(start)
+          .map(h =>
+            kyo.Fiber.initUnscoped(h.result).map(end => TuiHandle[F, S](h, end)),
+          )
+        Resource.make(CatsBridge.runF(started))(_.stop)
       }
 end Tui
 
 /** A running app, seen from outside (from [[Tui.resource]]): send it changes
   * and events, read its states and counters, stop it, wait for its result.
+  *
+  * Cancelling `await` or a `states` stream only stops the wait: the app runs
+  * on. Cancelling `stop` stops the app as well.
+  *
+  * @param end
+  *   a fiber that waits for the end of the run; nothing interrupts it (an
+  *   interrupt of a fiber that joins the run would reach the run)
   */
-final class TuiHandle[F[_], S] private[cats] (core: tui4s.TuiHandle[S])(using
-    F: Async[F],
-):
+final class TuiHandle[F[_], S] private[cats] (
+    core: tui4s.TuiHandle[S],
+    end: kyo.Fiber[kyo.Result[TuiError, S], Any],
+)(using F: Async[F]):
     /** Folds `f` into the state, like a source would. Dropped after the end. */
     def update(f: S => Next[S]): F[Unit] = CatsBridge.runF(core.update(f))
 
@@ -161,11 +170,11 @@ final class TuiHandle[F[_], S] private[cats] (core: tui4s.TuiHandle[S])(using
         def same(last: Option[S], now: S): Boolean =
           last.exists(_.asInstanceOf[Any] == now)
 
-        def loop(last: Option[S]): Pull[F, S, Unit] =
+        def loop(last: Option[S], over: F[Unit]): Pull[F, S, Unit] =
           Pull.eval(look).flatMap { (next, now) =>
             val out = if same(last, now) then Pull.done else Pull.output1(now)
-            out >> Pull.eval(F.race(changed(next), ended)).flatMap {
-              case Left(_)  => loop(Some(now))
+            out >> Pull.eval(F.race(changed(next), over)).flatMap {
+              case Left(_)  => loop(Some(now), over)
               case Right(_) =>
                 // The app ended: its last state is in the signal.
                 Pull
@@ -180,18 +189,36 @@ final class TuiHandle[F[_], S] private[cats] (core: tui4s.TuiHandle[S])(using
             }
           }
 
-        loop(None).stream
+        // One wait for the end per stream, not one per state.
+        _root_.fs2.Stream.eval(F.deferred[Unit]).flatMap { over =>
+          _root_.fs2.Stream
+            .resource(F.background(F.flatMap(ended)(_ => over.complete(()))))
+            .flatMap(_ => loop(None, over.get).stream)
+        }
     end states
 
     /** A snapshot of the counters, taken after the last batch. */
     def stats: F[Stats] = CatsBridge.runF(core.stats)
 
     /** The result of the run: the last state, or the [[TuiError]]. */
-    def await: F[S] = CatsBridge.runF(core.await)
+    def await: F[S] = F.flatMap(ended)(r => F.fromEither(r.toEither))
 
     /** Stops the app like `Quit`; returns when the terminal is restored. */
     def stop: F[Unit] = CatsBridge.runF(core.stop)
 
-    /** Completes when the run ended, with or without a failure. */
-    private def ended: F[Unit] = F.void(CatsBridge.runF(core.result))
+    /** The result of the run, once it ended. A cancel leaves `end` alone. */
+    private def ended: F[kyo.Result[TuiError, S]] =
+      F.async { cb =>
+        F.delay {
+          import kyo.AllowUnsafe.embrace.danger
+          end.unsafe.onComplete { r =>
+            r.map(_.eval) match
+                case kyo.Result.Success(v) => cb(Right(v))
+                case kyo.Result.Panic(t)   => cb(Left(t))
+                case other                 =>
+                  cb(Left(IllegalStateException(s"the run ended with $other")))
+          }
+          Some(F.unit)
+        }
+      }
 end TuiHandle

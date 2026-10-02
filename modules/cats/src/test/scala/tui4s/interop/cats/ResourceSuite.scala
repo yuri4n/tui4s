@@ -102,4 +102,26 @@ class ResourceSuite extends CatsEffectSuite:
           case other                       => fail(s"not AppFailed: $other")
         }
     }
+    test("a cancelled await or states stream does not stop the app") {
+      // Kyo carries an interrupt of a fiber that joins the run to the run;
+      // the handle must not join it from a fiber that a cancel interrupts.
+      counter(RecordingControl())
+        .use { h =>
+          for
+              early <- h.await.timeout(100.millis).attempt
+              _     <- h.send(Key.Char('+'))
+              two   <- h.states.find(_ == 1).compile.lastOrError.start
+              _     <- two.joinWithNever
+              s     <- h.states.take(2).compile.toList.start
+              _     <- IO.sleep(100.millis)
+              _     <- h.send(Key.Char('+'))
+              seen  <- s.joinWithNever
+              _     <- h.send(Key.Char('+'))
+              _     <- h.states.find(_ == 3).compile.lastOrError
+              _     <- h.stop
+              n     <- h.await
+          yield (early.isLeft, seen, n)
+        }
+        .map(r => assertEquals(r, (true, List(1, 2), 3)))
+    }
 end ResourceSuite
