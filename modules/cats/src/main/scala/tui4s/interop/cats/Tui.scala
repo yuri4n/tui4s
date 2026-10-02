@@ -28,7 +28,8 @@ import _root_.tui4s.spi.SchedulerDefaults
   * While the UI is up, `System.out` and `System.err` go to memory (or to
   * `TuiOptions.logFile`) and are printed after the restore
   * (`TuiOptions.captureOutput`); a logger that writes to the console would
-  * otherwise draw over the screen.
+  * otherwise draw over the screen. In your own `IOApp`, also turn off the CPU
+  * starvation checker, as [[TuiApp]] does: its warnings are console output.
   */
 object Tui:
     /** Runs `app` in the real terminal until it quits, and returns the last

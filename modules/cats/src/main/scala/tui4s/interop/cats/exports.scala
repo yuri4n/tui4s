@@ -40,6 +40,9 @@ package tui4s.interop
   * The app runs on the Kyo scheduler; its `F` effects (sources, tasks) run on
   * the runtime of the caller of `Tui.run`. One `F` per app: every source of an
   * app must use the `F` of its runner.
+  *
+  * Import fs2 names one by one (`import fs2.Stream`): `import fs2.*` also
+  * brings the object `fs2.text`, and then `text(...)` is ambiguous.
   */
 package object cats:
     export tui4s.dsl.*
