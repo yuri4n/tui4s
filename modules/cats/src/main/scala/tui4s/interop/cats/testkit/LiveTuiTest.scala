@@ -3,7 +3,9 @@ package tui4s.interop.cats.testkit
 import _root_.cats.effect.kernel.Async
 import _root_.cats.effect.std.Dispatcher
 import _root_.jatatui.core.terminal.Terminal
+import _root_.java.util.concurrent.TimeUnit
 import _root_.kyo.*
+import _root_.scala.concurrent.duration.FiniteDuration
 import _root_.tui4s.App
 import _root_.tui4s.Bind
 import _root_.tui4s.Event
@@ -62,11 +64,13 @@ trait LiveTest[F[_], S]:
       */
     def settle: F[Unit]
 
-    /** Settles, then reads `f` of the state until it gives a value, at most
-      * `timeoutMillis`; fails with the last state otherwise. For values that a
-      * source sends in real time.
+    /** Settles, then reads `f` of the state until it gives a value, for at most
+      * `timeout`; fails with the last state otherwise. For values that a source
+      * sends in real time.
       */
-    def eventually[B](timeoutMillis: Long = 5000)(f: S => Option[B]): F[B]
+    def eventually[B](timeout: FiniteDuration = LiveRun.Wait)(
+        f: S => Option[B],
+    ): F[B]
 
     /** The state after the last batch (after the end: the state the app stopped
       * with).
@@ -245,27 +249,23 @@ private[testkit] final class LiveRun[F[_], S](
 
     def settle: F[Unit] = CatsBridge.runF(settled)
 
-    def eventually[B](timeoutMillis: Long)(f: S => Option[B]): F[B] =
-        val deadline   = java.lang.System.nanoTime() + timeoutMillis * 1_000_000
-        def loop: F[B] =
+    def eventually[B](timeout: FiniteDuration)(f: S => Option[B]): F[B] =
+        def loop(deadline: FiniteDuration): F[B] =
           F.flatMap(F.productR(settle)(state)) { s =>
             f(s) match
                 case Some(b) => F.pure(b)
                 case None    =>
-                  if java.lang.System.nanoTime() > deadline then
-                      F.raiseError(
-                        AssertionError(
-                          s"no value within $timeoutMillis ms; the state: $s",
-                        ),
-                      )
-                  else
-                      F.productR(
-                        F.sleep(
-                          scala.concurrent.duration.FiniteDuration(10, "ms"),
-                        ),
-                      )(loop)
+                  F.flatMap(F.monotonic) { now =>
+                    if now > deadline then
+                        F.raiseError(
+                          AssertionError(
+                            s"no value within $timeout; the state: $s",
+                          ),
+                        )
+                    else F.productR(F.sleep(LiveRun.Poll))(loop(deadline))
+                  }
           }
-        loop
+        F.flatMap(F.monotonic)(start => loop(start + timeout))
     end eventually
 
     /** Puts a probe that completes after the decision of more than `after`
@@ -317,6 +317,12 @@ private[testkit] final class LiveRun[F[_], S](
 end LiveRun
 
 private[testkit] object LiveRun:
+    /** The default time of [[LiveTest.eventually]]. */
+    val Wait: FiniteDuration = FiniteDuration(5, TimeUnit.SECONDS)
+
+    /** How often [[LiveTest.eventually]] reads the state. */
+    val Poll: FiniteDuration = FiniteDuration(10, TimeUnit.MILLISECONDS)
+
     /** An event as the terminal sends it. */
     def sent(e: Event): Item = e match
         case k: Key => Key.sent(k)
