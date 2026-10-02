@@ -50,12 +50,15 @@ end Hooks
   *   the JVM shutdown hooks
   * @param realErr
   *   the real stderr, for what is printed after the restore
+  * @param restored
+  *   called at the end of [[leave]]: the terminal is restored
   */
 private[tui4s] final class TerminalIO(
     crossterm: Crossterm,
     sink: LogSink,
     hooks: Hooks = Hooks.runtime,
     realErr: () => PrintStream = () => OutputCapture.realErr,
+    restored: () => Unit = () => (),
 ) extends TerminalControl:
     @volatile private var capture: OutputCapture.Capture | Null = null
     @volatile private var hook: Thread | Null                   = null
@@ -154,6 +157,7 @@ private[tui4s] final class TerminalIO(
         if e != null then
             err.println(s"tui4s: restoring the terminal failed: $e")
             err.flush()
+        restored()
     end leave
 end TerminalIO
 

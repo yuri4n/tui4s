@@ -9,19 +9,26 @@ import tui4s.*
   * `Log.let`) and its captured output.
   */
 private[tui4s] object TuiRun:
-    /** Runs `app` on the terminal of `crossterm` until it quits. */
+    /** Runs `app` on the terminal of `crossterm` until it quits. `restored`
+      * is called when the release has restored the terminal.
+      */
     def run[S](
         app: App[S],
         crossterm: Crossterm,
         hooks: Hooks = Hooks.runtime,
         err: () => PrintStream = () => OutputCapture.realErr,
+        restored: () => Unit = () => (),
     )(using Frame): S < (Async & Abort[TuiError]) =
       Sync.Unsafe.defer(LogSink(app.options.logFile)).map { sink =>
         // The release finishes the sink; this also covers a run that failed
         // before it had a terminal.
         Sync.ensure(Sync.Unsafe.defer(sink.finish(err())))(
           TuiLog.let(sink)(
-            Runner.run(app, TerminalIO(crossterm, sink, hooks, err), None),
+            Runner.run(
+              app,
+              TerminalIO(crossterm, sink, hooks, err, restored),
+              None,
+            ),
           ),
         )
       }

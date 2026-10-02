@@ -22,6 +22,9 @@ private[tui4s] final class CountingBackend(val underlying: Backend)
     /** Stops all output: later calls that write to the terminal do nothing. */
     def close(): Unit = closed = true
 
+    /** True after [[close]]: the release of the session started. */
+    def isClosed: Boolean = closed
+
     /** The cell updates that the last `draw` sent. */
     def lastCount: Int = count
 

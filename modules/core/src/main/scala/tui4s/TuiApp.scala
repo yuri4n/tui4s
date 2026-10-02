@@ -53,10 +53,11 @@ abstract class TuiApp[S] extends App[S]:
     ): Int =
         SchedulerDefaults.applyIfUnset()
         arguments = args.toSeq
-        val run = TuiRun
-          .run(this, crossterm, hooks, () => err)
+        val restored = CountDownLatch(1)
+        val run      = TuiRun
+          .run(this, crossterm, hooks, () => err, () => restored.countDown())
           .map(s => onExit(s).andThen(s))
-        TuiApp.report(TuiApp.block(run, hooks), err)
+        TuiApp.report(TuiApp.block(run, hooks, restored), err)
     end runMain
 
     /** The command-line arguments of [[main]]. */
@@ -74,21 +75,24 @@ end TuiApp
 
 private[tui4s] object TuiApp:
     /** Runs `program` on a fiber and blocks until it ends. While it runs, a
-      * shutdown hook (SIGTERM, `kill -INT`) interrupts the fiber, whose release
-      * restores the terminal, and waits for it at most 2 s.
+      * shutdown hook (SIGTERM, `kill -INT`, `System.exit`) interrupts the
+      * fiber, whose release restores the terminal, and waits at most 2 s for
+      * `restored`: the release counts it down, and so does the end of the
+      * fiber. It does not wait for the fiber: a fiber whose thread is blocked
+      * in `System.exit` never ends, and `onExit` runs after the restore.
       */
     def block[S](
         program: S < (Async & Abort[Throwable]),
         hooks: Hooks,
+        restored: CountDownLatch,
     )(using Frame): Result[Throwable, S] =
         import AllowUnsafe.embrace.danger
         KyoApp.Unsafe.runAndBlock(Duration.Infinity)(
           Fiber.initUnscoped(program).map { fiber =>
             Sync.Unsafe
               .defer {
-                val done = CountDownLatch(1)
-                fiber.unsafe.onComplete(_ => done.countDown())
-                val hook = Thread(() => stop(fiber, done), "tui4s-stop")
+                fiber.unsafe.onComplete(_ => restored.countDown())
+                val hook = Thread(() => stop(fiber, restored), "tui4s-stop")
                 hooks.add(hook)
                 hook
               }
@@ -101,10 +105,10 @@ private[tui4s] object TuiApp:
 
     private def stop[A](
         fiber: Fiber[A, Abort[Throwable]],
-        done: CountDownLatch,
+        restored: CountDownLatch,
     )(using Frame, AllowUnsafe): Unit =
         discard(fiber.unsafe.interrupt())
-        discard(done.await(2, TimeUnit.SECONDS))
+        discard(restored.await(2, TimeUnit.SECONDS))
 
     /** Prints a failed run to `err` and gives the exit code. */
     def report(result: Result[Throwable, Any], err: PrintStream): Int =

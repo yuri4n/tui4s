@@ -402,7 +402,7 @@ class TerminalIOTest extends Test[Any]:
               t.join(5000)
             })
             .andThen(Abort.run(fiber.get))
-            .map { _ =>
+            .map { r =>
               val calls = fake.calls
               assert(
                 calls.count(_ == "raw-mode-off") == 1 &&
@@ -411,6 +411,15 @@ class TerminalIOTest extends Test[Any]:
                 calls.mkString("\n"),
               )
               assert(hooks.removed.isEmpty, "a running hook is not removed")
+              // The release closed the inbox under the loop: the run ends as
+              // interrupted, not as a terminal I/O failure.
+              assert(
+                r match
+                    case Result.Panic(_: Interrupted) => true
+                    case _                            => false
+                ,
+                r.toString,
+              )
             }
         }
     }

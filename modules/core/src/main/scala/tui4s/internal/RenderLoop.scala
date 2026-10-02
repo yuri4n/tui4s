@@ -117,13 +117,20 @@ private[tui4s] final class RenderLoop[S](
             .handle(closedIsBug),
         )
 
+    /** The inbox closes while the loop runs only when the release of the
+      * session ran from outside: the shutdown hook of `System.exit` or SIGTERM.
+      * That ends the run like an interrupt. Any other `Closed` is a bug.
+      */
     private def closedIsBug[A](v: A < (Async & Abort[Closed]))(using
-        Frame,
+        frame: Frame,
     ): A < (Async & Abort[TuiError]) =
       Abort.recover[Closed](c =>
-        Abort.fail(
-          TuiError.TerminalIO(IllegalStateException(s"inbox closed: $c")),
-        ),
+        if terminal.backend().isClosed then
+            Abort.panic(Interrupted(frame, "the release of the terminal"))
+        else
+            Abort.fail(
+              TuiError.TerminalIO(IllegalStateException(s"inbox closed: $c")),
+            ),
       )(v)
 
     private def afterChange(drawnAt: Long)(using

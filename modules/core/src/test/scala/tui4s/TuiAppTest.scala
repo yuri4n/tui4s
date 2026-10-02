@@ -1,19 +1,37 @@
 package tui4s
 
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import kyo.*
 import kyo.test.*
+import scala.jdk.CollectionConverters.*
 import tui.crossterm.KeyCode
 import tui4s.EventMappingTest.key
 
-/** A main class for the tests: the Counter, plus a key that throws. */
+/** A main class for the tests: the Counter, plus a key that throws and a key
+  * that blocks its thread like `System.exit` does (until [[gate]] opens; an
+  * interrupt does not stop the wait).
+  */
 object MainCounter extends TuiApp[Int]:
     val exited: AtomicInteger = AtomicInteger(-1)
+
+    @volatile var gate: CountDownLatch = CountDownLatch(0)
+    val blocked: AtomicBoolean         = AtomicBoolean(false)
+
+    private def block(n: Int): Int =
+        blocked.set(true)
+        while gate.getCount > 0 do
+            try gate.await()
+            catch case _: InterruptedException => ()
+        n
 
     val keys: Keymap[Int] = Keymap(
       bind('+', "increment")(_ + 1),
       bind('x', "explode")(_ => throw IllegalStateException("boom")),
+      bind('w', "block")(block),
       bind('q', "quit")(_ => Quit),
     )
 
@@ -147,7 +165,33 @@ class TuiAppTest extends Test[Any]:
       }
     }
 
-    "the SIGTERM hook interrupts the run, which restores the terminal"
+    /** Starts `hooks` on their own threads, as the JVM does on SIGTERM and on
+      * `System.exit`, and waits for them; returns how long each one took, in
+      * milliseconds, by name.
+      */
+    private def runHooks(hooks: Seq[Thread]): Map[String, Long] =
+        val took    = java.util.concurrent.ConcurrentHashMap[String, Long]()
+        val threads = hooks.map { h =>
+          Thread(() =>
+              val t0 = java.lang.System.nanoTime()
+              h.run()
+              val _  = took.put(
+                h.getName,
+                (java.lang.System.nanoTime() - t0) / 1_000_000,
+              ),
+          )
+        }
+        threads.foreach(_.start())
+        threads.foreach(_.join(10_000))
+        took.asScala.toMap
+    end runHooks
+
+    /** Waits on this thread until `cond` holds (at most 10 s). */
+    private def waitFor(cond: => Boolean): Unit =
+        val until = java.lang.System.nanoTime() + 10_000_000_000L
+        while !cond && java.lang.System.nanoTime() < until do Thread.sleep(5)
+
+    "SIGTERM: both hooks at once interrupt the run and restore the terminal"
       .timeout(30.seconds) in {
       val fake  = FakeCrossterm()
       val hooks = FakeHooks(fake.log)
@@ -155,13 +199,9 @@ class TuiAppTest extends Test[Any]:
       Sync
         .defer {
           Thread(() =>
-              val until = java.lang.System.nanoTime() + 10_000_000_000L
-              while hooks.added.size < 2 && java.lang.System.nanoTime() < until
-              do Thread.sleep(5)
-              // What the JVM does on SIGTERM: run the main hook.
-              hooks.added.forEach(h =>
-                if h.getName == "tui4s-stop" then h.run(),
-              ),
+              waitFor(hooks.added.size == 2 && fake.screen.contains("Count"))
+              // What the JVM does on SIGTERM: run every hook at once.
+              val _ = runHooks(hooks.added.asScala.toSeq),
           ).start()
         }
         .andThen(
@@ -170,6 +210,67 @@ class TuiAppTest extends Test[Any]:
         .map { code =>
           assert(code == 1)
           assert(err.lines.contains("interrupted"), err.lines.toString)
+          assert(
+            fake.calls.containsSlice(Seq("raw-mode-off", "flush")),
+            fake.calls.mkString("\n"),
+          )
+        }
+    }
+
+    "the restore hook first, then the stop hook: the run is interrupted"
+      .timeout(30.seconds) in {
+      val fake  = FakeCrossterm()
+      val hooks = FakeHooks(fake.log)
+      val err   = FakeErr(fake.log)
+      def named(n: String): Seq[Thread] =
+        hooks.added.asScala.toSeq.filter(_.getName == n)
+      Sync
+        .defer {
+          Thread(() =>
+              waitFor(hooks.added.size == 2 && fake.screen.contains("Count"))
+              // The restore hook closes the inbox under the running loop.
+              val _ = runHooks(named("tui4s-restore"))
+              val _ = runHooks(named("tui4s-stop")),
+          ).start()
+        }
+        .andThen(
+          onThread(MainCounter.runMain(Array(), fake, hooks, err.stream)),
+        )
+        .map { code =>
+          assert(code == 1)
+          assert(err.lines == Seq("interrupted"), err.lines.toString)
+        }
+    }
+
+    "System.exit in update: the stop hook waits for the restore, not 2 s"
+      .timeout(30.seconds) in {
+      val fake  = FakeCrossterm()
+      val hooks = FakeHooks(fake.log)
+      val err   = FakeErr(fake.log)
+      Sync
+        .defer {
+          MainCounter.blocked.set(false)
+          MainCounter.gate = CountDownLatch(1)
+          val took = AtomicLong(-1)
+          Thread(() =>
+              waitFor(hooks.added.size == 2 && fake.screen.contains("Count"))
+              // `update` blocks its thread, as System.exit does while the
+              // JVM runs the shutdown hooks.
+              fake.push(char('w'))
+              waitFor(MainCounter.blocked.get)
+              val times = runHooks(hooks.added.asScala.toSeq)
+              took.set(times.getOrElse("tui4s-stop", -1L))
+              MainCounter.gate.countDown(),
+          ).start()
+          took
+        }
+        .map(took =>
+          onThread(MainCounter.runMain(Array(), fake, hooks, err.stream))
+            .map(code => (code, took.get)),
+        )
+        .map { (code, took) =>
+          assert(code == 1, err.lines.toString)
+          assert(took >= 0 && took < 1500, s"the stop hook took $took ms")
           assert(
             fake.calls.containsSlice(Seq("raw-mode-off", "flush")),
             fake.calls.mkString("\n"),
