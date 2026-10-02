@@ -14,8 +14,14 @@ class ParitySuite extends FunSuite:
 
     private val expected = run(examples.counter.CounterApp)
 
-    test("every ecosystem has a parity app; Kyo is one of them") {
-      assert(Parity.apps.map(_._1).contains("kyo"), Parity.apps.toString)
+    /** The ecosystems that must have a parity app. The ZIO and Cats Effect
+      * pull requests add "zio" and "cats" here and in the build (see
+      * project/FacadeParity.scala): a name in only one place makes this fail.
+      */
+    private val ecosystems = Set("kyo")
+
+    test("the parity apps are exactly the expected ecosystems") {
+      assertEquals(Parity.apps.map(_._1).toSet, ecosystems)
     }
 
     Parity.apps.foreach { (name, app) =>

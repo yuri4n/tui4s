@@ -11,9 +11,13 @@ import sbt.Keys._
   * body compiles under every import, the facades re-export the shared surface
   * unchanged.
   *
-  * The ZIO and Cats Effect pull requests add their entry:
+  * The ZIO and Cats Effect pull requests add their entry to the `examples`
+  * project, in a `.settings(...)` after `FacadeParity.settings(...)`: that
+  * call sets the list to Kyo only, so an earlier `+=` is lost without a
+  * message. They also add the name to the expected set of `ParitySuite`.
   * {{{
-  * FacadeParity.ecosystems += "zio" -> "import tui4s.interop.zio.*"
+  * .settings(FacadeParity.settings(file("examples/src/parity/CounterBody.scala.txt")))
+  * .settings(FacadeParity.ecosystems += "zio" -> "import tui4s.interop.zio.*")
   * }}}
   */
 object FacadeParity {

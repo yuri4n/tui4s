@@ -11,6 +11,11 @@ libraryDependencies ++= Seq(
   "ch.epfl.scala"     %% "tasty-query"       % "1.9.0"      % Test,
 )
 
+// SurfaceCheck is in its own directory, so that the facade tests can compile
+// it without the core tests (they have a stand-in zio.ZIO; see SurfaceCheck).
+Test / unmanagedSourceDirectories +=
+  baseDirectory.value / "src" / "surface" / "scala"
+
 // kyo-test (the Kyo project's own test framework, released with Kyo).
 // Use `+=`: `:=` would drop the other frameworks.
 Test / testFrameworks += new TestFramework("kyo.test.runner.SbtFramework")

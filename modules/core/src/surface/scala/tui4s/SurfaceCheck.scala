@@ -13,8 +13,15 @@ import tastyquery.jdk.ClasspathLoaders
   * classes (SPEC 6.5). Java reflection cannot do it: Kyo's `A < S` is an opaque
   * type that erases to `Object`.
   *
-  * The facades can run the same check on their own packages: their tests then
-  * depend on the core tests (`core % "test->test"`).
+  * The facades run the same check on their own packages with this source
+  * directory, not with `core % "test->test"`: the core tests have a stand-in
+  * `zio.ZIO` class that would come before the real one. In the build of a
+  * facade:
+  * {{{
+  * Test / unmanagedSourceDirectories +=
+  *   (core / baseDirectory).value / "src" / "surface" / "scala",
+  * libraryDependencies += "ch.epfl.scala" %% "tasty-query" % "1.9.0" % Test,
+  * }}}
   */
 object SurfaceCheck:
     /** A context over this JVM's class path without the test classes, and the
