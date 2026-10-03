@@ -1,0 +1,57 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] compiling 17 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[success] Total time: 30 s, completed 1 Oct 2026, 11:13:34
+[info] ans: java.nio.file.Path = modules/core/src/main/scala/tui4s/Styling.scala
+[info] compiling 2 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[success] Total time: 2 s, completed 1 Oct 2026, 11:13:38
+[info] ans: java.nio.file.Path = modules/core/src/main/scala/tui4s/View.scala
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[success] Total time: 4 s, completed 1 Oct 2026, 11:13:43
+[info] ans: java.nio.file.Path = modules/core/src/main/scala/tui4s/dsl.scala
+[info] compiling 2 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[success] Total time: 1 s, completed 1 Oct 2026, 11:13:44
+[info] ans: java.nio.file.Path = modules/core/src/main/scala/tui4s/App.scala
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[success] Total time: 1 s, completed 1 Oct 2026, 11:13:46
+[info] ans: java.nio.file.Path = modules/core/src/main/scala/tui4s/Event.scala
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[success] Total time: 3 s, completed 1 Oct 2026, 11:13:49
+[info] ans: java.nio.file.Path = modules/core/src/main/scala/tui4s/Keymap.scala
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[success] Total time: 2 s, completed 1 Oct 2026, 11:13:52
+[info] ans: java.nio.file.Path = modules/core/src/main/scala/tui4s/TextField.scala
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[success] Total time: 2 s, completed 1 Oct 2026, 11:13:54
+[info] ans: java.nio.file.Path = modules/core/src/main/scala/tui4s/Options.scala
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[success] Total time: 2 s, completed 1 Oct 2026, 11:13:57
+[info] ans: java.nio.file.Path = modules/core/src/main/scala/tui4s/Source.scala
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[success] Total time: 1 s, completed 1 Oct 2026, 11:13:58
+[info] ans: java.nio.file.Path = modules/core/src/main/scala/tui4s/Focus.scala
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[success] Total time: 1 s, completed 1 Oct 2026, 11:14:00
+[info] ans: java.nio.file.Path = modules/core/src/main/scala/tui4s/package.scala
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[success] Total time: 1 s, completed 1 Oct 2026, 11:14:01

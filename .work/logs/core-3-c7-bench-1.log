@@ -1,0 +1,28 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project/target/scala-2.12/sbt-1.0/classes ...
+[info] done compiling
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] compiling 10 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/bench/target/scala-3.9.0/classes ...
+[warn] -- [E176] Potential Issue Warning: /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/bench/src/main/scala/tui4s/bench/EngineBench.scala:48:12 
+[warn] 48 |        step(Seq(Fold(Fold.Direct, fill)))
+[warn]    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[warn]    |        unused value of type Boolean
+[warn] -- [E175] Potential Issue Warning: /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/bench/src/main/scala/tui4s/bench/Probes.scala:91:25 
+[warn] 91 |        Files.writeString(
+[warn]    |        ^
+[warn]    |discarded non-Unit value of type (java.nio.file.Path)?. Add `: Unit` to discard silently.
+[warn]    |
+[warn] 92 |          dir.resolve(s"$probe.jsonl"),
+[warn] 93 |...
+[warn] 97 |        )
+[warn] two warnings found
+[info] done compiling
+[success] Total time: 28 s, completed 1 Oct 2026, 17:23:02

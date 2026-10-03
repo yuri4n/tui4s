@@ -1,0 +1,42 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] * -deprecation
+[info] * -feature
+[info] * -Wunused:all
+[info] * -Wvalue-discard
+[info] * -Wnonunit-statement
+[info] * -Yexplicit-nulls
+[info] * -Wconf:msg=@nowarn annotation does not suppress any warnings:s
+[info] * -Xsemanticdb
+[info] * -semanticdb-target
+[info] * /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/meta
+[info] * -Wconf:msg=match may not be exhaustive&src=.*/EventMapping\.scala:e
+[success] Total time: 4 s, completed 1 Oct 2026, 18:40:37
+[info] compiling 41 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[error] -- [E029] Pattern Match Exhaustivity Error: /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/src/main/scala/tui4s/internal/EventMapping.scala:50:10 
+[error] 50 |          ke.code match
+[error]    |          ^^^^^^^
+[error]    |          match may not be exhaustive.
+[error]    |
+[error]    |          It would fail on pattern case: _: tui.crossterm.KeyCode.Media
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E029] Pattern Match Exhaustivity Error: /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/src/main/scala/tui4s/internal/EventMapping.scala:85:19 
+[error] 85 |        val kind = me.kind match
+[error]    |                   ^^^^^^^
+[error]    |match may not be exhaustive.
+[error]    |
+[error]    |It would fail on pattern case: _: tui.crossterm.MouseEventKind.ScrollRight
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] two errors found
+[error] (core / Compile / compileIncremental) Compilation failed
+[error] Total time: 75 s (0:01:15.0), completed 1 Oct 2026, 18:41:52

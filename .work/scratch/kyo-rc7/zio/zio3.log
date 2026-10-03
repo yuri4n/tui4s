@@ -1,0 +1,34 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/Users/yuri4n/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/Users/yuri4n/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[zio] get/run value: Success(21)
+[zio] get of ZIO.fail -> Kyo: Success(Failure(boom))
+[zio] run of Abort.fail -> ZIO: Failure(Fail(kyo-error,StackTrace.none))
+[zio] get of ZIO.die -> Kyo: Success(Panic(java.lang.RuntimeException: died))
+[zio] ZStreams.get(ZStream(1,2,3)*10).run = Chunk.Indexed(10, 20, 30)
+[zio] ZStreams.run(Stream).runCollect = Success(Chunk(A,B,C))
+[zio] zlayer released
+[zio] ZLayers.get -> Env.runLayer: from-zlayer
+[zio] ZLayers.run -> provide: Success(from-kyo-layer)
+[zio] interrupt ZIO -> Kyo (sync-ensure): (finalizedWhenInterruptReturned, zioInterrupted)=Success((true,true)) finalizedAfter300ms=true
+[zio] interrupt ZIO -> Kyo (scope-ensure-sync): (finalizedWhenInterruptReturned, zioInterrupted)=Success((false,true)) finalizedAfter300ms=true
+[zio] interrupt ZIO -> Kyo (scope-ensure-async): (finalizedWhenInterruptReturned, zioInterrupted)=Success((false,true)) finalizedAfter300ms=true
+[zio] interrupt Kyo -> ZIO: kyoResult=Panic(kyo.Interrupted: Fiber interrupted at ZioBridge.scala:148:41 ) zioFinalizerRan=true
+[zio] upstream ZIOs.get under caller FiberRef=42 + caller executor: (fiberRef, thread)=Success((0,ZScheduler-Worker-5))
+[zio] AmbientZIOs.get (caller runtime via ZIO.runtime + Local):          (fiberRef, thread)=Success((42,caller-zio-96622392))
+[zio] AmbientZIOs.get from a forked Kyo fiber:                          (fiberRef, thread)=Success((7,caller-zio-221861886))
+[zio] stress upstream ZIOs.get: rounds=300 leakedZioFibers=0
+[zio] stress AmbientZIOs.get (Sync.ensure): rounds=300 leakedZioFibers=0
+real 29.32
+user 7.72
+sys 1.23

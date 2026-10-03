@@ -1,0 +1,9 @@
+before:
+Counter
+Count: 0
+(+)
+after two clicks:
+Counter
+Count: 2
+(+)
+html: <div data-kyo-path=""><h1 data-kyo-path="0">Counter</h1><!--kyo-rs:r000000010031--><p data-kyo-path="1">Count: 2</p><!--kyo-re:r000000010031--><button data-kyo-path="2" id="inc" data-kyo-ev="click" type="submit">+</button></div>

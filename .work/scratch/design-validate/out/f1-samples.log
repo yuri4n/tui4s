@@ -1,0 +1,3 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+scala-cli compile --server=false --test samples  125.83s user 6.77s system 375% cpu 35.316 total

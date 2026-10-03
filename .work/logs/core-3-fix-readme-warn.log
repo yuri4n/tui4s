@@ -1,0 +1,27 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] Defining examples / run / javaOptions
+[info] The new value will be used by examples / Compile / run / forkOptions, examples / Compile / run / runner and 1 others.
+[info] 	Run `last` for details.
+[info] Reapplying settings...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] running (fork) examples.counter.CounterApp 
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::loadLibrary has been called by tui.crossterm.NativeLoader in an unnamed module (file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/target/bg-jobs/sbt_40b681c4/target/804bc522/25030838/crossterm-0.31.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+stdin/stdout is not a terminal
+  cause: java.io.IOException: stdin is not a terminal
+[error] nonzero exit code returned from runner: 1
+[error] (examples / Compile / runMain) nonzero exit code returned from runner: 1
+[error] Total time: 15 s, completed 1 Oct 2026, 18:54:49

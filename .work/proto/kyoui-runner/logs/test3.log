@@ -1,0 +1,88 @@
+-- [E198] Unused Symbol Warning: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Dispatch.scala:6:14 
+6 |import kyo.UI.Modifiers
+  |              ^^^^^^^^^
+  |              unused import
+1 warning found
+[hint] ./project.scala:8:20
+[hint] "munit is outdated, update to 1.3.6"
+[hint]      munit 1.1.1 -> org.scalameta::munit:1.3.6
+[hint] //> using test.dep org.scalameta::munit:1.1.1
+[hint]                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tui4s: settle timed out: totalLoad=2 busy=2 workers=[0 load=1 blocked=false kyo-scheduler-worker-5 java.base/java.lang.Thread.getStackTrace(Thread.java:2193)] [3 load=1 blocked=true kyo-scheduler-worker-3 kyo.Scope$.kyo$Scope$$$_$run$1(Scope.scala:144)]
+tui4s: settle timed out: totalLoad=1 busy=1 workers=[1 load=1 blocked=false kyo-scheduler-worker-2 java.base/java.lang.Thread.getStackTrace(Thread.java:2193)]
+tui4s: settle timed out: totalLoad=2 busy=2 workers=[2 load=1 blocked=false kyo-scheduler-worker-6 java.base/java.lang.Thread.getStackTrace(Thread.java:2193)] [4 load=1 blocked=true kyo-scheduler-worker-3 kyo.kernel.internal.Stack.contextual(Stack.scala:245)]
+tui4s: settle timed out: totalLoad=1 busy=1 workers=[7 load=1 blocked=false kyo-scheduler-worker-2 java.base/java.lang.Thread.getStackTrace(Thread.java:2193)]
+tui4s: settle timed out: totalLoad=1 busy=1 workers=[3 load=1 blocked=false kyo-scheduler-worker-1 java.base/java.lang.Thread.getStackTrace(Thread.java:2193)]
+tui4s: settle timed out: totalLoad=2 busy=2 workers=[3 load=1 blocked=false kyo-scheduler-worker-5 java.base/java.lang.Thread.getStackTrace(Thread.java:2193)] [4 load=1 blocked=false kyo-scheduler-worker-3 kyo.Scope$$anon$4.apply(Scope.scala:144)]
+tui4s: settle timed out: totalLoad=1 busy=1 workers=[4 load=1 blocked=false kyo-scheduler-worker-3 java.base/java.lang.Thread.getStackTrace(Thread.java:2193)]
+tui4s: settle timed out: totalLoad=2 busy=2 workers=[3 load=1 blocked=false kyo-scheduler-worker-5 java.base/java.lang.Thread.getStackTrace(Thread.java:2193)] [4 load=1 blocked=false kyo-scheduler-worker-3 kyo.kernel.internal.Eval$.loop$1(Eval.scala:342)]
+tui4s: settle timed out: totalLoad=2 busy=2 workers=[6 load=1 blocked=true kyo-scheduler-worker-7 java.base/java.lang.Thread.getStackTrace(Thread.java:2193)] [7 load=1 blocked=false  ]
+tui4s: settle timed out: totalLoad=1 busy=1 workers=[2 load=1 blocked=false kyo-scheduler-worker-1 java.base/java.lang.Thread.getStackTrace(Thread.java:2193)]
+tui4s: settle timed out: totalLoad=2 busy=2 workers=[4 load=1 blocked=false kyo-scheduler-worker-3 java.base/java.lang.Thread.getStackTrace(Thread.java:2193)] [6 load=2 blocked=false kyo-scheduler-worker-5 kyo.Signal.kyo$Signal$$_$run$3(Signal.scala:144)]
+tests.AppsTest:
+  + counter: + + - with keys, Tab and Enter on the buttons, nothing happens for an unknown key 1.388s
+  + two counters are independent; Tab order is document order 0.387s
+  + hooks: top-level sequencing and runner-mounted components (state dropped when hidden) 0.415s
+  + Component class: state per position, kept across a parent re-render 0.204s
+==> X tests.AppsTest.todo: load, type + Enter adds, Tab to the list, arrows + Space toggle, d deletes, Ctrl-S saves, Esc quits  0.715s munit.FailException: test/Apps.test.scala:121
+120:                s3 <- h.screen
+121:                _ = assert(s3.contains("[ ] walk dog") && s3.contains("4 open / 4"), s3)
+122:                c  <- h.cell(2, s3.linesIterator.indexWhere(_.contains("walk dog")))
+Todo  3 open / 4
+New: What needs doing? (Enter adds)
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│[ ] buy milk                                                                                      │
+│[x] walk dog                                                                                      │
+│[ ] write report                                                                                  │
+│[ ] call mom                                                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+loaded 3 items from /var/folders/w4/q5jx5p_10nn_dlsm2l43p16w0000gn/T/todo17142398838213781911.txt
+Tab: input/list  ↑↓: move  Space: toggle  d: delete  Ctrl-S: save  Esc: quit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    at munit.FunSuite.assert(FunSuite.scala:13)
+    at tests.AppsTest.tests$AppsTest$$_$_$run$55(Apps.test.scala:121)
+==> X tests.AppsTest.dashboard: a sampler tick updates gauge and sparkline in one frame; tabs; pause  0.262s munit.ComparisonFailException: test/Apps.test.scala:146
+145:                f  <- h.nextFrame
+146:                _ = assertEquals(f.updates, 2, s"gauge and sparkline in one frame: $f")
+147:                s0 <- h.screen
+gauge and sparkline in one frame: FrameStats(0,Background,818,17,108028458,4,517740,15722318,91778675,0.0.1.~.0.0)
+=> Obtained
+4
+=> Diff (- expected, + obtained)
+-2
++4
+    at munit.FunSuite.assertEquals(FunSuite.scala:13)
+    at tests.AppsTest.tests$AppsTest$$_$_$run$67(Apps.test.scala:146)
+  + idle: no frame at all when nothing changes 1.878s
+==> X tests.AppsTest.glitch-free: one event that writes two refs updates all 4 dependent regions in one frame (500 events)  4.556s munit.ComparisonFailException: test/Apps.test.scala:186
+185:                split = fs.count(_.updates != 4)
+186:                _ = assertEquals(split, 0, s"split frames: ${fs.filter(_.updates != 4).take(5)}")
+187:            yield ()
+split frames: Chunk(FrameStats(17,Input,0,0,27241251,0,246750,26932566,44407,), FrameStats(37,Input,44,4,8945361,5,2017226,3734025,3183138,), FrameStats(41,Input,36,3,43253312,3,207142,40550500,2480609,), FrameStats(104,Input,34,3,26274612,3,188561,24341701,1729275,), FrameStats(161,Input,42,3,29164831,3,216601,27322558,1611078,))
+=> Obtained
+9
+=> Diff (- expected, + obtained)
+-0
++9
+    at munit.FunSuite.assertEquals(FunSuite.scala:13)
+    at tests.AppsTest.tests$AppsTest$$_$_$run$84(Apps.test.scala:186)
+Error: munit tests failed.

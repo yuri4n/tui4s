@@ -1,0 +1,22 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] compiling 17 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[warn] -- [E216] Syntax Warning: /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/src/main/scala/tui4s/TextField.scala:84:72 
+[warn] 84 |        val updated = text.substring(0, at).nn + s + text.substring(at).nn
+[warn]    |                                                     ^^^^^^^^^^^^^^^^^^^^^
+[warn]    |                              Unnecessary .nn: expected type admits null
+[warn] -- [E216] Syntax Warning: /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/src/main/scala/tui4s/TextField.scala:92:39 
+[warn] 92 |            text.substring(bounds(to)).nn
+[warn]    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[warn]    |            Unnecessary .nn: expected type admits null
+[warn] two warnings found
+[info] done compiling
+[success] Total time: 28 s, completed 1 Oct 2026, 11:01:34

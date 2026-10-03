@@ -1,0 +1,23 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[31m[31m-- [E007] Type Mismatch Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/zio/tests/ZioFacadeSuite.test.scala:40:19 [0m[0m
+[31m40 |[0m    [33mval[0m [36mseen[0m = run([33mFiberRef[0m.make([32m0[0m).flatMap { [36mref[0m =>
+[31m[31m   |[0m                   ^[0m
+[31m   |[0m                   Found:    zio.ZIO[zio.Scope, tui4s.TuiError, Int]
+[31m   |[0m                   Required: zio.ZIO[Any, Any, Any]
+[31m   |[0m
+[31m   |[0m                   The following import might fix the problem:
+[31m   |[0m
+[31m   |[0m                     import examples.ziocounter.CounterApp.validateEnv
+[31m   |[0m
+[31m   |[0m
+[31m41 |[0m      [33mval[0m [36mapp[0m = [33mApp[0m[[32mInt[0m](
+[31m42 |[0m...
+[31m48 |[0m    })
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+1 error found
+Compilation failed

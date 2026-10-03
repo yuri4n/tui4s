@@ -1,0 +1,70 @@
+[33m[33m-- [E198] Unused Symbol Warning: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/jatatui/probe.scala:16:23 [0m[0m
+[33m16 |[0m[33mimport[0m jatatui.widgets.[33mBorders[0m
+[33m[33m   |[0m                       ^^^^^^^[0m
+[33m   |[0m                       unused import
+1 warning found
+java.version=25.0.4.1 scala=3.9.0
+|╭─────────── jatatui probe ────────────*|
+|│Hello from Scala 3.9 on JDK 25,       │|
+|│wrapped by jatatui.                   │|
+|│                                      │|
+|│   item 1                             │|
+|│   item 2                             │|
+|│   item 3                             │|
+|│   item 4                             │|
+|│   item 5                             │|
+|│>> item 6                             │|
+|│████████████████ 42%                  │|
+|╰ q to quit ───────────────────────────╯|
+[FAIL] rendered lines equal expected
+  row 0
+    got: |╭─────────── jatatui probe ────────────*|
+    exp: |╭──────────── jatatui probe ───────────*|
+  row 1
+    got: |│Hello from Scala 3.9 on JDK 25,       │|
+    exp: |│Hello from Scala 3.9 on JDK 25, wrapped│|
+  row 2
+    got: |│wrapped by jatatui.                   │|
+    exp: |│by jatatui.                            │|
+  row 3
+    got: |│                                      │|
+    exp: |│                                       │|
+  row 4
+    got: |│   item 1                             │|
+    exp: |│   item 1                              │|
+  row 5
+    got: |│   item 2                             │|
+    exp: |│   item 2                              │|
+  row 6
+    got: |│   item 3                             │|
+    exp: |│   item 3                              │|
+  row 7
+    got: |│   item 4                             │|
+    exp: |│   item 4                              │|
+  row 8
+    got: |│   item 5                             │|
+    exp: |│   item 5                              │|
+  row 9
+    got: |│>> item 6                             │|
+    exp: |│>> item 6                              │|
+  row 10
+    got: |│████████████████ 42%                  │|
+    exp: |│█████████████42%                       │|
+  row 11
+    got: |╰ q to quit ───────────────────────────╯|
+    exp: |╰ q to quit ────────────────────────────╯|
+[OK  ] ListState.offset was mutated by render (0 -> 1)
+[OK  ] selected still 6
+[OK  ] selected row is REVERSED
+[OK  ] 'Hello' is bold yellow
+[OK  ] CompletedFrame.count == 0
+[OK  ] after select(0): first list row is '>> item 0'
+[OK  ] offset reset to 0
+[OK  ] Buffer.withLines equality
+[OK  ] Buffer.diff returns live Cell refs (update sees later mutation)
+[OK  ] Layout.split returns the cached array instance for an equal Layout
+  setString outside area -> java.lang.IndexOutOfBoundsException
+1 CHECK(S) FAILED
+real 18.70
+user 1.93
+sys 0.39

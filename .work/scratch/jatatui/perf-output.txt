@@ -1,0 +1,23 @@
+java.version=25.0.4.1 cpus=8 os.arch=x86_64
+A Terminal(TestBackend) 120x40, selection moves                  2657.9 us/frame    1741.2 KiB/frame
+B Terminal(no-op) 120x40, identical frames                       2122.0 us/frame    1725.1 KiB/frame
+   changed cells in an identical frame: 0
+C Terminal(no-op) 120x40, selection moves + items rebuilt        2093.4 us/frame    1753.0 KiB/frame
+   changed cells when selection moves 49->50 style: 158
+D widgets only (render into the back buffer, no diff/reset)      1227.3 us/frame    1736.1 KiB/frame
+0 Terminal.draw with an empty callback (diff+reset baseline)      600.2 us/frame       0.2 KiB/frame
+1 Block.bordered full 120x40                                      228.6 us/frame     332.8 KiB/frame
+2 Paragraph ~1100 chars wrapped, 70x38                            463.2 us/frame     581.5 KiB/frame
+3 Paragraph ~1100 chars NOT wrapped, 70x38                        294.1 us/frame     476.2 KiB/frame
+4 List 100 items (prebuilt), 48x38, stateful                      419.3 us/frame     534.2 KiB/frame
+E Buffer.diff 120x40 identical buffers                            306.2 us/frame       0.0 KiB/frame
+F Buffer.reset 120x40                                             345.5 us/frame       0.0 KiB/frame
+G Buffer.setStyle full 120x40 (Style.empty)                       253.1 us/frame     300.0 KiB/frame
+H cellAt over all 4800 cells                                       27.3 us/frame       0.0 KiB/frame
+I setString 100 ASCII chars                                        12.6 us/frame      12.5 KiB/frame
+J Layout.split cache hit (equal Layout rebuilt per call)            2.7 us/frame       0.3 KiB/frame
+K Layout.split cache miss (new area every call, 3 constraints)    167.7 us/frame      36.9 KiB/frame
+L concurrent Layout.split: errors=0 wrongResults=0 cacheCapacity=500
+real 23.60
+user 23.94
+sys 1.80

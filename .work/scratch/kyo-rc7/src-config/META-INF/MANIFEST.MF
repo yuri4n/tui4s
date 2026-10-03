@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Specification-Title: kyo-config
+Specification-Version: 1.0.0-RC7
+Specification-Vendor: io.getkyo
+

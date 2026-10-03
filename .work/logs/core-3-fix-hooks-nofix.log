@@ -1,0 +1,80 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] compiling 5 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 3 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 2 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Running 1 suite(s) with parallelism 16
+
+[1m=== TuiAppTest ===[0m
+  [1m[32m[PASS][0m[0m no terminal: exit code 1 and the message, printed after the restore  [2m(492ms)[0m
+  [1m[32m[PASS][0m[0m a run that quits: exit code 0, onExit gets the last state  [2m(486ms)[0m
+  [1m[32m[PASS][0m[0m update throws: exit code 1, the message and the cause's stack trace  [2m(54ms)[0m
+  [1m[32m[PASS][0m[0m SIGTERM: both hooks at once interrupt the run and restore the terminal  [2m(66ms)[0m
+  [1m[31m[FAIL][0m[0m the restore hook first, then the stop hook: the run is interrupted  [2m(106ms)[0m *** FAILED ***
+
+    assert(err.lines == Seq("interrupted"), err.lines.toString)
+    // message: Vector(terminal I/O failed,   cause: java.lang.IllegalStateException: inbox closed: kyo.Closed: , [2m  [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m, [2m  [0m [2m│[0m [32m// TuiApp.scala:57:50 tui4s.TuiApp runMain[0m, [2m  [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m, [2m56[0m [2m│[0m [33mval[0m run = TuiRun, [2m57[0m [2m│[0m   .run(this, crossterm, hooks, () => err)📍, [2m58[0m [2m│[0m   .map(s => onExit(s).andThen(s)), [2m  [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m, [2m  [0m [2m│[0m [32m[1m[31m⚠️ KyoException[0m[0m[0m, [2m  [0m [2m│[0m [32m[0m, [2m  [0m [2m│[0m [32mQueue created at TuiApp.scala:57:50 is closed.[0m, [2m  [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m, )
+
+  [1m[31m[FAIL][0m[0m System.exit in update: the stop hook waits for the restore, not 2 s  [2m(2.0s)[0m *** FAILED ***
+
+    assert(took >= 0 && took < 1500, s"the stop hook took $took ms")
+    // message: the stop hook took 2006 ms
+
+[2m---[0m TuiAppTest: [32m4 passed[0m, [31m2 failed[0m  [2m(4.0s)[0m
+FAILURES (2):
+  the restore hook first, then the stop hook: the run is interrupted  [FAIL]
+    assert(err.lines == Seq("interrupted"), err.lines.toString)
+    // message: Vector(terminal I/O failed,   cause: java.lang.IllegalStateException: inbox closed: kyo.Closed: , [2m  [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m, [2m  [0m [2m│[0m [32m// TuiApp.scala:57:50 tui4s.TuiApp runMain[0m, [2m  [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m, [2m56[0m [2m│[0m [33mval[0m run = TuiRun, [2m57[0m [2m│[0m   .run(this, crossterm, hooks, () => err)📍, [2m58[0m [2m│[0m   .map(s => onExit(s).andThen(s)), [2m  [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m, [2m  [0m [2m│[0m [32m[1m[31m⚠️ KyoException[0m[0m[0m, [2m  [0m [2m│[0m [32m[0m, [2m  [0m [2m│[0m [32mQueue created at TuiApp.scala:57:50 is closed.[0m, [2m  [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m, )
+  System.exit in update: the stop hook waits for the restore, not 2 s  [FAIL]
+    assert(took >= 0 && took < 1500, s"the stop hook took $took ms")
+    // message: the stop hook took 2006 ms
+
+Results: [32m4 passed[0m, [31m2 failed[0m  (total: 4.0s)
+Running 1 suite(s) with parallelism 16
+
+[1m=== TerminalIOTest ===[0m
+  [1m[32m[PASS][0m[0m open and close in the order of SPEC 5.9  [2m(256ms)[0m
+  [1m[32m[PASS][0m[0m the options choose the modes; an inline viewport ends on a new line  [2m(68ms)[0m
+  [1m[32m[PASS][0m[0m no terminal: NotATerminal before anything else changes  [2m(8ms)[0m
+  [1m[32m[PASS][0m[0m stdin is not a terminal: NotATerminal before raw mode  [2m(14ms)[0m
+  [1m[32m[PASS][0m[0m an app failure restores the streams too  [2m(57ms)[0m
+  [1m[32m[PASS][0m[0m a native library that cannot load: NativeAccessDenied  [2m(12ms)[0m
+  [1m[32m[PASS][0m[0m a failing mode command: TerminalIO, raw mode is left again  [2m(23ms)[0m
+  [1m[32m[PASS][0m[0m a failing release step does not stop the others; the error is printed  [2m(44ms)[0m
+  [1m[32m[PASS][0m[0m output while the UI is up is printed after the restore  [2m(45ms)[0m
+tui4s test: not captured
+  [1m[32m[PASS][0m[0m captureOutput = false: the output is not taken  [2m(48ms)[0m
+  [1m[32m[PASS][0m[0m Kyo log lines at warn or above are printed after the restore  [2m(163ms)[0m
+  [1m[32m[PASS][0m[0m a trace file that cannot be written is a warning after the restore  [2m(46ms)[0m
+  [1m[32m[PASS][0m[0m with a log file, the output and the log go to the file  [2m(58ms)[0m
+  [1m[31m[FAIL][0m[0m the shutdown hook restores the terminal while the app runs  [2m(54ms)[0m *** FAILED ***
+
+    )
+    // message: Failure(tui4s.TuiError$TerminalIO: terminal I/O failed)
+
+  [1m[32m[PASS][0m[0m Tui.start on a terminal: the handle updates, sends and stops  [2m(97ms)[0m
+[2m---[0m TerminalIOTest: [32m14 passed[0m, [31m1 failed[0m  [2m(1.0s)[0m
+FAILURES (1):
+  the shutdown hook restores the terminal while the app runs  [FAIL]
+    )
+    // message: Failure(tui4s.TuiError$TerminalIO: terminal I/O failed)
+
+Results: [32m14 passed[0m, [31m1 failed[0m  (total: 1.0s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.TuiAppTest
+[error] 	tui4s.TerminalIOTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 96 s (0:01:36.0), completed 1 Oct 2026, 19:03:51

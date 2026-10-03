@@ -1,0 +1,217 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[success] Total time: 6 s, completed 1 Oct 2026, 11:22:19
+[info] scalafmt: Checking 2 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core)...
+[info] scalafmt: Checking 2 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/zio)...
+[info] scalafmt: Checking 2 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/cats)...
+[info] scalafmt: Checking 2 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core)...
+[info] scalafmt: Checking 2 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core)...
+[success] Total time: 4 s, completed 1 Oct 2026, 11:22:23
+[info] compiling 17 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 17 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+[success] Total time: 93 s (0:01:33.0), completed 1 Oct 2026, 11:23:56
+Running 1 suite(s) with parallelism 16
+
+Running 1 suite(s) with parallelism 16
+Running 1 suite(s) with parallelism 16
+Running 1 suite(s) with parallelism 16
+Running 1 suite(s) with parallelism 16
+
+Running 1 suite(s) with parallelism 16
+
+
+Running 1 suite(s) with parallelism 16
+
+Running 1 suite(s) with parallelism 16
+
+
+[1m=== TodoTest ===[0m
+[1m=== PainterTest ===[0m
+
+[1m=== KeymapTest ===[0m
+[1m=== NameClashTest ===[0m
+[1m=== FocusTest ===[0m
+[1m=== KeyTest ===[0m
+[1m=== FrameContractTest ===[0m
+[1m=== ScreenTest ===[0m
+  [1m[32m[PASS][0m[0m next and prev cycle and wrap around  [2m(96ms)[0m
+  [1m[32m[PASS][0m[0m ++ keeps the left binding for a key bound on both sides  [2m(14ms)[0m
+  [1m[32m[PASS][0m[0m equality is structural  [2m(13ms)[0m
+  [1m[32m[PASS][0m[0m keys and events compare by value  [2m(184ms)[0m
+  [1m[32m[PASS][0m[0m lookup finds the binding of every key of `or`  [2m(203ms)[0m
+  [1m[32m[PASS][0m[0m to moves the focus; an unknown or current part returns the same object  [2m(149ms)[0m
+  [1m[32m[PASS][0m[0m a single part keeps the focus  [2m(5ms)[0m
+  [1m[32m[PASS][0m[0m explain says what a key does, or what is bound  [2m(17ms)[0m
+  [1m[32m[PASS][0m[0m apply runs the bound transition  [2m(248ms)[0m
+  [1m[32m[PASS][0m[0m unapply matches the bound keys in a pattern  [2m(255ms)[0m
+  [1m[32m[PASS][0m[0m an unbound key or another event returns the same state object  [2m(276ms)[0m
+  [1m[32m[PASS][0m[0m text, rows, toString, region  [2m(290ms)[0m
+  [1m[32m[PASS][0m[0m Key.show is the help and trace text  [2m(311ms)[0m
+  [1m[32m[PASS][0m[0m help lists the visible bindings in order  [2m(45ms)[0m
+  [1m[32m[PASS][0m[0m a key bound twice in one Keymap is rejected  [2m(84ms)[0m
+  [1m[32m[PASS][0m[0m a wide character takes two cells and one place in its row  [2m(341ms)[0m
+  [1m[32m[PASS][0m[0m Bind infers S from the expected type  [2m(121ms)[0m
+  [1m[32m[PASS][0m[0m paragraph: wraps at words; wrap(false) cuts; scroll  [2m(175ms)[0m
+  [1m[32m[PASS][0m[0m layers and popup: the popup is cleared and painted on top  [2m(99ms)[0m
+  [1m[32m[PASS][0m[0m C3: an unchanged gauge draws no frame; a new ratio draws one  [2m(265ms)[0m
+  [1m[32m[PASS][0m[0m a jatatui Gauge in the escape hatch has no equals: every view draws  [2m(232ms)[0m
+  [1m[32m[PASS][0m[0m a resize draws the next frame even when the view is equal  [2m(216ms)[0m
+  [1m[32m[PASS][0m[0m list: the focused and unfocused highlights come from the theme  [2m(6ms)[0m
+  [1m[32m[PASS][0m[0m list: highlight and a scroll offset kept across frames  [2m(34ms)[0m
+  [1m[32m[PASS][0m[0m assertScreen throws an AssertionError with the diff  [2m(356ms)[0m
+  [1m[32m[PASS][0m[0m diffScreen: None when equal, rows otherwise  [2m(495ms)[0m
+  [1m[32m[PASS][0m[0m one batch of several events draws at most one frame  [2m(90ms)[0m
+  [1m[32m[PASS][0m[0m the focused pane has the accent border  [2m(56ms)[0m
+  [1m[32m[PASS][0m[0m the placeholder shows while the field is empty  [2m(182ms)[0m
+[2m---[0m KeyTest: [32m2 passed[0m, [31m0 failed[0m  [2m(1.2s)[0m
+  [1m[32m[PASS][0m[0m tabs: the selected title in the accent color  [2m(25ms)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 1.2s)
+  [1m[32m[PASS][0m[0m C1: an unbound key builds no view and draws no frame  [2m(671ms)[0m
+[2m---[0m FocusTest: [32m4 passed[0m, [31m0 failed[0m  [2m(1.2s)[0m
+
+Results: [32m4 passed[0m, [31m0 failed[0m  (total: 1.2s)
+[2m---[0m KeymapTest: [32m9 passed[0m, [31m0 failed[0m  [2m(1.3s)[0m
+
+Results: [32m9 passed[0m, [31m0 failed[0m  (total: 1.3s)
+  [1m[32m[PASS][0m[0m widget state is swept when its node is not painted, and .id keeps it  [2m(113ms)[0m
+  [1m[32m[PASS][0m[0m C2: a new state with an equal view builds the view and draws no frame  [2m(441ms)[0m
+  [1m[32m[PASS][0m[0m help: whole entries, then an ellipsis; theme styles  [2m(10ms)[0m
+  [1m[32m[PASS][0m[0m text: alignment  [2m(590ms)[0m
+  [1m[32m[PASS][0m[0m stack: sizes, gap and flex  [2m(383ms)[0m
+  [1m[32m[PASS][0m[0m input: text, cursor, placeholder, scrolling  [2m(56ms)[0m
+  [1m[32m[PASS][0m[0m log: the newest lines, bottom-aligned  [2m(46ms)[0m
+  [1m[32m[PASS][0m[0m kyo.* and tui4s.* together  [2m(96ms)[0m
+  [1m[32m[PASS][0m[0m the counting backend reports the changed cells of the last frame  [2m(103ms)[0m
+  [1m[32m[PASS][0m[0m gauge: label, ratio, clamping  [2m(91ms)[0m
+  [1m[32m[PASS][0m[0m an emoji typed into the field arrives as a paste of one grapheme  [2m(202ms)[0m
+Running 1 suite(s) with parallelism 16
+
+[1m=== StylingTest ===[0m
+Running 1 suite(s) with parallelism 16
+
+[1m=== CounterTest ===[0m
+  [1m[32m[PASS][0m[0m an empty area paints nothing and does not fail  [2m(31ms)[0m
+  [1m[32m[PASS][0m[0m table: header, rows, widths, selection  [2m(171ms)[0m
+  [1m[32m[PASS][0m[0m escape hatches: widget, draw, stateful  [2m(108ms)[0m
+  [1m[32m[PASS][0m[0m lines compare by value  [2m(7ms)[0m
+  [1m[32m[PASS][0m[0m mouse tags: the tagged areas under the pointer, top-most first  [2m(118ms)[0m
+  [1m[32m[PASS][0m[0m update is a pure function  [2m(6ms)[0m
+  [1m[32m[PASS][0m[0m the screen shows the count and the help bar  [2m(76ms)[0m
+  [1m[32m[PASS][0m[0m colors  [2m(11ms)[0m
+  [1m[32m[PASS][0m[0m bordered, framed, padded, styled  [2m(144ms)[0m
+  [1m[32m[PASS][0m[0m styles read unset colors as unset  [2m(821ms)[0m
+  [1m[32m[PASS][0m[0m the count is bold yellow  [2m(11ms)[0m
+  [1m[32m[PASS][0m[0m a golden screen  [2m(18ms)[0m
+  [1m[32m[PASS][0m[0m the help bar shows the keys of the focused pane  [2m(515ms)[0m
+  [1m[32m[PASS][0m[0m fg is the tui4s extension, not the jatatui accessor  [2m(84ms)[0m
+[2m---[0m ScreenTest: [32m5 passed[0m, [31m0 failed[0m  [2m(1.4s)[0m
+
+Results: [32m5 passed[0m, [31m0 failed[0m  (total: 1.4s)
+  [1m[32m[PASS][0m[0m 'd' and 'q' in the text field are text  [2m(602ms)[0m
+  [1m[32m[PASS][0m[0m string and span extensions build equal spans  [2m(13ms)[0m
+  [1m[32m[PASS][0m[0m sparkline: one bar per value, the newest that fit  [2m(194ms)[0m
+  [1m[32m[PASS][0m[0m add, toggle, delete  [2m(845ms)[0m
+  [1m[32m[PASS][0m[0m C1: a boxed Int above 127 or an equal String counts as the same state  [2m(849ms)[0m
+[2m---[0m NameClashTest: [32m1 passed[0m, [31m0 failed[0m  [2m(1.4s)[0m
+[2m---[0m FrameContractTest: [32m8 passed[0m, [31m0 failed[0m  [2m(1.4s)[0m
+  [1m[32m[PASS][0m[0m style extensions chain and commute  [2m(102ms)[0m
+
+[2m---[0m TodoTest: [32m6 passed[0m, [31m0 failed[0m  [2m(1.4s)[0m
+
+Results: [32m1 passed[0m, [31m0 failed[0m  (total: 1.4s)
+
+Results: [32m6 passed[0m, [31m0 failed[0m  (total: 1.4s)
+Results: [32m8 passed[0m, [31m0 failed[0m  (total: 1.4s)
+[2m---[0m PainterTest: [32m18 passed[0m, [31m0 failed[0m  [2m(1.4s)[0m
+
+Results: [32m18 passed[0m, [31m0 failed[0m  (total: 1.4s)
+Running 1 suite(s) with parallelism 16
+
+[1m=== ViewTest ===[0m
+Running 1 suite(s) with parallelism 16
+
+[1m=== TuiTestTest ===[0m
+Running 1 suite(s) with parallelism 16
+
+[1m=== TextFieldTest ===[0m
+[2m---[0m StylingTest: [32m5 passed[0m, [31m0 failed[0m  [2m(138ms)[0m
+
+Results: [32m5 passed[0m, [31m0 failed[0m  (total: 138ms)
+Running 1 suite(s) with parallelism 16
+
+[1m=== NextTest ===[0m
+  [1m[32m[PASS][0m[0m TextField(text) puts the cursor at the end  [2m(4ms)[0m
+  [1m[32m[PASS][0m[0m a combining mark belongs to its letter  [2m(6ms)[0m
+  [1m[32m[PASS][0m[0m Ctrl-A and Ctrl-E move to the start and the end  [2m(11ms)[0m
+  [1m[32m[PASS][0m[0m gauge ratios are clamped when the view is built  [2m(21ms)[0m
+  [1m[32m[PASS][0m[0m ASCII: insert, move, delete  [2m(11ms)[0m
+  [1m[32m[PASS][0m[0m the shapes of Next  [2m(27ms)[0m
+  [1m[32m[PASS][0m[0m Paste inserts at the cursor; line breaks and tabs become spaces  [2m(5ms)[0m
+  [1m[32m[PASS][0m[0m a later size replaces an earlier one  [2m(20ms)[0m
+  [1m[32m[PASS][0m[0m an event that changes nothing returns the same object  [2m(12ms)[0m
+  [1m[32m[PASS][0m[0m Ctrl-U and Ctrl-K delete before and after the cursor  [2m(19ms)[0m
+  [1m[32m[PASS][0m[0m every decoration lifts the size outside  [2m(50ms)[0m
+  [1m[32m[PASS][0m[0m Quit stops with the current state and folds nothing after it  [2m(9ms)[0m
+  [1m[32m[PASS][0m[0m q quits; Ctrl-C quits; later keys are ignored  [2m(80ms)[0m
+  [1m[32m[PASS][0m[0m x.size(3).bordered(t) == x.bordered(t).size(3)  [2m(12ms)[0m
+  [1m[32m[PASS][0m[0m a plain state replaces the state  [2m(59ms)[0m
+  [1m[32m[PASS][0m[0m the first frame is drawn at construction  [2m(17ms)[0m
+  [1m[32m[PASS][0m[0m view that throws ends the run with AppFailed(view)  [2m(51ms)[0m
+  [1m[32m[PASS][0m[0m paste and send  [2m(16ms)[0m
+  [1m[32m[PASS][0m[0m an emoji is one grapheme  [2m(36ms)[0m
+  [1m[32m[PASS][0m[0m click sends button down and up in one batch  [2m(15ms)[0m
+  [1m[32m[PASS][0m[0m init that throws draws nothing  [2m(58ms)[0m
+  [1m[32m[PASS][0m[0m escape hatches compare by reference  [2m(49ms)[0m
+  [1m[32m[PASS][0m[0m Quit(last) stops with the state last  [2m(32ms)[0m
+  [1m[32m[PASS][0m[0m with ctrlCQuits off, update sees Ctrl-C  [2m(176ms)[0m
+  [1m[32m[PASS][0m[0m the dsl builds nodes with the documented defaults  [2m(60ms)[0m
+  [1m[32m[PASS][0m[0m a source has the identity of its label  [2m(11ms)[0m
+[2m---[0m CounterTest: [32m6 passed[0m, [31m0 failed[0m  [2m(244ms)[0m
+
+Results: [32m6 passed[0m, [31m0 failed[0m  (total: 244ms)
+  [1m[32m[PASS][0m[0m the same state with new tasks is work, not a change  [2m(20ms)[0m
+  [1m[32m[PASS][0m[0m withTask sets the state and keeps the tasks in order  [2m(23ms)[0m
+  [1m[32m[PASS][0m[0m a paint that throws ends the run with AppFailed(paint)  [2m(46ms)[0m
+  [1m[32m[PASS][0m[0m the runtime splits Next the same way (TuiTest)  [2m(23ms)[0m
+[2m---[0m NextTest: [32m8 passed[0m, [31m0 failed[0m  [2m(108ms)[0m
+
+Results: [32m8 passed[0m, [31m0 failed[0m  (total: 108ms)
+  [1m[32m[PASS][0m[0m Ctrl-W deletes the word before the cursor  [2m(4ms)[0m
+  [1m[32m[PASS][0m[0m isBlank and cleared  [2m(66ms)[0m
+[2m---[0m TextFieldTest: [32m10 passed[0m, [31m0 failed[0m  [2m(117ms)[0m
+
+Results: [32m10 passed[0m, [31m0 failed[0m  (total: 117ms)
+  [1m[32m[PASS][0m[0m views compare by value, gauges included  [2m(16ms)[0m
+[2m---[0m ViewTest: [32m7 passed[0m, [31m0 failed[0m  [2m(141ms)[0m
+
+Results: [32m7 passed[0m, [31m0 failed[0m  (total: 141ms)
+  [1m[32m[PASS][0m[0m update that throws ends the run with AppFailed  [2m(122ms)[0m
+[2m---[0m TuiTestTest: [32m7 passed[0m, [31m0 failed[0m  [2m(150ms)[0m
+
+Results: [32m7 passed[0m, [31m0 failed[0m  (total: 150ms)
+[info] kyo-test: 96 tests, 96 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 3 s, completed 1 Oct 2026, 11:23:59
+[info] Not checking compatibility of module tui4s-cats:0.0.0+14-bee19743-SNAPSHOT because versionPolicyIntention is set to 'Compatibility.None'
+[info] Not checking compatibility of module tui4s-core:0.0.0+14-bee19743-SNAPSHOT because versionPolicyIntention is set to 'Compatibility.None'
+[info] Not checking compatibility of module tui4s-zio:0.0.0+14-bee19743-SNAPSHOT because versionPolicyIntention is set to 'Compatibility.None'
+[info] Not checking dependencies compatibility of module tui4s-zio:0.0.0+14-bee19743-SNAPSHOT because versionPolicyIntention is set to 'Compatibility.None'
+[info] Not checking dependencies compatibility of module tui4s-cats:0.0.0+14-bee19743-SNAPSHOT because versionPolicyIntention is set to 'Compatibility.None'
+[info] Not checking dependencies compatibility of module tui4s-core:0.0.0+14-bee19743-SNAPSHOT because versionPolicyIntention is set to 'Compatibility.None'
+[success] Total time: 0 s, completed 1 Oct 2026, 11:23:59
+[info] Main Scala API documentation to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/api...
+[info] Skipping unused scalacOptions: -Wvalue-discard, -Wnonunit-statement, -Wconf, -Xsemanticdb, -Yexplicit-nulls, -semanticdb-target
+[warn] Option -classpath was updated
+[warn] one warning found
+[info] Main Scala API documentation successful.
+[success] Total time: 29 s, completed 1 Oct 2026, 11:24:28

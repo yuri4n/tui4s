@@ -1,0 +1,23 @@
+PS1='PROMPT> '; export BASH_SILENCE_DEPRECATION_WARNING=1; source /Users/yuri4n/Developer/projects/tui4s/.work/env.sh; unset JAVA_TOOL_OPTIONS; cd /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$ PS1='PROMPT> '; export BASH_SILENCE_DEPRECATION_WARNING=1; source /Users/yuri4n/Develop<BASH_SILENCE_DEPRECATION_WARNING=1; source /Users/yuri4n/Develope                               r/projects/tui4s/.work/env.sh; <=1; source /Users/yuri4n/Developer/projects/tui4s/.work/env.sh; u                               nset JAVA_TOOL_OPTIONS; cd /Use<er/projects/tui4s/.work/env.sh; unset JAVA_TOOL_OPTIONS; cd /User                               s/yuri4n/Developer/projects/tui<unset JAVA_TOOL_OPTIONS; cd /Users/yuri4n/Developer/projects/tui4                               s/.work/worktrees/core
+PROMPT> sbt -batch "examples/runMain examples.counter.CounterApp"; echo EXIT=$?
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] running (fork) examples.counter.CounterApp 
+stdin/stdout is not a terminal
+  cause: java.io.IOException: stdin is not a terminal
+[error] nonzero exit code returned from runner: 1
+[error] (examples / Compile / runMain) nonzero exit code returned from runner: 1
+[error] Total time: 5 s, completed 1 Oct 2026, 20:09:02
+EXIT=1
+FAIL ended early, exit 1

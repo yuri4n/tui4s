@@ -1,0 +1,3 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Warning: mocking up superclass for module class internal
+scala-cli compile --server=false core  136.63s user 6.90s system 395% cpu 36.313 total

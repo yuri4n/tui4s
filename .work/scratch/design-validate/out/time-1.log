@@ -1,0 +1,29 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/Users/yuri4n/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+Test run [36mtui4s.TimeControlProbe[0m started
+[91m==> X [0m[91mtui4s.TimeControlProbe[0m.[91mvirtual time drives poll + stream sources; one advance(1 s) vs 250 ms steps[0m [90m0.568s[0m java.lang.NullPointerException: Cannot invoke "examples.dashboard.Dash.history()" because "<local7>" is null
+[90m    at [0m[90mkyo.Local$.internal$.State.handle[0m[90m([0m[90mUnknown Source[0m[90m)[0m
+[90m    at [0m[90mkyo.Scope.handle[0m[90m([0m[90mUnknown Source[0m[90m)[0m
+[1m    at [0m[1mrunAndBlock @ tui4s.TimeControlProbe.?[0m[1m([0m[1mTimeControlProbe.test.scala[0m:[1m47[0m[1m)[0m
+[90m    at [0m[90mkyo.Abort[-scala.Any].handle[0m[90m([0m[90mUnknown Source[0m[90m)[0m
+[1m    at [0m[1mrunAndBlock @ tui4s.TimeControlProbe.?[0m[1m([0m[1mTimeControlProbe.test.scala[0m:[1m47[0m[1m)[0m
+[90m    at [0m[90mkyo.kernel.Bracket$.Finalize.handle[0m[90m([0m[90mUnknown Source[0m[90m)[0m
+[1m    at [0m[1mrunAndBlock @ tui4s.TimeControlProbe.?[0m[1m([0m[1mTimeControlProbe.test.scala[0m:[1m47[0m[1m)[0m
+[90m    at [0m[90mkyo.Abort[-scala.Any].handle[0m[90m([0m[90mUnknown Source[0m[90m)[0m
+[1m    at [0m[1mrunAndBlock @ tui4s.TimeControlProbe.?[0m[1m([0m[1mTimeControlProbe.test.scala[0m:[1m47[0m[1m)[0m
+[90m    at [0m[90mkyo.Abort[-scala.Any].handle[0m[90m([0m[90mUnknown Source[0m[90m)[0m
+[1m    at [0m[1mrunAndBlock @ tui4s.TimeControlProbe.?[0m[1m([0m[1mTimeControlProbe.test.scala[0m:[1m47[0m[1m)[0m
+[90m    at [0m[90m(kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle[0m[90m([0m[90mUnknown Source[0m[90m)[0m
+[1m    at [0m[1mtui4s.TimeControlProbe.tui4s$TimeControlProbe$$_$run$2[0m[1m([0m[1mTimeControlProbe.test.scala[0m:[1m31[0m[1m)[0m
+[32mtui4s.TimeControlProbe[0m: finished [90m0.64s[0m
+Test run [36mtui4s.TimeControlProbe[0m finished: [91m1 failed[0m, 0 ignored, 1 total [90m0.662s[0m
+Error: munit tests failed.

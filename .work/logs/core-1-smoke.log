@@ -1,0 +1,37 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] compiling 2 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project/target/scala-2.12/sbt-1.0/classes ...
+[info] done compiling
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Running 1 suite(s) with parallelism 16
+
+[1m=== SmokeTest ===[0m
+  [1m[32m[PASS][0m[0m the runner runs a leaf  [2m(55ms)[0m
+  [1m[32m[PASS][0m[0m intercept  [2m(55ms)[0m
+  [1m[31m[FAIL][0m[0m a failing leaf is reported  [2m(77ms)[0m *** FAILED ***
+
+    assert(1 + 1 == 3)
+
+[2m---[0m SmokeTest: [32m2 passed[0m, [31m1 failed[0m  [2m(471ms)[0m
+FAILURES (1):
+  a failing leaf is reported  [FAIL]
+    assert(1 + 1 == 3)
+
+Results: [32m2 passed[0m, [31m1 failed[0m  (total: 471ms)
+[info] kyo-test: 3 tests, 2 passed, 1 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[info] TOTAL FAILURES (1):
+[info]   a failing leaf is reported  [FAIL]  assert(1 + 1 == 3)
+[error] Failed tests:
+[error] 	tui4s.SmokeTest
+[error] (core / Test / test) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 18 s, completed 1 Oct 2026, 10:50:27
+sbt -batch "core/test"  190.58s user 16.70s system 296% cpu 1:09.85 total

@@ -1,0 +1,24 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] Defining examples / run / javaOptions
+[info] The new value will be used by examples / Compile / run / forkOptions, examples / Compile / run / runner and 1 others.
+[info] 	Run `last` for details.
+[info] Reapplying settings...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] compiling 2 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/examples/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] running (fork) examples.counter.CounterApp 
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+start the JVM with --enable-native-access=ALL-UNNAMED
+  cause: java.lang.ExceptionInInitializerError
+[error] nonzero exit code returned from runner: 1
+[error] (examples / Compile / runMain) nonzero exit code returned from runner: 1
+[error] Total time: 48 s, completed 1 Oct 2026, 18:52:28

@@ -1,0 +1,120 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/Users/yuri4n/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+Test run [36mtui4s.RuntimeSuite[0m started
+[91m==> X [0m[91mtui4s.RuntimeSuite[0m.[91mCounter on the real loop: keys -> frames -> Quit returns the last state[0m [90m0.761s[0m tui4s.TuiError$TerminalIO: terminal I/O failed
+Caused by: java.lang.IllegalStateException: failed
+[91m==> X [0m[91mtui4s.RuntimeSuite[0m.[91mDashboard on the real loop: poll + stream sources fold, pause stops the poller[0m [90m1.734s[0m tui4s.TuiError$TerminalIO: terminal I/O failed
+Caused by: java.lang.IllegalStateException: failed
+[91m==> X [0m[91mtui4s.RuntimeSuite[0m.[91mTuiHandle: update, send, stats, stop (Headless.start)[0m [90m0.242s[0m tui4s.TuiError$TerminalIO: terminal I/O failed
+Caused by: java.lang.IllegalStateException: failed
+[91m==> X [0m[91mtui4s.RuntimeSuite[0m.[91ma source that fails ends the app with SourceFailed after the restore[0m [90m0.047s[0m munit.FailException: unexpected: Failure(tui4s.TuiError$TerminalIO: terminal I/O failed)
+[90m    at [0m[90mmunit.Assertions.fail[0m[90m([0m[90mAssertions.scala[0m:[90m297[0m[90m)[0m
+[90m    at [0m[90mmunit.Assertions.fail$[0m[90m([0m[90mAssertions.scala[0m:[90m20[0m[90m)[0m
+[90m    at [0m[90mmunit.FunSuite.fail[0m[90m([0m[90mFunSuite.scala[0m:[90m12[0m[90m)[0m
+[1m    at [0m[1mtui4s.RuntimeSuite.$init$$$anonfun$5[0m[1m([0m[1mRuntimeSuite.test.scala[0m:[1m93[0m[1m)[0m
+[91m==> X [0m[91mtui4s.RuntimeSuite[0m.[91ma stopped source's late value is dropped; keyed tasks: latest wins (sync kit)[0m [90m0.054s[0m munit.ComparisonFailException: values are not the same
+[1m=> Obtained[0m
+Nil
+[1m=> Diff[0m ([91m- expected[0m, [92m+ obtained[0m)
+[91m-List([0m
+[91m-  "t",[0m
+[91m-  "t"[0m
+[91m-)[0m
+[92m+Nil[0m
+[90m    at [0m[90mmunit.FunSuite.assertEquals[0m[90m([0m[90mFunSuite.scala[0m:[90m12[0m[90m)[0m
+[1m    at [0m[1mtui4s.RuntimeSuite.$init$$$anonfun$6[0m[1m([0m[1mRuntimeSuite.test.scala[0m:[1m107[0m[1m)[0m
+[32mtui4s.RuntimeSuite[0m: finished [90m3.114s[0m
+Test run [36mtui4s.RuntimeSuite[0m finished: [91m5 failed[0m, 0 ignored, 6 total [90m3.157s[0m
+Test run [36mexamples.DashboardSuite[0m started
+[91m==> X [0m[91mexamples.DashboardSuite[0m.[91ma sample moves the gauge; pause stops the poller[0m [90m0.003s[0m java.lang.AssertionError: emit(cpu): no running source or task with this label (known: )
+[90m    at [0m[90mtui4s.testkit.TuiTest.emit[0m[90m([0m[90mtestkit.scala[0m:[90m84[0m[90m)[0m
+[1m    at [0m[1mexamples.DashboardSuite.$init$$$anonfun$13[0m[1m([0m[1mSamplesSuite.test.scala[0m:[1m113[0m[1m)[0m
+[91m==> X [0m[91mexamples.DashboardSuite[0m.[91ma stream element folds into the log pane[0m [90m0.002s[0m java.lang.AssertionError: emit(logs): no running source or task with this label (known: )
+[90m    at [0m[90mtui4s.testkit.TuiTest.emit[0m[90m([0m[90mtestkit.scala[0m:[90m84[0m[90m)[0m
+[1m    at [0m[1mexamples.DashboardSuite.$init$$$anonfun$14[0m[1m([0m[1mSamplesSuite.test.scala[0m:[1m121[0m[1m)[0m
+[32mexamples.DashboardSuite[0m: finished [90m0.006s[0m
+Test run [36mexamples.DashboardSuite[0m finished: [91m2 failed[0m, 0 ignored, 2 total [90m0.007s[0m
+[guard] compileErrors(ZIO task) = 'error: source.task got a zio.ZIO (zio.ZIO[scala.Any, scala.Nothing, scala.Int]). A Kyo app runs Kyo computations only. In a ZIO app import tui4s.zio.*; in a Cats Effect app import tui4s.cats.*; in a Kyo app convert it first (kyo-zio ZIOs.get, the tui4s-cats bridge, Async.fromFuture). /     val errs = compileErrors("tui4s.Source.For[Int].task(new zio.ZIO[Any, Nothing, Int])((s, _) => s)")'
+Test run [36mexamples.GuardSuite[0m started
+[32mexamples.GuardSuite[0m: finished [90m0.029s[0m
+Test run [36mexamples.GuardSuite[0m finished: 0 failed, 0 ignored, 5 total [90m0.029s[0m
+Test run [36mexamples.CounterSuite[0m started
+[91m==> X [0m[91mexamples.CounterSuite[0m.[91mkeys drive the rendered buffer (headless TestBackend)[0m [90m0.002s[0m munit.ComparisonFailException: values are not the same
+[1m=> Obtained[0m
+0
+[1m=> Diff[0m ([91m- expected[0m, [92m+ obtained[0m)
+[91m-2[0m
+[92m+0[0m
+[90m    at [0m[90mmunit.FunSuite.assertEquals[0m[90m([0m[90mFunSuite.scala[0m:[90m12[0m[90m)[0m
+[1m    at [0m[1mexamples.CounterSuite.$init$$$anonfun$2[0m[1m([0m[1mSamplesSuite.test.scala[0m:[1m22[0m[1m)[0m
+[91m==> X [0m[91mexamples.CounterSuite[0m.[91ma key that changes nothing builds no view and draws no frame[0m [90m0.006s[0m munit.FailException: {"kind":"start"}
+[90m    at [0m[90mmunit.FunSuite.assert[0m[90m([0m[90mFunSuite.scala[0m:[90m12[0m[90m)[0m
+[1m    at [0m[1mexamples.CounterSuite.$init$$$anonfun$3[0m[1m([0m[1mSamplesSuite.test.scala[0m:[1m35[0m[1m)[0m
+[91m==> X [0m[91mexamples.CounterSuite[0m.[91ma golden screen[0m [90m0.031s[0m munit.FailException: row 0
+  actual:   ||
+  expected: |╭ Counter ─────────────────────────────╮|
+row 1
+  actual:   ||
+  expected: |│               Count: 1               │|
+row 2
+  actual:   ||
+  expected: |│   + increment · - decrement · q quit │|
+row 3
+  actual:   ||
+  expected: |│                                      │|
+row 4
+  actual:   ||
+  expected: |╰──────────────────────────────────────╯|
+
+
+
+
+
+[90m    at [0m[90mmunit.FunSuite.assert[0m[90m([0m[90mFunSuite.scala[0m:[90m12[0m[90m)[0m
+[1m    at [0m[1mexamples.CounterSuite.$init$$$anonfun$5[0m[1m([0m[1mSamplesSuite.test.scala[0m:[1m52[0m[1m)[0m
+[91m==> X [0m[91mexamples.CounterSuite[0m.[91mstyles: the count is bold yellow[0m [90m0.003s[0m java.util.NoSuchElementException: None.get
+[90m    at [0m[90mscala.None$.get[0m[90m([0m[90mOption.scala[0m:[90m700[0m[90m)[0m
+[90m    at [0m[90mscala.None$.get[0m[90m([0m[90mOption.scala[0m:[90m700[0m[90m)[0m
+[1m    at [0m[1mexamples.CounterSuite.$init$$$anonfun$6[0m[1m([0m[1mSamplesSuite.test.scala[0m:[1m57[0m[1m)[0m
+[91m==> X [0m[91mexamples.CounterSuite[0m.[91mplain match version[0m [90m0.004s[0m munit.ComparisonFailException: values are not the same
+[1m=> Obtained[0m
+0
+[1m=> Diff[0m ([91m- expected[0m, [92m+ obtained[0m)
+[91m-1[0m
+[92m+0[0m
+[90m    at [0m[90mmunit.FunSuite.assertEquals[0m[90m([0m[90mFunSuite.scala[0m:[90m12[0m[90m)[0m
+[1m    at [0m[1mexamples.CounterSuite.$init$$$anonfun$8[0m[1m([0m[1mSamplesSuite.test.scala[0m:[1m71[0m[1m)[0m
+[32mexamples.CounterSuite[0m: finished [90m0.072s[0m
+Test run [36mexamples.CounterSuite[0m finished: [91m5 failed[0m, 0 ignored, 8 total [90m0.074s[0m
+Test run [36mexamples.TodoSuite[0m started
+[91m==> X [0m[91mexamples.TodoSuite[0m.[91mloads at start, then add, toggle, delete[0m [90m0.021s[0m munit.ComparisonFailException: values are not the same
+[1m=> Obtained[0m
+Nil
+[1m=> Diff[0m ([91m- expected[0m, [92m+ obtained[0m)
+[91m-List([0m
+[91m-  "load"[0m
+[91m-)[0m
+[92m+Nil[0m
+[90m    at [0m[90mmunit.FunSuite.assertEquals[0m[90m([0m[90mFunSuite.scala[0m:[90m12[0m[90m)[0m
+[1m    at [0m[1mexamples.TodoSuite.$init$$$anonfun$9[0m[1m([0m[1mSamplesSuite.test.scala[0m:[1m79[0m[1m)[0m
+[91m==> X [0m[91mexamples.TodoSuite[0m.[91m'd' and 'q' in the text field are text[0m [90m0.002s[0m java.lang.AssertionError: emit(load): no running source or task with this label (known: )
+[90m    at [0m[90mtui4s.testkit.TuiTest.emit[0m[90m([0m[90mtestkit.scala[0m:[90m84[0m[90m)[0m
+[1m    at [0m[1mexamples.TodoSuite.$init$$$anonfun$10[0m[1m([0m[1mSamplesSuite.test.scala[0m:[1m91[0m[1m)[0m
+[91m==> X [0m[91mexamples.TodoSuite[0m.[91mCtrl-S starts one save task and folds its result[0m [90m0.002s[0m java.lang.AssertionError: emit(load): no running source or task with this label (known: )
+[90m    at [0m[90mtui4s.testkit.TuiTest.emit[0m[90m([0m[90mtestkit.scala[0m:[90m84[0m[90m)[0m
+[1m    at [0m[1mexamples.TodoSuite.$init$$$anonfun$11[0m[1m([0m[1mSamplesSuite.test.scala[0m:[1m96[0m[1m)[0m
+[91m==> X [0m[91mexamples.TodoSuite[0m.[91mthe help bar shows the keys of the focused pane[0m [90m0.001s[0m java.lang.AssertionError: emit(load): no running source or task with this label (known: )
+[90m    at [0m[90mtui4s.testkit.TuiTest.emit[0m[90m([0m[90mtestkit.scala[0m:[90m84[0m[90m)[0m
+[1m    at [0m[1mexamples.TodoSuite.$init$$$anonfun$12[0m[1m([0m[1mSamplesSuite.test.scala[0m:[1m103[0m[1m)[0m
+[32mexamples.TodoSuite[0m: finished [90m0.029s[0m
+Test run [36mexamples.TodoSuite[0m finished: [91m4 failed[0m, 0 ignored, 4 total [90m0.03s[0m
+Error: munit tests failed.

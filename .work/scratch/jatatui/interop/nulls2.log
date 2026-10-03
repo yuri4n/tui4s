@@ -1,0 +1,22 @@
+-- [E007] Type Mismatch Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/jatatui/interop/nulls2/nulls2.scala:7:22 
+7 |  val proof: String = null                                   // must FAIL under explicit nulls
+  |                      ^^^^
+  |Found:    Null
+  |Required: String
+  |Note that implicit conversions were not tried because the result of an implicit conversion
+  |must be more specific than String
+  |
+  | longer explanation available when compiling with `-explain`
+-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/jatatui/interop/nulls2/nulls2.scala:11:35 
+11 |  def f(x: String | Null): Int = x.length                    // must FAIL: no member on String | Null
+   |                                 ^^^^^^^^
+   |      value length is not a member of String | Null.
+   |      Since explicit-nulls is enabled, the selection is rejected because
+   |      String | Null could be null at runtime.
+   |      If you want to select length without checking for a null value,
+   |      insert a .nn before .length or import scala.language.unsafeNulls.
+2 errors found
+Compilation failed
+real 8.12
+user 24.58
+sys 1.82

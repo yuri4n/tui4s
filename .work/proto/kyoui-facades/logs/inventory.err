@@ -1,0 +1,5 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m, -Xmx2g
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m -Xmx2g
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m -Xmx2g
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true

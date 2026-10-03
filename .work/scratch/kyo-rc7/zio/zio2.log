@@ -1,0 +1,19 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[31m[31m-- Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/kyo-rc7/zio/ZioBridge.scala:74:13 [0m[0m
+[31m74 |[0m            }
+[31m[31m   |[0m             ^[0m
+[31m   |[0mThis method requires a ConcreteTag, but the type E is not a class.
+[31m   |[0mConsider using a concrete class instead of an abstract type or type parameter.
+[31m   |[0mFor generic types, you can provide an evidence of ConcreteTag explicitly.
+[31m   |[0mExample: def method[A](a: A)(using ConcreteTag[A]) = ???
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/Users/yuri4n/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+1 error found
+Compilation failed
+real 16.14
+user 57.16
+sys 2.77

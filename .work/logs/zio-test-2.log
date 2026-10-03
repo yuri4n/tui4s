@@ -1,0 +1,34 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project zio-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/)
+[info] compiling 2 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/modules/zio/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 2 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/modules/zio/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Test run [36mtui4s.interop.zio.ZioFacadeSuite[0m started
+[32mtui4s.interop.zio.ZioFacadeSuite[0m: finished [90m6.4s[0m
+Test run [36mtui4s.interop.zio.ZioFacadeSuite[0m finished: 0 failed, 0 ignored, 18 total [90m6.494s[0m
+[TestClockSuite] one adjust(1 s) of a 250 ms poller: 4 samples
+Test run [36mtui4s.interop.zio.TestClockSuite[0m started
+[32mtui4s.interop.zio.TestClockSuite[0m: finished [90m2.359s[0m
+Test run [36mtui4s.interop.zio.TestClockSuite[0m finished: 0 failed, 0 ignored, 3 total [90m2.359s[0m
+Test run [36mtui4s.interop.zio.KyoFreeFacadeSuite[0m started
+[32mtui4s.interop.zio.KyoFreeFacadeSuite[0m: finished [90m6.508s[0m
+Test run [36mtui4s.interop.zio.KyoFreeFacadeSuite[0m finished: 0 failed, 0 ignored, 2 total [90m6.509s[0m
+Test run [36mtui4s.interop.zio.BackpressureSuite[0m started
+[32mtui4s.interop.zio.BackpressureSuite[0m: finished [90m8.402s[0m
+Test run [36mtui4s.interop.zio.BackpressureSuite[0m finished: 0 failed, 0 ignored, 3 total [90m8.402s[0m
+[AmbientZIOsSuite] race: 63 of 500 ZIOs had started
+Test run [36mtui4s.interop.zio.internal.AmbientZIOsSuite[0m started
+[32mtui4s.interop.zio.internal.AmbientZIOsSuite[0m: finished [90m28.809s[0m
+Test run [36mtui4s.interop.zio.internal.AmbientZIOsSuite[0m finished: 0 failed, 0 ignored, 9 total [90m28.81s[0m
+[info] Passed: Total 35, Failed 0, Errors 0, Passed 35
+[success] Total time: 122 s (0:02:02.0), completed 1 Oct 2026, 21:04:18

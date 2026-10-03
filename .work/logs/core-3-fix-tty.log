@@ -1,0 +1,48 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] compiling 41 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+Warning: mocking up superclass for module class internal
+[info] done compiling
+[info] compiling 39 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Running 1 suite(s) with parallelism 16
+
+[1m=== NativeTerminalTest ===[0m
+  [1m[32m[PASS][0m[0m isatty: true for a pseudo-terminal, false for a closed descriptor  [2m(482ms)[0m
+  [1m[32m[PASS][0m[0m without a terminal on stdin, Tui.run fails with NotATerminal  [2m(561ms)[0m
+[2m---[0m NativeTerminalTest: [32m2 passed[0m, [31m0 failed[0m  [2m(1.6s)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 1.6s)
+Running 1 suite(s) with parallelism 16
+
+[1m=== TerminalIOTest ===[0m
+  [1m[32m[PASS][0m[0m open and close in the order of SPEC 5.9  [2m(765ms)[0m
+  [1m[32m[PASS][0m[0m the options choose the modes; an inline viewport ends on a new line  [2m(74ms)[0m
+  [1m[32m[PASS][0m[0m no terminal: NotATerminal before anything else changes  [2m(11ms)[0m
+  [1m[32m[PASS][0m[0m stdin is not a terminal: NotATerminal before raw mode  [2m(24ms)[0m
+  [1m[32m[PASS][0m[0m an app failure restores the streams too  [2m(52ms)[0m
+  [1m[32m[PASS][0m[0m a native library that cannot load: NativeAccessDenied  [2m(9ms)[0m
+  [1m[32m[PASS][0m[0m a failing mode command: TerminalIO, raw mode is left again  [2m(26ms)[0m
+  [1m[32m[PASS][0m[0m a failing release step does not stop the others; the error is printed  [2m(49ms)[0m
+  [1m[32m[PASS][0m[0m output while the UI is up is printed after the restore  [2m(51ms)[0m
+tui4s test: not captured
+  [1m[32m[PASS][0m[0m captureOutput = false: the output is not taken  [2m(51ms)[0m
+  [1m[32m[PASS][0m[0m Kyo log lines at warn or above are printed after the restore  [2m(200ms)[0m
+  [1m[32m[PASS][0m[0m a trace file that cannot be written is a warning after the restore  [2m(51ms)[0m
+  [1m[32m[PASS][0m[0m with a log file, the output and the log go to the file  [2m(63ms)[0m
+  [1m[32m[PASS][0m[0m the shutdown hook restores the terminal while the app runs  [2m(118ms)[0m
+  [1m[32m[PASS][0m[0m Tui.start on a terminal: the handle updates, sends and stops  [2m(147ms)[0m
+[2m---[0m TerminalIOTest: [32m15 passed[0m, [31m0 failed[0m  [2m(1.7s)[0m
+
+Results: [32m15 passed[0m, [31m0 failed[0m  (total: 1.7s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 198 s (0:03:18.0), completed 1 Oct 2026, 18:49:11

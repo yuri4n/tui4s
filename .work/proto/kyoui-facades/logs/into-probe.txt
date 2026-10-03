@@ -1,0 +1,32 @@
+[31m[31m-- [E040] Syntax Error: /private/tmp/claude-501/-Users-yuri4n-Developer-projects-tui4s/5cb543b2-f521-4487-ae5b-1fedd18ac66c/scratchpad/into/Into.scala:10:24 [0m[0m
+[31m10 |[0m    [33mdef[0m [36monClick[0m([36ma[0m: [32minto[0m [33mAct[0m): [32mUnit[0m = a.run()
+[31m[31m   |[0m                        ^^^[0m
+[31m   |[0m                        ',' or ')' expected, but identifier found
+[31m[31m-- [E006] Not Found Error: /private/tmp/claude-501/-Users-yuri4n-Developer-projects-tui4s/5cb543b2-f521-4487-ae5b-1fedd18ac66c/scratchpad/into/Into.scala:10:19 [0m[0m
+[31m10 |[0m    [33mdef[0m [36monClick[0m([36ma[0m: [32minto[0m [33mAct[0m): [32mUnit[0m = a.run()
+[31m[31m   |[0m                   ^^^^[0m
+[31m   |[0m       Expected a type, but found a term: into - did you mean into.type?
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[33m[33m-- Feature Warning: /private/tmp/claude-501/-Users-yuri4n-Developer-projects-tui4s/5cb543b2-f521-4487-ae5b-1fedd18ac66c/scratchpad/into/Into.scala:15:22 [0m[0m
+[33m15 |[0m    [33mInto[0m.onClickPlain([32m"plain-converted"[0m)
+[33m[33m   |[0m                      ^^^^^^^^^^^^^^^^^[0m
+[33m   |[0mUse of implicit conversion [33mgiven instance[0m [32mgiven_Conversion_String_Act[0m in [33mobject[0m [32mAct[0m should be enabled
+[33m   |[0mby adding the import clause 'import scala.language.implicitConversions'
+[33m   |[0mor by setting the compiler option -language:implicitConversions.
+[33m   |[0mSee the Scala docs for value scala.language.implicitConversions for a discussion
+[33m   |[0mwhy the feature should be explicitly enabled.
+1 warning found
+2 errors found
+Compilation failed
+[33m[33m-- Feature Warning: /private/tmp/claude-501/-Users-yuri4n-Developer-projects-tui4s/5cb543b2-f521-4487-ae5b-1fedd18ac66c/scratchpad/into/Into.scala:15:22 [0m[0m
+[33m15 |[0m    [33mInto[0m.onClickPlain([32m"plain-converted"[0m)
+[33m[33m   |[0m                      ^^^^^^^^^^^^^^^^^[0m
+[33m   |[0mUse of implicit conversion [33mgiven instance[0m [32mgiven_Conversion_String_Act[0m in [33mobject[0m [32mAct[0m should be enabled
+[33m   |[0mby adding the import clause 'import scala.language.implicitConversions'
+[33m   |[0mor by setting the compiler option -language:implicitConversions.
+[33m   |[0mSee the Scala docs for value scala.language.implicitConversions for a discussion
+[33m   |[0mwhy the feature should be explicitly enabled.
+1 warning found
+into-converted
+plain-converted

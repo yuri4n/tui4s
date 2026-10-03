@@ -1,0 +1,77 @@
+17:32  up  9:51, 4 users, load averages: 10.71 6.54 6.84
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] running (fork) tui4s.bench.SoakProbe 600
+[error] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] [soak] t=  10 s heap=6.8 MB threads=18 sources=3 tasks=0 done=96 dropped=0
+[info] [soak] t=  20 s heap=6.9 MB threads=18 sources=3 tasks=0 done=194 dropped=0
+[info] [soak] t=  30 s heap=6.9 MB threads=18 sources=3 tasks=0 done=293 dropped=0
+[info] [soak] t=  40 s heap=6.9 MB threads=18 sources=3 tasks=0 done=392 dropped=0
+[info] [soak] t=  50 s heap=6.9 MB threads=18 sources=3 tasks=1 done=490 dropped=0
+[info] [soak] t=  60 s heap=6.9 MB threads=18 sources=3 tasks=0 done=589 dropped=0
+[info] [soak] t=  70 s heap=6.9 MB threads=18 sources=3 tasks=0 done=688 dropped=0
+[info] [soak] t=  80 s heap=6.9 MB threads=18 sources=3 tasks=0 done=787 dropped=0
+[info] [soak] t=  90 s heap=7.0 MB threads=18 sources=3 tasks=0 done=885 dropped=0
+[info] [soak] t= 100 s heap=7.0 MB threads=18 sources=3 tasks=0 done=983 dropped=0
+[info] [soak] t= 110 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1083 dropped=0
+[info] [soak] t= 120 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1182 dropped=0
+[info] [soak] t= 130 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1280 dropped=0
+[info] [soak] t= 140 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1379 dropped=0
+[info] [soak] t= 150 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1479 dropped=0
+[info] [soak] t= 160 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1577 dropped=0
+[info] [soak] t= 170 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1676 dropped=0
+[info] [soak] t= 180 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1776 dropped=0
+[info] [soak] t= 190 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1875 dropped=0
+[info] [soak] t= 200 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1973 dropped=0
+[info] [soak] t= 210 s heap=7.0 MB threads=18 sources=3 tasks=0 done=2072 dropped=0
+[info] [soak] t= 220 s heap=7.0 MB threads=18 sources=3 tasks=0 done=2170 dropped=0
+[info] [soak] t= 230 s heap=7.0 MB threads=18 sources=3 tasks=0 done=2269 dropped=0
+[info] [soak] t= 240 s heap=7.0 MB threads=18 sources=3 tasks=0 done=2368 dropped=0
+[info] [soak] t= 250 s heap=7.0 MB threads=18 sources=3 tasks=0 done=2467 dropped=0
+[info] [soak] t= 260 s heap=7.0 MB threads=18 sources=3 tasks=0 done=2567 dropped=0
+[info] [soak] t= 270 s heap=7.0 MB threads=18 sources=3 tasks=0 done=2665 dropped=0
+[info] [soak] t= 280 s heap=7.0 MB threads=18 sources=3 tasks=0 done=2764 dropped=0
+[info] [soak] t= 290 s heap=7.0 MB threads=18 sources=3 tasks=0 done=2863 dropped=0
+[info] [soak] t= 300 s heap=7.0 MB threads=18 sources=3 tasks=0 done=2963 dropped=0
+[info] [soak] t= 310 s heap=7.0 MB threads=18 sources=3 tasks=0 done=3062 dropped=0
+[info] [soak] t= 320 s heap=7.0 MB threads=18 sources=3 tasks=0 done=3161 dropped=0
+[info] [soak] t= 330 s heap=7.0 MB threads=18 sources=3 tasks=0 done=3260 dropped=0
+[info] [soak] t= 340 s heap=7.0 MB threads=18 sources=3 tasks=0 done=3359 dropped=0
+[info] [soak] t= 350 s heap=7.0 MB threads=18 sources=3 tasks=0 done=3458 dropped=0
+[info] [soak] t= 360 s heap=7.0 MB threads=18 sources=3 tasks=0 done=3557 dropped=0
+[info] [soak] t= 370 s heap=7.0 MB threads=18 sources=3 tasks=0 done=3656 dropped=0
+[info] [soak] t= 380 s heap=7.0 MB threads=18 sources=3 tasks=0 done=3754 dropped=0
+[info] [soak] t= 390 s heap=7.0 MB threads=19 sources=3 tasks=0 done=3854 dropped=0
+[info] [soak] t= 400 s heap=7.0 MB threads=19 sources=3 tasks=0 done=3952 dropped=0
+[info] [soak] t= 410 s heap=7.0 MB threads=19 sources=3 tasks=0 done=4050 dropped=0
+[info] [soak] t= 420 s heap=7.0 MB threads=19 sources=3 tasks=0 done=4149 dropped=0
+[info] [soak] t= 430 s heap=7.0 MB threads=19 sources=3 tasks=0 done=4249 dropped=0
+[info] [soak] t= 440 s heap=7.0 MB threads=19 sources=3 tasks=0 done=4347 dropped=0
+[info] [soak] t= 450 s heap=7.0 MB threads=18 sources=3 tasks=0 done=4446 dropped=0
+[info] [soak] t= 460 s heap=7.0 MB threads=18 sources=3 tasks=0 done=4545 dropped=0
+[info] [soak] t= 470 s heap=7.0 MB threads=18 sources=3 tasks=0 done=4643 dropped=0
+[info] [soak] t= 480 s heap=7.0 MB threads=18 sources=3 tasks=0 done=4742 dropped=0
+[info] [soak] t= 490 s heap=7.0 MB threads=18 sources=3 tasks=0 done=4840 dropped=0
+[info] [soak] t= 500 s heap=7.0 MB threads=18 sources=3 tasks=0 done=4939 dropped=0
+[info] [soak] t= 510 s heap=7.0 MB threads=18 sources=3 tasks=0 done=5038 dropped=0
+[info] [soak] t= 520 s heap=7.0 MB threads=18 sources=3 tasks=0 done=5138 dropped=0
+[info] [soak] t= 530 s heap=7.0 MB threads=18 sources=3 tasks=0 done=5237 dropped=0
+[info] [soak] t= 540 s heap=7.0 MB threads=18 sources=3 tasks=0 done=5335 dropped=0
+[info] [soak] t= 550 s heap=7.0 MB threads=18 sources=3 tasks=0 done=5434 dropped=0
+[info] [soak] t= 560 s heap=7.0 MB threads=18 sources=3 tasks=0 done=5532 dropped=0
+[info] [soak] t= 570 s heap=7.0 MB threads=18 sources=3 tasks=0 done=5631 dropped=0
+[info] [soak] t= 580 s heap=7.0 MB threads=18 sources=3 tasks=0 done=5731 dropped=0
+[info] [soak] t= 590 s heap=7.0 MB threads=18 sources=3 tasks=0 done=5829 dropped=0
+[info] [soak] t= 600 s heap=7.0 MB threads=18 sources=3 tasks=0 done=5929 dropped=0
+[info] [soak] t= 610 s heap=7.0 MB threads=18 sources=3 tasks=0 done=6027 dropped=0
+[info] [soak] seconds=600  heapMidMB=6.996  heapEndMB=7.003  heapDriftPct=0.091  threadsMin=18  threadsMax=19  maxSources=3  maxTasks=1  tasksDone=6027  withinBudget=true  machine=Mac OS X x86_64, 8 CPUs, JDK 25.0.4.1, load 8.6
+[success] Total time: 678 s (0:11:18.0), completed 1 Oct 2026, 17:44:47
+17:44  up 10:03, 4 users, load averages: 8.87 8.96 8.40

@@ -1,0 +1,19 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[31m[31m-- [E007] Type Mismatch Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/kyo-rc7/zio/ZioBridge.scala:108:46 [0m[0m
+[31m108 |[0m    [33mval[0m [36mviaLayer[0m = runK([33mEnv[0m.runLayer(kyoLayer)([33mEnv[0m.use[[32mAppConfig[0m](_.title)))
+[31m[31m    |[0m                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m    |[0m              Found:    [1m[31mString[0m < (kyo.Async & kyo.Scope & kyo.[1m[31mMemo[0m)
+[31m    |[0m              Required: [1m[32mAny[0m < (kyo.Async & kyo.Scope & kyo.[1m[32mAbort[0m[1m[32m[[0m[1m[32mAny[0m[1m[32m][0m)
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+1 error found
+Downloading https://repo1.maven.org/maven2/dev/zio/zio-streams_3/
+Downloaded https://repo1.maven.org/maven2/dev/zio/zio-streams_3/
+Downloading https://repo1.maven.org/maven2/dev/zio/zio-streams_3/maven-metadata.xml
+Downloaded https://repo1.maven.org/maven2/dev/zio/zio-streams_3/maven-metadata.xml
+Compilation failed
+real 13.92
+user 45.06
+sys 2.34

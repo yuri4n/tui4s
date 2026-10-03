@@ -1,0 +1,23 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] Main Scala API documentation to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/api...
+[info] Skipping unused scalacOptions: -Wvalue-discard, -Wnonunit-statement, -Wconf, -Xsemanticdb, -Yexplicit-nulls, -semanticdb-target
+[warn] Option -classpath was updated
+[warn] one warning found
+[info] Main Scala API documentation successful.
+[success] Total time: 25 s, completed 1 Oct 2026, 17:51:29
+[info] running (fork) examples.dashboard.DashboardApp 
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+stdin/stdout is not a terminal
+  cause: java.lang.RuntimeException: IO error: Os { code: 6, kind: Uncategorized, message: "Device not configured" }
+[error] nonzero exit code returned from runner: 1
+[error] (examples / Compile / runMain) nonzero exit code returned from runner: 1
+[error] Total time: 7 s, completed 1 Oct 2026, 17:51:36

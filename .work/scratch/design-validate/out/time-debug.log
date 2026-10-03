@@ -1,0 +1,65 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/Users/yuri4n/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[tdebug] after 1.5 s real: Absent
+[tdebug] thread main:
+  java.base@25.0.4.1/jdk.internal.misc.Unsafe.park(Native Method)
+  java.base@25.0.4.1/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:271)
+  app//kyo.scheduler.IOPromise$state$2$.apply(IOPromise.scala:276)
+  app//kyo.scheduler.IOPromise.blockLoop$1(IOPromise.scala:293)
+  app//kyo.scheduler.IOPromise.block(IOPromise.scala:298)
+  app//kyo.Fiber$package$Fiber$.kyo$Fiber$package$Fiber$$$_$run$8(Fiber.scala:327)
+  app//kyo.Fiber$package$Fiber$$anon$36.apply(Fiber.scala:327)
+  app//kyo.kernel.Arrow$Chain$.first(Arrow.scala:223)
+  app//kyo.kernel.Arrow$Chain.apply(Arrow.scala:188)
+  app//kyo.Local$$anon$2.apply(Local.scala:62)
+  app//kyo.kernel.internal.Eval$.loop$1(Eval.scala:79)
+  app//kyo.kernel.internal.Eval$.guarded$1(Eval.scala:570)
+  app//kyo.kernel.internal.Eval$.apply(Eval.scala:588)
+  app//kyo.kernel.internal.Eval$.apply(Eval.scala:36)
+  app//kyo.KyoApp$Unsafe$.runAndBlock(KyoApp.scala:102)
+  app//tui4s.TimeDebug.$init$$$anonfun$1(TimeDebug.test.scala:31)
+  app//tui4s.TimeDebug$$Lambda/0x000000022d9772f8.apply(Unknown Source)
+  app//munit.internal.console.StackTraces$.dropOutside(StackTraces.scala:12)
+  app//munit.ValueTransforms.munitValueTransform$$anonfun$1(ValueTransforms.scala:31)
+  app//munit.ValueTransforms$$Lambda/0x000000022d9c92f8.apply(Unknown Source)
+  app//scala.concurrent.Future$.apply$$anonfun$1(Future.scala:722)
+  app//scala.concurrent.Future$$$Lambda/0x000000022d9c95c0.apply(Unknown Source)
+  app//scala.concurrent.impl.Promise$Transformation.run(Promise.scala:522)
+  app//munit.Suite$$anon$1.execute(Suite.scala:28)
+  app//scala.concurrent.impl.Promise$Transformation.submitWithValue(Promise.scala:484)
+[tdebug] thread kyo-scheduler-worker-1:
+  java.base@25.0.4.1/java.lang.Thread.dumpThreads(Native Method)
+  java.base@25.0.4.1/java.lang.Thread.getAllStackTraces(Thread.java:2246)
+  app//tui4s.TimeDebug$$anon$5.apply(TimeDebug.test.scala:22)
+  app//tui4s.TimeDebug$$anon$5.apply(TimeDebug.test.scala:20)
+  app//kyo.kernel.internal.Eval$.loop$1(Eval.scala:379)
+  app//kyo.kernel.internal.Eval$.guarded$1(Eval.scala:570)
+  app//kyo.kernel.internal.Eval$.apply(Eval.scala:588)
+  app//kyo.kernel.internal.Eval$.partial(Eval.scala:47)
+  app//kyo.scheduler.IOTask.run(IOTask.scala:272)
+  app//kyo.scheduler.Worker.runTask(Worker.scala:419)
+  app//kyo.scheduler.Worker.run(Worker.scala:340)
+  java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+  java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+  java.base@25.0.4.1/java.lang.Thread.runWith(Thread.java:1487)
+  java.base@25.0.4.1/java.lang.Thread.run(Thread.java:1474)
+[tdebug] thread tui4s-input:
+  java.base@25.0.4.1/jdk.internal.misc.Unsafe.park(Native Method)
+  java.base@25.0.4.1/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:271)
+  java.base@25.0.4.1/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:1803)
+  java.base@25.0.4.1/java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:460)
+  app//tui4s.testkit.ScriptedInput.poll(testkit.scala:234)
+  app//tui4s.internal.InputThread.run(Runtime.scala:59)
+[tdebug] result ()
+Test run [36mtui4s.TimeDebug[0m started
+[32mtui4s.TimeDebug[0m: finished [90m1.894s[0m
+Test run [36mtui4s.TimeDebug[0m finished: 0 failed, 0 ignored, 1 total [90m1.911s[0m

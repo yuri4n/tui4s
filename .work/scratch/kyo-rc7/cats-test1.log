@@ -1,0 +1,33 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+Warning: setting /Users/yuri4n/Developer/projects/tui4s/.work/scratch/kyo-rc7 as the project root directory for this run.
+Downloading https://repo1.maven.org/maven2/org/typelevel/cats-effect_3/3.7.1/cats-effect_3-3.7.1.pom
+Downloaded https://repo1.maven.org/maven2/org/typelevel/cats-effect_3/3.7.1/cats-effect_3-3.7.1.pom
+Downloading https://repo1.maven.org/maven2/org/typelevel/cats-effect-kernel_3/3.7.1/cats-effect-kernel_3-3.7.1.pom
+Downloading https://repo1.maven.org/maven2/org/typelevel/cats-effect-std_3/3.7.1/cats-effect-std_3-3.7.1.pom
+Downloaded https://repo1.maven.org/maven2/org/typelevel/cats-effect-kernel_3/3.7.1/cats-effect-kernel_3-3.7.1.pom
+Downloaded https://repo1.maven.org/maven2/org/typelevel/cats-effect-std_3/3.7.1/cats-effect-std_3-3.7.1.pom
+Downloading https://repo1.maven.org/maven2/org/typelevel/cats-effect-kernel_3/3.7.1/cats-effect-kernel_3-3.7.1.jar
+Downloading https://repo1.maven.org/maven2/org/typelevel/cats-effect_3/3.7.1/cats-effect_3-3.7.1.jar
+Downloading https://repo1.maven.org/maven2/org/typelevel/cats-effect-std_3/3.7.1/cats-effect-std_3-3.7.1.jar
+Downloaded https://repo1.maven.org/maven2/org/typelevel/cats-effect_3/3.7.1/cats-effect_3-3.7.1.jar
+Downloaded https://repo1.maven.org/maven2/org/typelevel/cats-effect-kernel_3/3.7.1/cats-effect-kernel_3-3.7.1.jar
+Downloaded https://repo1.maven.org/maven2/org/typelevel/cats-effect-std_3/3.7.1/cats-effect-std_3-3.7.1.jar
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[31m[31m-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/kyo-rc7/CatsBridge.scala:87:28 [0m[0m
+[31m87 |[0m                            discard(fiber.unsafe.interrupt())
+[31m[31m   |[0m                            ^^^^^^^[0m
+[31m   |[0m                            Not found: discard
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/kyo-rc7/CatsBridge.scala:132:16 [0m[0m
+[31m132 |[0m                discard(cancel())
+[31m[31m    |[0m                ^^^^^^^[0m
+[31m    |[0m                Not found: discard
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+2 errors found
+Compilation failed
+real 13.02
+user 34.21
+sys 2.39

@@ -1,0 +1,68 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+== 1. scripted session ending with Quit (tick every 30 ms) ==
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/Users/yuri4n/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+  [ 1359.71 ms] enter raw mode + alternate screen (stand-in)
+  [ 1586.15 ms] draw #1 Model(52,y,100,40,0)
+  [ 1749.90 ms] input fiber stopped (Sync.ensure in the input fiber)
+  [ 1757.17 ms] Scope finalizer: event source released (Scope.ensure)
+  [ 1763.43 ms] RESTORE TERMINAL: leave alternate screen, disable raw mode (Sync.ensure)
+  [ 1781.20 ms] app returned: Model(52,y,100,40,0) ; frames=1 events=55 wakeups=2 restores=1
+== 2. external interruption, input=BlockingPoll (interruptAwait after 150 ms; ticks every 40 ms) ==
+  [    4.11 ms] enter raw mode + alternate screen (stand-in)
+  [   72.58 ms] draw #1 Model(0, ,80,24,1)
+  [  118.51 ms] draw #2 Model(0, ,80,24,2)
+  [  160.10 ms] interrupting app fiber
+  [  160.72 ms] draw #3 Model(0, ,80,24,3)
+  [  168.68 ms] RESTORE TERMINAL: leave alternate screen, disable raw mode (Sync.ensure)
+  [  201.85 ms] input fiber stopped (Sync.ensure in the input fiber)
+  [  211.26 ms] interruptAwait returned (restores=1)
+  [  237.03 ms] Scope finalizer: event source released (Scope.ensure)
+  [  254.10 ms] app fiber result: Panic(kyo.Interrupted: Fiber interrupted at loop.scala:304:5
+  [  512.24 ms] (+250 ms, anything detached has printed by now)
+== 2. external interruption, input=SleepPoll (interruptAwait after 150 ms; ticks every 40 ms) ==
+  [    1.19 ms] enter raw mode + alternate screen (stand-in)
+  [   53.54 ms] draw #1 Model(0, ,80,24,1)
+  [   95.68 ms] draw #2 Model(0, ,80,24,2)
+  [  139.73 ms] draw #3 Model(0, ,80,24,3)
+  [  152.30 ms] interrupting app fiber
+  [  153.37 ms] RESTORE TERMINAL: leave alternate screen, disable raw mode (Sync.ensure)
+  [  157.67 ms] input fiber stopped (Sync.ensure in the input fiber)
+  [  160.70 ms] Scope finalizer: event source released (Scope.ensure)
+  [  161.42 ms] interruptAwait returned (restores=1)
+  [  163.94 ms] app fiber result: Panic(kyo.Interrupted: Fiber interrupted at loop.scala:304:5
+  [  423.74 ms] (+250 ms, anything detached has printed by now)
+== 2. external interruption, input=Thread (interruptAwait after 150 ms; ticks every 40 ms) ==
+  [    1.45 ms] enter raw mode + alternate screen (stand-in)
+  [   66.53 ms] draw #1 Model(0, ,80,24,1)
+  [  113.33 ms] draw #2 Model(0, ,80,24,2)
+  [  163.15 ms] interrupting app fiber
+  [  164.86 ms] RESTORE TERMINAL: leave alternate screen, disable raw mode (Sync.ensure)
+  [  166.89 ms] interruptAwait returned (restores=1)
+  [  172.02 ms] app fiber result: Panic(kyo.Interrupted: Fiber interrupted at loop.scala:304:5
+  [  186.16 ms] input thread stopped
+  [  187.55 ms] Scope finalizer: event source released (Scope.ensure)
+  [  432.58 ms] (+250 ms, anything detached has printed by now)
+== 3. 10k key events pre-queued, then Quit (median of 6 warm rounds) ==
+  blocking poll, batched input, coalescing (production shape) processing= 66.91 ms ( 6691 ns/event) shutdown=  8.11 ms total= 78.25 ms frames=3 wakeups=4
+  blocking poll, single put per event, coalescing            processing= 99.55 ms ( 9955 ns/event) shutdown=  6.83 ms total=112.52 ms frames=5 wakeups=6
+  blocking poll, batched, NO coalescing (draw every event)   processing=140.33 ms (14033 ns/event) shutdown=  6.20 ms total=159.25 ms frames=10000 wakeups=10001
+  blocking poll, single put, NO coalescing (1 event = 1 iter) processing=110.60 ms (11060 ns/event) shutdown=  8.68 ms total=126.61 ms frames=10000 wakeups=10001
+  sleep poll (10 ms), batched, coalescing                    processing= 59.83 ms ( 5983 ns/event) shutdown=  2.44 ms total= 64.65 ms frames=3 wakeups=4
+  platform thread, batched, coalescing                       processing= 69.99 ms ( 6999 ns/event) shutdown= 60.20 ms total=131.08 ms frames=4 wakeups=5
+  platform thread, batched, NO coalescing                    processing= 50.15 ms ( 5015 ns/event) shutdown= 56.72 ms total=107.95 ms frames=10000 wakeups=10001
+== 4. idle cost over 3 s, no events (process CPU time / wall) ==
+  Kyo runtime only (one fiber in Async.sleep)      cpu=  562.1 ms /  3020 ms wall = 18.61% of one core
+  app, input=BlockingPoll(50 ms)                   cpu=  700.2 ms /  3010 ms wall = 23.26% of one core
+  app, input=SleepPoll(10 ms)                      cpu=  714.9 ms /  3001 ms wall = 23.82% of one core
+  app, input=Thread(poll 50 ms)                    cpu=  535.0 ms /  3010 ms wall = 17.78% of one core
+  app, input=BlockingPoll + tick 250 ms            cpu=  633.4 ms /  3009 ms wall = 21.05% of one core
+real 83.49
+user 20.71
+sys 4.14

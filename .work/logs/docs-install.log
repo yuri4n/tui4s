@@ -1,0 +1,81 @@
+Progress: resolved 1, reused 0, downloaded 0, added 0
+
+   ╭───────────────────────────────────────────╮
+   │                                           │
+   │    Update available! 10.34.4 → 12.8.1.    │
+   │    Changelog: https://pnpm.io/v/12.8.1    │
+   │   To update, run: pnpm add -g @pnpm/exe   │
+   │                                           │
+   ╰───────────────────────────────────────────╯
+
+Progress: resolved 4, reused 3, downloaded 0, added 0
+Progress: resolved 16, reused 7, downloaded 1, added 0
+Progress: resolved 32, reused 16, downloaded 8, added 0
+Progress: resolved 60, reused 37, downloaded 17, added 0
+Progress: resolved 105, reused 78, downloaded 22, added 0
+Progress: resolved 139, reused 103, downloaded 31, added 0
+Progress: resolved 178, reused 139, downloaded 34, added 0
+Progress: resolved 202, reused 162, downloaded 36, added 0
+Progress: resolved 226, reused 174, downloaded 38, added 0
+Progress: resolved 256, reused 196, downloaded 48, added 0
+Progress: resolved 295, reused 227, downloaded 59, added 0
+Progress: resolved 345, reused 272, downloaded 62, added 0
+Progress: resolved 392, reused 309, downloaded 71, added 0
+Progress: resolved 426, reused 340, downloaded 75, added 0
+Progress: resolved 522, reused 383, downloaded 78, added 0
+Progress: resolved 570, reused 407, downloaded 83, added 0
+Progress: resolved 611, reused 443, downloaded 89, added 0
+Progress: resolved 658, reused 486, downloaded 95, added 0
+Progress: resolved 739, reused 531, downloaded 95, added 0
+Progress: resolved 789, reused 563, downloaded 97, added 0
+Progress: resolved 830, reused 599, downloaded 100, added 0
+Progress: resolved 870, reused 632, downloaded 102, added 0
+Progress: resolved 905, reused 650, downloaded 111, added 0
+Progress: resolved 938, reused 675, downloaded 115, added 0
+Progress: resolved 1023, reused 712, downloaded 119, added 0
+Progress: resolved 1140, reused 762, downloaded 123, added 0
+Progress: resolved 1194, reused 809, downloaded 128, added 0
+Progress: resolved 1260, reused 867, downloaded 137, added 0
+Progress: resolved 1286, reused 892, downloaded 143, added 0
+Progress: resolved 1308, reused 913, downloaded 144, added 0
+Progress: resolved 1322, reused 913, downloaded 152, added 0
+Progress: resolved 1334, reused 923, downloaded 160, added 0
+Progress: resolved 1363, reused 943, downloaded 162, added 0
+Progress: resolved 1398, reused 968, downloaded 175, added 0
+Progress: resolved 1406, reused 975, downloaded 180, added 0
+Progress: resolved 1411, reused 980, downloaded 181, added 0
+Progress: resolved 1413, reused 982, downloaded 181, added 0
+Progress: resolved 1415, reused 984, downloaded 181, added 0
+Progress: resolved 1418, reused 987, downloaded 181, added 0
+ WARN  3 deprecated subdependencies found: @types/parse-path@7.1.0, glob@10.5.0, prebuild-install@7.1.3
+Packages: +1172
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 1418, reused 987, downloaded 181, added 1
+Progress: resolved 1418, reused 987, downloaded 181, added 166
+Progress: resolved 1418, reused 987, downloaded 181, added 356
+Progress: resolved 1418, reused 987, downloaded 181, added 491
+Progress: resolved 1418, reused 987, downloaded 181, added 601
+Progress: resolved 1418, reused 987, downloaded 181, added 651
+Progress: resolved 1418, reused 987, downloaded 181, added 806
+Progress: resolved 1418, reused 987, downloaded 181, added 972
+Progress: resolved 1418, reused 987, downloaded 181, added 1069
+Progress: resolved 1418, reused 987, downloaded 181, added 1172, done
+.../node_modules/better-sqlite3 install$ prebuild-install || node-gyp rebuild --release
+.../node_modules/better-sqlite3 install: (node:13117) [DEP0176] DeprecationWarning: fs.R_OK is deprecated, use fs.constants.R_OK instead
+.../node_modules/better-sqlite3 install: (Use `node --trace-deprecation ...` to show where the warning was created)
+.../node_modules/better-sqlite3 install: Done
+ WARN  Issues with peer dependencies found
+.
+└─┬ @nuxt/content 3.16.1
+  └─┬ nuxt-component-meta 0.18.0
+    └─┬ @nuxt/kit 4.5.2
+      └─┬ unctx 3.0.1
+        ├── ✕ unmet peer unplugin@^3.3.0: found 2.3.11 in nuxt-component-meta
+        └── ✕ unmet peer oxc-parser@>=0.140.0: found 0.139.0 in nuxt-component-meta
+
+dependencies:
++ better-sqlite3 12.11.1 (13.0.2 is available)
++ docus 5.13.0
++ nuxt 4.5.2
+
+Done in 56.4s using pnpm v10.34.4

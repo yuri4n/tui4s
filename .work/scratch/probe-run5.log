@@ -1,0 +1,9 @@
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 21.0.8)
+[info] loading settings for project sbt-probe-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project a from extra.sbt...
+[info] set current project to root (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/)
+[info] set current project to probe-b (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/)
+[info] 0.4.0
+[error] no credentials are found for central.sonatype.com

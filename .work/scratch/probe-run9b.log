@@ -1,0 +1,35 @@
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 21.0.8)
+[info] loading settings for project sbt-probe-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project a from extra.sbt...
+[info] set current project to root (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/)
+[success] Total time: 5 s, completed 30 Sept 2026, 18:29:37
+[info] Releasable: probe-b:0.4.0; deps: probe-a:0.2.0
+[success] Total time: 0 s, completed 30 Sept 2026, 18:29:38
+[info] Releasable: probe-b:0.4.0; deps: probe-a:0.2.0
+[success] Total time: 0 s, completed 30 Sept 2026, 18:29:38
+[info] Wrote /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/modules/b/target/scala-3.9.0/probe-b_3-0.4.0.pom
+[info] Main Scala API documentation to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/modules/b/target/scala-3.9.0/api...
+[warn] Option -classpath was updated
+[warn] one warning found
+[info] Main Scala API documentation successful.
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0.pom
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0.jar
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0-sources.jar
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0-javadoc.jar
+[success] Total time: 11 s, completed 30 Sept 2026, 18:29:48
+[info] Releasable: probe-b:0.4.0; deps: probe-a:0.2.0
+[success] Total time: 0 s, completed 30 Sept 2026, 18:29:48
+[info] Wrote /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/modules/b/target/scala-3.9.0/probe-b_3-0.4.0.pom
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0-javadoc.jar
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0-sources.jar
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0.pom
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0.jar
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0.pom.asc
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0-sources.jar.asc
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0-javadoc.jar.asc
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0.jar.asc
+[success] Total time: 8 s, completed 30 Sept 2026, 18:29:57
+[info] set current project to probe-b (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/)
+[error] no credentials are found for central.sonatype.com

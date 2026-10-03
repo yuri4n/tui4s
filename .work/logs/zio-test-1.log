@@ -1,0 +1,55 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project zio-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/)
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/modules/zio/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Test run [36mtui4s.interop.zio.ZioFacadeSuite[0m started
+[91m==> X [0m[91mtui4s.interop.zio.ZioFacadeSuite[0m.[91mTui.start fails with the TuiError of an app that cannot start[0m [90m0.009s[0m java.lang.IllegalStateException: no init
+[1m    at [0m[1mtui4s.interop.zio.ZioFacadeSuite.$init$$$anonfun$13[0m[1m([0m[1mZioFacadeSuite.scala[0m:[1m235[0m[1m)[0m
+[32mtui4s.interop.zio.ZioFacadeSuite[0m: finished [90m5.57s[0m
+Test run [36mtui4s.interop.zio.ZioFacadeSuite[0m finished: [91m1 failed[0m, 0 ignored, 18 total [90m5.638s[0m
+[TestClockSuite] one adjust(1 s) of a 250 ms poller: 4 samples
+Test run [36mtui4s.interop.zio.TestClockSuite[0m started
+[32mtui4s.interop.zio.TestClockSuite[0m: finished [90m2.475s[0m
+Test run [36mtui4s.interop.zio.TestClockSuite[0m finished: 0 failed, 0 ignored, 3 total [90m2.477s[0m
+Test run [36mtui4s.interop.zio.KyoFreeFacadeSuite[0m started
+[91m==> X [0m[91mtui4s.interop.zio.KyoFreeFacadeSuite[0m.[91mthe facade's API names no kyo type[0m [90m7.004s[0m tastyquery.Exceptions$MemberNotFoundException: cannot find package member testkit of symbol[package interop.zio]
+[90m    at [0m[90mtastyquery.Contexts$.tastyquery$Contexts$Context$$_$_$$anonfun$1[0m[90m([0m[90mContexts.scala[0m:[90m102[0m[90m)[0m
+[90m    at [0m[90mscala.Option.getOrElse[0m[90m([0m[90mOption.scala[0m:[90m228[0m[90m)[0m
+[90m    at [0m[90mtastyquery.Contexts$Context.rec$1[0m[90m([0m[90mContexts.scala[0m:[90m103[0m[90m)[0m
+[90m    at [0m[90mtastyquery.Contexts$Context.findPackageFromRoot[0m[90m([0m[90mContexts.scala[0m:[90m107[0m[90m)[0m
+[90m    at [0m[90mtastyquery.Contexts$Context.findPackage[0m[90m([0m[90mContexts.scala[0m:[90m133[0m[90m)[0m
+[1m    at [0m[1mtui4s.SurfaceCheck$.leaks$$anonfun$1[0m[1m([0m[1mSurfaceCheck.scala[0m:[1m91[0m[1m)[0m
+[90m    at [0m[90mscala.collection.immutable.List.foreach[0m[90m([0m[90mList.scala[0m:[90m331[0m[90m)[0m
+[1m    at [0m[1mtui4s.SurfaceCheck$.leaks[0m[1m([0m[1mSurfaceCheck.scala[0m:[1m90[0m[1m)[0m
+[1m    at [0m[1mtui4s.interop.zio.KyoFreeFacadeSuite.$init$$$anonfun$1[0m[1m([0m[1mKyoFreeFacadeSuite.scala[0m:[1m16[0m[1m)[0m
+[32mtui4s.interop.zio.KyoFreeFacadeSuite[0m: finished [90m7.754s[0m
+Test run [36mtui4s.interop.zio.KyoFreeFacadeSuite[0m finished: [91m1 failed[0m, 0 ignored, 2 total [90m7.755s[0m
+Test run [36mtui4s.interop.zio.BackpressureSuite[0m started
+[91m==> X [0m[91mtui4s.interop.zio.BackpressureSuite[0m.[91mthe stream waits for the inbox: it never runs far ahead[0m [90m1.007s[0m munit.FailException: modules/zio/src/test/scala/tui4s/interop/zio/BackpressureSuite.scala:70 the stream ran 33 elements ahead
+69:      // being pulled.
+[7m70:      assert(ahead.get <= 16 + 4, s"the stream ran ${ahead.get} elements ahead")[0m
+71:    }
+[90m    at [0m[90mmunit.FunSuite.assert[0m[90m([0m[90mFunSuite.scala[0m:[90m12[0m[90m)[0m
+[1m    at [0m[1mtui4s.interop.zio.BackpressureSuite.$init$$$anonfun$3[0m[1m([0m[1mBackpressureSuite.scala[0m:[1m70[0m[1m)[0m
+[32mtui4s.interop.zio.BackpressureSuite[0m: finished [90m8.777s[0m
+Test run [36mtui4s.interop.zio.BackpressureSuite[0m finished: [91m1 failed[0m, 0 ignored, 3 total [90m8.777s[0m
+[AmbientZIOsSuite] race: 43 of 500 ZIOs had started
+Test run [36mtui4s.interop.zio.internal.AmbientZIOsSuite[0m started
+[32mtui4s.interop.zio.internal.AmbientZIOsSuite[0m: finished [90m30.334s[0m
+Test run [36mtui4s.interop.zio.internal.AmbientZIOsSuite[0m finished: 0 failed, 0 ignored, 9 total [90m30.335s[0m
+[error] Failed: Total 35, Failed 3, Errors 0, Passed 32
+[error] Failed tests:
+[error] 	tui4s.interop.zio.ZioFacadeSuite
+[error] 	tui4s.interop.zio.KyoFreeFacadeSuite
+[error] 	tui4s.interop.zio.BackpressureSuite
+[error] (zio / Test / test) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 96 s (0:01:36.0), completed 1 Oct 2026, 21:00:06

@@ -1,0 +1,31 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+Warning: setting /Users/yuri4n/Developer/projects/tui4s/.work/scratch/kyo-rc7 as the project root directory for this run.
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Downloading https://repo1.maven.org/maven2/org/scalameta/munit_3/1.3.6/munit_3-1.3.6.pom
+Downloaded https://repo1.maven.org/maven2/org/scalameta/munit_3/1.3.6/munit_3-1.3.6.pom
+Downloading https://repo1.maven.org/maven2/org/scalameta/junit-interface/1.3.6/junit-interface-1.3.6.pom
+Downloading https://repo1.maven.org/maven2/org/scalameta/munit-diff_3/1.3.6/munit-diff_3-1.3.6.pom
+Downloaded https://repo1.maven.org/maven2/org/scalameta/junit-interface/1.3.6/junit-interface-1.3.6.pom
+Downloaded https://repo1.maven.org/maven2/org/scalameta/munit-diff_3/1.3.6/munit-diff_3-1.3.6.pom
+Downloading https://repo1.maven.org/maven2/org/scalameta/munit-diff_3/1.3.6/munit-diff_3-1.3.6.jar
+Downloading https://repo1.maven.org/maven2/org/scalameta/junit-interface/1.3.6/junit-interface-1.3.6.jar
+Downloading https://repo1.maven.org/maven2/org/scalameta/munit_3/1.3.6/munit_3-1.3.6.jar
+Downloaded https://repo1.maven.org/maven2/org/scalameta/junit-interface/1.3.6/junit-interface-1.3.6.jar
+Downloaded https://repo1.maven.org/maven2/org/scalameta/munit-diff_3/1.3.6/munit-diff_3-1.3.6.jar
+Downloaded https://repo1.maven.org/maven2/org/scalameta/munit_3/1.3.6/munit_3-1.3.6.jar
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Downloading https://repo1.maven.org/maven2/org/scalameta/munit_3/
+Downloaded https://repo1.maven.org/maven2/org/scalameta/munit_3/
+Downloading https://repo1.maven.org/maven2/org/scalameta/munit_3/maven-metadata.xml
+Downloaded https://repo1.maven.org/maven2/org/scalameta/munit_3/maven-metadata.xml
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/Users/yuri4n/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+real 634.81
+user 44.94
+sys 40.14

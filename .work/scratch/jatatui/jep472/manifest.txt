@@ -1,0 +1,3 @@
+Main-Class: LoadProbe
+Class-Path: ../crossterm-0.31.0.jar
+Enable-Native-Access: ALL-UNNAMED

@@ -1,0 +1,187 @@
+-- [E198] Unused Symbol Warning: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/dev/Smoke2.scala:4:14 
+4 |import kyo.UI.*
+  |              ^
+  |              unused import
+-- [E198] Unused Symbol Warning: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Dispatch.scala:6:14 
+6 |import kyo.UI.Modifiers
+  |              ^^^^^^^^^
+  |              unused import
+2 warnings found
+Downloading https://repo1.maven.org/maven2/org/scalameta/munit_3/1.1.1/munit_3-1.1.1.pom
+Downloaded https://repo1.maven.org/maven2/org/scalameta/munit_3/1.1.1/munit_3-1.1.1.pom
+Downloading https://repo1.maven.org/maven2/org/scalameta/munit-diff_3/1.1.1/munit-diff_3-1.1.1.pom
+Downloading https://repo1.maven.org/maven2/org/scalameta/junit-interface/1.1.1/junit-interface-1.1.1.pom
+Downloaded https://repo1.maven.org/maven2/org/scalameta/munit-diff_3/1.1.1/munit-diff_3-1.1.1.pom
+Downloaded https://repo1.maven.org/maven2/org/scalameta/junit-interface/1.1.1/junit-interface-1.1.1.pom
+Downloading https://repo1.maven.org/maven2/org/scalameta/munit-diff_3/1.1.1/munit-diff_3-1.1.1.jar
+Downloading https://repo1.maven.org/maven2/org/scalameta/munit_3/1.1.1/munit_3-1.1.1.jar
+Downloading https://repo1.maven.org/maven2/org/scalameta/junit-interface/1.1.1/junit-interface-1.1.1.jar
+Downloaded https://repo1.maven.org/maven2/org/scalameta/junit-interface/1.1.1/junit-interface-1.1.1.jar
+Downloaded https://repo1.maven.org/maven2/org/scalameta/munit-diff_3/1.1.1/munit-diff_3-1.1.1.jar
+Downloaded https://repo1.maven.org/maven2/org/scalameta/munit_3/1.1.1/munit_3-1.1.1.jar
+[hint] ./project.scala:8:20
+[hint] "munit is outdated, update to 1.3.6"
+[hint]      munit 1.1.1 -> org.scalameta::munit:1.3.6
+[hint] //> using test.dep org.scalameta::munit:1.1.1
+[hint]                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests.AppsTest:
+==> X tests.AppsTest.counter: + + - with keys, Tab and Enter on the buttons, nothing happens for an unknown key  2.962s munit.FailException: test/Apps.test.scala:27
+26:                s1 <- h.screen
+27:                _ = assert(s1.contains("Count: 1"), s1)
+28:                f1 <- h.key(Keyboard.Enter) // the first button (+) has the focus
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    at munit.FunSuite.assert(FunSuite.scala:13)
+    at tests.AppsTest.tests$AppsTest$$_$_$run$6(Apps.test.scala:27)
+  + two counters are independent; Tab order is document order 0.769s
+==> X tests.AppsTest.hooks: top-level sequencing and runner-mounted components (state dropped when hidden)  0.277s munit.FailException: test/Apps.test.scala:68
+67:                s  <- h.screen
+68:                _ = assert(s.linesIterator.exists(_.matches(""".*Count: 1.*Count: 0.*""")), s)
+69:                d  <- Headless.start(100, 30)(apps.CounterHooks.dynamic)
+Hooks
+┌─────────────┐  ┌─────────────┐
+│ Left        │  │ Right       │
+│ Count: 0    │  │ Count: 0    │
+│ [ + ] [ - ] │  │ [ + ] [ - ] │
+└─────────────┘  └─────────────┘
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    at munit.FunSuite.assert(FunSuite.scala:13)
+    at tests.AppsTest.tests$AppsTest$$_$_$run$28(Apps.test.scala:68)
+==> X tests.AppsTest.Component class: state per position, kept across a parent re-render  0.584s munit.FailException: test/Apps.test.scala:96
+95:                s  <- h.screen
+96:                _ = assert(s.contains("title AA"), s)
+97:                _ = assert(s.linesIterator.exists(_.matches(""".*Count: 1.*Count: 2.*""")), s)
+title A
+┌─────────────┐  ┌─────────────┐
+│ Left        │  │ Right       │
+│ Count: 1    │  │ Count: 2    │
+│ [ + ] [ - ] │  │ [ + ] [ - ] │
+└─────────────┘  └─────────────┘
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    at munit.FunSuite.assert(FunSuite.scala:13)
+    at tests.AppsTest.tests$AppsTest$$_$_$run$42(Apps.test.scala:96)
+==> X tests.AppsTest.todo: load, type + Enter adds, Tab to the list, arrows + Space toggle, d deletes, Ctrl-S saves, Esc quits  0.921s munit.FailException: test/Apps.test.scala:115
+114:                s2 <- h.screen
+115:                _ = assert(s2.contains("[ ] call mom") && s2.contains("3 open / 4"), s2)
+116:                t  <- h.key(Keyboard.Tab)
+Todo  2 open / 3
+New: call mom
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│[ ] buy milk                                                                                      │
+│[x] walk dog                                                                                      │
+│[ ] write report                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+loaded 3 items from /var/folders/w4/q5jx5p_10nn_dlsm2l43p16w0000gn/T/todo8750714288936644856.txt
+Tab: input/list  ↑↓: move  Space: toggle  d: delete  Ctrl-S: save  Esc: quit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    at munit.FunSuite.assert(FunSuite.scala:13)
+    at tests.AppsTest.tests$AppsTest$$_$_$run$51(Apps.test.scala:115)
+  + dashboard: a sampler tick updates gauge and sparkline in one frame; tabs; pause 0.862s
+  + idle: no frame at all when nothing changes 1.857s
+==> X tests.AppsTest.glitch-free: one event that writes two refs updates all 4 dependent regions in one frame (500 events)  6.894s munit.ComparisonFailException: test/Apps.test.scala:186
+185:                split = fs.count(_.updates != 4)
+186:                _ = assertEquals(split, 0, s"split frames: ${fs.filter(_.updates != 4).take(5)}")
+187:            yield ()
+split frames: Chunk(FrameStats(16,Input,36,3,20585029,3,5939716,11185424,3449056,), FrameStats(17,Input,36,3,6975407,3,221416,4394063,2349133,), FrameStats(18,Input,36,3,7884940,3,210337,5474600,2189479,), FrameStats(19,Input,0,0,1509473,0,213862,1262204,22051,), FrameStats(20,Input,44,5,5113509,5,209951,1847719,3045761,))
+=> Obtained
+163
+=> Diff (- expected, + obtained)
+-0
++163
+    at munit.FunSuite.assertEquals(FunSuite.scala:13)
+    at tests.AppsTest.tests$AppsTest$$_$_$run$84(Apps.test.scala:186)
+Error: munit tests failed.

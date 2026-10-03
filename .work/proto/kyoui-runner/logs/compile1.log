@@ -1,0 +1,363 @@
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/Tui.scala:163:20 [0m[0m
+[31m163 |[0m            ([33mSystem[0m.out, [33mSystem[0m.err, out)
+[31m[31m    |[0m             ^^^^^^^^^^[0m
+[31m    |[0m             value out is not a member of object kyo.System
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/Tui.scala:163:32 [0m[0m
+[31m163 |[0m            ([33mSystem[0m.out, [33mSystem[0m.err, out)
+[31m[31m    |[0m                         ^^^^^^^^^^[0m
+[31m    |[0m                        value err is not a member of object kyo.System
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Dispatch.scala:46:75 [0m[0m
+[31m46 |[0m        w.focus.filter(w.laid.nodes.contains).orElse(w.laid.nodes.get([33mPath[0m.screen).flatMap(_.kids.find([36mk[0m =>
+[31m[31m   |[0m                                                                      ^^^^^^^^^^^[0m
+[31m   |[0m                         value screen is not a member of object kyo.Path
+[31m[31m-- [E050] Type Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Dispatch.scala:141:32 [0m[0m
+[31m141 |[0m                [33mcase[0m [33mNone[0m    => [33mRegion[0m(p, [33mSource[0m.[33mLocal[0m, [32m0[0m, [33mContent[0m.[33mValue[0m(next), [33mVector[0m.empty, [33mNone[0m)
+[31m[31m    |[0m                                ^^^^^^[0m
+[31m    |[0m                 [33mmethod[0m [32mRegion[0m in [33mpackage[0m [32mkyo[0m does not take parameters
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E050] Type Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Dispatch.scala:167:28 [0m[0m
+[31m167 |[0m            [33mcase[0m [33mNone[0m    => [33mRegion[0m(p, [33mSource[0m.[33mLocal[0m, [32m0[0m, [33mContent[0m.[33mValue[0m(next), [33mVector[0m.empty, [33mNone[0m)
+[31m[31m    |[0m                            ^^^^^^[0m
+[31m    |[0m                 [33mmethod[0m [32mRegion[0m in [33mpackage[0m [32mkyo[0m does not take parameters
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E050] Type Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Dispatch.scala:189:32 [0m[0m
+[31m189 |[0m                [33mcase[0m [33mNone[0m    => [33mRegion[0m(p, [33mSource[0m.[33mLocal[0m, [32m0[0m, [33mContent[0m.[33mValue[0m(next), [33mVector[0m.empty, [33mNone[0m)
+[31m[31m    |[0m                                ^^^^^^[0m
+[31m    |[0m                 [33mmethod[0m [32mRegion[0m in [33mpackage[0m [32mkyo[0m does not take parameters
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Dispatch.scala:212:53 [0m[0m
+[31m212 |[0m        [33mval[0m [36morder[0m = trap.fold(all)([36mt[0m => all.filter(_.isAtOrUnder(t)))
+[31m[31m    |[0m                                                   ^^^^^^^^^^^^^[0m
+[31m    |[0m                         value isAtOrUnder is not a member of kyo.Path
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Layout.scala:60:41 [0m[0m
+[31m60 |[0m        [33mLaid[0m(nodes.filterNot(([36mp[0m, _) => p.isAtOrUnder(prefix)), regionOwner.filterNot(([36mr[0m, [36mo[0m) => r.isAtOrUnder(prefix) || o.isAtOrUnder(prefix)))
+[31m[31m   |[0m                                       ^^^^^^^^^^^^^[0m
+[31m   |[0m                           value isAtOrUnder is not a member of kyo.Path
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Layout.scala:60:97 [0m[0m
+[31m60 |[0m        [33mLaid[0m(nodes.filterNot(([36mp[0m, _) => p.isAtOrUnder(prefix)), regionOwner.filterNot(([36mr[0m, [36mo[0m) => r.isAtOrUnder(prefix) || o.isAtOrUnder(prefix)))
+[31m[31m   |[0m                                                                                               ^^^^^^^^^^^^^[0m
+[31m   |[0m                           value isAtOrUnder is not a member of kyo.Path
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Layout.scala:114:43 [0m[0m
+[31m114 |[0m                    acc ++ flatten(c, path :+ i.toString, regions, env)
+[31m[31m    |[0m                                      ^^^^^^^[0m
+[31m    |[0m                                  value :+ is not a member of kyo.Path
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Layout.scala:119:76 [0m[0m
+[31m119 |[0m                    [33mcase[0m [33mSome[0m([33mContent[0m.[33mSingle[0m(c)) => here ++ flatten(c, path :+ [32m"~"[0m, path :: regions, env)
+[31m[31m    |[0m                                                                       ^^^^^^^[0m
+[31m    |[0m                                  value :+ is not a member of kyo.Path
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Layout.scala:125:94 [0m[0m
+[31m125 |[0m                        items.foldLeft(here) { [33mcase[0m (acc, (key, c)) => acc ++ flatten(c, path :+ [32ms"#[0m$key[32m"[0m, path :: regions, env) }
+[31m[31m    |[0m                                                                                         ^^^^^^^[0m
+[31m    |[0m                                  value :+ is not a member of kyo.Path
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Layout.scala:135:43 [0m[0m
+[31m135 |[0m                    acc ++ flatten(c, path :+ i.toString, [33mNil[0m, env)
+[31m[31m    |[0m                                      ^^^^^^^[0m
+[31m    |[0m                                  value :+ is not a member of kyo.Path
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Layout.scala:307:46 [0m[0m
+[31m307 |[0m                [33mval[0m [36mflat[0m = flatten(root, [33mPath[0m.root, [33mNil[0m, env)
+[31m[31m    |[0m                                         ^^^^^^^^^[0m
+[31m    |[0m                         value root is not a member of object kyo.Path
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Layout.scala:356:18 [0m[0m
+[31m356 |[0m        [33mNode[0m([33mPath[0m.screen, [33mKind[0m.[33mScreen[0m, [33mRect[0m([32m0[0m, [32m0[0m, size.w, size.h), [33mProps[0m.neutral([33mTextAttrs[0m.default), [33mNone[0m, size, size.w, [33mVector[0m.empty,
+[31m[31m    |[0m             ^^^^^^^^^^^[0m
+[31m    |[0m             value screen is not a member of object kyo.Path
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Layout.scala:448:28 [0m[0m
+[31m448 |[0m        [33mval[0m [36mall[0m = walk([33mPath[0m.screen)
+[31m[31m    |[0m                       ^^^^^^^^^^^[0m
+[31m    |[0m                       value screen is not a member of object kyo.Path
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:55:100 [0m[0m
+[31m55 |[0m                [33mKyo[0m.foldLeft(f.children.toSeq.zipWithIndex)(w) { [33mcase[0m (acc, (c, i)) => walk(c, path :+ i.toString, acc, reclaim) }
+[31m[31m   |[0m                                                                                               ^^^^^^^[0m
+[31m   |[0m                                    value :+ is not a member of kyo.Path
+[31m[31m-- [E127] Pattern Match Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:61:44 [0m[0m
+[31m61 |[0m                            [33mcase[0m [33mSome[0m(old @ [33mRegion[0m(_, [33mSource[0m.[33mOne[0m(sig), _, [33mContent[0m.[33mSingle[0m(c), _, _)) [33mif[0m sig eq r.signal =>
+[31m[31m   |[0m                                            ^^^^^^[0m
+[31m   |[0mkyo.Region cannot be used as an extractor in a pattern because it lacks an unapply or unapplySeq method with the appropriate signature
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:61:103 [0m[0m
+[31m61 |[0m                            [33mcase[0m [33mSome[0m(old @ [33mRegion[0m(_, [33mSource[0m.[33mOne[0m(sig), _, [33mContent[0m.[33mSingle[0m(c), _, _)) [33mif[0m sig eq r.signal =>
+[31m[31m   |[0m                                                                                                       ^^^[0m
+[31m   |[0m                                                          Not found: sig
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:62:37 [0m[0m
+[31m62 |[0m                                walk(c, path :+ [32m"~"[0m, w.copy(regions = w.regions.updated(path, old)), reclaim)
+[31m[31m   |[0m                                     ^[0m
+[31m   |[0m                                     Not found: c
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:62:45 [0m[0m
+[31m62 |[0m                                walk(c, path :+ [32m"~"[0m, w.copy(regions = w.regions.updated(path, old)), reclaim)
+[31m[31m   |[0m                                        ^^^^^^^[0m
+[31m   |[0m                                    value :+ is not a member of kyo.Path
+[31m[31m-- [E050] Type Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:68:45 [0m[0m
+[31m68 |[0m                                    region = [33mRegion[0m(path, [33mSource[0m.[33mOne[0m(r.signal), gen, [33mContent[0m.[33mSingle[0m(cur), [33mVector[0m.empty, [33mSome[0m(watcher))
+[31m[31m   |[0m                                             ^^^^^^[0m
+[31m   |[0m                   [33mmethod[0m [32mRegion[0m in [33mpackage[0m [32mkyo[0m does not take parameters
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:69:57 [0m[0m
+[31m69 |[0m                                    w2 <- walk(cur, path :+ [32m"~"[0m, w1.copy(regions = w1.regions.updated(path, region)), reclaim)
+[31m[31m   |[0m                                                    ^^^^^^^[0m
+[31m   |[0m                                    value :+ is not a member of kyo.Path
+[31m[31m-- [E127] Pattern Match Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:76:36 [0m[0m
+[31m76 |[0m                    [33mcase[0m [33mSome[0m(old @ [33mRegion[0m(_, [33mSource[0m.[33mMany[0m(prev), _, _, items, _)) [33mif[0m prev.signal eq fe.signal =>
+[31m[31m   |[0m                                    ^^^^^^[0m
+[31m   |[0mkyo.Region cannot be used as an extractor in a pattern because it lacks an unapply or unapplySeq method with the appropriate signature
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:76:85 [0m[0m
+[31m76 |[0m                    [33mcase[0m [33mSome[0m(old @ [33mRegion[0m(_, [33mSource[0m.[33mMany[0m(prev), _, _, items, _)) [33mif[0m prev.signal eq fe.signal =>
+[31m[31m   |[0m                                                                                     ^^^^[0m
+[31m   |[0m                                                         Not found: prev
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:77:37 [0m[0m
+[31m77 |[0m                        [33mKyo[0m.foldLeft(items)(w.copy(regions = w.regions.updated(path, old))) { ([36macc[0m, [36mit[0m) =>
+[31m[31m   |[0m                                     ^^^^^[0m
+[31m   |[0m                                     Not found: items
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E050] Type Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:86:38 [0m[0m
+[31m86 |[0m                            region  = [33mRegion[0m(path, [33mSource[0m.[33mMany[0m(fe), gen, [33mContent[0m.[33mMany[0m(items.map([36mit[0m => (it.key, it.ui))), items, [33mSome[0m(watcher))
+[31m[31m   |[0m                                      ^^^^^^[0m
+[31m   |[0m                   [33mmethod[0m [32mRegion[0m in [33mpackage[0m [32mkyo[0m does not take parameters
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:88:49 [0m[0m
+[31m88 |[0m                                walk(it.ui, path :+ [32ms"#[0m${it.key}[32m"[0m, acc, reclaim)
+[31m[31m   |[0m                                            ^^^^^^^[0m
+[31m   |[0m                                    value :+ is not a member of kyo.Path
+[31m[31m-- [E127] Pattern Match Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:97:44 [0m[0m
+[31m97 |[0m                            [33mcase[0m [33mSome[0m(old @ [33mRegion[0m(_, [33mSource[0m.[33mBound[0m(prev), _, _, _, _)) [33mif[0m prev eq ref =>
+[31m[31m   |[0m                                            ^^^^^^[0m
+[31m   |[0mkyo.Region cannot be used as an extractor in a pattern because it lacks an unapply or unapplySeq method with the appropriate signature
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:97:90 [0m[0m
+[31m97 |[0m                            [33mcase[0m [33mSome[0m(old @ [33mRegion[0m(_, [33mSource[0m.[33mBound[0m(prev), _, _, _, _)) [33mif[0m prev eq ref =>
+[31m[31m   |[0m                                                                                          ^^^^[0m
+[31m   |[0m                                                         Not found: prev
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E050] Type Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:104:81 [0m[0m
+[31m104 |[0m                                [33myield[0m w1.copy(regions = w1.regions.updated(path, [33mRegion[0m(path, [33mSource[0m.[33mBound[0m(ref), gen, [33mContent[0m.[33mValue[0m(cur), [33mVector[0m.empty, [33mSome[0m(watcher))))
+[31m[31m    |[0m                                                                                 ^^^^^^[0m
+[31m    |[0m                 [33mmethod[0m [32mRegion[0m in [33mpackage[0m [32mkyo[0m does not take parameters
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:110:114 [0m[0m
+[31m110 |[0m                            [33mKyo[0m.foldLeft(el.children.toSeq.zipWithIndex)(w2) { [33mcase[0m (acc, (c, i)) => walk(c, path :+ i.toString, acc, reclaim) }
+[31m[31m    |[0m                                                                                                             ^^^^^^^[0m
+[31m    |[0m                                  value :+ is not a member of kyo.Path
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:117:35 [0m[0m
+[31m117 |[0m                [33mval[0m [36mkey[0m = [32ms"[0m${path.mkString([32m"/"[0m)}[32m|[0m${c.getClass.getName}[32m"[0m
+[31m[31m    |[0m                              ^^^^^^^^^^^^^[0m
+[31m    |[0mvalue mkString is not a member of kyo.Path - did you mean path.toString?
+[31m[31m-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/World.scala:19:20 [0m[0m
+[31m19 |[0m    [33mcase[0m [33mComp[0m(spec: [33mComponentSpec[0m, key: [33mString[0m)
+[31m[31m   |[0m                    ^^^^^^^^^^^^^[0m
+[31m   |[0m                    Not found: type ComponentSpec
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:127:79 [0m[0m
+[31m127 |[0m                    _ <- reclaim.get(path).flatMap(_.watcher).fold([33mKyo[0m.unit)(_.interrupt.unit)
+[31m[31m    |[0m                                                                             ^^^^^^^^^^^[0m
+[31m    |[0m                    value interrupt is not a member of kyo.Fiber[?, ?]
+[31m[31m-- [E050] Type Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:129:29 [0m[0m
+[31m129 |[0m                    region = [33mRegion[0m(path, [33mSource[0m.[33mComp[0m(spec, key), gen, [33mContent[0m.[33mSingle[0m(content), [33mVector[0m.empty, [33mSome[0m(effects))
+[31m[31m    |[0m                             ^^^^^^[0m
+[31m    |[0m                 [33mmethod[0m [32mRegion[0m in [33mpackage[0m [32mkyo[0m does not take parameters
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:132:29 [0m[0m
+[31m132 |[0m                        path :+ [32m"~"[0m,
+[31m[31m    |[0m                        ^^^^^^^[0m
+[31m    |[0m                        value :+ is not a member of kyo.Path
+[31m[31m-- [E127] Pattern Match Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:140:36 [0m[0m
+[31m140 |[0m                    [33mcase[0m [33mSome[0m(old @ [33mRegion[0m(_, [33mSource[0m.[33mComp[0m([33mComponentSpec[0m.[33mHook[0m(id, _), _), _, content, _, _)) [33mif[0m id == identity =>
+[31m[31m    |[0m                                    ^^^^^^[0m
+[31m    |[0mkyo.Region cannot be used as an extractor in a pattern because it lacks an unapply or unapplySeq method with the appropriate signature
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:140:111 [0m[0m
+[31m140 |[0m                    [33mcase[0m [33mSome[0m(old @ [33mRegion[0m(_, [33mSource[0m.[33mComp[0m([33mComponentSpec[0m.[33mHook[0m(id, _), _), _, content, _, _)) [33mif[0m id == identity =>
+[31m[31m    |[0m                                                                                                               ^^[0m
+[31m    |[0m                                      Not found: id - did you mean io?
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:142:24 [0m[0m
+[31m142 |[0m                        content [33mmatch[0m
+[31m[31m    |[0m                        ^^^^^^^[0m
+[31m    |[0m                        Not found: content - did you mean Convert?
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:143:59 [0m[0m
+[31m143 |[0m                            [33mcase[0m [33mContent[0m.[33mSingle[0m(c) => walk(c, path :+ [32m"~"[0m, w1, reclaim)
+[31m[31m    |[0m                                                           ^[0m
+[31m    |[0m                                                          Not found: c
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:143:67 [0m[0m
+[31m143 |[0m                            [33mcase[0m [33mContent[0m.[33mSingle[0m(c) => walk(c, path :+ [32m"~"[0m, w1, reclaim)
+[31m[31m    |[0m                                                              ^^^^^^^[0m
+[31m    |[0m                                  value :+ is not a member of kyo.Path
+[31m[31m-- [E050] Type Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:150:71 [0m[0m
+[31m150 |[0m                                    regions = w1.regions.updated(path, [33mRegion[0m(path, [33mSource[0m.[33mComp[0m(spec, identity), gen, [33mContent[0m.[33mPending[0m, [33mVector[0m.empty, [33mSome[0m(fiber))),
+[31m[31m    |[0m                                                                       ^^^^^^[0m
+[31m    |[0m                 [33mmethod[0m [32mRegion[0m in [33mpackage[0m [32mkyo[0m does not take parameters
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:160:47 [0m[0m
+[31m160 |[0m        [33mval[0m [36mold[0m = w.regions.filter(([36mp[0m, _) => p.isUnder(path))
+[31m[31m    |[0m                                             ^^^^^^^^^[0m
+[31m    |[0m                             value isUnder is not a member of kyo.Path
+[31m[31m-- [E127] Pattern Match Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:163:22 [0m[0m
+[31m163 |[0m            [33mcase[0m [33mSome[0m([33mRegion[0m(_, _, _, [33mContent[0m.[33mSingle[0m(c), _, _)) => walk(c, path :+ [32m"~"[0m, w0, old)
+[31m[31m    |[0m                      ^^^^^^[0m
+[31m    |[0mkyo.Region cannot be used as an extractor in a pattern because it lacks an unapply or unapplySeq method with the appropriate signature
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:163:72 [0m[0m
+[31m163 |[0m            [33mcase[0m [33mSome[0m([33mRegion[0m(_, _, _, [33mContent[0m.[33mSingle[0m(c), _, _)) => walk(c, path :+ [32m"~"[0m, w0, old)
+[31m[31m    |[0m                                                                        ^[0m
+[31m    |[0m                                                          Not found: c
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:163:80 [0m[0m
+[31m163 |[0m            [33mcase[0m [33mSome[0m([33mRegion[0m(_, _, _, [33mContent[0m.[33mSingle[0m(c), _, _)) => walk(c, path :+ [32m"~"[0m, w0, old)
+[31m[31m    |[0m                                                                           ^^^^^^^[0m
+[31m    |[0m                                  value :+ is not a member of kyo.Path
+[31m[31m-- [E127] Pattern Match Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:164:22 [0m[0m
+[31m164 |[0m            [33mcase[0m [33mSome[0m([33mRegion[0m(_, [33mSource[0m.[33mMany[0m(_), _, _, items, _)) =>
+[31m[31m    |[0m                      ^^^^^^[0m
+[31m    |[0mkyo.Region cannot be used as an extractor in a pattern because it lacks an unapply or unapplySeq method with the appropriate signature
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:165:29 [0m[0m
+[31m165 |[0m                [33mKyo[0m.foldLeft(items)(w0)(([36macc[0m, [36mit[0m) => walk(it.ui, path :+ [32ms"#[0m${it.key}[32m"[0m, acc, old))
+[31m[31m    |[0m                             ^^^^^[0m
+[31m    |[0m                             Not found: items
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:169:76 [0m[0m
+[31m169 |[0m            [33mKyo[0m.foreachDiscard(stale.toSeq)([36mr[0m => r.watcher.fold([33mKyo[0m.unit)(_.interrupt.unit)).andThen(gcComps(w1))
+[31m[31m    |[0m                                                                          ^^^^^^^^^^^[0m
+[31m    |[0m                    value interrupt is not a member of kyo.Fiber[?, ?]
+[31m[31m-- [E127] Pattern Match Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:175:51 [0m[0m
+[31m175 |[0m        [33mval[0m [36mlive[0m = w.regions.values.collect { [33mcase[0m [33mRegion[0m(_, [33mSource[0m.[33mComp[0m(_: [33mComponentSpec[0m.[32mInstance[0m, key), _, _, _, _) => key }.toSet
+[31m[31m    |[0m                                                   ^^^^^^[0m
+[31m    |[0mkyo.Region cannot be used as an extractor in a pattern because it lacks an unapply or unapplySeq method with the appropriate signature
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:175:121 [0m[0m
+[31m175 |[0m        [33mval[0m [36mlive[0m = w.regions.values.collect { [33mcase[0m [33mRegion[0m(_, [33mSource[0m.[33mComp[0m(_: [33mComponentSpec[0m.[32mInstance[0m, key), _, _, _, _) => key }.toSet
+[31m[31m    |[0m                                                                                                                         ^^^[0m
+[31m    |[0m                                                        Not found: key
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E007] Type Mismatch Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:176:62 [0m[0m
+[31m176 |[0m        w.copy(comps = w.comps.filter(([36mk[0m, _) => live.contains(k)))
+[31m[31m    |[0m                                                              ^[0m
+[31m    |[0m                                                Found:    (k : String)
+[31m    |[0m                                                Required: Nothing
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:180:83 [0m[0m
+[31m180 |[0m        [33mKyo[0m.foreachDiscard(w.regions.values.toSeq)([36mr[0m => r.watcher.fold([33mKyo[0m.unit)(_.interrupt.unit))
+[31m[31m    |[0m                                                                                 ^^^^^^^^^^^[0m
+[31m    |[0m                    value interrupt is not a member of kyo.Fiber[?, ?]
+[33m[33m-- Warning: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:61:107 [0m[0m
+[33m61 |[0m                            [33mcase[0m [33mSome[0m(old @ [33mRegion[0m(_, [33mSource[0m.[33mOne[0m(sig), _, [33mContent[0m.[33mSingle[0m(c), _, _)) [33mif[0m sig eq r.signal =>
+[33m[33m   |[0m                                                                                                           ^^[0m
+[33m   |[0mAlphanumeric method eq is not declared [33minfix[0m; it should not be used as infix operator.
+[33m   |[0mInstead, use method syntax .eq(...) or backticked identifier `eq`.
+[33m   |[0mThe latter can be rewritten automatically under -rewrite -source 3.4-migration.
+[33m[33m-- Warning: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:76:97 [0m[0m
+[33m76 |[0m                    [33mcase[0m [33mSome[0m(old @ [33mRegion[0m(_, [33mSource[0m.[33mMany[0m(prev), _, _, items, _)) [33mif[0m prev.signal eq fe.signal =>
+[33m[33m   |[0m                                                                                                 ^^[0m
+[33m   |[0mAlphanumeric method eq is not declared [33minfix[0m; it should not be used as infix operator.
+[33m   |[0mInstead, use method syntax .eq(...) or backticked identifier `eq`.
+[33m   |[0mThe latter can be rewritten automatically under -rewrite -source 3.4-migration.
+[33m[33m-- Warning: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:97:95 [0m[0m
+[33m97 |[0m                            [33mcase[0m [33mSome[0m(old @ [33mRegion[0m(_, [33mSource[0m.[33mBound[0m(prev), _, _, _, _)) [33mif[0m prev eq ref =>
+[33m[33m   |[0m                                                                                               ^^[0m
+[33m   |[0mAlphanumeric method eq is not declared [33minfix[0m; it should not be used as infix operator.
+[33m   |[0mInstead, use method syntax .eq(...) or backticked identifier `eq`.
+[33m   |[0mThe latter can be rewritten automatically under -rewrite -source 3.4-migration.
+[31m[31m-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala:117:47 [0m[0m
+[31m117 |[0m    [33mdef[0m [36mapply[0m([36mcanvas[0m: [32mCanvas[0m, [36mlaid[0m: [32mLaid[0m, [36menv[0m: [32mEnv[0m, [36mdamage[0m: [32mVector[0m[[32mDamage[0m]): [32mVector[0m[[32mRect[0m] =
+[31m[31m    |[0m                                               ^^^[0m
+[31m    |[0m                                    Missing type parameter for kyo.Env
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala:121:69 [0m[0m
+[31m121 |[0m        [33mval[0m [36mtop[0m = roots.filterNot([36mp[0m => roots.exists([36mq[0m => q != p && p.isUnder(q)))
+[31m[31m    |[0m                                                                   ^^^^^^^^^[0m
+[31m    |[0m                             value isUnder is not a member of kyo.Path
+[31m[31m-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala:137:51 [0m[0m
+[31m137 |[0m    [33mdef[0m [36mpaintNode[0m([36mcanvas[0m: [32mCanvas[0m, [36mlaid[0m: [32mLaid[0m, [36menv[0m: [32mEnv[0m, [36mp[0m: [32mPath[0m, [36mclip[0m: [32mRect[0m): [32mUnit[0m =
+[31m[31m    |[0m                                                   ^^^[0m
+[31m    |[0m                                    Missing type parameter for kyo.Env
+[31m[31m-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala:208:58 [0m[0m
+[31m208 |[0m    [33mprivate[0m [33mdef[0m decorate(canvas: [33mCanvas[0m, laid: [33mLaid[0m, env: [33mEnv[0m, n: [33mNode[0m, e: [33mElement[0m, clip: [33mRect[0m): [33mUnit[0m =
+[31m[31m    |[0m                                                          ^^^[0m
+[31m    |[0m                                    Missing type parameter for kyo.Env
+[31m[31m-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala:185:32 [0m[0m
+[31m185 |[0m    [33mprivate[0m [33mdef[0m boundValue(env: [33mEnv[0m, p: [33mPath[0m): [33mOption[0m[[33mAny[0m] = env.content(p) [33mmatch[0m
+[31m[31m    |[0m                                ^^^[0m
+[31m    |[0m                                Missing type parameter for kyo.Env
+[31m[31m-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala:186:44 [0m[0m
+[31m186 |[0m        [33mcase[0m [33mSome[0m([33mContent[0m.[33mValue[0m(v)) => [33mSome[0m(v)
+[31m[31m    |[0m                                            ^[0m
+[31m    |[0m                                            Not found: v
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala:189:23 [0m[0m
+[31m189 |[0m    [33mdef[0m [36mtextValue[0m([36menv[0m: [32mEnv[0m, [36mp[0m: [32mPath[0m, [36mti[0m: [32mTextInput[0m): [32mString[0m =
+[31m[31m    |[0m                       ^^^[0m
+[31m    |[0m                       Missing type parameter for kyo.Env
+[31m[31m-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala:195:26 [0m[0m
+[31m195 |[0m    [33mdef[0m [36mcheckedValue[0m([36menv[0m: [32mEnv[0m, [36mp[0m: [32mPath[0m, [36mbi[0m: [32mBooleanInput[0m): [32mBoolean[0m =
+[31m[31m    |[0m                          ^^^[0m
+[31m    |[0m                          Missing type parameter for kyo.Env
+[31m[31m-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala:201:25 [0m[0m
+[31m201 |[0m    [33mdef[0m [36mpickerValue[0m([36menv[0m: [32mEnv[0m, [36mp[0m: [32mPath[0m, [36mvalue[0m: [32mMaybe[0m[UI.[32mBound[0m[[32mString[0m]]): [32mString[0m =
+[31m[31m    |[0m                         ^^^[0m
+[31m    |[0m                         Missing type parameter for kyo.Env
+[31m[31m-- [E173] Reference Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Runner.scala:20:87 [0m[0m
+[31m20 |[0m    [33mprivate[0m [33mval[0m dispatch                             = [33mDispatch[0m(quitAction(using [33mFrame[0m.internal))
+[31m[31m   |[0m                                                                                 ^^^^^^^^^^^^^^[0m
+[31m   |[0m[33mvalue[0m [32minternal[0m cannot be accessed as a member of kyo.Frame.type from [33mclass[0m [32mRunner[0m.
+[31m   |[0m  private[kyo] [33mvalue[0m [32minternal[0m can only be accessed from [33mpackage[0m [32mkyo[0m.
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Runner.scala:31:44 [0m[0m
+[31m31 |[0m                w0 <- mount.walk(root, [33mPath[0m.root, [33mWorld[0m.init(root, canvas.size), [33mMap[0m.empty)
+[31m[31m   |[0m                                       ^^^^^^^^^[0m
+[31m   |[0m                           value root is not a member of object kyo.Path
+[31m[31m-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Runner.scala:142:99 [0m[0m
+[31m142 |[0m    [33mprivate[0m [33mdef[0m relayoutAll(w: [33mWorld[0m, paths: [33mIterable[0m[[33mPath[0m], laid: [33mLaid[0m, dmg: [33mVector[0m[[33mDamage[0m], env: [33mEnv[0m): ([33mLaid[0m, [33mVector[0m[[33mDamage[0m]) =
+[31m[31m    |[0m                                                                                                   ^^^[0m
+[31m    |[0m                                    Missing type parameter for kyo.Env
+[31m[31m-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/World.scala:47:13 [0m[0m
+[31m47 |[0m    [33mdef[0m [36menv[0m: [32mEnv[0m =
+[31m[31m   |[0m             ^^^[0m
+[31m   |[0m             Missing type parameter for kyo.Env
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Runner.scala:158:112 [0m[0m
+[31m158 |[0m            (w1.copy(laid = laid), [33mVector[0m([33mDamage[0m.[33mClear[0m([33mRect[0m([32m0[0m, [32m0[0m, w.size.w, w.size.h), [33mNone[0m), [33mDamage[0m.[33mPaint[0m([33mPath[0m.screen)))
+[31m[31m    |[0m                                                                                                           ^^^^^^^^^^^[0m
+[31m    |[0m                       value screen is not a member of object kyo.Path
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Runner.scala:161:95 [0m[0m
+[31m161 |[0m            [33mval[0m [36mregions[0m = w.dirtyRegions.filterNot([36mr[0m => w.dirtyRegions.exists([36mo[0m => o != r && r.isUnder(o)))
+[31m[31m    |[0m                                                                                             ^^^^^^^^^[0m
+[31m    |[0m                             value isUnder is not a member of kyo.Path
+[31m[31m-- [E050] Type Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/World.scala:48:8 [0m[0m
+[31m48 |[0m        [33mEnv[0m([36mp[0m => regions.get(p).map(_.content), focus, size, [36mp[0m => carets.getOrElse(p, [33mInt[0m.[33mMaxValue[0m))
+[31m[31m   |[0m        ^^^[0m
+[31m   |[0m        [33mobject[0m [32mEnv[0m in [33mpackage[0m [32mkyo[0m does not take parameters
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+3 warnings found
+70 errors found
+Compilation failed

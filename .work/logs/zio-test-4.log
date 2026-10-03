@@ -1,0 +1,45 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project zio-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] loading settings for project examples from zio.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/)
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/modules/zio/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Test run [36mtui4s.interop.zio.ZioFacadeSuite[0m started
+[32mtui4s.interop.zio.ZioFacadeSuite[0m: finished [90m5.07s[0m
+Test run [36mtui4s.interop.zio.ZioFacadeSuite[0m finished: 0 failed, 0 ignored, 18 total [90m5.14s[0m
+[TestClockSuite] one adjust(1 s) of a 250 ms poller: 4 samples
+Test run [36mtui4s.interop.zio.TestClockSuite[0m started
+[32mtui4s.interop.zio.TestClockSuite[0m: finished [90m2.337s[0m
+Test run [36mtui4s.interop.zio.TestClockSuite[0m finished: 0 failed, 0 ignored, 3 total [90m2.337s[0m
+Test run [36mtui4s.interop.zio.KyoFreeFacadeSuite[0m started
+[32mtui4s.interop.zio.KyoFreeFacadeSuite[0m: finished [90m6.448s[0m
+Test run [36mtui4s.interop.zio.KyoFreeFacadeSuite[0m finished: 0 failed, 0 ignored, 2 total [90m6.449s[0m
+Test run [36mtui4s.interop.zio.testkit.LiveTuiTestSuite[0m started
+[91m==> X [0m[91mtui4s.interop.zio.testkit.LiveTuiTestSuite[0m.[91minterrupting the test stops the app[0m [90m0.05s[0m munit.FailException: modules/zio/src/test/scala/tui4s/interop/zio/testkit/LiveTuiTestSuite.scala:130 assertion failed
+129:      )
+[7m130:      assert(stopped)[0m
+131:    }
+[90m    at [0m[90mmunit.FunSuite.assert[0m[90m([0m[90mFunSuite.scala[0m:[90m12[0m[90m)[0m
+[1m    at [0m[1mtui4s.interop.zio.testkit.LiveTuiTestSuite.$init$$$anonfun$8[0m[1m([0m[1mLiveTuiTestSuite.scala[0m:[1m130[0m[1m)[0m
+[32mtui4s.interop.zio.testkit.LiveTuiTestSuite[0m: finished [90m0.549s[0m
+Test run [36mtui4s.interop.zio.testkit.LiveTuiTestSuite[0m finished: [91m1 failed[0m, 0 ignored, 9 total [90m0.551s[0m
+Test run [36mtui4s.interop.zio.BackpressureSuite[0m started
+[32mtui4s.interop.zio.BackpressureSuite[0m: finished [90m8.565s[0m
+Test run [36mtui4s.interop.zio.BackpressureSuite[0m finished: 0 failed, 0 ignored, 3 total [90m8.566s[0m
+[AmbientZIOsSuite] race: 66 of 500 ZIOs had started
+Test run [36mtui4s.interop.zio.internal.AmbientZIOsSuite[0m started
+[32mtui4s.interop.zio.internal.AmbientZIOsSuite[0m: finished [90m28.743s[0m
+Test run [36mtui4s.interop.zio.internal.AmbientZIOsSuite[0m finished: 0 failed, 0 ignored, 9 total [90m28.745s[0m
+[error] Failed: Total 44, Failed 1, Errors 0, Passed 43
+[error] Failed tests:
+[error] 	tui4s.interop.zio.testkit.LiveTuiTestSuite
+[error] (zio / Test / test) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 88 s (0:01:28.0), completed 1 Oct 2026, 21:15:42

@@ -1,0 +1,26 @@
+== full zio mirror: 52 elements, wrote /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-facades/full-zio/generated/ZioUiFull.scala (1085 lines)
+   elements: 52, traits: 13 (Clickable, Activatable, Focusable, Interactive, Inline, Element, Block, Void, HasDisabled, BooleanInput, PickerInput, ConstrainedInput, TextInput)
+   factories: 52
+   setters generated: 159 (of 170 at their highest level)
+     with an effect point: 55
+   data aliases: MouseEvent, KeyboardEvent, WheelEvent, Style, InputFilter, Href, Target, ImgSrc + Keyboard, Modifiers
+   skipped kyo.UI.Ast.Interactive.dragSource(kyo.Drag.Source): no rule
+   skipped kyo.UI.Ast.Interactive.dropTarget(kyo.Drag.Target): no rule
+   skipped kyo.UI.Ast.Interactive.onDragEnd(scala.Function1[kyo.Drag.End, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onDragEnter(scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onDragLeave(scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onDragOver(scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onDragStart(scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onDrop(scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[kyo.Drag.Decision, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onSortMove(scala.Function1[kyo.Drag.Move, kyo.kernel$package.<[kyo.Drag.Decision, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Element.style(scala.Function1[kyo.Style.type, kyo.Style]): no rule
+   skipped kyo.UI.Ast.FileInput.accept(UI$.this.FileAccept*): no rule
+   leak through alias: kyo.UI.MouseEvent.<init>: (targetId: kyo.Maybe$package.Maybe[scala.Predef.String], modifiers: UI$.this.Modifiers)scala.Unit
+   leak through alias: kyo.UI.MouseEvent.targetId: kyo.Maybe$package.Maybe[scala.Predef.String]
+   leak through alias: kyo.UI.KeyboardEvent.<init>: (key: UI$.this.Keyboard, modifiers: UI$.this.Modifiers, targetId: kyo.Maybe$package.Maybe[scala.Predef.String])scala.Unit
+   leak through alias: kyo.UI.KeyboardEvent.targetId: kyo.Maybe$package.Maybe[scala.Predef.String]
+   leak through alias: kyo.UI.WheelEvent.<init>: (deltaX: scala.Double, deltaY: scala.Double, targetId: kyo.Maybe$package.Maybe[scala.Predef.String], modifiers: UI$.this.Modifiers)scala.Unit
+   leak through alias: kyo.UI.WheelEvent.targetId: kyo.Maybe$package.Maybe[scala.Predef.String]
+   leak through alias: kyo.Style.find: [A <: kyo.Style.Prop](using tag: kyo.ConcreteTag$package.ConcreteTag[A])kyo.Maybe$package.Maybe[A]
+   leak through alias: kyo.Style.props: kyo.Chunk[kyo.Style.Prop]
+   leak through alias: kyo.UI.Keyboard.charValue: kyo.Maybe$package.Maybe[scala.Predef.String]

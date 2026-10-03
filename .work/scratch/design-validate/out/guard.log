@@ -1,0 +1,16 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/Users/yuri4n/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[guard] compileErrors(ZIO task) = 'error: source.task got a zio.ZIO (zio.ZIO[scala.Any, scala.Nothing, scala.Int]). A Kyo app runs Kyo computations only. In a ZIO app import tui4s.zio.*; in a Cats Effect app import tui4s.cats.*; in a Kyo app convert it first (kyo-zio ZIOs.get, the tui4s-cats bridge, Async.fromFuture). /     val errs = compileErrors("tui4s.Source.For[Int].task(new zio.ZIO[Any, Nothing, Int])((s, _) => s)")'
+[guard-order] error: | Found:    (String, zio.ZIO[Any, Nothing, Int]) => tui4s.Next[Int] | Required: (Int, zio.ZIO[Any, Nothing, Int]) => tui4s.Next[Int] | tui4s.Source.For[Int].task(new zio.ZIO[Any, Nothing, Int])((s: String, _) => s) |                                                           ^ | error: | Found:    (s : String) | Required: tui4s.Next[Int] | tui4s.Source.For[Int].task(new zio.ZIO[Any, Nothing, Int])((s: String, _) => s) |                                                                             ^
+Test run [36mexamples.GuardSuite[0m started
+[32mexamples.GuardSuite[0m: finished [90m0.15s[0m
+Test run [36mexamples.GuardSuite[0m finished: 0 failed, 0 ignored, 7 total [90m0.185s[0m

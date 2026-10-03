@@ -1,0 +1,51 @@
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 21.0.8)
+[info] loading settings for project sbt-probe-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project a from extra.sbt...
+[info] set current project to root (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/)
+Running ci-release.
+  branch=refs/tags/b-v0.4.0
+gpg (GnuPG) 2.5.21
+gpg: keybox '/Users/yuri4n/Developer/projects/tui4s/.work/scratch/gnupg-ci/pubring.kbx' created
+gpg: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/gnupg-ci/trustdb.gpg: trustdb created
+gpg: key DB6395C0C93C5DA8: public key "tui4s probe <probe@example.com>" imported
+gpg: key DB6395C0C93C5DA8: secret key imported
+gpg: Total number processed: 1
+gpg:               imported: 1
+gpg:       secret keys read: 1
+gpg:   secret keys imported: 1
+Tag push detected, publishing a stable release
+[info] Defining Global / pgpSecretRing
+[info] The new value will be used by Global / pgpStaticContext
+[info] Reapplying settings...
+[info] set current project to root (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/)
+[info] Defining Global / pgpPublicRing
+[info] The new value will be used by Global / pgpStaticContext
+[info] Reapplying settings...
+[info] set current project to root (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/)
+[success] Total time: 1 s, completed 30 Sept 2026, 18:12:48
+[info] Releasable: probe-b:0.4.0; deps: probe-a:0.2.0
+[success] Total time: 0 s, completed 30 Sept 2026, 18:12:49
+[info] Wrote /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/modules/b/target/scala-3.9.0/probe-b_3-0.4.0.pom
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/modules/a/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/modules/b/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] Main Scala API documentation to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/modules/b/target/scala-3.9.0/api...
+[warn] Option -classpath was updated
+[warn] one warning found
+[info] Main Scala API documentation successful.
+[warn] versionScheme setting is empty; set `ThisBuild / versionScheme := Some("early-semver")`, `Some("semver-spec")` or `Some("pvp")`
+[warn] so tooling can use it for eviction errors etc - https://www.scala-sbt.org/1.x/docs/Publishing.html
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0-javadoc.jar
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0-sources.jar
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0.pom
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0.jar
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0.pom.asc
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0-sources.jar.asc
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0-javadoc.jar.asc
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0.jar.asc
+[success] Total time: 34 s, completed 30 Sept 2026, 18:13:22
+[info] set current project to probe-b (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/)
+[error] no credentials are found for central.sonatype.com

@@ -1,0 +1,69 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] running (fork) org.openjdk.jmh.generators.bytecode.JmhBytecodeGenerator /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/bench/target/scala-3.9.0/classes /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/bench/target/scala-3.9.0/src_managed/jmh /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/bench/target/scala-3.9.0/resource_managed/jmh default
+[error] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] Processing 50 classes from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/bench/target/scala-3.9.0/classes with "reflection" generator
+[info] Writing out Java source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/bench/target/scala-3.9.0/src_managed/jmh and resources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/bench/target/scala-3.9.0/resource_managed/jmh
+[info] compiling 13 Java sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/bench/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] running (fork) org.openjdk.jmh.Main -i 1 -wi 1 -w 1s -r 1s -f 1 tui4s.bench.EngineBench
+[error] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] # JMH version: 1.37
+[info] # VM version: JDK 25.0.4.1, OpenJDK 64-Bit Server VM, 25.0.4.1+1-LTS
+[info] # VM invoker: /Users/yuri4n/.sdkman/candidates/java/25.0.4+1.1-tem/bin/java
+[info] # VM options: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true --enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow
+[info] # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+[info] # Warmup: 1 iterations, 1 s each
+[info] # Measurement: 1 iterations, 1 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: tui4s.bench.EngineBench.changedView
+[info] # Run progress: 0.00% complete, ETA 00:00:04
+[info] # Fork: 1 of 1
+[info] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] # Warmup Iteration   1: 2996.877 us/op
+[info] Iteration   1: 1704.116 us/op
+[info] Result "tui4s.bench.EngineBench.changedView":
+[info]   1704.116 us/op
+[info] # JMH version: 1.37
+[info] # VM version: JDK 25.0.4.1, OpenJDK 64-Bit Server VM, 25.0.4.1+1-LTS
+[info] # VM invoker: /Users/yuri4n/.sdkman/candidates/java/25.0.4+1.1-tem/bin/java
+[info] # VM options: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true --enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow
+[info] # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+[info] # Warmup: 1 iterations, 1 s each
+[info] # Measurement: 1 iterations, 1 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: tui4s.bench.EngineBench.equalView
+[info] # Run progress: 50.00% complete, ETA 00:00:03
+[info] # Fork: 1 of 1
+[info] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] # Warmup Iteration   1: 21.117 us/op
+[info] Iteration   1: 2.926 us/op
+[info] Result "tui4s.bench.EngineBench.equalView":
+[info]   2.926 us/op
+[info] # Run complete. Total time: 00:00:07
+[info] REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+[info] why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+[info] experiments, perform baseline and negative tests that provide experimental control, make sure
+[info] the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+[info] Do not assume the numbers tell you what you want them to tell.
+[info] NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+[info] extra caution when trusting the results, look into the generated code to check the benchmark still
+[info] works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+[info] different JVMs are already problematic, the performance difference caused by different Blackhole
+[info] modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+[info] Benchmark                Mode  Cnt     Score   Error  Units
+[info] EngineBench.changedView  avgt       1704.116          us/op
+[info] EngineBench.equalView    avgt          2.926          us/op
+[success] Total time: 22 s, completed 1 Oct 2026, 17:25:06

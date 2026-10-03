@@ -1,0 +1,52 @@
+PASS counter: first frame
+PASS counter q: exit code 0
+PASS counter q: terminal back in cooked mode (echo icanon isig)
+PASS counter ctrl-c: first frame
+PASS counter ctrl-c: exit code 0
+PASS counter ctrl-c: terminal back in cooked mode (echo icanon isig)
+PASS counter sigterm: first frame
+PASS counter kill -TERM: exit code 143
+PASS counter kill -TERM: terminal back in cooked mode (echo icanon isig)
+PASS todo: first frame
+PASS todo: exit code 0
+PASS todo: terminal back in cooked mode (echo icanon isig)
+PASS todo restart: first frame
+PASS todo restart: exit code 0
+PASS todo restart: terminal back in cooked mode (echo icanon isig)
+PASS dashboard: first frame
+PASS dashboard: exit code 0
+PASS dashboard: terminal back in cooked mode (echo icanon isig)
+PASS native access denied: exit code 1
+PASS native access denied: terminal back in cooked mode (echo icanon isig)
+PASS stdin piped: exit code 1
+PASS stdin piped: terminal back in cooked mode (echo icanon isig)
+
+Terminal part: 22 passed, 0 failed
+PASS counter: + shows Count: 1
+PASS counter: + shows Count: 2
+PASS counter: - shows Count: 1
+PASS counter: the help bar comes from the keymap
+PASS counter-q: leaves the alternate screen and shows the cursor
+PASS ctrlc-start: leaves the alternate screen and shows the cursor
+PASS term-start: leaves the alternate screen and shows the cursor
+PASS counter: nothing stray is printed after the restore
+PASS todo: typed text shows in the field
+PASS todo: enter adds the item
+PASS todo: bracketed paste with an emoji shows
+PASS todo: tab moves the focus (the help bar shows the list keys)
+PASS todo: ctrl-s shows saved
+FAIL todo: a restart loads both items: "\n EXIT=0\nPASS todo restart: exit code 0\nY                             PROMPT> stty -a | tr ' ' '\\n' | grep -Ex -- '-?(icanon|echo|isig)' | sort | tr '\\n' ' '; echo ENDSTT\necho icanon isig ENDSTTY\nPASS todo restart: terminal back in cooked mode (echo icanon isig)\n                                                                  PROMPT>\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+PASS dashboard: the gauge changes about 4 times a second
+PASS dashboard: the log pane fills
+PASS dashboard: p stops the gauge
+PASS dashboard: the log pane keeps going while paused
+PASS dashboard: p again resumes the gauge
+PASS dashboard: after a resize to 60x20 the frame is 60 columns wide
+PASS dashboard: after a resize back to 100x30 the frame is 100 columns wide
+PASS dashboard: right arrow changes the tab
+PASS deny: the message names --enable-native-access
+PASS deny: no alternate screen was entered
+PASS pipe: the message says not a terminal
+
+Screen part: 24 passed, 1 failed
+Raw terminal output: /var/folders/w4/q5jx5p_10nn_dlsm2l43p16w0000gn/T//tui4s-ptycheck.i6KvxD/session.log

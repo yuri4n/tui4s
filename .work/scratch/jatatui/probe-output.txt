@@ -1,0 +1,29 @@
+java.version=25.0.4.1 scala=3.9.0
+|╭─────────── jatatui probe ────────────*|
+|│Hello from Scala 3.9 on JDK 25,       │|
+|│wrapped by jatatui.                   │|
+|│                                      │|
+|│   item 1                             │|
+|│   item 2                             │|
+|│   item 3                             │|
+|│   item 4                             │|
+|│   item 5                             │|
+|│>> item 6                             │|
+|│████████████████ 42%                  │|
+|╰ q to quit ───────────────────────────╯|
+[OK  ] rendered lines equal expected
+[OK  ] ListState.offset was mutated by render (0 -> 1)
+[OK  ] selected still 6
+[OK  ] selected row is REVERSED
+[OK  ] 'Hello' is bold yellow
+[OK  ] CompletedFrame.count == 0
+[OK  ] after select(0): first list row is '>> item 0'
+[OK  ] offset reset to 0
+[OK  ] Buffer.withLines equality
+[OK  ] Buffer.diff returns live Cell refs (update sees later mutation)
+[OK  ] Layout.split returns the cached array instance for an equal Layout
+  setString outside area -> java.lang.IndexOutOfBoundsException
+ALL CHECKS PASSED
+real 17.00
+user 1.59
+sys 0.29

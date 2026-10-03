@@ -1,0 +1,6 @@
+E1 ok ZIO:      List()
+E2 ok lambda:   List()
+E3 Unit:        List(tui4s: a handler is a ZIO[Any, Nothing, Any] (or Int => ZIO[Any, Nothing, Any]). Handle the errors of a ZIO that may fail; a plain value would never run.)
+E4 failing ZIO: List(tui4s: a handler is a ZIO[Any, Nothing, Any] (or Int => ZIO[Any, Nothing, Any]). Handle the errors of a ZIO that may fail; a plain value would never run.)
+E5 lambda Unit: List(Found:    Unit
+Required: zio.ZIO[Any, Nothing, Any])

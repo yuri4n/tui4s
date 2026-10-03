@@ -1,0 +1,33 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] running (fork) tui4s.bench.SoakProbe 180
+[error] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] [soak] t=  10 s heap=6.8 MB threads=18 sources=3 tasks=0 done=95 dropped=0
+[info] [soak] t=  20 s heap=6.9 MB threads=18 sources=3 tasks=0 done=194 dropped=0
+[info] [soak] t=  30 s heap=6.9 MB threads=18 sources=3 tasks=0 done=293 dropped=0
+[info] [soak] t=  40 s heap=6.9 MB threads=18 sources=3 tasks=0 done=392 dropped=0
+[info] [soak] t=  50 s heap=6.9 MB threads=18 sources=3 tasks=0 done=492 dropped=0
+[info] [soak] t=  60 s heap=7.0 MB threads=18 sources=3 tasks=0 done=591 dropped=0
+[info] [soak] t=  70 s heap=7.0 MB threads=18 sources=3 tasks=0 done=691 dropped=0
+[info] [soak] t=  80 s heap=6.9 MB threads=18 sources=3 tasks=0 done=791 dropped=0
+[info] [soak] t=  90 s heap=7.0 MB threads=18 sources=3 tasks=0 done=890 dropped=0
+[info] [soak] t= 100 s heap=7.0 MB threads=18 sources=3 tasks=0 done=990 dropped=0
+[info] [soak] t= 110 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1089 dropped=0
+[info] [soak] t= 120 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1189 dropped=0
+[info] [soak] t= 130 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1288 dropped=0
+[info] [soak] t= 140 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1388 dropped=0
+[info] [soak] t= 150 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1488 dropped=0
+[info] [soak] t= 160 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1587 dropped=0
+[info] [soak] t= 170 s heap=7.0 MB threads=17 sources=3 tasks=0 done=1686 dropped=0
+[info] [soak] t= 180 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1786 dropped=0
+[info] [soak] t= 190 s heap=7.0 MB threads=18 sources=3 tasks=0 done=1885 dropped=0
+[info] [soak] seconds=180  heapMidMB=6.959  heapEndMB=6.968  heapDriftPct=0.140  threadsMin=17  threadsMax=18  maxSources=3  maxTasks=0  tasksDone=1885  withinBudget=false  machine=Mac OS X x86_64, 8 CPUs, JDK 25.0.4.1, load 2.7
+[success] Total time: 215 s (0:03:35.0), completed 1 Oct 2026, 19:24:51

@@ -1,0 +1,33 @@
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 21.0.8)
+[info] loading settings for project sbt-probe-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/project
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/project/target/scala-2.12/sbt-1.0/classes ...
+[info] Non-compiled module 'compiler-bridge_2.12' for Scala 2.12.21. Compiling...
+[info]   Compilation completed in 32.166s.
+[info] done compiling
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project a from extra.sbt...
+[info] set current project to root (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/)
+[info] 0.1.0
+[info] 0.3.0
+[info] a / version
+[info] 	0.1.0
+[info] b / version
+[info] 	0.3.0
+[info] version
+[info] 	0.0.0+1-803ca607-SNAPSHOT
+[info] a / isSnapshot
+[info] 	false
+[info] b / isSnapshot
+[info] 	false
+[info] isSnapshot
+[info] 	true
+[info] false
+[info] * io.github.yuri4n:probe-a:0.1.0
+[success] Total time: 0 s, completed 30 Sept 2026, 18:05:50
+[info] Releasable: probe-b:0.3.0; deps: probe-a:0.1.0
+[success] Total time: 0 s, completed 30 Sept 2026, 18:05:50
+[info] None
+[info] Some(FileRepository(local-staging, Patterns(ivyPatterns=Vector(), artifactPatterns=Vector(/Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/[organisation]/[module](_[scalaVersion])(_[sbtVersion])/[revision]/[artifact]-[revision](-[classifier]).[ext]), isMavenCompatible=true, descriptorOptional=false, skipConsistencyCheck=false), FileConfiguration(true, None)))
+[success] Total time: 0 s, completed 30 Sept 2026, 18:05:50
+[info] loaded-from-modules/a/extra.sbt

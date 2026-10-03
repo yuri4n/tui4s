@@ -1,0 +1,46 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[33m[33m-- [E198] Unused Symbol Warning: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Tui.scala:72:23 [0m[0m
+[33m72 |[0m  [33mprotected[0m [33mdef[0m onExit(state: S): [33mUnit[0m < ([33mAsync[0m & [33mAbort[0m[[33mThrowable[0m]) = ()
+[33m[33m   |[0m                       ^^^^^[0m
+[33m   |[0m                       unused explicit parameter
+[33m[33m-- [E198] Unused Symbol Warning: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/internal/Painter.scala:46:14 [0m[0m
+[33m46 |[0m  [33mprivate[0m [33mvar[0m resized                        = [32mfalse[0m
+[33m[33m   |[0m              ^^^^^^^[0m
+[33m   |[0m              private variable was mutated but not read
+[33m[33m-- [E198] Unused Symbol Warning: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/testkit/testkit.scala:6:32 [0m[0m
+[33m6 |[0m[33mimport[0m scala.collection.mutable.[33mArrayBuffer[0m
+[33m[33m  |[0m                                ^^^^^^^^^^^[0m
+[33m  |[0m                                unused import
+Warning: mocking up superclass for module class internal
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+@nowarn annotation does not suppress any warnings
+32 warnings found

@@ -1,0 +1,27 @@
+[info] compiling 7 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/cats/modules/cats/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 8 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/cats/examples/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 6 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/cats/examples/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Test run [36mexamples.counter.CounterSuite[0m started
+[32mexamples.counter.CounterSuite[0m: finished [90m1.007s[0m
+Test run [36mexamples.counter.CounterSuite[0m finished: 0 failed, 0 ignored, 5 total [90m1.114s[0m
+Test run [36mexamples.dashboard.DashboardSuite[0m started
+[32mexamples.dashboard.DashboardSuite[0m: finished [90m4.822s[0m
+Test run [36mexamples.dashboard.DashboardSuite[0m finished: 0 failed, 0 ignored, 3 total [90m4.823s[0m
+Test run [36mexamples.todo.TodoSuite[0m started
+[32mexamples.todo.TodoSuite[0m: finished [90m0.247s[0m
+Test run [36mexamples.todo.TodoSuite[0m finished: 0 failed, 0 ignored, 5 total [90m0.248s[0m
+Test run [36mexamples.catsdashboard.DashboardSuite[0m started
+[32mexamples.catsdashboard.DashboardSuite[0m: finished [90m3.331s[0m
+Test run [36mexamples.catsdashboard.DashboardSuite[0m finished: 0 failed, 0 ignored, 3 total [90m3.332s[0m
+Test run [36mexamples.catscounter.CounterSuite[0m started
+[32mexamples.catscounter.CounterSuite[0m: finished [90m0.07s[0m
+Test run [36mexamples.catscounter.CounterSuite[0m finished: 0 failed, 0 ignored, 6 total [90m0.07s[0m
+Test run [36mparity.ParitySuite[0m started
+[32mparity.ParitySuite[0m: finished [90m0.037s[0m
+Test run [36mparity.ParitySuite[0m finished: 0 failed, 0 ignored, 3 total [90m0.037s[0m
+[info] Passed: Total 25, Failed 0, Errors 0, Passed 25
+[success] Total time: 97 s (0:01:37.0), completed 1 Oct 2026, 20:56:26
+[success] Total time: 0 s, completed 1 Oct 2026, 20:56:27

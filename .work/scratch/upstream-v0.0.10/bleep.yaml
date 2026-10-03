@@ -1,0 +1,70 @@
+$schema: https://raw.githubusercontent.com/oyvindberg/bleep/master/schema.json
+$version: 0.0.13
+jvm:
+  name: graalvm-community:25.0.1
+projects:
+  cassowary:
+    extends: template-cross-scala
+  crossterm:
+    java:
+      options: --release 17
+    sourcegen:
+      main: tui.scripts.GenJniLibrary
+      project: scripts
+  demo:
+    dependencies: org.graalvm.nativeimage:svm:25.0.1
+    dependsOn: tui
+    extends: template-cross-scala
+    platform:
+      mainClass: tuiexamples.Launcher
+  scripts:
+    dependencies:
+    - build.bleep::bleep-plugin-ci-release:${BLEEP_VERSION}
+    - build.bleep::bleep-plugin-jni:${BLEEP_VERSION}
+    - build.bleep::bleep-plugin-native-image:${BLEEP_VERSION}
+    extends:
+    - template-scala-2
+    - template-scala-common
+  tests:
+    dependencies: org.scalatest::scalatest:3.2.19
+    dependsOn: tui
+    extends: template-cross-scala
+    isTestProject: true
+  tui:
+    dependsOn:
+    - cassowary
+    - crossterm
+    extends: template-cross-scala
+scripts:
+  gen-headers:
+    main: tui.scripts.GenHeaders
+    project: scripts
+  gen-native-image:
+    main: tui.scripts.GenNativeImage
+    project: scripts
+  my-publish-local:
+    main: tui.scripts.PublishLocal
+    project: scripts
+  publish:
+    main: tui.scripts.Publish
+    project: scripts
+templates:
+  template-cross-scala:
+    cross:
+      jvm213:
+        extends: template-scala-2
+      jvm3:
+        extends: template-scala-3
+    extends: template-scala-common
+  template-scala-2:
+    scala:
+      version: 2.13.18
+  template-scala-3:
+    scala:
+      version: 3.7.4
+  template-scala-common:
+    platform:
+      name: jvm
+    scala:
+      options: -encoding utf8 -feature -unchecked
+      strict: true

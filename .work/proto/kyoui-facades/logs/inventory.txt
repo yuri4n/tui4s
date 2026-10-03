@@ -1,0 +1,288 @@
+kyo-ui public classes: 615; public methods (all classes): 1353
+kyo.UI companion: 71 public methods
+  element factories:      52
+  Signal extensions:      5  (foreach, foreachIndexed, foreachKeyed, render, foreachKeyedIndexed)
+  implicit conversions:   3  (signalStringToUI, signalUIToUI, stringToUI)
+  other:                  11  (rawHtml, scrollIntoView, empty, runRenderPage, when, runRender, fragment, runHandlers, dataIsland, stylesheetCss)
+element case classes: 99
+  setter overloads, unique (owner, name, signature): 499
+  setter names, unique: 146
+  (element, setter) pairs = forwarders if flattened: 4563
+  unique setters by declaring owner:
+    kyo.UI.Ast.Interactive                 40
+    kyo.Svg.Animate                        14
+    kyo.UI.Ast.Element                     14
+    kyo.Svg.Line                           13
+    kyo.Svg.LinearGradient                 12
+    kyo.UI.Ast.NumberInput                 11
+    kyo.Svg.Filter                         11
+    kyo.Svg.Ellipse                        10
+    kyo.UI.Ast.Input                        9
+    kyo.Svg.RadialGradient                  9
+    kyo.UI.Ast.Textarea                     9
+    kyo.UI.Ast.UrlInput                     9
+    kyo.UI.Ast.TelInput                     9
+    kyo.UI.Ast.EmailInput                   9
+    kyo.Svg.Marker                          9
+    kyo.Svg.AnimateTransform                9
+    kyo.Svg.HasStroke                       9
+    kyo.UI.Ast.SearchInput                  9
+    kyo.UI.Ast.PasswordInput                9
+    kyo.Svg.Circle                          8
+    kyo.Svg.Path                            8
+    kyo.UI.Ast.RangeInput                   7
+    kyo.Svg.FeOffset                        7
+    kyo.Svg.Text                            6
+    kyo.Svg.Rect                            6
+    kyo.Svg.Polyline                        6
+    kyo.Svg.Positioned                      6
+    kyo.Svg.Sized                           6
+    kyo.UI.Ast.Checkbox                     6
+    kyo.Svg.FeComposite                     5
+    kyo.Svg.SetAnim                         5
+    kyo.Svg.FeColorMatrix                   5
+    kyo.Svg.G                               5
+    kyo.Svg.AnimateMotion                   5
+    kyo.Svg.FeDisplacementMap               5
+    kyo.Svg.FeBlend                         5
+    kyo.UI.Ast.Anchor                       5
+    kyo.UI.Ast.Radio                        5
+    kyo.UI.Ast.Select                       5
+    kyo.UI.Ast.DateInput                    4
+    kyo.Svg.FeGaussianBlur                  4
+    kyo.Svg.FeMorphology                    4
+    kyo.UI.Ast.Dropdown                     4
+    kyo.UI.Ast.Opt                          4
+    kyo.Svg.FeTurbulence                    4
+    kyo.UI.Ast.ColorInput                   4
+    kyo.Svg.Symbol                          4
+    kyo.Svg.Pattern                         4
+    kyo.Svg.Root                            4
+    kyo.Svg.Stop                            4
+    kyo.UI.Ast.TimeInput                    4
+    kyo.Svg.FeFlood                         4
+    kyo.UI.Ast.Iframe                       3
+    kyo.Svg.Polygon                         3
+    kyo.UI.Ast.FileInput                    3
+    kyo.Svg.FeImage                         3
+    kyo.Svg.FeTile                          3
+    kyo.UI.Ast.Img                          3
+    kyo.Svg.SvgAnchor                       3
+    kyo.Svg.HasFill                         3
+    kyo.UI.Ast.Form                         3
+    kyo.Svg.Mask                            3
+    kyo.Svg.TSpan                           3
+    kyo.Svg.FeMerge                         3
+    kyo.UI.Ast.Label                        3
+    kyo.UI.Ast.Th                           3
+    kyo.UI.Ast.Td                           3
+    kyo.UI.Ast.BooleanInput                 3
+    kyo.Svg.ClipPath                        3
+    kyo.UI.Ast.PickerInput                  2
+    kyo.Svg.Metadata                        2
+    kyo.UI.Ast.ConstrainedInput             2
+    kyo.UI.Ast.HiddenInput                  2
+    kyo.Svg.Switch                          2
+    kyo.Svg.Image                           2
+    kyo.Svg.TextPath                        2
+    kyo.UI.Ast.Button                       2
+    kyo.UI.Ast.HasDisabled                  2
+    kyo.Svg.ForeignObject                   2
+    kyo.UI.Ast.TextInput                    2
+    kyo.Svg.Defs                            2
+    kyo.Svg.FeMergeNode                     2
+    kyo.Svg.HasTransform                    1
+    kyo.UI.Ast.Ol                           1
+    kyo.UI.Ast.Div                          1
+    kyo.Svg.HasFilter                       1
+    kyo.UI.Ast.H2                           1
+    kyo.UI.Ast.Tbody                        1
+    kyo.UI.Ast.Code                         1
+    kyo.Svg.Use                             1
+    kyo.UI.Ast.H6                           1
+    kyo.UI.Ast.SpanElement                  1
+    kyo.UI.Ast.Table                        1
+    kyo.UI.Ast.Li                           1
+    kyo.UI.Ast.Section                      1
+    kyo.UI.Ast.H1                           1
+    kyo.UI.Ast.Main                         1
+    kyo.UI.Ast.Header                       1
+    kyo.UI.Ast.H5                           1
+    kyo.Svg.HasOpacity                      1
+    kyo.UI.Ast.Blockquote                   1
+    kyo.UI.Ast.Ul                           1
+    kyo.Svg.Desc                            1
+    kyo.UI.Ast.Footer                       1
+    kyo.UI.Ast.Pre                          1
+    kyo.UI.Ast.H4                           1
+    kyo.UI.Ast.P                            1
+    kyo.Svg.HasId                           1
+    kyo.Svg.Title                           1
+    kyo.UI.Ast.Tr                           1
+    kyo.UI.Ast.H3                           1
+    kyo.UI.Ast.Nav                          1
+Token counts (a signature can mention several):
+  element factories (52 signatures):
+    <              0
+    Async          0
+    Signal         0
+    SignalRef      0
+    Stream         0
+    Frame         52
+    Chunk          0
+    Maybe          0
+    any Kyo effect type (<)      0
+  unique setters (499 signatures):
+    <             58
+    Async         58
+    Signal         9
+    SignalRef     20
+    Stream         0
+    Frame          1
+    Chunk          0
+    Maybe          0
+    any Kyo effect type (<)     58
+  Signal extensions + implicit conversions (8 signatures):
+    <              0
+    Async          0
+    Signal         7
+    SignalRef      0
+    Stream         0
+    Frame          8
+    Chunk          4
+    Maybe          0
+    any Kyo effect type (<)      0
+  all public methods of kyo-ui (1353 signatures):
+    <             85
+    Async         86
+    Signal        21
+    SignalRef     24
+    Stream         4
+    Frame        139
+    Chunk         21
+    Maybe        106
+    any Kyo effect type (<)     85
+Setters whose parameter is a Kyo effect (handlers): 58
+    onBlur: (action: => kyo.kernel$package.<[scala.Any, kyo.Async$package.Async])Interactive.this.Self  |  (f: scala.Function1[UI$.this.MouseEvent, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Interactive.this.Self
+    onChange: (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.ColorInput  |  (f: scala.Function1[scala.Boolean, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.Checkbox  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.Dropdown  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.UrlInput  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.PasswordInput  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.FileInput  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.SearchInput  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.TimeInput  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.Input  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.EmailInput  |  (f: scala.Function1[scala.Boolean, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.Radio  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.NumberInput  |  (f: scala.Function1[scala.Double, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.RangeInput  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.Textarea  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.Select  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.TelInput  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.DateInput
+    onChangeNumeric: (f: scala.Function1[scala.Double, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.NumberInput
+    onClick: (action: => kyo.kernel$package.<[scala.Any, kyo.Async$package.Async])Interactive.this.Self  |  (f: scala.Function1[UI$.this.MouseEvent, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Interactive.this.Self
+    onClickSelf: (action: => kyo.kernel$package.<[scala.Any, kyo.Async$package.Async])Interactive.this.Self  |  (f: scala.Function1[UI$.this.MouseEvent, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Interactive.this.Self
+    onDragEnd: (action: => kyo.kernel$package.<[scala.Any, kyo.Async$package.Async])Interactive.this.Self  |  (f: scala.Function1[kyo.Drag.End, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Interactive.this.Self
+    onDragEnter: (action: => kyo.kernel$package.<[scala.Any, kyo.Async$package.Async])Interactive.this.Self  |  (f: scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Interactive.this.Self
+    onDragLeave: (action: => kyo.kernel$package.<[scala.Any, kyo.Async$package.Async])Interactive.this.Self  |  (f: scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Interactive.this.Self
+    onDragOver: (action: => kyo.kernel$package.<[scala.Any, kyo.Async$package.Async])Interactive.this.Self  |  (f: scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Interactive.this.Self
+    onDragStart: (action: => kyo.kernel$package.<[scala.Any, kyo.Async$package.Async])Interactive.this.Self  |  (f: scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Interactive.this.Self
+    onDrop: (action: => kyo.kernel$package.<[scala.Any, kyo.Async$package.Async])Interactive.this.Self  |  (f: scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[kyo.Drag.Decision, kyo.Async$package.Async]])Interactive.this.Self
+    onFocus: (action: => kyo.kernel$package.<[scala.Any, kyo.Async$package.Async])Interactive.this.Self  |  (f: scala.Function1[UI$.this.MouseEvent, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Interactive.this.Self
+    onHover: (action: => kyo.kernel$package.<[scala.Any, kyo.Async$package.Async])Interactive.this.Self  |  (f: scala.Function1[UI$.this.MouseEvent, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Interactive.this.Self
+    onInput: (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.UrlInput  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.PasswordInput  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.SearchInput  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.Input  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.EmailInput  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.NumberInput  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.Textarea  |  (f: scala.Function1[scala.Predef.String, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.TelInput
+    onKeyDown: (f: scala.Function1[UI$.this.KeyboardEvent, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Interactive.this.Self
+    onKeyUp: (f: scala.Function1[UI$.this.KeyboardEvent, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Interactive.this.Self
+    onScroll: (action: => kyo.kernel$package.<[scala.Any, kyo.Async$package.Async])Interactive.this.Self  |  (f: scala.Function1[UI$.this.WheelEvent, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Interactive.this.Self
+    onSortMove: (action: => kyo.kernel$package.<[scala.Any, kyo.Async$package.Async])Interactive.this.Self  |  (f: scala.Function1[kyo.Drag.Move, kyo.kernel$package.<[kyo.Drag.Decision, kyo.Async$package.Async]])Interactive.this.Self
+    onSubmit: (action: => kyo.kernel$package.<[scala.Any, kyo.Async$package.Async])Ast$.this.Form  |  (f: scala.Function1[UI$.this.MouseEvent, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Ast$.this.Form
+    onUnhover: (action: => kyo.kernel$package.<[scala.Any, kyo.Async$package.Async])Interactive.this.Self  |  (f: scala.Function1[UI$.this.MouseEvent, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]])Interactive.this.Self
+Setters that take a Signal / SignalRef: 29
+    kyo.UI.Ast.Element.hidden: (v: kyo.Signal[scala.Boolean])Ast$.this.Reactive[Element.this.Self]
+    kyo.UI.Ast.Element.style: (v: kyo.Signal[kyo.Style])Ast$.this.Reactive[Element.this.Self]
+    kyo.UI.Ast.HasDisabled.disabled: (v: kyo.Signal[scala.Boolean])Ast$.this.Reactive[HasDisabled.this.Self]
+    kyo.UI.Ast.ColorInput.value: (v: kyo.Signal$package.SignalRef[scala.Predef.String])Ast$.this.ColorInput
+    kyo.UI.Ast.PickerInput.value: (v: kyo.Signal$package.SignalRef[scala.Predef.String])PickerInput.this.Self
+    kyo.UI.Ast.Opt.selected: (v: kyo.Signal[scala.Boolean])Ast$.this.Reactive[Opt.this.Self]
+    kyo.UI.Ast.Checkbox.checked: (v: kyo.Signal$package.SignalRef[scala.Boolean])Ast$.this.Checkbox
+    kyo.UI.Ast.BooleanInput.checked: (v: kyo.Signal$package.SignalRef[scala.Boolean])BooleanInput.this.Self
+    kyo.UI.Ast.BooleanInput.checked: (v: kyo.Signal[scala.Boolean])Ast$.this.Reactive[BooleanInput.this.Self]
+    kyo.UI.Ast.Checkbox.indeterminate: (v: kyo.Signal[scala.Boolean])(using x$2: kyo.Frame$package.Frame, x$3: scala.CanEqual[scala.Boolean, scala.Boolean])Ast$.this.Reactive[Checkbox.this.Self]
+    kyo.UI.Ast.Dropdown.value: (v: kyo.Signal$package.SignalRef[scala.Predef.String])Ast$.this.Dropdown
+    kyo.UI.Ast.UrlInput.value: (v: kyo.Signal$package.SignalRef[scala.Predef.String])Ast$.this.UrlInput
+    kyo.UI.Ast.TextInput.value: (v: kyo.Signal$package.SignalRef[scala.Predef.String])TextInput.this.Self
+    kyo.UI.Ast.PasswordInput.value: (v: kyo.Signal$package.SignalRef[scala.Predef.String])Ast$.this.PasswordInput
+    kyo.UI.Ast.Anchor.href: (v: kyo.Signal[UI$.this.Href])Ast$.this.Reactive[Anchor.this.Self]
+    kyo.UI.Ast.HiddenInput.value: (v: kyo.Signal$package.SignalRef[scala.Predef.String])Ast$.this.HiddenInput
+    kyo.UI.Ast.SearchInput.value: (v: kyo.Signal$package.SignalRef[scala.Predef.String])Ast$.this.SearchInput
+    kyo.UI.Ast.TimeInput.value: (v: kyo.Signal$package.SignalRef[scala.Predef.String])Ast$.this.TimeInput
+    kyo.UI.Ast.Input.value: (v: kyo.Signal$package.SignalRef[scala.Predef.String])Ast$.this.Input
+    kyo.UI.Ast.EmailInput.value: (v: kyo.Signal$package.SignalRef[scala.Predef.String])Ast$.this.EmailInput
+    kyo.UI.Ast.Radio.checked: (v: kyo.Signal$package.SignalRef[scala.Boolean])Ast$.this.Radio
+    kyo.UI.Ast.NumberInput.value: (v: kyo.Signal$package.SignalRef[scala.Predef.String])Ast$.this.NumberInput
+    kyo.UI.Ast.RangeInput.value: (v: kyo.Signal$package.SignalRef[scala.Double])Ast$.this.RangeInput
+    kyo.UI.Ast.Textarea.value: (v: kyo.Signal$package.SignalRef[scala.Predef.String])Ast$.this.Textarea
+    kyo.UI.Ast.Select.value: (v: kyo.Signal$package.SignalRef[scala.Predef.String])Ast$.this.Select
+    kyo.UI.Ast.Img.src: (v: kyo.Signal[UI$.this.ImgSrc])Ast$.this.Reactive[Img.this.Self]
+    kyo.UI.Ast.TelInput.value: (v: kyo.Signal$package.SignalRef[scala.Predef.String])Ast$.this.TelInput
+    kyo.UI.Ast.Iframe.src: (v: kyo.Signal[scala.Predef.String])Ast$.this.Reactive[Iframe.this.Self]
+    kyo.UI.Ast.DateInput.value: (v: kyo.Signal$package.SignalRef[scala.Predef.String])Ast$.this.DateInput
+Signal extensions / implicit conversions / other kyo.UI members:
+    foreach: [A](signal: kyo.Signal[kyo.Chunk[A]])[C <: kyo.UI](render: scala.Function1[A, C])(using x$3: kyo.Frame$package.Frame)UI$.this.Ast.Foreach[A, C]
+    foreachIndexed: [A](signal: kyo.Signal[kyo.Chunk[A]])[C <: kyo.UI](render: scala.Function2[scala.Int, A, C])(using x$3: kyo.Frame$package.Frame)UI$.this.Ast.Foreach[A, C]
+    foreachKeyed: [A](signal: kyo.Signal[kyo.Chunk[A]])[C <: kyo.UI](key: scala.Function1[A, scala.Predef.String])(render: scala.Function1[A, C])(using x$4: kyo.Frame$package.Frame)UI$.this.Ast.Foreach[A, C]
+    render: [A](signal: kyo.Signal[A])[C <: kyo.UI](f: scala.Function1[A, C])(using x$3: kyo.Frame$package.Frame)UI$.this.Ast.Reactive[C]
+    foreachKeyedIndexed: [A](signal: kyo.Signal[kyo.Chunk[A]])[C <: kyo.UI](key: scala.Function1[A, scala.Predef.String])(render: scala.Function2[scala.Int, A, C])(using x$4: kyo.Frame$package.Frame)UI$.this.Ast.Foreach[A, C]
+    signalStringToUI: (v: kyo.Signal[scala.Predef.String])(using x$2: kyo.Frame$package.Frame)UI$.this.Ast.Reactive[UI$.this.Ast.Text]
+    signalUIToUI: [A <: kyo.UI](v: kyo.Signal[A])(using x$2: kyo.Frame$package.Frame, x$3: scala.CanEqual[A, A])UI$.this.Ast.Reactive[A]
+    stringToUI: (v: scala.Predef.String)(using x$2: kyo.Frame$package.Frame)UI$.this.Ast.Text
+    rawHtml: (html: scala.Predef.String)(using x$2: kyo.Frame$package.Frame)kyo.UI
+    scrollIntoView: (id: scala.Predef.String)(using x$2: kyo.Frame$package.Frame)kyo.kernel$package.<[scala.Unit, kyo.Async$package.Async]
+    empty: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Fragment[scala.Nothing]
+    runRenderPage: (head: UI$.this.PageHead)(ui: kyo.UI)(using x$3: kyo.Frame$package.Frame)kyo.Stream[scala.Predef.String, kyo.Async$package.Async]
+    when: [C <: kyo.UI](condition: kyo.Signal[scala.Boolean])(body: => C)(using x$3: kyo.Frame$package.Frame)UI$.this.Ast.Reactive[C]
+    runRender: (ui: kyo.UI)(using x$2: kyo.Frame$package.Frame)kyo.Stream[scala.Predef.String, kyo.Async$package.Async]
+    fragment: [C <: kyo.UI](cs: C*)(using x$2: kyo.Frame$package.Frame)UI$.this.Ast.Fragment[C]
+    runHandlers: (basePath: scala.Predef.String)(ui: => kyo.kernel$package.<[kyo.UI, kyo.Async$package.Async])(using x$3: kyo.Frame$package.Frame)kyo.kernel$package.<[scala.package.Seq[kyo.HttpHandler[?, ?, ?]], kyo.Sync$package.Sync]
+    runHandlers: (basePath: scala.Predef.String, head: UI$.this.PageHead)(ui: scala.Function1[UI$.this.Request, kyo.kernel$package.<[kyo.UI, kyo.Async$package.Async]])(using x$4: kyo.Frame$package.Frame)kyo.kernel$package.<[scala.package.Seq[kyo.HttpHandler[?, ?, ?]], kyo.Sync$package.Sync]
+    dataIsland: (scriptType: scala.Predef.String, id: kyo.Maybe$package.Maybe[scala.Predef.String], json: scala.Predef.String)(using x$4: kyo.Frame$package.Frame)kyo.UI.DataIsland
+    stylesheetCss: (sheet: kyo.Stylesheet)(using x$2: kyo.Frame$package.Frame)scala.Predef.String
+Element factories:
+    ul: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Ul
+    footer: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Footer
+    a: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Anchor
+    radio: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Radio
+    option: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Opt
+    searchInput: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.SearchInput
+    nav: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Nav
+    input: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Input
+    tr: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Tr
+    dateInput: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.DateInput
+    header: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Header
+    telInput: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.TelInput
+    h6: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.H6
+    li: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Li
+    tbody: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Tbody
+    ol: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Ol
+    span: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.SpanElement
+    dropdown: (options: scala.Tuple2[scala.Predef.String, scala.Predef.String]*)(using x$2: kyo.Frame$package.Frame)UI$.this.Ast.Dropdown
+    h3: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.H3
+    br: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Br
+    code: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Code
+    pre: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Pre
+    select: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Select
+    colorInput: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.ColorInput
+    urlInput: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.UrlInput
+    section: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Section
+    timeInput: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.TimeInput
+    hr: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Hr
+    blockquote: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Blockquote
+    main: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Main
+    td: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Td
+    fileInput: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.FileInput
+    emailInput: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.EmailInput
+    h2: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.H2
+    div: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Div
+    h4: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.H4
+    hiddenInput: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.HiddenInput
+    table: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Table
+    passwordInput: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.PasswordInput
+    h5: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.H5
+    numberInput: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.NumberInput
+    form: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Form
+    p: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.P
+    label: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Label
+    img: (src: UI$.this.ImgSrc, alt: scala.Predef.String)(using x$3: kyo.Frame$package.Frame)UI$.this.Ast.Img
+    h1: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.H1
+    rangeInput: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.RangeInput
+    checkbox: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Checkbox
+    button: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Button
+    iframe: (src: scala.Predef.String)(using x$2: kyo.Frame$package.Frame)UI$.this.Ast.Iframe
+    th: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Th
+    textarea: (using x$1: kyo.Frame$package.Frame)UI$.this.Ast.Textarea

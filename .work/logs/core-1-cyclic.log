@@ -1,0 +1,34 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] Defining core / scalacOptions
+[info] The new value will be used by core / Compile / scalacOptions, core / Scalafix / scalacOptions
+[info] Reapplying settings...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] compiling 2 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[error] -- [E046] Cyclic Error: /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/src/main/scala/tui4s/Styling.scala:19:20 
+[error] 19 |opaque type Color = JColor
+[error]    |                    ^
+[error]    |Cyclic reference involving val <import>
+[error]    |
+[error]    |The error occurred while trying to compute the signature of import jatatui.core.style.{Color as JColor}
+[error]    |  which required to compute the signature of package object tui4s
+[error]    |  which required to elaborate the export clause export tui4s.dsl.*
+[error]    |  which required to compute the signature of method sparkline
+[error]    |  which required to read the definition of method sparkline in /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes/tui4s/dsl.tasty
+[error]    |  which required to compute the signature of type Color
+[error]    |  which required to compute the signature of import jatatui.core.style.{Color as JColor}
+[error]    |
+[error]    | Run with both -explain-cyclic and -Ydebug-cyclic to see full stack trace.
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] one error found
+[error] (core / Compile / compileIncremental) Compilation failed
+[error] Total time: 9 s, completed 1 Oct 2026, 11:10:30

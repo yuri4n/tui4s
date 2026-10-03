@@ -1,0 +1,5 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Warning: mocking up superclass for module class internal
+Wrote /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/out/tui4s-core.jar

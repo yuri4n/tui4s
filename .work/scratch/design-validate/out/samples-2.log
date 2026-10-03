@@ -1,0 +1,24 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[31m[31m-- [E007] Type Mismatch Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/samples/tests/RuntimeSuite.test.scala:98:14 [0m[0m
+[31m98 |[0m    [33mval[0m [36mapp[0m = [33mApp[0m[[32mS[0m](
+[31m[31m   |[0m              ^^^^^^[0m
+[31m   |[0m           Found:    S => Seq[tui4s.Source[[1m[31mNothing[0m]]
+[31m   |[0m           Required: S => Seq[tui4s.Source[[1m[32mS[0m]]
+[31m   |[0m           Error occurred in an application involving default arguments.
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E007] Type Mismatch Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/samples/tests/RuntimeSuite.test.scala:109:19 [0m[0m
+[31m109 |[0m    assertEquals(t.state.n, [32m10[0m)
+[31m[31m    |[0m                 ^^^^^^^[0m
+[31m    |[0mFound:    (t.state : => Nothing)
+[31m    |[0mRequired: ?{ n: ? }
+[31m    |[0mNote that implicit conversions were not tried because the result of an implicit conversion
+[31m    |[0mmust be more specific than ?{ n: <?> }
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+2 errors found
+Compilation failed

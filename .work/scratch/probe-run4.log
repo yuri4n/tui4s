@@ -1,0 +1,27 @@
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 21.0.8)
+[info] loading settings for project sbt-probe-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project a from extra.sbt...
+[info] set current project to root (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/)
+[info] Releasable: probe-b:0.4.0; deps: probe-a:0.2.0
+[success] Total time: 0 s, completed 30 Sept 2026, 18:10:07
+[info] Wrote /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/modules/b/target/scala-3.9.0/probe-b_3-0.4.0.pom
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/modules/a/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/modules/b/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] Main Scala API documentation to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/modules/b/target/scala-3.9.0/api...
+[warn] Option -classpath was updated
+[warn] one warning found
+[info] Main Scala API documentation successful.
+[warn] versionScheme setting is empty; set `ThisBuild / versionScheme := Some("early-semver")`, `Some("semver-spec")` or `Some("pvp")`
+[warn] so tooling can use it for eviction errors etc - https://www.scala-sbt.org/1.x/docs/Publishing.html
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0.pom
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0.jar
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0-sources.jar
+[info] 	published probe-b_3 to /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/target/sona-staging/io/github/yuri4n/probe-b_3/0.4.0/probe-b_3-0.4.0-javadoc.jar
+[success] Total time: 28 s, completed 30 Sept 2026, 18:10:35
+[error] SNAPSHOTs are not supported on the Central Portal;
+[error] configure ThisBuild / publishTo to publish directly to the central-snapshots.
+[error] see https://www.scala-sbt.org/1.x/docs/Using-Sonatype.html for details.

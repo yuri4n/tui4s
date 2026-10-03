@@ -1,0 +1,47 @@
+Downloading https://repo1.maven.org/maven2/com/olvind/tui/tui_3/0.0.10/tui_3-0.0.10.pom
+Downloaded https://repo1.maven.org/maven2/com/olvind/tui/tui_3/0.0.10/tui_3-0.0.10.pom
+Downloading https://repo1.maven.org/maven2/com/olvind/tui/cassowary_3/0.0.10/cassowary_3-0.0.10.pom
+Downloading https://repo1.maven.org/maven2/com/olvind/tui/crossterm/0.0.10/crossterm-0.0.10.pom
+Downloaded https://repo1.maven.org/maven2/com/olvind/tui/cassowary_3/0.0.10/cassowary_3-0.0.10.pom
+Downloaded https://repo1.maven.org/maven2/com/olvind/tui/crossterm/0.0.10/crossterm-0.0.10.pom
+Downloading https://repo1.maven.org/maven2/com/olvind/tui/tui_3/0.0.10/tui_3-0.0.10.jar
+Downloading https://repo1.maven.org/maven2/com/olvind/tui/crossterm/0.0.10/crossterm-0.0.10.jar
+Downloading https://repo1.maven.org/maven2/com/olvind/tui/cassowary_3/0.0.10/cassowary_3-0.0.10.jar
+Downloaded https://repo1.maven.org/maven2/com/olvind/tui/cassowary_3/0.0.10/cassowary_3-0.0.10.jar
+Downloaded https://repo1.maven.org/maven2/com/olvind/tui/tui_3/0.0.10/tui_3-0.0.10.jar
+Downloaded https://repo1.maven.org/maven2/com/olvind/tui/crossterm/0.0.10/crossterm-0.0.10.jar
+Downloading https://repo1.maven.org/maven2/com/olvind/tui/tui_3/
+Downloaded https://repo1.maven.org/maven2/com/olvind/tui/tui_3/
+Downloading https://repo1.maven.org/maven2/com/olvind/tui/tui_3/maven-metadata.xml
+Downloaded https://repo1.maven.org/maven2/com/olvind/tui/tui_3/maven-metadata.xml
+--- A. Block+Paragraph into Buffer.empty(Rect(0,0,20,5)) (Rect(0,0,20,5))
+|╭Hello─────────────╮|
+|│tui-scala renders │|
+|│without a TTY     │|
+|│                  │|
+|╰──────────────────╯|
+A. equals Buffer.withLines(...) via diff: true
+--- B1. backend that stores cell refs (like upstream TestBackend) after 3 frames (Rect(0,0,12,3))
+|frame-      |
+|stays       |
+|            |
+--- B2. backend that clones cells after 3 frames (Rect(0,0,12,3))
+|frame-2 BBB |
+|stays       |
+|            |
+B. cells sent per frame total=19 draws=3
+C. Borders.ALL=11110 TOP=10 ALL-TOP=0 (expected 11100) contains TOP? false
+D. LAYOUT_CACHE.size after 1000 splits of an 'equal' layout built per frame = 1000
+D. LAYOUT_CACHE.size when the constraints Array instance is reused = 1
+E. second split(0) after caller mutated first result: Rect(9,9,9,9) (same array instance: true)
+F. diff update[0] symbol after mutating next buffer: 'Z' (diff size 3)
+G. ListWidget.State before=State(0,Some(40)) after render=State(36,Some(40))
+H. get(5,5) on 2x2 -> java.lang.RuntimeException: assertion failed: Trying to access position outside the buffer: x={}, y={}, area
+I. 200x50 frame: 5219.4 us/frame, 3847.6 KiB allocated/frame, 37 changed cells/frame
+I. Buffer.diff 200x50 (10000 cells, no changes): 303.0 us, 66 bytes/call
+I. setString 200 ASCII chars: 59.24 us, 74145 bytes/call (371 B/char)
+J. concurrent split: errors=0 first= cacheSize=159724 (160000 distinct keys inserted) alive=0
+K. CrosstermJni loaded (native lib extracted and loaded)
+K. terminalSize() without TTY -> java.lang.RuntimeException: IO error: Os { code: 35, kind: WouldBlock, message: "Resource temporarily unavailable" }
+K. poll(0) without TTY -> java.lang.RuntimeException: IO error: Custom { kind: Other, error: "Failed to initialize input reader" }
+DONE

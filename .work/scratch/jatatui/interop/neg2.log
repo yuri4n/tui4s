@@ -1,0 +1,12 @@
+-- [E007] Type Mismatch Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/jatatui/interop/neg2/neg2.scala:8:28 
+8 |  val bad = ListState.of(0, o)                    // NEG: Optional[Int] vs Optional[Integer]
+  |                            ^
+  |                            Found:    (Neg2.o : java.util.Optional[Int])
+  |                            Required: java.util.Optional[Integer]
+  |
+  | longer explanation available when compiling with `-explain`
+1 error found
+Compilation failed
+real 8.79
+user 25.00
+sys 2.04

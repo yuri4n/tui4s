@@ -1,0 +1,29 @@
+Downloading https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-widgets/0.31.0/jatatui-widgets-0.31.0.pom
+Downloading https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-core/0.31.0/jatatui-core-0.31.0.pom
+Downloaded https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-widgets/0.31.0/jatatui-widgets-0.31.0.pom
+Downloaded https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-core/0.31.0/jatatui-core-0.31.0.pom
+Downloading https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-widgets/0.31.0/jatatui-widgets-0.31.0.jar
+Downloading https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-core/0.31.0/jatatui-core-0.31.0.jar
+Downloaded https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-widgets/0.31.0/jatatui-widgets-0.31.0.jar
+Downloaded https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-core/0.31.0/jatatui-core-0.31.0.jar
+[31m[31m-- Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/jatatui/probe.scala:51:81 [0m[0m
+[31m51 |[0m      .of([33mText[0m.from([33mLine[0m.from([33mSpan[0m.styled([32m"Hello"[0m, [33mStyle[0m.empty().bold().fg([33mColor[0m.YELLOW)), [33mSpan[0m.raw([32m" from Scala 3.9 on JDK 25, wrapped by jatatui."[0m))))
+[31m[31m   |[0m                                                                           ^^^^^^^^^^^^[0m
+[31m   |[0mtoo many arguments for [33mmethod[0m [32mfg[0m in [33mclass[0m [32mStyle[0m: (): java.util.Optional[jatatui.core.style.Color]
+[31m[31m-- Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/jatatui/probe.scala:62:113 [0m[0m
+[31m62 |[0m    [33mval[0m [36mgauge[0m = [33mGauge[0m.empty().withPercent(percent).withLabel([32ms"[0m$percent[32m%"[0m).withGaugeStyle([33mStyle[0m.empty().fg([33mColor[0m.GREEN))
+[31m[31m   |[0m                                                                                                           ^^^^^^^^^^^[0m
+[31m   |[0mtoo many arguments for [33mmethod[0m [32mfg[0m in [33mclass[0m [32mStyle[0m: (): java.util.Optional[jatatui.core.style.Color]
+2 errors found
+Downloading https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-core/
+Downloaded https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-core/
+Downloading https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-core/maven-metadata.xml
+Downloaded https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-core/maven-metadata.xml
+Downloading https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-widgets/
+Downloaded https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-widgets/
+Downloading https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-widgets/maven-metadata.xml
+Downloaded https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-widgets/maven-metadata.xml
+Compilation failed
+real 14.82
+user 26.20
+sys 2.02

@@ -1,0 +1,22 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project zio-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/)
+[info] compiling 8 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/modules/zio/target/scala-3.9.0/test-classes ...
+[warn] -- [E176] Potential Issue Warning: /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/modules/zio/src/test/scala/tui4s/interop/zio/ZioFacadeSuite.scala:324:9 
+[warn] 324 |      run(Tui.runWith(app, RecordingControl(), input).fork.flatMap { f =>
+[warn]     |      ^
+[warn]     |      unused value of type Int
+[warn]     |
+[warn] 325 |        ZIO.attemptBlocking(assert(await(started))) *>
+[warn] 326 |          ZIO.succeed(input.push(Key.Char('q'))) *> f.join
+[warn] 327 |      })
+[warn] one warning found
+[info] done compiling
+[success] Total time: 65 s (0:01:05.0), completed 1 Oct 2026, 20:57:45

@@ -1,0 +1,8 @@
+P1a member applicable (Int arg):          member(Int)
+P1b member NOT applicable (String arg):   extension(String)
+P1c member applicable via Any (ZIO arg):   member(=> Any)
+P1d kyo-ui Button.onClick(ZIO) picks:      Button
+P3a Here at the call site:                 Frame(Probes.scala:31:87, probes.Probes$package$, runProbes, te:                 " + _root_.probes.mirror.where)
+P3b frame stored in the kyo-ui node:       Probes.scala:32:94
+P4a raw kyo-ui onClick(ZIO) type errors:   List()
+P4b raw kyo-ui onClick(Unit) type errors:  List()

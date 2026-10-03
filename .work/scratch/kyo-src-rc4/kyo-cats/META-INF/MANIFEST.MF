@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Specification-Title: kyo-cats
+Specification-Version: 1.0.0-RC4
+Specification-Vendor: io.getkyo
+

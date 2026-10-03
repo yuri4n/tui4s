@@ -1,0 +1,400 @@
+17:26  up  9:44, 4 users, load averages: 4.75 6.10 7.28
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] running (fork) org.openjdk.jmh.generators.bytecode.JmhBytecodeGenerator /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/bench/target/scala-3.9.0/classes /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/bench/target/scala-3.9.0/src_managed/jmh /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/bench/target/scala-3.9.0/resource_managed/jmh default
+[error] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] Processing 63 classes from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/bench/target/scala-3.9.0/classes with "reflection" generator
+[info] Writing out Java source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/bench/target/scala-3.9.0/src_managed/jmh and resources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/bench/target/scala-3.9.0/resource_managed/jmh
+[info] running (fork) org.openjdk.jmh.Main -i 5 -wi 5 -w 1s -r 1s -f 1 -prof gc tui4s.bench.EngineBench tui4s.bench.PaintBench
+[error] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] # JMH version: 1.37
+[info] # VM version: JDK 25.0.4.1, OpenJDK 64-Bit Server VM, 25.0.4.1+1-LTS
+[info] # VM invoker: /Users/yuri4n/.sdkman/candidates/java/25.0.4+1.1-tem/bin/java
+[info] # VM options: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true --enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow
+[info] # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+[info] # Warmup: 5 iterations, 1 s each
+[info] # Measurement: 5 iterations, 1 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: tui4s.bench.EngineBench.changedView
+[info] # Run progress: 0.00% complete, ETA 00:00:50
+[info] # Fork: 1 of 1
+[info] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] # Warmup Iteration   1: 2727.939 us/op
+[info] # Warmup Iteration   2: 1641.906 us/op
+[info] # Warmup Iteration   3: 1586.530 us/op
+[info] # Warmup Iteration   4: 1515.362 us/op
+[info] # Warmup Iteration   5: 1401.378 us/op
+[info] Iteration   1: 1470.940 us/op
+[info]                  gc.alloc.rate:      318.378 MB/sec
+[info]                  gc.alloc.rate.norm: 491316.847 B/op
+[info]                  gc.count:           1.000 counts
+[info]                  gc.time:            8.000 ms
+[info] Iteration   2: 1456.143 us/op
+[info]                  gc.alloc.rate:      321.550 MB/sec
+[info]                  gc.alloc.rate.norm: 491316.698 B/op
+[info]                  gc.count:           2.000 counts
+[info]                  gc.time:            18.000 ms
+[info] Iteration   3: 1229.077 us/op
+[info]                  gc.alloc.rate:      381.051 MB/sec
+[info]                  gc.alloc.rate.norm: 491252.629 B/op
+[info]                  gc.count:           2.000 counts
+[info]                  gc.time:            15.000 ms
+[info] Iteration   4: 1395.206 us/op
+[info]                  gc.alloc.rate:      335.458 MB/sec
+[info]                  gc.alloc.rate.norm: 490971.364 B/op
+[info]                  gc.count:           1.000 counts
+[info]                  gc.time:            12.000 ms
+[info] Iteration   5: 1525.652 us/op
+[info]                  gc.alloc.rate:      306.602 MB/sec
+[info]                  gc.alloc.rate.norm: 490726.878 B/op
+[info]                  gc.count:           2.000 counts
+[info]                  gc.time:            4.000 ms
+[info] Result "tui4s.bench.EngineBench.changedView":
+[info]   1415.403 ±(99.9%) 439.144 us/op [Average]
+[info]   (min, avg, max) = (1229.077, 1415.403, 1525.652), stdev = 114.044
+[info]   CI (99.9%): [976.259, 1854.547] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.EngineBench.changedView:gc.alloc.rate":
+[info]   332.608 ±(99.9%) 111.534 MB/sec [Average]
+[info]   (min, avg, max) = (306.602, 332.608, 381.051), stdev = 28.965
+[info]   CI (99.9%): [221.074, 444.142] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.EngineBench.changedView:gc.alloc.rate.norm":
+[info]   491116.883 ±(99.9%) 1003.420 B/op [Average]
+[info]   (min, avg, max) = (490726.878, 491116.883, 491316.847), stdev = 260.585
+[info]   CI (99.9%): [490113.463, 492120.304] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.EngineBench.changedView:gc.count":
+[info]   8.000 ±(99.9%) 0.001 counts [Sum]
+[info]   (min, avg, max) = (1.000, 1.600, 2.000), stdev = 0.548
+[info]   CI (99.9%): [8.000, 8.000] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.EngineBench.changedView:gc.time":
+[info]   57.000 ±(99.9%) 0.001 ms [Sum]
+[info]   (min, avg, max) = (4.000, 11.400, 18.000), stdev = 5.550
+[info]   CI (99.9%): [57.000, 57.000] (assumes normal distribution)
+[info] # JMH version: 1.37
+[info] # VM version: JDK 25.0.4.1, OpenJDK 64-Bit Server VM, 25.0.4.1+1-LTS
+[info] # VM invoker: /Users/yuri4n/.sdkman/candidates/java/25.0.4+1.1-tem/bin/java
+[info] # VM options: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true --enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow
+[info] # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+[info] # Warmup: 5 iterations, 1 s each
+[info] # Measurement: 5 iterations, 1 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: tui4s.bench.EngineBench.equalView
+[info] # Run progress: 20.00% complete, ETA 00:00:47
+[info] # Fork: 1 of 1
+[info] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] # Warmup Iteration   1: 20.631 us/op
+[info] # Warmup Iteration   2: 3.721 us/op
+[info] # Warmup Iteration   3: 2.709 us/op
+[info] # Warmup Iteration   4: 2.543 us/op
+[info] # Warmup Iteration   5: 3.076 us/op
+[info] Iteration   1: 2.616 us/op
+[info]                  gc.alloc.rate:      1093.249 MB/sec
+[info]                  gc.alloc.rate.norm: 3000.018 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            5.000 ms
+[info] Iteration   2: 2.288 us/op
+[info]                  gc.alloc.rate:      1249.667 MB/sec
+[info]                  gc.alloc.rate.norm: 3000.016 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            4.000 ms
+[info] Iteration   3: 2.143 us/op
+[info]                  gc.alloc.rate:      1334.098 MB/sec
+[info]                  gc.alloc.rate.norm: 3000.015 B/op
+[info]                  gc.count:           4.000 counts
+[info]                  gc.time:            4.000 ms
+[info] Iteration   4: 2.173 us/op
+[info]                  gc.alloc.rate:      1315.672 MB/sec
+[info]                  gc.alloc.rate.norm: 3000.015 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            4.000 ms
+[info] Iteration   5: 2.041 us/op
+[info]                  gc.alloc.rate:      1401.062 MB/sec
+[info]                  gc.alloc.rate.norm: 3000.014 B/op
+[info]                  gc.count:           4.000 counts
+[info]                  gc.time:            5.000 ms
+[info] Result "tui4s.bench.EngineBench.equalView":
+[info]   2.252 ±(99.9%) 0.853 us/op [Average]
+[info]   (min, avg, max) = (2.041, 2.252, 2.616), stdev = 0.221
+[info]   CI (99.9%): [1.400, 3.105] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.EngineBench.equalView:gc.alloc.rate":
+[info]   1278.750 ±(99.9%) 450.061 MB/sec [Average]
+[info]   (min, avg, max) = (1093.249, 1278.750, 1401.062), stdev = 116.879
+[info]   CI (99.9%): [828.689, 1728.811] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.EngineBench.equalView:gc.alloc.rate.norm":
+[info]   3000.016 ±(99.9%) 0.006 B/op [Average]
+[info]   (min, avg, max) = (3000.014, 3000.016, 3000.018), stdev = 0.002
+[info]   CI (99.9%): [3000.010, 3000.022] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.EngineBench.equalView:gc.count":
+[info]   17.000 ±(99.9%) 0.001 counts [Sum]
+[info]   (min, avg, max) = (3.000, 3.400, 4.000), stdev = 0.548
+[info]   CI (99.9%): [17.000, 17.000] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.EngineBench.equalView:gc.time":
+[info]   22.000 ±(99.9%) 0.001 ms [Sum]
+[info]   (min, avg, max) = (4.000, 4.400, 5.000), stdev = 0.548
+[info]   CI (99.9%): [22.000, 22.000] (assumes normal distribution)
+[info] # JMH version: 1.37
+[info] # VM version: JDK 25.0.4.1, OpenJDK 64-Bit Server VM, 25.0.4.1+1-LTS
+[info] # VM invoker: /Users/yuri4n/.sdkman/candidates/java/25.0.4+1.1-tem/bin/java
+[info] # VM options: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true --enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow
+[info] # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+[info] # Warmup: 5 iterations, 1 s each
+[info] # Measurement: 5 iterations, 1 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: tui4s.bench.PaintBench.counterFrame
+[info] # Run progress: 40.00% complete, ETA 00:00:35
+[info] # Fork: 1 of 1
+[info] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] # Warmup Iteration   1: 1394.136 us/op
+[info] # Warmup Iteration   2: 728.590 us/op
+[info] # Warmup Iteration   3: 677.540 us/op
+[info] # Warmup Iteration   4: 707.022 us/op
+[info] # Warmup Iteration   5: 614.811 us/op
+[info] Iteration   1: 690.847 us/op
+[info]                  gc.alloc.rate:      500.688 MB/sec
+[info]                  gc.alloc.rate.norm: 362871.026 B/op
+[info]                  gc.count:           2.000 counts
+[info]                  gc.time:            13.000 ms
+[info] Iteration   2: 962.140 us/op
+[info]                  gc.alloc.rate:      359.489 MB/sec
+[info]                  gc.alloc.rate.norm: 362783.145 B/op
+[info]                  gc.count:           2.000 counts
+[info]                  gc.time:            4.000 ms
+[info] Iteration   3: 882.557 us/op
+[info]                  gc.alloc.rate:      391.904 MB/sec
+[info]                  gc.alloc.rate.norm: 362782.379 B/op
+[info]                  gc.count:           1.000 counts
+[info]                  gc.time:            1.000 ms
+[info] Iteration   4: 899.649 us/op
+[info]                  gc.alloc.rate:      384.416 MB/sec
+[info]                  gc.alloc.rate.norm: 362782.668 B/op
+[info]                  gc.count:           2.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   5: 859.860 us/op
+[info]                  gc.alloc.rate:      402.251 MB/sec
+[info]                  gc.alloc.rate.norm: 362782.189 B/op
+[info]                  gc.count:           1.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Result "tui4s.bench.PaintBench.counterFrame":
+[info]   859.011 ±(99.9%) 390.424 us/op [Average]
+[info]   (min, avg, max) = (690.847, 859.011, 962.140), stdev = 101.392
+[info]   CI (99.9%): [468.587, 1249.435] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.PaintBench.counterFrame:gc.alloc.rate":
+[info]   407.750 ±(99.9%) 209.076 MB/sec [Average]
+[info]   (min, avg, max) = (359.489, 407.750, 500.688), stdev = 54.296
+[info]   CI (99.9%): [198.674, 616.825] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.PaintBench.counterFrame:gc.alloc.rate.norm":
+[info]   362800.281 ±(99.9%) 152.289 B/op [Average]
+[info]   (min, avg, max) = (362782.189, 362800.281, 362871.026), stdev = 39.549
+[info]   CI (99.9%): [362647.992, 362952.571] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.PaintBench.counterFrame:gc.count":
+[info]   8.000 ±(99.9%) 0.001 counts [Sum]
+[info]   (min, avg, max) = (1.000, 1.600, 2.000), stdev = 0.548
+[info]   CI (99.9%): [8.000, 8.000] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.PaintBench.counterFrame:gc.time":
+[info]   23.000 ±(99.9%) 0.001 ms [Sum]
+[info]   (min, avg, max) = (1.000, 4.600, 13.000), stdev = 4.827
+[info]   CI (99.9%): [23.000, 23.000] (assumes normal distribution)
+[info] # JMH version: 1.37
+[info] # VM version: JDK 25.0.4.1, OpenJDK 64-Bit Server VM, 25.0.4.1+1-LTS
+[info] # VM invoker: /Users/yuri4n/.sdkman/candidates/java/25.0.4+1.1-tem/bin/java
+[info] # VM options: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true --enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow
+[info] # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+[info] # Warmup: 5 iterations, 1 s each
+[info] # Measurement: 5 iterations, 1 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: tui4s.bench.PaintBench.dashboardFrame
+[info] # Run progress: 60.00% complete, ETA 00:00:23
+[info] # Fork: 1 of 1
+[info] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] # Warmup Iteration   1: 5065.810 us/op
+[info] # Warmup Iteration   2: 2566.557 us/op
+[info] # Warmup Iteration   3: 1771.199 us/op
+[info] # Warmup Iteration   4: 1880.647 us/op
+[info] # Warmup Iteration   5: 1495.752 us/op
+[info] Iteration   1: 1419.646 us/op
+[info]                  gc.alloc.rate:      395.176 MB/sec
+[info]                  gc.alloc.rate.norm: 588435.826 B/op
+[info]                  gc.count:           2.000 counts
+[info]                  gc.time:            13.000 ms
+[info] Iteration   2: 1860.988 us/op
+[info]                  gc.alloc.rate:      301.477 MB/sec
+[info]                  gc.alloc.rate.norm: 588440.251 B/op
+[info]                  gc.count:           2.000 counts
+[info]                  gc.time:            12.000 ms
+[info] Iteration   3: 1432.438 us/op
+[info]                  gc.alloc.rate:      391.502 MB/sec
+[info]                  gc.alloc.rate.norm: 588435.084 B/op
+[info]                  gc.count:           2.000 counts
+[info]                  gc.time:            14.000 ms
+[info] Iteration   4: 1619.369 us/op
+[info]                  gc.alloc.rate:      346.407 MB/sec
+[info]                  gc.alloc.rate.norm: 588436.584 B/op
+[info]                  gc.count:           1.000 counts
+[info]                  gc.time:            7.000 ms
+[info] Iteration   5: 1699.226 us/op
+[info]                  gc.alloc.rate:      330.051 MB/sec
+[info]                  gc.alloc.rate.norm: 588374.826 B/op
+[info]                  gc.count:           2.000 counts
+[info]                  gc.time:            5.000 ms
+[info] Result "tui4s.bench.PaintBench.dashboardFrame":
+[info]   1606.333 ±(99.9%) 717.140 us/op [Average]
+[info]   (min, avg, max) = (1419.646, 1606.333, 1860.988), stdev = 186.239
+[info]   CI (99.9%): [889.194, 2323.473] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.PaintBench.dashboardFrame:gc.alloc.rate":
+[info]   352.923 ±(99.9%) 155.057 MB/sec [Average]
+[info]   (min, avg, max) = (301.477, 352.923, 395.176), stdev = 40.268
+[info]   CI (99.9%): [197.866, 507.980] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.PaintBench.dashboardFrame:gc.alloc.rate.norm":
+[info]   588424.514 ±(99.9%) 107.230 B/op [Average]
+[info]   (min, avg, max) = (588374.826, 588424.514, 588440.251), stdev = 27.847
+[info]   CI (99.9%): [588317.284, 588531.745] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.PaintBench.dashboardFrame:gc.count":
+[info]   9.000 ±(99.9%) 0.001 counts [Sum]
+[info]   (min, avg, max) = (1.000, 1.800, 2.000), stdev = 0.447
+[info]   CI (99.9%): [9.000, 9.000] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.PaintBench.dashboardFrame:gc.time":
+[info]   51.000 ±(99.9%) 0.001 ms [Sum]
+[info]   (min, avg, max) = (5.000, 10.200, 14.000), stdev = 3.962
+[info]   CI (99.9%): [51.000, 51.000] (assumes normal distribution)
+[info] # JMH version: 1.37
+[info] # VM version: JDK 25.0.4.1, OpenJDK 64-Bit Server VM, 25.0.4.1+1-LTS
+[info] # VM invoker: /Users/yuri4n/.sdkman/candidates/java/25.0.4+1.1-tem/bin/java
+[info] # VM options: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true --enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow
+[info] # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+[info] # Warmup: 5 iterations, 1 s each
+[info] # Measurement: 5 iterations, 1 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: tui4s.bench.PaintBench.todoFrame
+[info] # Run progress: 80.00% complete, ETA 00:00:11
+[info] # Fork: 1 of 1
+[info] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] # Warmup Iteration   1: 3491.226 us/op
+[info] # Warmup Iteration   2: 1942.439 us/op
+[info] # Warmup Iteration   3: 1759.911 us/op
+[info] # Warmup Iteration   4: 1696.638 us/op
+[info] # Warmup Iteration   5: 1874.639 us/op
+[info] Iteration   1: 1968.799 us/op
+[info]                  gc.alloc.rate:      748.247 MB/sec
+[info]                  gc.alloc.rate.norm: 1545408.749 B/op
+[info]                  gc.count:           2.000 counts
+[info]                  gc.time:            4.000 ms
+[info] Iteration   2: 1875.735 us/op
+[info]                  gc.alloc.rate:      785.513 MB/sec
+[info]                  gc.alloc.rate.norm: 1545406.704 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            6.000 ms
+[info] Iteration   3: 1870.714 us/op
+[info]                  gc.alloc.rate:      787.586 MB/sec
+[info]                  gc.alloc.rate.norm: 1545406.874 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            7.000 ms
+[info] Iteration   4: 1807.839 us/op
+[info]                  gc.alloc.rate:      814.897 MB/sec
+[info]                  gc.alloc.rate.norm: 1545406.380 B/op
+[info]                  gc.count:           2.000 counts
+[info]                  gc.time:            4.000 ms
+[info] Iteration   5: 1794.654 us/op
+[info]                  gc.alloc.rate:      820.909 MB/sec
+[info]                  gc.alloc.rate.norm: 1545403.552 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            5.000 ms
+[info] Result "tui4s.bench.PaintBench.todoFrame":
+[info]   1863.548 ±(99.9%) 266.277 us/op [Average]
+[info]   (min, avg, max) = (1794.654, 1863.548, 1968.799), stdev = 69.151
+[info]   CI (99.9%): [1597.271, 2129.826] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.PaintBench.todoFrame:gc.alloc.rate":
+[info]   791.430 ±(99.9%) 111.174 MB/sec [Average]
+[info]   (min, avg, max) = (748.247, 791.430, 820.909), stdev = 28.872
+[info]   CI (99.9%): [680.256, 902.605] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.PaintBench.todoFrame:gc.alloc.rate.norm":
+[info]   1545406.452 ±(99.9%) 7.185 B/op [Average]
+[info]   (min, avg, max) = (1545403.552, 1545406.452, 1545408.749), stdev = 1.866
+[info]   CI (99.9%): [1545399.266, 1545413.637] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.PaintBench.todoFrame:gc.count":
+[info]   13.000 ±(99.9%) 0.001 counts [Sum]
+[info]   (min, avg, max) = (2.000, 2.600, 3.000), stdev = 0.548
+[info]   CI (99.9%): [13.000, 13.000] (assumes normal distribution)
+[info] Secondary result "tui4s.bench.PaintBench.todoFrame:gc.time":
+[info]   26.000 ±(99.9%) 0.001 ms [Sum]
+[info]   (min, avg, max) = (4.000, 5.200, 7.000), stdev = 1.304
+[info]   CI (99.9%): [26.000, 26.000] (assumes normal distribution)
+[info] # Run complete. Total time: 00:00:58
+[info] REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+[info] why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+[info] experiments, perform baseline and negative tests that provide experimental control, make sure
+[info] the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+[info] Do not assume the numbers tell you what you want them to tell.
+[info] NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+[info] extra caution when trusting the results, look into the generated code to check the benchmark still
+[info] works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+[info] different JVMs are already problematic, the performance difference caused by different Blackhole
+[info] modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+[info] Benchmark                                     Mode  Cnt        Score      Error   Units
+[info] EngineBench.changedView                       avgt    5     1415.403 ±  439.144   us/op
+[info] EngineBench.changedView:gc.alloc.rate         avgt    5      332.608 ±  111.534  MB/sec
+[info] EngineBench.changedView:gc.alloc.rate.norm    avgt    5   491116.883 ± 1003.420    B/op
+[info] EngineBench.changedView:gc.count              avgt    5        8.000             counts
+[info] EngineBench.changedView:gc.time               avgt    5       57.000                 ms
+[info] EngineBench.equalView                         avgt    5        2.252 ±    0.853   us/op
+[info] EngineBench.equalView:gc.alloc.rate           avgt    5     1278.750 ±  450.061  MB/sec
+[info] EngineBench.equalView:gc.alloc.rate.norm      avgt    5     3000.016 ±    0.006    B/op
+[info] EngineBench.equalView:gc.count                avgt    5       17.000             counts
+[info] EngineBench.equalView:gc.time                 avgt    5       22.000                 ms
+[info] PaintBench.counterFrame                       avgt    5      859.011 ±  390.424   us/op
+[info] PaintBench.counterFrame:gc.alloc.rate         avgt    5      407.750 ±  209.076  MB/sec
+[info] PaintBench.counterFrame:gc.alloc.rate.norm    avgt    5   362800.281 ±  152.289    B/op
+[info] PaintBench.counterFrame:gc.count              avgt    5        8.000             counts
+[info] PaintBench.counterFrame:gc.time               avgt    5       23.000                 ms
+[info] PaintBench.dashboardFrame                     avgt    5     1606.333 ±  717.140   us/op
+[info] PaintBench.dashboardFrame:gc.alloc.rate       avgt    5      352.923 ±  155.057  MB/sec
+[info] PaintBench.dashboardFrame:gc.alloc.rate.norm  avgt    5   588424.514 ±  107.230    B/op
+[info] PaintBench.dashboardFrame:gc.count            avgt    5        9.000             counts
+[info] PaintBench.dashboardFrame:gc.time             avgt    5       51.000                 ms
+[info] PaintBench.todoFrame                          avgt    5     1863.548 ±  266.277   us/op
+[info] PaintBench.todoFrame:gc.alloc.rate            avgt    5      791.430 ±  111.174  MB/sec
+[info] PaintBench.todoFrame:gc.alloc.rate.norm       avgt    5  1545406.452 ±    7.185    B/op
+[info] PaintBench.todoFrame:gc.count                 avgt    5       13.000             counts
+[info] PaintBench.todoFrame:gc.time                  avgt    5       26.000                 ms
+[success] Total time: 70 s (0:01:10.0), completed 1 Oct 2026, 17:27:31
+[info] running (fork) tui4s.bench.BurstProbe 8
+[error] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] [burst] keys=10000  rounds=4  usPerEventMedian=12.074  usPerEventBest=11.474  framesMedian=4.000  batchesMedian=7.000  budgetUsPerEvent=10.000  withinBudget=false  machine=Mac OS X x86_64, 8 CPUs, JDK 25.0.4.1, load 5.3
+[success] Total time: 4 s, completed 1 Oct 2026, 17:27:34
+[info] running (fork) tui4s.bench.LatencyProbe 400
+[error] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] [latency] keys=300  p50us=1562.069  p99us=3906.162  maxUs=4952.738  budgetP50us=1000.000  budgetP99us=3000.000  withinBudget=false  machine=Mac OS X x86_64, 8 CPUs, JDK 25.0.4.1, load 4.8
+[success] Total time: 15 s, completed 1 Oct 2026, 17:27:49
+[info] running (fork) tui4s.bench.QuitProbe 30
+[error] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] [quit] rounds=20  p50ms=34.397  maxMs=36.010  budgetMs=60.000  withinBudget=true  machine=Mac OS X x86_64, 8 CPUs, JDK 25.0.4.1, load 4.8
+[success] Total time: 7 s, completed 1 Oct 2026, 17:27:56
+[info] running (fork) tui4s.bench.IdleProbe 20 2
+[error] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] [idle] workload=kyo  flags=kyo-defaults  cpuPercent=11.022  runs=11.02/10.89  window=20  machine=Mac OS X x86_64, 8 CPUs, JDK 25.0.4.1, load 4.0
+[info] [idle] workload=kyo  flags=tui4s-flags  cpuPercent=2.572  runs=2.57/2.53  window=20  machine=Mac OS X x86_64, 8 CPUs, JDK 25.0.4.1, load 4.2
+[info] [idle] workload=counter  flags=kyo-defaults  cpuPercent=11.134  runs=10.98/11.13  window=20  machine=Mac OS X x86_64, 8 CPUs, JDK 25.0.4.1, load 4.4
+[info] [idle] workload=counter  flags=tui4s-flags  cpuPercent=2.766  runs=2.77/2.59  window=20  machine=Mac OS X x86_64, 8 CPUs, JDK 25.0.4.1, load 6.1
+[info] [idle-budget] counterCpu=2.766  kyoAloneCpu=2.572  budget=counter <= kyo + 0.5 and <= 8  withinBudget=true  machine=Mac OS X x86_64, 8 CPUs, JDK 25.0.4.1, load 6.1
+[success] Total time: 212 s (0:03:32.0), completed 1 Oct 2026, 17:31:28
+[info] running (fork) tui4s.bench.DashboardProbe 20
+[error] Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] [dashboard] idleCpu=2.665  dashboardCpu=8.349  cpuAboveIdle=5.684  idleMiBps=0.003  dashboardMiBps=3.590  budget=cpu above idle <= 2, alloc <= 15 MiB/s  withinBudget=false  window=20  machine=Mac OS X x86_64, 8 CPUs, JDK 25.0.4.1, load 5.4
+[success] Total time: 54 s, completed 1 Oct 2026, 17:32:22
+17:32  up  9:51, 4 users, load averages: 5.43 5.36 6.46

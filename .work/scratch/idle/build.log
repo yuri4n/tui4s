@@ -1,0 +1,3 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Wrote /Users/yuri4n/Developer/projects/tui4s/.work/scratch/idle/idle.jar, run it with
+  ./idle.jar

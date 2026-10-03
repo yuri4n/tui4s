@@ -1,0 +1,9 @@
+empty draw (autoresize+diff+reset)               527.0 us/frame       0.2 KiB/frame       0 cells/frame
+BlockWidget ALL borders full screen             2327.0 us/frame     328.7 KiB/frame       0 cells/frame
+Paragraph ~1080 chars, wrap, 100x50             2501.6 us/frame     861.2 KiB/frame       0 cells/frame
+Paragraph ~1080 chars, no wrap, 100x50          2220.2 us/frame     861.0 KiB/frame       0 cells/frame
+List 50 items, 100x25, moving selection          888.8 us/frame     238.1 KiB/frame      17 cells/frame
+Table 100 rows, 100x25, moving selection        1450.5 us/frame     317.3 KiB/frame      21 cells/frame
+Table 100 rows, fresh widths Array per frame     971.2 us/frame     316.6 KiB/frame      21 cells/frame
+LAYOUT_CACHE size after benches = 6000
+Gauge full width changing ratio                  464.1 us/frame     136.5 KiB/frame       1 cells/frame

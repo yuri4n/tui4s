@@ -1,0 +1,35 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+Warning: setting /Users/yuri4n/Developer/projects/tui4s/.work/scratch/kyo-rc7 as the project root directory for this run.
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Downloading https://repo1.maven.org/maven2/org/scalameta/munit_3/
+Downloaded https://repo1.maven.org/maven2/org/scalameta/munit_3/
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/Users/yuri4n/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+Test run [36mtui4s.interop.CatsBridgeTest[0m started
+[91m==> X [0m[91mtui4s.interop.CatsBridgeTest[0m.[91mcancel IO -> Kyo fiber interrupted, Kyo finalizer has run when cancel returns (cancel-and-await)[0m [90m0.083s[0m munit.ComparisonFailException: CatsBridge.test.scala:95
+94:            yield (atCancel, outcome.isCanceled)
+[7m95:        assertEquals(prog.timeout(ioTimeout).unsafeRunSync(), (true, true))[0m
+96:    }
+values are not the same
+[1m=> Obtained[0m
+Tuple2(
+  _1 = false,
+  _2 = true
+)
+[1m=> Diff[0m ([91m- expected[0m, [92m+ obtained[0m)
+ Tuple2(
+[91m-  _1 = true,[0m
+[92m+  _1 = false,[0m
+   _2 = true
+[90m    at [0m[90mmunit.FunSuite.assertEquals[0m[90m([0m[90mFunSuite.scala[0m:[90m12[0m[90m)[0m
+[1m    at [0m[1mtui4s.interop.CatsBridgeTest.$init$$$anonfun$7[0m[1m([0m[1mCatsBridge.test.scala[0m:[1m95[0m[1m)[0m
+[32mtui4s.interop.CatsBridgeTest[0m: finished [90m1.165s[0m
+Test run [36mtui4s.interop.CatsBridgeTest[0m finished: [91m1 failed[0m, 0 ignored, 10 total [90m1.184s[0m
+Error: munit tests failed.

@@ -1,0 +1,50 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project zio-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] loading settings for project examples from zio.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/)
+[info] scalafmt: Formatting 1 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/modules/zio)...
+[info] scalafmt: Formatting 1 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/modules/zio)...
+[info] scalafmt: Reformatted 1 Scala sources
+[success] Total time: 5 s, completed 1 Oct 2026, 21:43:12
+[info] scalafmt: Formatting 2 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/modules/core)...
+[info] scalafmt: Formatting 2 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/modules/cats)...
+[info] scalafmt: Formatting 2 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/modules/zio)...
+[info] scalafmt: Formatting 1 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/examples)...
+[info] scalafmt: Formatting 3 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio)...
+[info] scalafmt: Formatting 2 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio)...
+[success] Total time: 1 s, completed 1 Oct 2026, 21:43:13
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/modules/zio/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Test run [36mtui4s.interop.zio.ZioFacadeSuite[0m started
+[32mtui4s.interop.zio.ZioFacadeSuite[0m: finished [90m3.297s[0m
+Test run [36mtui4s.interop.zio.ZioFacadeSuite[0m finished: 0 failed, 0 ignored, 18 total [90m3.334s[0m
+[TestClockSuite] one adjust(1 s) of a 250 ms poller: 4 samples
+Test run [36mtui4s.interop.zio.TestClockSuite[0m started
+[32mtui4s.interop.zio.TestClockSuite[0m: finished [90m2.031s[0m
+Test run [36mtui4s.interop.zio.TestClockSuite[0m finished: 0 failed, 0 ignored, 3 total [90m2.032s[0m
+Test run [36mtui4s.interop.zio.KyoFreeFacadeSuite[0m started
+[32mtui4s.interop.zio.KyoFreeFacadeSuite[0m: finished [90m3.183s[0m
+Test run [36mtui4s.interop.zio.KyoFreeFacadeSuite[0m finished: 0 failed, 0 ignored, 2 total [90m3.183s[0m
+Test run [36mtui4s.interop.zio.testkit.LiveTuiTestSuite[0m started
+[32mtui4s.interop.zio.testkit.LiveTuiTestSuite[0m: finished [90m0.383s[0m
+Test run [36mtui4s.interop.zio.testkit.LiveTuiTestSuite[0m finished: 0 failed, 0 ignored, 9 total [90m0.384s[0m
+Test run [36mtui4s.interop.zio.BackpressureSuite[0m started
+[32mtui4s.interop.zio.BackpressureSuite[0m: finished [90m6.955s[0m
+Test run [36mtui4s.interop.zio.BackpressureSuite[0m finished: 0 failed, 0 ignored, 3 total [90m6.956s[0m
+[AmbientZIOsSuite] race: 148 of 500 ZIOs had started
+Test run [36mtui4s.interop.zio.internal.AmbientZIOsSuite[0m started
+[32mtui4s.interop.zio.internal.AmbientZIOsSuite[0m: finished [90m21.429s[0m
+Test run [36mtui4s.interop.zio.internal.AmbientZIOsSuite[0m finished: 0 failed, 0 ignored, 9 total [90m21.43s[0m
+Test run [36mtui4s.interop.zio.TuiAppSuite[0m started
+[32mtui4s.interop.zio.TuiAppSuite[0m: finished [90m0.249s[0m
+Test run [36mtui4s.interop.zio.TuiAppSuite[0m finished: 0 failed, 0 ignored, 2 total [90m0.249s[0m
+[info] Passed: Total 46, Failed 0, Errors 0, Passed 46
+[success] Total time: 52 s, completed 1 Oct 2026, 21:44:05

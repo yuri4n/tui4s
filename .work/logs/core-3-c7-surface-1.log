@@ -1,0 +1,97 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] compiling 2 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Running 1 suite(s) with parallelism 16
+
+[1m=== KyoFreeSurfaceTest ===[0m
+LEAKS
+tui4s.Tui$.run: [S](app: tui4s.App[S])(using x$2: kyo.Frame$package.Frame)kyo.kernel$package.<[S, scala.&[kyo.Async$package.Async, kyo.Abort[tui4s.TuiError]]]
+tui4s.Tui$.start: [S](app: tui4s.App[S])(using x$2: kyo.Frame$package.Frame)kyo.kernel$package.<[tui4s.TuiHandle[S], scala.&[kyo.Async$package.Async, kyo.Scope]]
+tui4s.TuiHandle.await: (using x$1: kyo.Frame$package.Frame)kyo.kernel$package.<[TuiHandle.this.S, scala.&[kyo.Async$package.Async, kyo.Abort[tui4s.TuiError]]]
+tui4s.TuiHandle.stats: (using x$1: kyo.Frame$package.Frame)kyo.kernel$package.<[tui4s.Stats, kyo.Sync$package.Sync]
+tui4s.TuiHandle.states: kyo.Signal[TuiHandle.this.S]
+tui4s.TuiHandle.send: (event: tui4s.Event)(using x$2: kyo.Frame$package.Frame)kyo.kernel$package.<[scala.Unit, kyo.Async$package.Async]
+tui4s.TuiHandle.stop: (using x$1: kyo.Frame$package.Frame)kyo.kernel$package.<[scala.Unit, kyo.Async$package.Async]
+tui4s.TuiHandle.update: (f: scala.Function1[TuiHandle.this.S, tui4s.App$package.Next[TuiHandle.this.S]])(using x$2: kyo.Frame$package.Frame)kyo.kernel$package.<[scala.Unit, kyo.Async$package.Async]
+tui4s.TuiSuite (parent): kyo.test.Test[scala.Any]
+tui4s.TuiSuite.assertShows: (screen: tui4s.testkit.Screen, expected: scala.Predef.String)(using x$3: kyo.test.AssertScope)scala.Unit
+tui4s.LiveKitTest (parent): kyo.test.Test[scala.Any]
+tui4s.LiveKitTest.config: kyo.test.RunConfig
+tui4s.FocusTest (parent): kyo.test.Test[scala.Any]
+tui4s.NextTest (parent): kyo.test.Test[scala.Any]
+tui4s.Dispatch.apply: (f: scala.Function1[Dispatch.this.S, tui4s.App$package.Next[Dispatch.this.S]])(using x$2: kyo.Frame$package.Frame)kyo.kernel$package.<[scala.Unit, kyo.Async$package.Async]
+tui4s.GuardTest (parent): kyo.test.Test[scala.Any]
+tui4s.StylingTest (parent): kyo.test.Test[scala.Any]
+tui4s.SessionTest (parent): kyo.test.Test[scala.Any]
+tui4s.SessionTest.config: kyo.test.RunConfig
+tui4s.MainCounter$.onExit: (state: scala.Int)kyo.kernel$package.<[scala.Unit, scala.&[kyo.Async$package.Async, kyo.Abort[scala.package.Throwable]]]
+tui4s.RuntimeTest (parent): kyo.test.Test[scala.Any]
+tui4s.RuntimeTest.config: kyo.test.RunConfig
+tui4s.RuntimeContractTest (parent): kyo.test.Test[scala.Any]
+tui4s.RuntimeContractTest.config: kyo.test.RunConfig
+tui4s.SchedulerDefaultsTest (parent): kyo.test.Test[scala.Any]
+tui4s.DashboardTest (parent): kyo.test.Test[scala.Any]
+tui4s.EventMappingTest (parent): kyo.test.Test[scala.Any]
+tui4s.KeyTest (parent): kyo.test.Test[scala.Any]
+tui4s.FrameContractTest (parent): kyo.test.Test[scala.Any]
+tui4s.TraceTest (parent): kyo.test.Test[scala.Any]
+tui4s.KyoFreeSurfaceTest (parent): kyo.test.Test[scala.Any]
+tui4s.WatcherTest (parent): kyo.test.Test[scala.Any]
+tui4s.WatcherTest.config: kyo.test.RunConfig
+tui4s.SourceTest (parent): kyo.test.Test[scala.Any]
+tui4s.NativeTerminalTest (parent): kyo.test.Test[scala.Any]
+tui4s.EngineTest (parent): kyo.test.Test[scala.Any]
+tui4s.TextFieldTest (parent): kyo.test.Test[scala.Any]
+tui4s.TerminalIOTest (parent): kyo.test.Test[scala.Any]
+tui4s.TerminalIOTest.config: kyo.test.RunConfig
+tui4s.TuiAppTest (parent): kyo.test.Test[scala.Any]
+tui4s.TuiAppTest.config: kyo.test.RunConfig
+tui4s.OutputCaptureTest (parent): kyo.test.Test[scala.Any]
+tui4s.OutputCaptureTest.config: kyo.test.RunConfig
+tui4s.CallSite$.inlinefromFrame: (frame: kyo.Frame$package.Frame)tui4s.CallSite
+tui4s.TuiApp.onExit: (state: TuiApp.this.S)kyo.kernel$package.<[scala.Unit, scala.&[kyo.Async$package.Async, kyo.Abort[scala.package.Throwable]]]
+tui4s.Source$.For.apply: (body: scala.Function1[tui4s.Dispatch[For.this.S], kyo.kernel$package.<[scala.Unit, scala.&[kyo.Async$package.Async, kyo.Abort[scala.package.Throwable]]]])(using frame: kyo.Frame$package.Frame)tui4s.Source[For.this.S]
+tui4s.Source$.For.signal: [A](signal: kyo.Signal[A])(f: scala.Function2[For.this.S, A, tui4s.App$package.Next[For.this.S]])(using frame: kyo.Frame$package.Frame)tui4s.Source[For.this.S]
+tui4s.Source$.For.every: (period: kyo.Duration$package.Duration)(f: scala.Function1[For.this.S, tui4s.App$package.Next[For.this.S]])(using frame: kyo.Frame$package.Frame)tui4s.Source[For.this.S]
+tui4s.Source$.For.stream: [A](stream: => kyo.Stream[A, scala.&[kyo.Async$package.Async, kyo.Abort[scala.package.Throwable]]])(f: scala.Function2[For.this.S, A, tui4s.App$package.Next[For.this.S]])(using tag: kyo.Tag$package.Tag[kyo.Emit[kyo.Chunk[A]]], frame: kyo.Frame$package.Frame)tui4s.Source[For.this.S]
+tui4s.Source$.For.task: [A](task: => kyo.kernel$package.<[A, scala.&[kyo.Async$package.Async, kyo.Abort[scala.package.Throwable]]])(using x$2: tui4s.NotForeign[A])(f: scala.Function2[For.this.S, A, tui4s.App$package.Next[For.this.S]])(using frame: kyo.Frame$package.Frame)tui4s.Source[For.this.S]
+tui4s.Source$.For.poll: [A](period: kyo.Duration$package.Duration)(task: => kyo.kernel$package.<[A, scala.&[kyo.Async$package.Async, kyo.Abort[scala.package.Throwable]]])(using x$3: tui4s.NotForeign[A])(f: scala.Function2[For.this.S, A, tui4s.App$package.Next[For.this.S]])(using frame: kyo.Frame$package.Frame)tui4s.Source[For.this.S]
+tui4s.Source$.every: [S](period: kyo.Duration$package.Duration)(f: scala.Function1[S, tui4s.App$package.Next[S]])(using x$3: kyo.Frame$package.Frame)tui4s.Source[S]
+tui4s.Source$.task: [S, A](task: => kyo.kernel$package.<[A, scala.&[kyo.Async$package.Async, kyo.Abort[scala.package.Throwable]]])(using x$2: tui4s.NotForeign[A])(f: scala.Function2[S, A, tui4s.App$package.Next[S]])(using x$4: kyo.Frame$package.Frame)tui4s.Source[S]
+tui4s.Source$.poll: [S, A](period: kyo.Duration$package.Duration)(task: => kyo.kernel$package.<[A, scala.&[kyo.Async$package.Async, kyo.Abort[scala.package.Throwable]]])(using x$3: tui4s.NotForeign[A])(f: scala.Function2[S, A, tui4s.App$package.Next[S]])(using x$5: kyo.Frame$package.Frame)tui4s.Source[S]
+tui4s.Source$.apply: [S](body: scala.Function1[tui4s.Dispatch[S], kyo.kernel$package.<[scala.Unit, scala.&[kyo.Async$package.Async, kyo.Abort[scala.package.Throwable]]]])(using x$2: kyo.Frame$package.Frame)tui4s.Source[S]
+tui4s.Source$.signal: [S, A](signal: kyo.Signal[A])(f: scala.Function2[S, A, tui4s.App$package.Next[S]])(using x$3: kyo.Frame$package.Frame)tui4s.Source[S]
+tui4s.Source$.stream: [S, A](stream: => kyo.Stream[A, scala.&[kyo.Async$package.Async, kyo.Abort[scala.package.Throwable]]])(f: scala.Function2[S, A, tui4s.App$package.Next[S]])(using x$3: kyo.Tag$package.Tag[kyo.Emit[kyo.Chunk[A]]], x$4: kyo.Frame$package.Frame)tui4s.Source[S]
+tui4s.ViewTest (parent): kyo.test.Test[scala.Any]
+tui4s.NameClashTest (parent): kyo.test.Test[scala.Any]
+tui4s.testkit.LiveTest.settle: (using x$1: kyo.Frame$package.Frame)kyo.kernel$package.<[scala.Unit, kyo.Async$package.Async]
+tui4s.testkit.LiveTest.stats: (using x$1: kyo.Frame$package.Frame)kyo.kernel$package.<[tui4s.Stats, kyo.Sync$package.Sync]
+tui4s.testkit.LiveTest.advance: (d: kyo.Duration$package.Duration, sleepers: scala.Int)(using x$3: kyo.Frame$package.Frame)kyo.kernel$package.<[scala.Unit, kyo.Async$package.Async]
+tui4s.testkit.LiveTest.typeText: (text: scala.Predef.String)(using x$2: kyo.Frame$package.Frame)kyo.kernel$package.<[scala.Unit, kyo.Async$package.Async]
+tui4s.testkit.LiveTest.sources: (using x$1: kyo.Frame$package.Frame)kyo.kernel$package.<[scala.package.Seq[scala.Predef.String], kyo.Sync$package.Sync]
+tui4s.testkit.LiveTest.press: (keys: scala.|[tui4s.Key, scala.Char]*)(using x$2: kyo.Frame$package.Frame)kyo.kernel$package.<[scala.Unit, kyo.Async$package.Async]
+tui4s.testkit.LiveTest.state: (using x$1: kyo.Frame$package.Frame)kyo.kernel$package.<[LiveTest.this.S, kyo.Sync$package.Sync]
+tui4s.testkit.LiveTest.send: (events: tui4s.Event*)(using x$2: kyo.Frame$package.Frame)kyo.kernel$package.<[scala.Unit, kyo.Async$package.Async]
+tui4s.testkit.LiveTest.screen: (using x$1: kyo.Frame$package.Frame)kyo.kernel$package.<[tui4s.testkit.Screen, kyo.Sync$package.Sync]
+tui4s.testkit.LiveTest.error: (using x$1: kyo.Frame$package.Frame)kyo.kernel$package.<[scala.Option[tui4s.TuiError], kyo.Sync$package.Sync]
+tui4s.testkit.LiveTest.quit: (using x$1: kyo.Frame$package.Frame)kyo.kernel$package.<[scala.Boolean, kyo.Sync$package.Sync]
+tui4s.testkit.TuiTest$.live: [S, A](app: tui4s.App[S], width: scala.Int, height: scala.Int)(test: scala.Function1[tui4s.testkit.LiveTest[S], kyo.kernel$package.<[A, scala.&[kyo.Async$package.Async, kyo.Abort[scala.package.Throwable]]]])(using x$5: kyo.Frame$package.Frame)kyo.kernel$package.<[A, scala.&[kyo.Async$package.Async, kyo.Abort[scala.package.Throwable]]]
+tui4s.testkit.TuiTest$.liveBlocking$default$4: [S, A](@scala.annotation.unchecked.uncheckedVariance() kyo.Duration$package.Duration)
+tui4s.testkit.TuiTest$.liveBlocking: [S, A](app: tui4s.App[S], width: scala.Int, height: scala.Int, timeout: kyo.Duration$package.Duration)(test: scala.Function1[tui4s.testkit.LiveTest[S], kyo.kernel$package.<[A, scala.&[kyo.Async$package.Async, kyo.Abort[scala.package.Throwable]]]])(using x$6: kyo.Frame$package.Frame)A
+END
+  [1m[32m[PASS][0m[0m probe  [2m(3.1s)[0m
+[2m---[0m KyoFreeSurfaceTest: [32m1 passed[0m, [31m0 failed[0m  [2m(3.4s)[0m
+
+Results: [32m1 passed[0m, [31m0 failed[0m  (total: 3.4s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 19 s, completed 1 Oct 2026, 17:11:04

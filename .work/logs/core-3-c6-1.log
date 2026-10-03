@@ -1,0 +1,49 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] compiling 3 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 3 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/examples/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 3 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/examples/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Test run [36mexamples.todo.TodoSuite[0m started
+[91m==> X [0m[91mexamples.todo.TodoSuite[0m.[91mthe help bar shows the keys of the focused pane[0m [90m0.07s[0m munit.FailException: examples/src/test/scala/examples/todo/TodoSuite.scala:44
+43:      t.press(Key.Tab)
+[7m44:      assert(t.screen.contains("d delete"), t.screen.text)[0m
+45:      assertEquals(TodoApp.itemKeys.explain(Key.Char('d')), "'d' -> delete")
+╭ New ─────────────────────────────────────────╮
+│What needs doing?                             │
+╰──────────────────────────────────────────────╯
+╭ Todo · 0 left ───────────────────────────────╮
+│                                              │
+│                                              │
+│                                              │
+│                                              │
+│                                              │
+│                                              │
+╰──────────────────────────────────────────────╯
+↑/k up · ↓/j down …                     0 loaded
+[90m    at [0m[90mmunit.FunSuite.assert[0m[90m([0m[90mFunSuite.scala[0m:[90m12[0m[90m)[0m
+[1m    at [0m[1mexamples.todo.TodoSuite.$init$$$anonfun$4[0m[1m([0m[1mTodoSuite.scala[0m:[1m44[0m[1m)[0m
+[32mexamples.todo.TodoSuite[0m: finished [90m0.831s[0m
+Test run [36mexamples.todo.TodoSuite[0m finished: [91m1 failed[0m, 0 ignored, 5 total [90m0.888s[0m
+Test run [36mexamples.counter.CounterSuite[0m started
+[32mexamples.counter.CounterSuite[0m: finished [90m0.074s[0m
+Test run [36mexamples.counter.CounterSuite[0m finished: 0 failed, 0 ignored, 5 total [90m0.074s[0m
+Test run [36mexamples.dashboard.DashboardSuite[0m started
+[32mexamples.dashboard.DashboardSuite[0m: finished [90m2.341s[0m
+Test run [36mexamples.dashboard.DashboardSuite[0m finished: 0 failed, 0 ignored, 3 total [90m2.342s[0m
+[error] Failed: Total 13, Failed 1, Errors 0, Passed 12
+[error] Failed tests:
+[error] 	examples.todo.TodoSuite
+[error] (examples / Test / test) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 35 s, completed 1 Oct 2026, 17:03:35

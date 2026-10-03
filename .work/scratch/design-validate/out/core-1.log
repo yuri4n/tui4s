@@ -1,0 +1,109 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Source.scala:109:64 [0m[0m
+[31m109 |[0m      make[[32mS[0m, [32mA[0m](labelOf(frame), [33mKind[0m.[33mGeneral[0m)([36memit[0m => internal.[33mWatch[0m.signal(signal, emit))(f)
+[31m[31m    |[0m                                                       ^^^^^^^^^^^^^^[0m
+[31m    |[0m                           value Watch is not a member of kyo.internal
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Source.scala:134:48 [0m[0m
+[31m134 |[0m  [33minline[0m [33mgiven[0m [[36mA[0m]: [32mNotForeign[0m[[32mA[0m] = ${ internal.[33mMacros[0m.notForeign[[32mA[0m] }
+[31m[31m    |[0m                                       ^^^^^^^^^^^^^^^[0m
+[31m    |[0m                          value Macros is not a member of kyo.internal
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Styling.scala:59:38 [0m[0m
+[31m59 |[0m    [33mdef[0m [36mfg[0m([36mc[0m: [32mColor[0m): [32mStyle[0m       = s.withFg(c) [34m// withFg, never the record accessor fg()[0m
+[31m[31m   |[0m                                    ^^^^^^^^[0m
+[31m   |[0m                             value withFg is not a member of tui4s.Style
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Styling.scala:60:38 [0m[0m
+[31m60 |[0m    [33mdef[0m [36mbg[0m([36mc[0m: [32mColor[0m): [32mStyle[0m       = s.withBg(c)
+[31m[31m   |[0m                                    ^^^^^^^^[0m
+[31m   |[0m                             value withBg is not a member of tui4s.Style
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Styling.scala:61:38 [0m[0m
+[31m61 |[0m    [33mdef[0m [36mbold[0m: [32mStyle[0m               = s.withAddModifier([33mJModifier[0m.BOLD)
+[31m[31m   |[0m                                    ^^^^^^^^^^^^^^^^^[0m
+[31m   |[0m                    value withAddModifier is not a member of tui4s.Style
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Styling.scala:62:38 [0m[0m
+[31m62 |[0m    [33mdef[0m [36mdim[0m: [32mStyle[0m                = s.withAddModifier([33mJModifier[0m.DIM)
+[31m[31m   |[0m                                    ^^^^^^^^^^^^^^^^^[0m
+[31m   |[0m                    value withAddModifier is not a member of tui4s.Style
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Styling.scala:63:38 [0m[0m
+[31m63 |[0m    [33mdef[0m [36mitalic[0m: [32mStyle[0m             = s.withAddModifier([33mJModifier[0m.ITALIC)
+[31m[31m   |[0m                                    ^^^^^^^^^^^^^^^^^[0m
+[31m   |[0m                    value withAddModifier is not a member of tui4s.Style
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Styling.scala:64:38 [0m[0m
+[31m64 |[0m    [33mdef[0m [36munderlined[0m: [32mStyle[0m         = s.withAddModifier([33mJModifier[0m.UNDERLINED)
+[31m[31m   |[0m                                    ^^^^^^^^^^^^^^^^^[0m
+[31m   |[0m                    value withAddModifier is not a member of tui4s.Style
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Styling.scala:65:38 [0m[0m
+[31m65 |[0m    [33mdef[0m [36mreversed[0m: [32mStyle[0m           = s.withAddModifier([33mJModifier[0m.REVERSED)
+[31m[31m   |[0m                                    ^^^^^^^^^^^^^^^^^[0m
+[31m   |[0m                    value withAddModifier is not a member of tui4s.Style
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Styling.scala:66:38 [0m[0m
+[31m66 |[0m    [33mdef[0m [36mcrossedOut[0m: [32mStyle[0m         = s.withAddModifier([33mJModifier[0m.[33mCROSSED_OUT[0m)
+[31m[31m   |[0m                                    ^^^^^^^^^^^^^^^^^[0m
+[31m   |[0m                    value withAddModifier is not a member of tui4s.Style
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Styling.scala:67:38 [0m[0m
+[31m67 |[0m    [33mdef[0m [36m++[0m([36mother[0m: [32mStyle[0m): [32mStyle[0m   = s.patch(other)
+[31m[31m   |[0m                                    ^^^^^^^[0m
+[31m   |[0m                              value patch is not a member of tui4s.Style
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Tui.scala:10:13 [0m[0m
+[31m10 |[0m    internal.[33mRunner[0m.run(app, internal.[33mCrosstermControl[0m())
+[31m[31m   |[0m    ^^^^^^^^^^^^^^^[0m
+[31m   |[0m    value Runner is not a member of kyo.internal
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Tui.scala:14:13 [0m[0m
+[31m14 |[0m    internal.[33mRunner[0m.start(app, internal.[33mCrosstermControl[0m())
+[31m[31m   |[0m    ^^^^^^^^^^^^^^^[0m
+[31m   |[0m    value Runner is not a member of kyo.internal
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Tui.scala:18:28 [0m[0m
+[31m18 |[0m    inbox: [32mChannel[0m[internal.[32mItem[0m],
+[31m[31m   |[0m                   ^^^^^^^^^^^^^[0m
+[31m   |[0m                   type Item is not a member of kyo.internal
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Tui.scala:25:41 [0m[0m
+[31m25 |[0m    [33mAbort[0m.run[[32mClosed[0m](inbox.put(internal.[33mFold[0m(internal.[33mFold[0m.[33mHandleToken[0m, f))).unit
+[31m[31m   |[0m                                ^^^^^^^^^^^^^[0m
+[31m   |[0m                              value Fold is not a member of kyo.internal
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Tui.scala:25:55 [0m[0m
+[31m25 |[0m    [33mAbort[0m.run[[32mClosed[0m](inbox.put(internal.[33mFold[0m(internal.[33mFold[0m.[33mHandleToken[0m, f))).unit
+[31m[31m   |[0m                                              ^^^^^^^^^^^^^[0m
+[31m   |[0m                              value Fold is not a member of kyo.internal
+[31m[31m-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/Tui.scala:41:41 [0m[0m
+[31m41 |[0m    [33mAbort[0m.run[[32mClosed[0m](inbox.put(internal.[33mStop[0m)).andThen(fiber.getResult).unit
+[31m[31m   |[0m                                ^^^^^^^^^^^^^[0m
+[31m   |[0m                              value Stop is not a member of kyo.internal
+[31m[31m-- [E049] Reference Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/spi/spi.scala:76:4 [0m[0m
+[31m76 |[0m    internal.[33mRunner[0m.run(app, internal.[33mHeadlessControl[0m(backend, input))
+[31m[31m   |[0m    ^^^^^^^^[0m
+[31m   |[0m    Reference to internal is ambiguous.
+[31m   |[0m    It is both imported by import kyo._
+[31m   |[0m    and imported subsequently by import tui4s._
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E049] Reference Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/spi/spi.scala:76:29 [0m[0m
+[31m76 |[0m    internal.[33mRunner[0m.run(app, internal.[33mHeadlessControl[0m(backend, input))
+[31m[31m   |[0m                             ^^^^^^^^[0m
+[31m   |[0m                             Reference to internal is ambiguous.
+[31m   |[0m                             It is both imported by import kyo._
+[31m   |[0m                             and imported subsequently by import tui4s._
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E049] Reference Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/spi/spi.scala:81:4 [0m[0m
+[31m81 |[0m    internal.[33mRunner[0m.start(app, internal.[33mHeadlessControl[0m(backend, input))
+[31m[31m   |[0m    ^^^^^^^^[0m
+[31m   |[0m    Reference to internal is ambiguous.
+[31m   |[0m    It is both imported by import kyo._
+[31m   |[0m    and imported subsequently by import tui4s._
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E049] Reference Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/core/tui4s/spi/spi.scala:81:31 [0m[0m
+[31m81 |[0m    internal.[33mRunner[0m.start(app, internal.[33mHeadlessControl[0m(backend, input))
+[31m[31m   |[0m                               ^^^^^^^^[0m
+[31m   |[0m                             Reference to internal is ambiguous.
+[31m   |[0m                             It is both imported by import kyo._
+[31m   |[0m                             and imported subsequently by import tui4s._
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+21 errors found
+Downloading https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-crossterm/
+Downloaded https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-crossterm/
+Downloading https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-crossterm/maven-metadata.xml
+Downloaded https://repo1.maven.org/maven2/com/olvind/jatatui/jatatui-crossterm/maven-metadata.xml
+Compilation failed

@@ -1,0 +1,26 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Downloading https://repo1.maven.org/maven2/co/fs2/fs2-core_3/
+Downloaded https://repo1.maven.org/maven2/co/fs2/fs2-core_3/
+Downloading https://repo1.maven.org/maven2/co/fs2/fs2-core_3/maven-metadata.xml
+Downloaded https://repo1.maven.org/maven2/co/fs2/fs2-core_3/maven-metadata.xml
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/Users/yuri4n/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+Test run [36mtui4s.cats.CatsFacadeSuite[0m started
+[91m==> X [0m[91mtui4s.cats.CatsFacadeSuite[0m.[91mthe Cats Counter runs headless on a TestBackend through Tui.runWith[IO][0m [90m0.903s[0m munit.FailException: ╭ Counter ─────────────────────────────╮
+│                                      │
+│               Count: 0               │
+│  + increment · - decrement · q quit  │
+╰──────────────────────────────────────╯
+[90m    at [0m[90mmunit.FunSuite.assert[0m[90m([0m[90mFunSuite.scala[0m:[90m12[0m[90m)[0m
+[1m    at [0m[1mtui4s.cats.CatsFacadeSuite.$init$$$anonfun$2[0m[1m([0m[1mCatsFacadeSuite.test.scala[0m:[1m31[0m[1m)[0m
+[32mtui4s.cats.CatsFacadeSuite[0m: finished [90m3.439s[0m
+Test run [36mtui4s.cats.CatsFacadeSuite[0m finished: [91m1 failed[0m, 0 ignored, 8 total [90m3.456s[0m
+Error: munit tests failed.

@@ -1,0 +1,76 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Running 1 suite(s) with parallelism 16
+
+[1m=== OutputCaptureTest ===[0m
+  [1m[32m[PASS][0m[0m the ring keeps the newest important lines and counts the rest  [2m(92ms)[0m
+  [1m[32m[PASS][0m[0m after finish, an important line is printed at once; finish is idempotent  [2m(5ms)[0m
+  [1m[32m[PASS][0m[0m with a file, every line goes to the file and nothing is printed  [2m(12ms)[0m
+  [1m[32m[PASS][0m[0m with a file, a line after finish is still appended to the file  [2m(6ms)[0m
+  [1m[32m[PASS][0m[0m a log file that cannot be opened: the ring, and a note after the restore  [2m(6ms)[0m
+tui4s test: after the capture
+  [1m[32m[PASS][0m[0m System.out and System.err go to the sink while a capture runs  [2m(9ms)[0m
+  [1m[32m[PASS][0m[0m a progress line ('\r') keeps only its last update  [2m(2ms)[0m
+  [1m[32m[PASS][0m[0m a line is cut at MaxLine bytes, never inside a character  [2m(17ms)[0m
+  [1m[32m[PASS][0m[0m a capture restores the streams of its own start  [2m(3ms)[0m
+  [1m[32m[PASS][0m[0m a stream that wraps the installed forwarder does not make a loop  [2m(2ms)[0m
+  [1m[32m[PASS][0m[0m only one capture at a time; stop is idempotent  [2m(2ms)[0m
+tui4s test: not in the sink
+  [1m[32m[PASS][0m[0m after a capture, System.out writes to the real stdout again  [2m(2ms)[0m
+[2m---[0m OutputCaptureTest: [32m12 passed[0m, [31m0 failed[0m  [2m(637ms)[0m
+
+Results: [32m12 passed[0m, [31m0 failed[0m  (total: 637ms)
+Running 1 suite(s) with parallelism 16
+
+[1m=== TerminalIOTest ===[0m
+  [1m[32m[PASS][0m[0m open and close in the order of SPEC 5.9  [2m(454ms)[0m
+  [1m[32m[PASS][0m[0m the options choose the modes; an inline viewport ends on a new line  [2m(54ms)[0m
+  [1m[32m[PASS][0m[0m no terminal: NotATerminal before anything else changes  [2m(21ms)[0m
+  [1m[32m[PASS][0m[0m stdin is not a terminal: NotATerminal before raw mode  [2m(6ms)[0m
+  [1m[32m[PASS][0m[0m an app failure restores the streams too  [2m(49ms)[0m
+  [1m[32m[PASS][0m[0m a native library that cannot load: NativeAccessDenied  [2m(7ms)[0m
+  [1m[32m[PASS][0m[0m a failing mode command: TerminalIO, raw mode is left again  [2m(8ms)[0m
+  [1m[32m[PASS][0m[0m a failing release step does not stop the others; the error is printed  [2m(41ms)[0m
+  [1m[32m[PASS][0m[0m output while the UI is up is printed after the restore  [2m(39ms)[0m
+tui4s test: not captured
+  [1m[32m[PASS][0m[0m captureOutput = false: the output is not taken  [2m(44ms)[0m
+  [1m[32m[PASS][0m[0m Kyo log lines at warn or above are printed after the restore  [2m(67ms)[0m
+  [1m[32m[PASS][0m[0m a trace file that cannot be written is a warning after the restore  [2m(43ms)[0m
+  [1m[32m[PASS][0m[0m with a log file, the output and the log go to the file  [2m(44ms)[0m
+  [1m[32m[PASS][0m[0m the Kyo log of the run has the level of the caller's logger  [2m(45ms)[0m
+  [1m[32m[PASS][0m[0m every Kyo log line of the run is in the log file when the run returns  [2m(936ms)[0m
+  [1m[32m[PASS][0m[0m the shutdown hook restores the terminal while the app runs  [2m(49ms)[0m
+  [1m[32m[PASS][0m[0m Tui.start on a terminal: the handle updates, sends and stops  [2m(84ms)[0m
+[2m---[0m TerminalIOTest: [32m17 passed[0m, [31m0 failed[0m  [2m(2.0s)[0m
+
+Results: [32m17 passed[0m, [31m0 failed[0m  (total: 2.0s)
+Running 1 suite(s) with parallelism 16
+
+[1m=== TuiAppTest ===[0m
+  [1m[32m[PASS][0m[0m no terminal: exit code 1 and the message, printed after the restore  [2m(57ms)[0m
+  [1m[32m[PASS][0m[0m a run that quits: exit code 0, onExit gets the last state  [2m(83ms)[0m
+  [1m[32m[PASS][0m[0m update throws: exit code 1, the message and the cause's stack trace  [2m(46ms)[0m
+  [1m[32m[PASS][0m[0m SIGTERM: both hooks at once interrupt the run and restore the terminal  [2m(46ms)[0m
+  [1m[32m[PASS][0m[0m the restore hook first, then the stop hook: the run is interrupted  [2m(45ms)[0m
+  [1m[32m[PASS][0m[0m System.exit in update: the stop hook waits for the restore, not 2 s  [2m(51ms)[0m
+[2m---[0m TuiAppTest: [32m6 passed[0m, [31m0 failed[0m  [2m(338ms)[0m
+
+Results: [32m6 passed[0m, [31m0 failed[0m  (total: 338ms)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 27 s, completed 1 Oct 2026, 19:27:26
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/bench/target/scala-3.9.0/classes ...
+[info] done compiling
+[success] Total time: 10 s, completed 1 Oct 2026, 19:27:35

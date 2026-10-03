@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Specification-Title: kyo-scheduler-cats
+Specification-Version: 1.0.0-RC5
+Specification-Vendor: io.getkyo
+

@@ -1,0 +1,11 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[[33mhint[0m] ./kyo-probe.scala:7:15
+[[33mhint[0m] "cats-effect is outdated, update to 3.7.1"
+[[33mhint[0m]      cats-effect 3.7.0 -> org.typelevel::cats-effect:3.7.1
+[[33mhint[0m] //> using dep org.typelevel::cats-effect:3.7.0
+[[33mhint[0m]               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+real 40.71
+user 115.79
+sys 4.92

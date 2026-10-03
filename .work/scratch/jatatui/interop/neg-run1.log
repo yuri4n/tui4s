@@ -1,0 +1,15 @@
+-- [E127] Pattern Match Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/jatatui/interop/neg.scala:14:9 
+14 |    case Event.Resize(c, r) => c + r                        // NEG 1: Java record has no unapply
+   |         ^^^^^^^^^^^^
+   |tui.crossterm.Event.Resize cannot be used as an extractor in a pattern because it lacks an unapply or unapplySeq method with the appropriate signature
+   |
+   | longer explanation available when compiling with `-explain`
+-- Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/jatatui/interop/neg.scala:17:33 
+17 |  val c = Style.empty().fg(Color.RED)                         // NEG 3: Style.fg() is the record accessor
+   |                           ^^^^^^^^^
+   |too many arguments for method fg in class Style: (): java.util.Optional[jatatui.core.style.Color]
+2 errors found
+Compilation failed
+real 6.10
+user 13.41
+sys 1.21

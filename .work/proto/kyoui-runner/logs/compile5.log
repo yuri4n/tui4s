@@ -1,0 +1,9 @@
+-- [E198] Unused Symbol Warning: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/dev/Smoke2.scala:4:14 
+4 |import kyo.UI.*
+  |              ^
+  |              unused import
+-- [E198] Unused Symbol Warning: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Dispatch.scala:6:14 
+6 |import kyo.UI.Modifiers
+  |              ^^^^^^^^^
+  |              unused import
+2 warnings found

@@ -1,0 +1,63 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project zio-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] loading settings for project examples from zio.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/)
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/modules/zio/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/modules/zio/target/scala-3.9.0/classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Test run [36mtui4s.interop.zio.ZioFacadeSuite[0m started
+[32mtui4s.interop.zio.ZioFacadeSuite[0m: finished [90m5.077s[0m
+Test run [36mtui4s.interop.zio.ZioFacadeSuite[0m finished: 0 failed, 0 ignored, 18 total [90m5.134s[0m
+[TestClockSuite] one adjust(1 s) of a 250 ms poller: 4 samples
+Test run [36mtui4s.interop.zio.TestClockSuite[0m started
+[32mtui4s.interop.zio.TestClockSuite[0m: finished [90m2.374s[0m
+Test run [36mtui4s.interop.zio.TestClockSuite[0m finished: 0 failed, 0 ignored, 3 total [90m2.374s[0m
+Test run [36mtui4s.interop.zio.KyoFreeFacadeSuite[0m started
+[32mtui4s.interop.zio.KyoFreeFacadeSuite[0m: finished [90m6.621s[0m
+Test run [36mtui4s.interop.zio.KyoFreeFacadeSuite[0m finished: 0 failed, 0 ignored, 2 total [90m6.622s[0m
+Test run [36mtui4s.interop.zio.testkit.LiveTuiTestSuite[0m started
+[32mtui4s.interop.zio.testkit.LiveTuiTestSuite[0m: finished [90m0.539s[0m
+Test run [36mtui4s.interop.zio.testkit.LiveTuiTestSuite[0m finished: 0 failed, 0 ignored, 9 total [90m0.54s[0m
+Test run [36mtui4s.interop.zio.BackpressureSuite[0m started
+[32mtui4s.interop.zio.BackpressureSuite[0m: finished [90m8.515s[0m
+Test run [36mtui4s.interop.zio.BackpressureSuite[0m finished: 0 failed, 0 ignored, 3 total [90m8.517s[0m
+[AmbientZIOsSuite] race: 59 of 500 ZIOs had started
+Test run [36mtui4s.interop.zio.internal.AmbientZIOsSuite[0m started
+[32mtui4s.interop.zio.internal.AmbientZIOsSuite[0m: finished [90m29.15s[0m
+Test run [36mtui4s.interop.zio.internal.AmbientZIOsSuite[0m finished: 0 failed, 0 ignored, 9 total [90m29.152s[0m
+[info] Passed: Total 44, Failed 0, Errors 0, Passed 44
+[success] Total time: 108 s (0:01:48.0), completed 1 Oct 2026, 21:18:26
+[info] compiling 8 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/examples/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 6 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/zio/examples/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Test run [36mexamples.ziocounter.CounterSuite[0m started
+[32mexamples.ziocounter.CounterSuite[0m: finished [90m3.929s[0m
+Test run [36mexamples.ziocounter.CounterSuite[0m finished: 0 failed, 0 ignored, 6 total [90m4.004s[0m
+Test run [36mexamples.counter.CounterSuite[0m started
+[32mexamples.counter.CounterSuite[0m: finished [90m0.074s[0m
+Test run [36mexamples.counter.CounterSuite[0m finished: 0 failed, 0 ignored, 5 total [90m0.075s[0m
+Test run [36mexamples.dashboard.DashboardSuite[0m started
+[32mexamples.dashboard.DashboardSuite[0m: finished [90m4.108s[0m
+Test run [36mexamples.dashboard.DashboardSuite[0m finished: 0 failed, 0 ignored, 3 total [90m4.109s[0m
+Test run [36mexamples.todo.TodoSuite[0m started
+[32mexamples.todo.TodoSuite[0m: finished [90m0.248s[0m
+Test run [36mexamples.todo.TodoSuite[0m finished: 0 failed, 0 ignored, 5 total [90m0.249s[0m
+Test run [36mparity.ParitySuite[0m started
+[32mparity.ParitySuite[0m: finished [90m0.089s[0m
+Test run [36mparity.ParitySuite[0m finished: 0 failed, 0 ignored, 3 total [90m0.089s[0m
+Test run [36mexamples.ziodashboard.DashboardSuite[0m started
+[32mexamples.ziodashboard.DashboardSuite[0m: finished [90m2.048s[0m
+Test run [36mexamples.ziodashboard.DashboardSuite[0m finished: 0 failed, 0 ignored, 3 total [90m2.048s[0m
+[info] Passed: Total 25, Failed 0, Errors 0, Passed 25
+[success] Total time: 44 s, completed 1 Oct 2026, 21:19:10

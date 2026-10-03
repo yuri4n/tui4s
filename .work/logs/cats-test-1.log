@@ -1,0 +1,28 @@
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/cats/modules/cats/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Test run [36mtui4s.interop.cats.ResourceSuite[0m started
+[32mtui4s.interop.cats.ResourceSuite[0m: finished [90m4.338s[0m
+Test run [36mtui4s.interop.cats.ResourceSuite[0m finished: 0 failed, 0 ignored, 5 total [90m4.385s[0m
+Test run [36mtui4s.interop.cats.internal.DispatcherSuite[0m started
+[32mtui4s.interop.cats.internal.DispatcherSuite[0m: finished [90m2.447s[0m
+Test run [36mtui4s.interop.cats.internal.DispatcherSuite[0m finished: 0 failed, 0 ignored, 2 total [90m2.448s[0m
+[cancel-probe] sync-ensure: finalizedWhenCancelReturned=true ioCanceled=true finalizedAfter300ms=true
+[cancel-probe] scope-ensure-sync: finalizedWhenCancelReturned=false ioCanceled=true finalizedAfter300ms=true
+[cancel-probe] scope-ensure-async: finalizedWhenCancelReturned=false ioCanceled=true finalizedAfter300ms=true
+Test run [36mtui4s.interop.cats.internal.CatsBridgeSuite[0m started
+[32mtui4s.interop.cats.internal.CatsBridgeSuite[0m: finished [90m7.539s[0m
+Test run [36mtui4s.interop.cats.internal.CatsBridgeSuite[0m finished: 0 failed, 0 ignored, 13 total [90m7.539s[0m
+Test run [36mtui4s.interop.cats.LiveTuiTestSuite[0m started
+[32mtui4s.interop.cats.LiveTuiTestSuite[0m: finished [90m0.596s[0m
+Test run [36mtui4s.interop.cats.LiveTuiTestSuite[0m finished: 0 failed, 0 ignored, 5 total [90m0.597s[0m
+Test run [36mtui4s.interop.cats.KyoFreeFacadeSuite[0m started
+[32mtui4s.interop.cats.KyoFreeFacadeSuite[0m: finished [90m7.14s[0m
+Test run [36mtui4s.interop.cats.KyoFreeFacadeSuite[0m finished: 0 failed, 0 ignored, 2 total [90m7.141s[0m
+Test run [36mtui4s.interop.cats.CatsFacadeSuite[0m started
+[32mtui4s.interop.cats.CatsFacadeSuite[0m: finished [90m0.374s[0m
+Test run [36mtui4s.interop.cats.CatsFacadeSuite[0m finished: 0 failed, 0 ignored, 9 total [90m0.376s[0m
+Test run [36mtui4s.interop.cats.SourceSuite[0m started
+[32mtui4s.interop.cats.SourceSuite[0m: finished [90m8.979s[0m
+Test run [36mtui4s.interop.cats.SourceSuite[0m finished: 0 failed, 0 ignored, 11 total [90m8.98s[0m
+[info] Passed: Total 47, Failed 0, Errors 0, Passed 47
+[success] Total time: 85 s (0:01:25.0), completed 1 Oct 2026, 20:50:42

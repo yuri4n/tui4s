@@ -1,0 +1,104 @@
+#!/usr/bin/expect -f
+# Real pseudo-terminal check of the ZIO examples (scratch, not committed).
+# Usage: expect ziopty.exp <bin dir> <log file>
+set timeout 40
+set bin [lindex $argv 0]
+log_user 0
+log_file -a -noappend [lindex $argv 1]
+proc pass {name} { send_user "PASS $name\n" }
+proc fail {name why} { send_user "FAIL $name: $why\n" }
+
+spawn -noecho /bin/bash --norc --noprofile
+set slave $spawn_out(slave,name)
+exec stty rows 30 columns 100 < $slave
+send "PS1='PROMPT> '; export TERM=xterm-256color; export BASH_SILENCE_DEPRECATION_WARNING=1\r"
+expect -ex "PROMPT> "
+expect -ex "PROMPT> "
+
+proc pump {ms} {
+    set end [expr {[clock milliseconds] + $ms}]
+    while {[clock milliseconds] < $end} { expect -timeout 1 -re {.+} {} timeout {} }
+}
+proc modes {name} {
+    expect -ex "PROMPT> "
+    send "stty -a | tr ' ' '\\n' | grep -Ex -- '-?(icanon|echo|isig)' | sort | tr '\\n' ' '; echo ENDSTTY\r"
+    expect {
+        -re {(-?echo) (-?icanon) (-?isig) ENDSTTY} {
+            set m "$expect_out(1,string) $expect_out(2,string) $expect_out(3,string)"
+            if {[string first "-" $m] < 0} { pass "$name: cooked mode ($m)" } else { fail $name "modes $m" }
+        }
+        timeout { fail $name "no stty" }
+    }
+    expect -ex "PROMPT> "
+}
+
+# 1. ZIO Counter: + + - q -> exit 0
+send "$bin/ziocounter; echo EXIT=\$?\r"
+expect {
+    -ex "\x1b\[?1049h" {}
+    timeout { fail counter "no alternate screen" }
+}
+expect {
+    -ex "Count:" { pass "counter: first frame" }
+    timeout { fail counter "no frame" }
+}
+pump 800
+send "+"; pump 400
+send "+"; pump 400
+send -- "-"; pump 400
+send "q"
+expect {
+    -re {EXIT=([0-9]+)} { if {$expect_out(1,string) == 0} { pass "counter: exit 0" } else { fail counter "exit $expect_out(1,string)" } }
+    timeout { fail counter "no exit" }
+}
+modes counter
+
+# 2. ZIO Counter, stdin not a terminal -> message, exit 1
+send "$bin/ziocounter < /dev/null; echo EXIT=\$?\r"
+expect {
+    -ex "stdin/stdout is not a terminal" { pass "no tty: message" }
+    timeout { fail "no tty" "no message" }
+}
+expect {
+    -re {EXIT=([0-9]+)} { if {$expect_out(1,string) == 1} { pass "no tty: exit 1" } else { fail "no tty" "exit $expect_out(1,string)" } }
+    timeout { fail "no tty" "no exit" }
+}
+modes "no tty"
+
+# 3. ZIO Dashboard: SIGTERM from outside restores -> exit 143
+send "$bin/ziodashboard; echo EXIT=\$?\r"
+expect {
+    -ex "Dashboard" { pass "dashboard: first frame" }
+    timeout { fail dashboard "no frame" }
+}
+pump 2000
+set pid [string trim [exec pgrep -f "examples.ziodashboard.DashboardApp"]]
+exec kill -TERM $pid
+expect {
+    -re {EXIT=([0-9]+)} { set c $expect_out(1,string); if {$c == 143 || $c == 130} { pass "dashboard: SIGTERM exit $c" } else { fail dashboard "exit $c" } }
+    timeout { fail dashboard "no exit" }
+}
+modes dashboard
+
+# 4. ZIO Dashboard in the foreground: p, then q -> exit 0
+send "$bin/ziodashboard; echo EXIT=\$?\r"
+expect {
+    -ex "/api/items/" { pass "dashboard: log stream" }
+    timeout { fail dashboard "no log line" }
+}
+pump 1200
+send "p"
+expect {
+    -ex "(paused)" { pass "dashboard: paused" }
+    timeout { fail dashboard "no pause" }
+}
+pump 500
+send "q"
+expect {
+    -re {EXIT=([0-9]+)} { if {$expect_out(1,string) == 0} { pass "dashboard: exit 0" } else { fail dashboard "exit $expect_out(1,string)" } }
+    timeout { fail dashboard "no exit" }
+}
+modes "dashboard q"
+
+send "exit\r"
+expect eof

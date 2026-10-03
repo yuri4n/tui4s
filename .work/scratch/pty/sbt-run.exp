@@ -1,0 +1,35 @@
+#!/usr/bin/expect -f
+# Usage: expect sbt-run.exp "<sbt command line>"  -> does every key reach the app under sbt?
+set timeout 180
+set cmd [lindex $argv 0]
+log_user 0
+log_file -a -noappend [file normalize [file dirname [info script]]]/sbt-session.log
+spawn -noecho /bin/bash --norc --noprofile
+exec stty rows 30 columns 100 < $spawn_out(slave,name)
+send "PS1='PROMPT> '; export BASH_SILENCE_DEPRECATION_WARNING=1; source /Users/yuri4n/Developer/projects/tui4s/.work/env.sh; unset JAVA_TOOL_OPTIONS; cd /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core\r"
+expect -ex "PROMPT> "; expect -ex "PROMPT> "
+send "$cmd; echo EXIT=\$?\r"
+expect {
+    -ex "\x1b\[?1049h" {}
+    -re {EXIT=([0-9]+)} { send_user "FAIL ended early, exit $expect_out(1,string)\n"; exit }
+    timeout { send_user "FAIL timeout before the alternate screen\n"; exit }
+}
+expect { -ex "Count:" {} timeout { send_user "FAIL no frame\n"; exit } }
+after 800
+set got 0
+for {set i 1} {$i <= 5} {incr i} {
+    send "+"
+    set timeout 3
+    expect { -re "H(\x1b\\\[\[0-9;\]*m)*$i" { incr got } timeout { send_user "key $i: count $i not drawn\n" } }
+}
+send_user "plus keys that reached the app: $got of 5\n"
+send "q"
+set timeout 10
+expect {
+    -re {EXIT=([0-9]+)} { send_user "q: app exited with $expect_out(1,string)\n" }
+    timeout { send_user "FAIL q did not stop the app (key lost)\n"; send "\003"; after 500; send "\003" }
+}
+set timeout 30
+expect -ex "PROMPT> "
+send "exit\r"
+expect eof

@@ -1,0 +1,79 @@
+-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/World.scala:19:20 
+19 |    case Comp(spec: ComponentSpec, key: String)
+   |                    ^^^^^^^^^^^^^
+   |                    Not found: type ComponentSpec
+   |
+   | longer explanation available when compiling with `-explain`
+-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:127:79 
+127 |                    _ <- reclaim.get(path).flatMap(_.watcher).fold(Kyo.unit)(_.interrupt.unit)
+    |                                                                             ^^^^^^^^^^^
+    |                    value interrupt is not a member of kyo.Fiber[?, ?]
+-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:140:116 
+140 |                    case Some(old @ RegionState(_, Source.Comp(ComponentSpec.Hook(id, _), _), _, content, _, _)) if id == identity =>
+    |                                                                                                                    ^^
+    |                                      Not found: id - did you mean io?
+    |
+    | longer explanation available when compiling with `-explain`
+-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:169:76 
+169 |            Kyo.foreachDiscard(stale.toSeq)(r => r.watcher.fold(Kyo.unit)(_.interrupt.unit)).andThen(gcComps(w1))
+    |                                                                          ^^^^^^^^^^^
+    |                    value interrupt is not a member of kyo.Fiber[?, ?]
+-- [E008] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Mount.scala:180:83 
+180 |        Kyo.foreachDiscard(w.regions.values.toSeq)(r => r.watcher.fold(Kyo.unit)(_.interrupt.unit))
+    |                                                                                 ^^^^^^^^^^^
+    |                    value interrupt is not a member of kyo.Fiber[?, ?]
+-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala:117:47 
+117 |    def apply(canvas: Canvas, laid: Laid, env: Env, damage: Vector[Damage]): Vector[Rect] =
+    |                                               ^^^
+    |                                    Missing type parameter for kyo.Env
+-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala:137:51 
+137 |    def paintNode(canvas: Canvas, laid: Laid, env: Env, p: Loc, clip: Rect): Unit =
+    |                                                   ^^^
+    |                                    Missing type parameter for kyo.Env
+-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala:208:58 
+208 |    private def decorate(canvas: Canvas, laid: Laid, env: Env, n: Node, e: Element, clip: Rect): Unit =
+    |                                                          ^^^
+    |                                    Missing type parameter for kyo.Env
+-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala:185:32 
+185 |    private def boundValue(env: Env, p: Loc): Option[Any] = env.content(p) match
+    |                                ^^^
+    |                                Missing type parameter for kyo.Env
+-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala:186:44 
+186 |        case Some(Content.Value(v)) => Some(v)
+    |                                            ^
+    |                                            Not found: v
+    |
+    | longer explanation available when compiling with `-explain`
+-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala:189:23 
+189 |    def textValue(env: Env, p: Loc, ti: TextInput): String =
+    |                       ^^^
+    |                       Missing type parameter for kyo.Env
+-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala:195:26 
+195 |    def checkedValue(env: Env, p: Loc, bi: BooleanInput): Boolean =
+    |                          ^^^
+    |                          Missing type parameter for kyo.Env
+-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala:201:25 
+201 |    def pickerValue(env: Env, p: Loc, value: Maybe[UI.Bound[String]]): String =
+    |                         ^^^
+    |                         Missing type parameter for kyo.Env
+-- [E173] Reference Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Runner.scala:20:87 
+20 |    private val dispatch                             = Dispatch(quitAction(using Frame.internal))
+   |                                                                                 ^^^^^^^^^^^^^^
+   |value internal cannot be accessed as a member of kyo.Frame.type from class Runner.
+   |  private[kyo] value internal can only be accessed from package kyo.
+-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Runner.scala:142:98 
+142 |    private def relayoutAll(w: World, paths: Iterable[Loc], laid: Laid, dmg: Vector[Damage], env: Env): (Laid, Vector[Damage]) =
+    |                                                                                                  ^^^
+    |                                    Missing type parameter for kyo.Env
+-- [E056] Syntax Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/World.scala:47:13 
+47 |    def env: Env =
+   |             ^^^
+   |             Missing type parameter for kyo.Env
+-- [E050] Type Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/World.scala:48:8 
+48 |        Env(p => regions.get(p).map(_.content), focus, size, p => carets.getOrElse(p, Int.MaxValue))
+   |        ^^^
+   |        object Env in package kyo does not take parameters
+   |
+   | longer explanation available when compiling with `-explain`
+17 errors found
+Compilation failed

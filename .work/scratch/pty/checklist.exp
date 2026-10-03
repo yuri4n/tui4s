@@ -1,0 +1,146 @@
+#!/usr/bin/expect -f
+# Real-PTY checklist for the tui4s examples (examples/README.md), run without a human.
+# Usage: expect checklist.exp   (run.sh and cp.txt next to this script)
+# The script drives the apps in a real pseudo-terminal and writes MARK lines into session.log;
+# analyze.py checks the output between the marks. Terminal-mode checks are printed directly.
+
+set timeout 30
+set here [file normalize [file dirname [info script]]]
+log_user 0
+log_file -a -noappend "$here/session.log"
+set results {}
+proc pass {name} { global results; lappend results "PASS $name"; send_user "PASS $name\n" }
+proc fail {name why} { global results; lappend results "FAIL $name: $why"; send_user "FAIL $name: $why\n" }
+proc mark {name} { send_log "\n@@MARK $name@@\n" }
+
+spawn -noecho /bin/bash --norc --noprofile
+set slave $spawn_out(slave,name)
+exec stty rows 30 columns 100 < $slave
+send "PS1='PROMPT> '; export TERM=xterm-256color; export BASH_SILENCE_DEPRECATION_WARNING=1\r"
+expect -ex "PROMPT> "
+expect -ex "PROMPT> "
+
+proc run_app {main {env ""}} {
+    global here
+    send "$env $here/run.sh $main; echo EXIT=\$?\r"
+}
+# Read (and so log) everything the app prints for about ms milliseconds.
+proc pump {ms} {
+    set end [expr {[clock milliseconds] + $ms}]
+    while {[clock milliseconds] < $end} {
+        expect -timeout 1 -re {.+} {} timeout {}
+    }
+}
+# The app is ready when it has entered the alternate screen and drawn the text.
+proc first_frame {name text} {
+    expect {
+        -ex "\x1b\[?1049h" {}
+        timeout { fail $name "never entered the alternate screen"; return }
+    }
+    expect {
+        -ex $text { pass "$name: first frame" }
+        timeout { fail $name "no first frame (waited for '$text')" }
+    }
+    pump 500
+}
+proc back_at_prompt {name {codes {0}}} {
+    expect {
+        -re {EXIT=([0-9]+)} {
+            set code $expect_out(1,string)
+            if {[lsearch -exact $codes $code] >= 0} { pass "$name: exit code $code" } else { fail $name "exit code $code, expected $codes" }
+        }
+        timeout { fail $name "app did not exit"; send "\003"; return }
+    }
+    expect -ex "PROMPT> "
+    send "stty -a | tr ' ' '\\n' | grep -Ex -- '-?(icanon|echo|isig)' | sort | tr '\\n' ' '; echo ENDSTTY\r"
+    expect {
+        -re {(-?echo) (-?icanon) (-?isig) ENDSTTY} {
+            set modes "$expect_out(1,string) $expect_out(2,string) $expect_out(3,string)"
+            if {[string first "-" $modes] < 0} { pass "$name: terminal back in cooked mode ($modes)" } else { fail $name "terminal modes not restored: $modes" }
+        }
+        timeout { fail $name "could not read stty" }
+    }
+    expect -ex "PROMPT> "
+}
+
+# ---- Counter: + + - then q
+mark "counter-start"
+run_app examples.counter.CounterApp
+first_frame "counter" "Count:"
+mark "counter-plus1";  send "+"; pump 400
+mark "counter-plus2";  send "+"; pump 400
+mark "counter-minus";  send -- "-"; pump 400
+mark "counter-q";      send "q"
+back_at_prompt "counter q"
+
+# ---- Counter: Ctrl-C
+mark "ctrlc-start"
+run_app examples.counter.CounterApp
+first_frame "counter ctrl-c" "Count:"
+send "\003"
+back_at_prompt "counter ctrl-c"
+
+# ---- Counter: kill -TERM from outside
+mark "term-start"
+run_app examples.counter.CounterApp
+first_frame "counter sigterm" "Count:"
+set pid [string trim [exec pgrep -f "examples.counter.CounterApp"]]
+exec kill -TERM $pid
+back_at_prompt "counter kill -TERM" {1 143}
+
+# ---- Todo
+exec rm -f "$here/home/.tui4s-todo.txt"
+mark "todo-start"
+run_app examples.todo.TodoApp
+first_frame "todo" "Todo"
+mark "todo-typed";  send "buy milk"; pump 400
+mark "todo-enter";  send "\r"; pump 400
+mark "todo-paste";  send "\x1b\[200~tea ☕ time\x1b\[201~"; pump 400
+mark "todo-enter2"; send "\r"; pump 400
+mark "todo-tab";    send "\t"; pump 400
+mark "todo-space";  send " "; pump 400
+mark "todo-ctrls";  send "\x13"; pump 800
+mark "todo-esc";    send "\x1b"
+back_at_prompt "todo"
+mark "todo2-start"
+run_app examples.todo.TodoApp
+first_frame "todo restart" "Todo"
+pump 600
+mark "todo2-esc"; send "\x1b"
+back_at_prompt "todo restart"
+
+# ---- Dashboard
+mark "dash-start"
+run_app examples.dashboard.DashboardApp
+first_frame "dashboard" "Dashboard"
+mark "dash-running"; pump 2000
+mark "dash-pause";   send "p"; pump 500
+mark "dash-paused";  pump 1500
+mark "dash-resume";  send "p"; pump 1000
+mark "dash-resize-small"
+exec stty rows 20 columns 60 < $slave
+exec kill -WINCH [string trim [exec pgrep -f "examples.dashboard.DashboardApp"]]
+pump 800
+mark "dash-resize-big"
+exec stty rows 30 columns 100 < $slave
+exec kill -WINCH [string trim [exec pgrep -f "examples.dashboard.DashboardApp"]]
+pump 800
+mark "dash-right"; send "\x1b\[C"; pump 500
+mark "dash-left";  send "\x1b\[D"; pump 500
+mark "dash-q";     send "q"
+back_at_prompt "dashboard"
+
+# ---- Native access denied
+mark "deny-start"
+run_app examples.counter.CounterApp "JFLAGS='--illegal-native-access=deny --sun-misc-unsafe-memory-access=allow'"
+back_at_prompt "native access denied" {1}
+
+# ---- Stdin is a pipe
+mark "pipe-start"
+send "echo | $here/run.sh examples.counter.CounterApp; echo EXIT=\$?\r"
+back_at_prompt "stdin piped" {1}
+
+mark "end"
+send "exit\r"
+expect eof
+send_user "\nPTY part: [llength [lsearch -all $results PASS*]] passed, [llength [lsearch -all $results FAIL*]] failed\n"

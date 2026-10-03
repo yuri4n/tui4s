@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?><project 
+xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.olvind.jatatui</groupId>
+  <artifactId>jatatui-widgets</artifactId>
+  <packaging>jar</packaging>
+  <description>JNI binding to the Rust crossterm crate, with prebuilt native libraries.</description>
+  <url>https://github.com/oyvindberg/jatatui/</url>
+  <version>0.31.0</version>
+  <licenses>
+    <license>
+      <name>MIT</name>
+      <url>http://opensource.org/licenses/MIT</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <name>jatatui-widgets</name>
+  <organization>
+    <name>com.olvind.jatatui</name>
+    <url>https://github.com/oyvindberg/jatatui/</url>
+  </organization>
+  <scm>
+    <url>https://github.com/oyvindberg/jatatui</url>
+    <connection>scm:git:https://github.com/oyvindberg/jatatui.git</connection>
+    <developerConnection>scm:git:git@github.com:oyvindberg/jatatui.git</developerConnection>
+  </scm>
+  <developers>
+    <developer>
+      <id>oyvindberg</id>
+      <name>Øyvind Raddum Berg</name>
+      <url>https://github.com/oyvindberg</url>
+    </developer>
+  </developers>
+  <dependencies>
+    <dependency>
+      <groupId>com.olvind.jatatui</groupId>
+      <artifactId>jatatui-core</artifactId>
+      <version>0.31.0</version>
+    </dependency>
+  </dependencies>
+</project>

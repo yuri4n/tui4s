@@ -1,0 +1,54 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[33m[33m-- Warning: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/samples/examples/dashboard/DashboardApp.scala:40:41 [0m[0m
+[33m40 |[0m    [33mval[0m [36mlogs[0m = source.stream(requests)(_ log _).id([32m"logs"[0m)
+[33m[33m   |[0m                                         ^^^[0m
+[33m   |[0mAlphanumeric method log is not declared [33minfix[0m; it should not be used as infix operator.
+[33m   |[0mInstead, use method syntax .log(...) or backticked identifier `log`.
+[33m   |[0mThe latter can be rewritten automatically under -rewrite -source 3.4-migration.
+[33m[33m-- Warning: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/samples/examples/dashboard/DashboardApp.scala:41:60 [0m[0m
+[33m41 |[0m    [33mval[0m [36mcpu[0m  = source.poll([32m250[0m.millis)([33mRandom[0m.nextDouble)(_ sample _).id([32m"cpu"[0m)
+[33m[33m   |[0m                                                            ^^^^^^[0m
+[33m   |[0mAlphanumeric method sample is not declared [33minfix[0m; it should not be used as infix operator.
+[33m   |[0mInstead, use method syntax .sample(...) or backticked identifier `sample`.
+[33m   |[0mThe latter can be rewritten automatically under -rewrite -source 3.4-migration.
+[33m[33m-- Warning: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/samples/examples/todo/TodoApp.scala:91:87 [0m[0m
+[33m91 |[0m    [33mif[0m t.ready [33mthen[0m [33mNil[0m [33melse[0m [33mSeq[0m(source.task([33mAbort[0m.run[[32mIOException[0m]([33mTodoStore[0m.load))(_ loaded _).id([32m"load"[0m))
+[33m[33m   |[0m                                                                                       ^^^^^^[0m
+[33m   |[0mAlphanumeric method loaded is not declared [33minfix[0m; it should not be used as infix operator.
+[33m   |[0mInstead, use method syntax .loaded(...) or backticked identifier `loaded`.
+[33m   |[0mThe latter can be rewritten automatically under -rewrite -source 3.4-migration.
+[33m[33m-- Warning: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/samples/examples/todo/TodoApp.scala:97:79 [0m[0m
+[33m97 |[0m      .withTask(source.task([33mAbort[0m.run[[33mIOException[0m]([33mTodoStore[0m.save(t.items)))(_ saved _).id([32m"save"[0m))
+[33m[33m   |[0m                                                                               ^^^^^[0m
+[33m   |[0mAlphanumeric method saved is not declared [33minfix[0m; it should not be used as infix operator.
+[33m   |[0mInstead, use method syntax .saved(...) or backticked identifier `saved`.
+[33m   |[0mThe latter can be rewritten automatically under -rewrite -source 3.4-migration.
+4 warnings found
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[31m[31m-- [E007] Type Mismatch Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/samples/tests/RuntimeSuite.test.scala:98:14 [0m[0m
+[31m98 |[0m    [33mval[0m [36mapp[0m = [33mApp[0m[[32mS[0m](
+[31m[31m   |[0m              ^^^^^^[0m
+[31m   |[0m           Found:    [1m[31mAny[0m => Seq[tui4s.Source[[1m[31mNothing[0m]]
+[31m   |[0m           Required: [1m[32mS[0m => Seq[tui4s.Source[[1m[32mS[0m]]
+[31m   |[0m           Error occurred in an application involving default arguments.
+[31m   |[0m
+[31m   |[0m longer explanation available when compiling with `-explain`
+[31m[31m-- [E007] Type Mismatch Error: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/samples/tests/RuntimeSuite.test.scala:109:19 [0m[0m
+[31m109 |[0m    assertEquals(t.state.n, [32m10[0m)
+[31m[31m    |[0m                 ^^^^^^^[0m
+[31m    |[0mFound:    (t.state : => Nothing)
+[31m    |[0mRequired: ?{ n: ? }
+[31m    |[0mNote that implicit conversions were not tried because the result of an implicit conversion
+[31m    |[0mmust be more specific than ?{ n: <?> }
+[31m    |[0m
+[31m    |[0m longer explanation available when compiling with `-explain`
+[33m[33m-- [E176] Potential Issue Warning: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/design-validate/samples/tests/SamplesSuite.test.scala:82:32 [0m[0m
+[33m82 |[0m    t.typeText([32m"call bob"[0m).press([33mKey[0m.[33mEnter[0m, [33mKey[0m.[33mTab[0m, [32m' '[0m)
+[33m[33m   |[0m    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[33m   |[0m    unused value of type (t : tui4s.testkit.TuiTest[examples.todo.Todo])
+1 warning found
+2 errors found
+Compilation failed

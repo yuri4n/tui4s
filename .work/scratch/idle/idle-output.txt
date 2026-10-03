@@ -1,0 +1,101 @@
+== round 1 ==
+plain JVM (no Kyo)                 process cpu =     0.7 ms /   3005 ms wall =  0.02% of one core
+       29.7 ms  main
+        0.0 ms  Signal Dispatcher
+        0.0 ms  Notification Thread
+        0.0 ms  Finalizer
+        0.0 ms  Common-Cleaner
+        0.0 ms  Reference Handler
+kyo defaults                       process cpu =   395.6 ms /   3002 ms wall = 13.18% of one core
+      314.4 ms  kyo-scheduler-timer-#
+       37.6 ms  kyo-scheduler-clock-#
+        3.4 ms  main
+        2.6 ms  kyo-scheduler-worker-#
+        0.0 ms  Thread-#
+        0.0 ms  Signal Dispatcher
+cycle 1 ms                         process cpu =   260.8 ms /   3004 ms wall =  8.68% of one core
+      149.0 ms  kyo-scheduler-timer-#
+       72.4 ms  kyo-scheduler-clock-#
+        2.8 ms  kyo-scheduler-worker-#
+        2.5 ms  main
+        0.0 ms  Thread-#
+        0.0 ms  Signal Dispatcher
+cycle 10 ms                        process cpu =   237.4 ms /   3005 ms wall =  7.90% of one core
+      126.4 ms  kyo-scheduler-timer-#
+       74.5 ms  kyo-scheduler-clock-#
+        3.0 ms  kyo-scheduler-worker-#
+        2.4 ms  main
+        0.0 ms  Thread-#
+        0.0 ms  Signal Dispatcher
+cycle 10 ms + monitor 20 ms        process cpu =   197.5 ms /   3005 ms wall =  6.57% of one core
+       79.2 ms  kyo-scheduler-clock-#
+       69.1 ms  kyo-scheduler-timer-#
+        3.1 ms  kyo-scheduler-worker-#
+        2.5 ms  main
+        0.0 ms  Thread-#
+        0.0 ms  Signal Dispatcher
+cycle 10ms+mon 20ms+conc 100ms     process cpu =   237.8 ms /   3003 ms wall =  7.92% of one core
+       82.1 ms  kyo-scheduler-clock-#
+       26.1 ms  kyo-scheduler-timer-#
+        3.2 ms  kyo-scheduler-worker-#
+        2.2 ms  main
+        0.0 ms  Thread-#
+        0.0 ms  Signal Dispatcher
+all above + coreWorkers 2          process cpu =   194.8 ms /   3004 ms wall =  6.48% of one core
+       61.9 ms  kyo-scheduler-clock-#
+       22.2 ms  kyo-scheduler-timer-#
+        3.0 ms  kyo-scheduler-worker-#
+        2.5 ms  main
+        0.0 ms  Thread-#
+        0.0 ms  Signal Dispatcher
+== round 2 ==
+plain JVM (no Kyo)                 process cpu =     0.6 ms /   3002 ms wall =  0.02% of one core
+       32.8 ms  main
+        0.0 ms  Signal Dispatcher
+        0.0 ms  Notification Thread
+        0.0 ms  Finalizer
+        0.0 ms  Common-Cleaner
+        0.0 ms  Reference Handler
+kyo defaults                       process cpu =   393.8 ms /   3002 ms wall = 13.12% of one core
+      314.2 ms  kyo-scheduler-timer-#
+       41.2 ms  kyo-scheduler-clock-#
+        2.8 ms  kyo-scheduler-worker-#
+        2.2 ms  main
+        0.0 ms  Thread-#
+        0.0 ms  Signal Dispatcher
+cycle 1 ms                         process cpu =   271.1 ms /   3004 ms wall =  9.02% of one core
+      166.2 ms  kyo-scheduler-timer-#
+       65.6 ms  kyo-scheduler-clock-#
+        2.9 ms  kyo-scheduler-worker-#
+        2.4 ms  main
+        0.0 ms  Thread-#
+        0.0 ms  Signal Dispatcher
+cycle 10 ms                        process cpu =   174.8 ms /   3004 ms wall =  5.82% of one core
+       88.5 ms  kyo-scheduler-timer-#
+       52.5 ms  kyo-scheduler-clock-#
+        3.0 ms  kyo-scheduler-worker-#
+        2.5 ms  main
+        0.0 ms  Thread-#
+        0.0 ms  Signal Dispatcher
+cycle 10 ms + monitor 20 ms        process cpu =   152.3 ms /   3004 ms wall =  5.07% of one core
+       56.4 ms  kyo-scheduler-timer-#
+       52.3 ms  kyo-scheduler-clock-#
+        2.8 ms  kyo-scheduler-worker-#
+        2.3 ms  main
+        0.0 ms  Thread-#
+        0.0 ms  Signal Dispatcher
+cycle 10ms+mon 20ms+conc 100ms     process cpu =   217.3 ms /   3005 ms wall =  7.23% of one core
+       74.6 ms  kyo-scheduler-clock-#
+       24.7 ms  kyo-scheduler-timer-#
+        2.6 ms  kyo-scheduler-worker-#
+        2.5 ms  main
+        0.0 ms  Thread-#
+        0.0 ms  Signal Dispatcher
+all above + coreWorkers 2          process cpu =   124.1 ms /   3003 ms wall =  4.13% of one core
+       78.1 ms  kyo-scheduler-clock-#
+       25.2 ms  kyo-scheduler-timer-#
+        3.0 ms  kyo-scheduler-worker-#
+        2.2 ms  main
+        0.0 ms  Thread-#
+        0.0 ms  Signal Dispatcher
+exit=0

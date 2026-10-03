@@ -1,0 +1,50 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project/target/scala-2.12/sbt-1.0/classes ...
+[info] done compiling
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] scalafmt: Formatting 1 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/examples)...
+[info] scalafmt: Formatting 2 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core)...
+[info] scalafmt: Reformatted 1 Scala sources
+[success] Total time: 5 s, completed 1 Oct 2026, 17:15:58
+[info] scalafmt: Formatting 2 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core)...
+[info] scalafmt: Formatting 2 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/cats)...
+[info] scalafmt: Formatting 2 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/zio)...
+[info] scalafmt: Formatting 3 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core)...
+[info] scalafmt: Reformatted 1 Scala sources
+[info] scalafmt: Formatting 2 Scala sources (/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core)...
+[info] scalafmt: Reformatted 1 Scala sources
+[success] Total time: 1 s, completed 1 Oct 2026, 17:15:59
+[warn] build source files have changed
+[warn] modified files: 
+[warn]   /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/build.sbt
+[warn]   /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project/FacadeParity.scala
+[warn] Apply these changes by running `reload`.
+[warn] Automatically reload the build when source changes are detected by setting `Global / onChangedBuildSource := ReloadOnSourceChanges`.
+[warn] Disable this warning by setting `Global / onChangedBuildSource := IgnoreSourceChanges`.
+[info] compiling 2 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/examples/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/examples/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Test run [36mexamples.counter.CounterSuite[0m started
+[32mexamples.counter.CounterSuite[0m: finished [90m0.596s[0m
+Test run [36mexamples.counter.CounterSuite[0m finished: 0 failed, 0 ignored, 5 total [90m0.658s[0m
+Test run [36mexamples.dashboard.DashboardSuite[0m started
+[32mexamples.dashboard.DashboardSuite[0m: finished [90m2.718s[0m
+Test run [36mexamples.dashboard.DashboardSuite[0m finished: 0 failed, 0 ignored, 3 total [90m2.718s[0m
+Test run [36mexamples.todo.TodoSuite[0m started
+[32mexamples.todo.TodoSuite[0m: finished [90m0.183s[0m
+Test run [36mexamples.todo.TodoSuite[0m finished: 0 failed, 0 ignored, 5 total [90m0.183s[0m
+Test run [36mparity.ParitySuite[0m started
+[32mparity.ParitySuite[0m: finished [90m0.028s[0m
+Test run [36mparity.ParitySuite[0m finished: 0 failed, 0 ignored, 2 total [90m0.029s[0m
+[info] Passed: Total 15, Failed 0, Errors 0, Passed 15
+[success] Total time: 24 s, completed 1 Oct 2026, 17:16:23

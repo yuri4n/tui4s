@@ -1,0 +1,64 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Running 1 suite(s) with parallelism 16
+
+[1m=== OutputCaptureTest ===[0m
+  [1m[32m[PASS][0m[0m the ring keeps the newest important lines and counts the rest  [2m(114ms)[0m
+  [1m[32m[PASS][0m[0m after finish, an important line is printed at once; finish is idempotent  [2m(7ms)[0m
+  [1m[32m[PASS][0m[0m with a file, every line goes to the file and nothing is printed  [2m(12ms)[0m
+  [1m[32m[PASS][0m[0m with a file, a line after finish is still appended to the file  [2m(9ms)[0m
+  [1m[32m[PASS][0m[0m a log file that cannot be opened: the ring, and a note after the restore  [2m(9ms)[0m
+tui4s test: after the capture
+  [1m[32m[PASS][0m[0m System.out and System.err go to the sink while a capture runs  [2m(13ms)[0m
+  [1m[31m[FAIL][0m[0m a progress line ('\r') keeps only its last update  [2m(37ms)[0m *** FAILED ***
+
+    )
+    // message: Vector(progress 1
+    progress 2
+    progress 3, windows line, 50%)
+
+  [1m[31m[FAIL][0m[0m a line is cut at MaxLine bytes, never inside a character  [2m(60ms)[0m *** FAILED ***
+
+    assert(bytes.forall(_ <= 8192), bytes.toString)
+    // message: Vector(30000)
+
+after the run
+  [1m[31m[FAIL][0m[0m a capture restores the streams of its own start  [2m(4ms)[0m *** FAILED ***
+
+    assert(text == "after the run\n", text)
+
+  [1m[32m[PASS][0m[0m only one capture at a time; stop is idempotent  [2m(5ms)[0m
+tui4s test: not in the sink
+  [1m[32m[PASS][0m[0m after a capture, System.out writes to the real stdout again  [2m(5ms)[0m
+[2m---[0m OutputCaptureTest: [32m8 passed[0m, [31m3 failed[0m  [2m(861ms)[0m
+FAILURES (3):
+  a progress line ('\r') keeps only its last update  [FAIL]
+    )
+    // message: Vector(progress 1
+    progress 2
+    progress 3, windows line, 50%)
+  a line is cut at MaxLine bytes, never inside a character  [FAIL]
+    assert(bytes.forall(_ <= 8192), bytes.toString)
+    // message: Vector(30000)
+  a capture restores the streams of its own start  [FAIL]
+    assert(text == "after the run\n", text)
+
+Results: [32m8 passed[0m, [31m3 failed[0m  (total: 861ms)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.OutputCaptureTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 31 s, completed 1 Oct 2026, 19:14:59

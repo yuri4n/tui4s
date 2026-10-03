@@ -1,0 +1,8 @@
+-- [E006] Not Found Error: /Users/yuri4n/Developer/projects/tui4s/.work/proto/kyoui-runner/apps/Todo.scala:46:21 
+46 |    def row(r: Row): Li =
+   |                     ^^
+   |                     Not found: type Li
+   |
+   | longer explanation available when compiling with `-explain`
+1 error found
+Compilation failed

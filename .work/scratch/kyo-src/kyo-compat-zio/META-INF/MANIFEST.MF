@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Specification-Title: kyo-compat-zio
+Specification-Version: 1.0.0-RC7
+Specification-Vendor: io.getkyo
+

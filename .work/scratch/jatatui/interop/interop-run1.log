@@ -1,0 +1,41 @@
+-- [E029] Pattern Match Exhaustivity Warning: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/jatatui/interop/interop.scala:32:43 
+32 |  def incompleteSealed(e: Event): String = e match
+   |                                           ^
+   |match may not be exhaustive.
+   |
+   |It would fail on pattern case: _: tui.crossterm.Event.Resize, _: tui.crossterm.Event.Paste, _: tui.crossterm.Event.FocusLost, _: tui.crossterm.Event.FocusGained
+   |
+   | longer explanation available when compiling with `-explain`
+-- [E029] Pattern Match Exhaustivity Warning: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/jatatui/interop/interop.scala:37:45 
+37 |  def incompleteEnum(k: KeyEventKind): Int = k match
+   |                                             ^
+   |                                  match may not be exhaustive.
+   |
+   |                                  It would fail on pattern case: Release
+   |
+   | longer explanation available when compiling with `-explain`
+-- [E029] Pattern Match Exhaustivity Warning: /Users/yuri4n/Developer/projects/tui4s/.work/scratch/jatatui/interop/interop.scala:42:49 
+42 |  def incompleteNested(k: MouseEventKind): Int = k match
+   |                                                 ^
+   |match may not be exhaustive.
+   |
+   |It would fail on pattern case: _: tui.crossterm.MouseEventKind.ScrollRight, _: tui.crossterm.MouseEventKind.ScrollLeft, _: tui.crossterm.MouseEventKind.ScrollUp, _: tui.crossterm.MouseEventKind.ScrollDown, _: tui.crossterm.MouseEventKind.Moved, _: tui.crossterm.MouseEventKind.Drag
+   |
+   | longer explanation available when compiling with `-explain`
+3 warnings found
+key Char[c=q] ctrl=true
+resize 120x40
+record equality: true true
+varargs split: List(10x1+0+0, 10x4+0+1)
+java.util.List overload: 2
+commands: [Hide[], MoveTo[x=1, y=2]]
+withLines from Seq: 2x2+0+0
+selected=Some(3) then Optional[4]
+opt=Optional[5]
+Viewport.inline(5) = Inline(5)
+JList len=2
+Paragraph overloads equal: true true true
+span style == style: true; Style.fg accessor = Optional[Red]
+real 13.26
+user 1.44
+sys 0.33

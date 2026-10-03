@@ -1,0 +1,102 @@
+[zio counter] before:
+Left
+Count: 0
+(-)(+)
+Right
+Count: 0
+(-)(+)
+Component counter
+Count: 0
+(+)(reset)
+[zio counter] after a+2, b-1, c+1:
+Left
+Count: 2
+(-)(+)
+Right
+Count: -1
+(-)(+)
+Component counter
+Count: 1
+(+)(reset)
+[zio todo] screen 0:
+Todos
+[](Add)
+0 left
+[zio todo] screen 1:
+Todos
+[](Add)[ ]Buy milk(x)
+1 left
+[zio todo] screen 2:
+Todos
+[](Add)[ ]Buy milk(x)
+[ ]Walk the dog(x)
+2 left
+[zio todo] screen 3:
+Todos
+[](Add)[x]~Buy milk~(x)
+[ ]Walk the dog(x)
+1 left
+(Clear done)
+[zio todo] screen 4:
+Todos
+[](Add)[x]~Buy milk~(x)
+0 left
+(Clear done)
+[zio todo] screen 5:
+Todos
+[](Add)
+0 left
+[zio runtime] seen: caller-42 on caller-zio-pool
+(probe)
+[zio guard] error: tui4s: `onClick` takes a ZIO[Any, Nothing, Any] (or event => ZIO[Any, Nothing, Any]). Handle the errors of a ZIO that can fail (orDie, catchAll); a value of another type would never run.
+        val notAnEffect = compileErrors("""button("x").onClick(println("hi"))""")
+                                      ^
+
+[zio guard] error: tui4s: `onClick` takes a ZIO[Any, Nothing, Any] (or event => ZIO[Any, Nothing, Any]). Handle the errors of a ZIO that can fail (orDie, catchAll); a value of another type would never run.
+        val mayFail     = compileErrors("""button("x").onClick(ZIO.attempt(println("hi")))""")
+                                      ^
+
+[zio guard] error: tui4s: `onClick` takes a ZIO[Any, Nothing, Any] (or event => ZIO[Any, Nothing, Any]). Handle the errors of a ZIO that can fail (orDie, catchAll); a value of another type would never run.
+        val kyoEffect   = compileErrors("""button("x").onClick(kyo.Sync.defer(println("hi")))""")
+                                      ^
+
+[zio guard] error:
+Found:    tui4s.interop.zio.ui.Button
+Required: kyo.UI.Ast.Button²
+
+where:    Button  is a type in the top-level definitions in package ui with bounds <: tui4s.interop.zio.ui.Inline & tui4s.interop.zio.ui.Interactive &
+  tui4s.interop.zio.ui.Focusable & tui4s.interop.zio.ui.HasDisabled &
+  tui4s.interop.zio.ui.Activatable & tui4s.interop.zio.ui.Clickable
+          Button² is a class in object Ast
+val b: kyo.UI.Ast.Button = button("x")
+                                ^
+
+[zio guard] error:
+value onClick is not a member of tui4s.interop.zio.ui.Button.
+An extension method was tried, but could not be fully constructed:
+
+    tui4s.interop.zio.ui.onClick()
+
+    failed with:
+
+        value onClick: <overloaded tui4s.interop.zio.ui.onClick> does not take parameters
+button("x").onClick(f = (_: Any) => ())
+           ^
+
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.Modifiers: kyo.UI.Modifiers.type
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.Style: kyo.Style.type
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.InputFilter:  = kyo.UI.InputFilter
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.WheelEvent: kyo.UI.WheelEvent.type
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.Modifiers:  = kyo.UI.Modifiers
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.KeyboardEvent:  = kyo.UI.KeyboardEvent
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.KeyboardEvent: kyo.UI.KeyboardEvent.type
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.Style:  = kyo.Style
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.MouseEvent:  = kyo.UI.MouseEvent
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.MouseEvent: kyo.UI.MouseEvent.type
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.Keyboard: kyo.UI.Keyboard.type
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.Keyboard:  = kyo.UI.Keyboard
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.WheelEvent:  = kyo.UI.WheelEvent
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.InputFilter: kyo.UI.InputFilter.type
+Test run [36mtui4s.interop.zio.ui.ZioFacadeSuite[0m started
+[32mtui4s.interop.zio.ui.ZioFacadeSuite[0m: finished [90m10.444s[0m
+Test run [36mtui4s.interop.zio.ui.ZioFacadeSuite[0m finished: 0 failed, 0 ignored, 9 total [90m10.476s[0m

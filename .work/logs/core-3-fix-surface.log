@@ -1,0 +1,35 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.4.1)
+[info] loading settings for project core-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/project/target/scala-2.12/sbt-1.0/classes ...
+[info] done compiling
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/)
+[info] compiling 2 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Running 1 suite(s) with parallelism 16
+
+[1m=== KyoFreeSurfaceTest ===[0m
+  [1m[32m[PASS][0m[0m the shared surface names no kyo type  [2m(3.3s)[0m
+  [1m[32m[PASS][0m[0m the check finds the Kyo-typed members it leaves out  [2m(3.3s)[0m
+[2m---[0m KyoFreeSurfaceTest: [32m2 passed[0m, [31m0 failed[0m  [2m(3.8s)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 3.8s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 22 s, completed 1 Oct 2026, 19:18:14
+[info] compiling 5 Scala sources to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/examples/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 1 Scala source to /Users/yuri4n/Developer/projects/tui4s/.work/worktrees/core/examples/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+Test run [36mparity.ParitySuite[0m started
+[32mparity.ParitySuite[0m: finished [90m0.151s[0m
+Test run [36mparity.ParitySuite[0m finished: 0 failed, 0 ignored, 2 total [90m0.19s[0m
+[info] Passed: Total 2, Failed 0, Errors 0, Passed 2
+[success] Total time: 15 s, completed 1 Oct 2026, 19:18:29

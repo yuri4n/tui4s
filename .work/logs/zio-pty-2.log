@@ -1,0 +1,13 @@
+PASS counter: first frame
+PASS counter: exit 0
+PASS counter: cooked mode (echo icanon isig)
+PASS no tty: message
+PASS no tty: exit 1
+PASS no tty: cooked mode (echo icanon isig)
+PASS dashboard: first frame
+PASS dashboard: SIGTERM exit 143
+PASS dashboard: cooked mode (echo icanon isig)
+FAIL dashboard: no log line
+FAIL dashboard: no pause
+PASS dashboard: exit 0
+PASS dashboard q: cooked mode (echo icanon isig)

@@ -1,0 +1,32 @@
+==> Last release of b: 0.4.0
+==> Validating b-v0.4.1: guard (assertReleasable), versionCheck, tests, unsigned staging
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 21.0.8)
+[info] loading settings for project sbt-probe-build from plugins.sbt...
+[info] loading project definition from /Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project a from compat.sbt, extra.sbt...
+[info] loading settings for project b from compat.sbt...
+[info] set current project to root (in build file:/Users/yuri4n/Developer/projects/tui4s/.work/scratch/sbt-probe/)
+[error] java.lang.RuntimeException: Not releasable: probe-a:0.2.0+2-0c3a088f-SNAPSHOT (unreleased inter-project dependency)
+[error] 	at scala.sys.package$.error(package.scala:30)
+[error] 	at ModuleVersioning$.$anonfun$apply$8(ModuleVersioning.scala:55)
+[error] 	at ModuleVersioning$.$anonfun$apply$8$adapted(ModuleVersioning.scala:45)
+[error] 	at scala.Function1.$anonfun$compose$1(Function1.scala:49)
+[error] 	at sbt.internal.util.$tilde$greater.$anonfun$$u2219$1(TypeFunctions.scala:63)
+[error] 	at sbt.std.Transform$$anon$4.work(Transform.scala:69)
+[error] 	at sbt.Execute.$anonfun$submit$2(Execute.scala:283)
+[error] 	at sbt.internal.util.ErrorHandling$.wideConvert(ErrorHandling.scala:24)
+[error] 	at sbt.Execute.work(Execute.scala:292)
+[error] 	at sbt.Execute.$anonfun$submit$1(Execute.scala:283)
+[error] 	at sbt.ConcurrentRestrictions$$anon$4.$anonfun$submitValid$1(ConcurrentRestrictions.scala:265)
+[error] 	at sbt.CompletionService$$anon$2.call(CompletionService.scala:65)
+[error] 	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+[error] 	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+[error] 	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+[error] 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+[error] 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+[error] 	at java.base/java.lang.Thread.run(Thread.java:1583)
+[error] (b / assertReleasable) Not releasable: probe-a:0.2.0+2-0c3a088f-SNAPSHOT (unreleased inter-project dependency)
+[error] Total time: 0 s, completed 30 Sept 2026, 18:36:13
+release: validation failed. If an inter-project dependency is unreleased, release it first (e.g. scripts/release.sh core <next>).
+==> Deleted local tag b-v0.4.1
