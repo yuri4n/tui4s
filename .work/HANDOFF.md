@@ -33,7 +33,11 @@ started from the main checkout): it is the user's Metals sbt server.
   - Side by side: `.work/proto/SIDE-BY-SIDE.md`, `side-by-side.json` (generator `side-by-side-gen.py DONE`).
     Page: https://claude.ai/artifact/5caZtjTZk8uohrUy3QoRei (source in `.work/proto/side-by-side-page/`).
 - Open questions for the user are at the end of each REPORT.md (runner 8, facades 8, integration 4).
-- NEXT: the user reads the side-by-side page and answers the blocking questions; then plan the rework of PRs 3-5
+- 2026-10-03 later: `.work/` pushed to `wip/handoff` (commit 1d100ed, without .scala-build/.bsp). The user said "I like
+  it, go ahead": planning run `wf_ccf6b226-c52` (9 agents, read-only) writes `.work/design/plan/*` and
+  `.work/design/PLAN-kyoui.md` + `upstream-kyo-ui-issue.md` (DRAFT, never post without the user). Assumptions A1-A4
+  (PR shape a/b/c; upstream issue draft only; ZIO SignalRef; checked-in mirrors + drift CI) await confirmation.
+- (superseded) NEXT: the user reads the side-by-side page and answers the blocking questions; then plan the rework of PRs 3-5
   on kyo-ui (runner proposal: (a) runner core, (b) terminal + app from PR 5, (c) examples/ptycheck/bench;
   close or replace PRs 3 and 4).
 
