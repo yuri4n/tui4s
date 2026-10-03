@@ -257,12 +257,16 @@ object Layout:
                     val lastGrow = grows.lastIndexWhere(_ > 0)
                     base.zip(shares).zipWithIndex.map { case ((b, s), i) => b + s + (if i == lastGrow then rest else 0) }
                 else if free < 0 then
-                    val weights = items.zip(base).map((m, b) => m.props.shrink * b)
+                    // claude 2026-10-03: changed: in a column, an item without an explicit height does not shrink below its
+                    // content height (CSS `min-height: auto` of flex items); the overflow is clipped by the owner instead.
+                    // Before, a list taller than the screen shrank EVERY item (header, input, rows) to 0 rows.
+                    val floor = items.zip(base).map((m, b) => if column && m.props.height.isEmpty then b else 0)
+                    val weights = items.zip(base).zip(floor).map { case ((m, b), f) => if b > f then m.props.shrink * b else 0.0 }
                     val total   = weights.sum
                     if total <= 0 then base
                     else
                         val cuts = weights.map(w => math.ceil(-free * w / total).toInt)
-                        base.zip(cuts).map((b, c) => (b - c).max(0))
+                        base.zip(cuts).zip(floor).map { case ((b, c), f) => (b - c).max(f).max(0) }
                 else base
             val leftover = (mainSize - sizes.sum - items.map(mMain).sum - gaps).max(0)
             val (start, between) =

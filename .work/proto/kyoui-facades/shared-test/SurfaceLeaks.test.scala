@@ -13,8 +13,20 @@ import tastyquery.jdk.ClasspathLoaders
   * SurfaceCheck; Java reflection cannot see Kyo's `A < S`, an opaque type that erases to Object).
   */
 object SurfaceLeaks:
+    // claude 2026-10-03: changed Leak: it also gives the Kyo names in the signature, so a test can allow the aliases of
+    // kyo-ui data types by name (it allowed them by member name, which hid a Kyo type in an allowed member)
     final case class Leak(where: String, signature: String):
         override def toString: String = s"$where: $signature"
+
+        /** The Kyo types that the signature names (`kyo.Maybe$package.Maybe` is `kyo.Maybe`). */
+        def names: Seq[String] =
+            "(?<![A-Za-z0-9_$.])kyo(?:\\.[A-Za-z0-9_$]+)+".r.findAllIn(signature).toList
+                .map(n => if n.endsWith("kernel$package") then "kyo.<" else n.replaceAll("\\.[A-Za-z0-9_]+\\$package", ""))
+                .distinct
+
+        /** True when every Kyo name is one of `allowed` or a member of one (`kyo.Length.Px` under `kyo.Length`). */
+        def onlyNames(allowed: Set[String]): Boolean =
+            names.forall(n => allowed.exists(a => n == a || n.startsWith(a + ".")))
 
     private lazy val context: Context =
         val entries = System.getProperty("java.class.path", "").split(File.pathSeparator).toList

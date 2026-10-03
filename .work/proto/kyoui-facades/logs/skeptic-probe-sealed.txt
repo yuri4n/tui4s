@@ -1,0 +1,12 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m, -Xmx2g
+[90mCompiling project (Scala 3.9.0, JVM (system))[0m
+[[31merror[0m] ./Sealed.scala:6:16
+[[31merror[0m] Cannot extend [33msealed[0m [33mclass[0m [32mRef[0m in a different source file
+[[31merror[0m] abstract class MyRef extends zio.Ref[Int]
+[[31merror[0m]                ^
+[[31merror[0m] ./Sealed.scala:7:16
+[[31merror[0m] Cannot extend [33msealed[0m [33mtrait[0m [32mSubscriptionRef[0m in a different source file
+[[31merror[0m] abstract class MySub extends zio.stream.SubscriptionRef[Int]
+[[31merror[0m]                ^
+[90mError compiling project (Scala 3.9.0, JVM (system))[0m
+Compilation failed

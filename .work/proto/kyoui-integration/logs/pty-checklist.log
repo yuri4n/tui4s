@@ -1,0 +1,13 @@
+jar=/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/kyoui-integration.jar work=/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/ptywork date=2026-10-03T15:54:05+00:00 load=1.84 2.11 1.64
+PASS zio counter: entered the alternate screen
+PASS zio counter: first frame drawn (990 ms after the start command, JVM start included)
+PASS zio: raw mode while running (-icanon -echo -isig)
+PASS zio counter ctrl-c: exit code 0
+PASS zio: stty -a after exit equals stty -a before start
+PASS cats counter: entered the alternate screen
+PASS cats counter: first frame drawn (1168 ms after the start command, JVM start included)
+PASS cats: raw mode while running (-icanon -echo -isig)
+PASS cats counter ctrl-c: exit code 0
+PASS cats: stty -a after exit equals stty -a before start
+
+PTY part: 10 passed, 0 failed

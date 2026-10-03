@@ -1,0 +1,27 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m, -Xmx2g
+[90mCompiling project (Scala 3.9.0, JVM (system))[0m
+[90mCompiled project (Scala 3.9.0, JVM (system))[0m
+[90mCompiling project (Scala 3.9.0, JVM (system))[0m
+[[33mwarn[0m] ./kyoui-runner/src/tui4s/kyoui/internal/Dispatch.scala:6:15
+[[33mwarn[0m] unused import
+[[33mwarn[0m] import kyo.UI.Modifiers
+[[33mwarn[0m]               ^^^^^^^^^
+[90mCompiled project (Scala 3.9.0, JVM (system))[0m
+[90mCompiling project (test, Scala 3.9.0, JVM (system))[0m
+[90mCompiled project (test, Scala 3.9.0, JVM (system))[0m
+[[33mhint[0m] ./kyoui-runner/project.scala:8:20
+[[33mhint[0m] "munit is outdated, update to 1.3.6"
+[[33mhint[0m]      munit 1.1.1 -> org.scalameta::munit:1.3.6
+[[33mhint[0m] //> using test.dep org.scalameta::munit:1.1.1
+[[33mhint[0m]                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m -Xmx2g
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=45837 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[32mtests.AppsTest:[0m
+[32m  + [0m[32mcounter: + + - with keys, Tab and Enter on the buttons, nothing happens for an unknown key[0m [90m0.429s[0m
+[32m  + [0m[32mtwo counters are independent; Tab order is document order[0m [90m0.058s[0m
+[32m  + [0m[32mhooks: top-level sequencing and runner-mounted components (state dropped when hidden)[0m [90m0.086s[0m
+[32m  + [0m[32mComponent class: state per position, kept across a parent re-render[0m [90m0.048s[0m
+[32m  + [0m[32mtodo: load, type + Enter adds, Tab to the list, arrows + Space toggle, d deletes, Ctrl-S saves, Esc quits[0m [90m0.188s[0m
+[32m  + [0m[32mdashboard: a sampler tick updates gauge and sparkline in one frame; tabs; pause[0m [90m0.078s[0m
+[32m  + [0m[32midle: no frame at all when nothing changes[0m [90m1.811s[0m
+[32m  + [0m[32mglitch-free: one event that writes two refs updates all 4 dependent regions in one frame (500 events)[0m [90m0.829s[0m

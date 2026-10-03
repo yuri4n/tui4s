@@ -1,0 +1,14 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m, -Xmx2g
+[90mCompiling project (Scala 3.9.0, JVM (system))[0m
+[[33mwarn[0m] ./kyoui-runner/src/tui4s/kyoui/internal/Dispatch.scala:6:15
+[[33mwarn[0m] unused import
+[[33mwarn[0m] import kyo.UI.Modifiers
+[[33mwarn[0m]               ^^^^^^^^^
+[90mCompiled project (Scala 3.9.0, JVM (system))[0m
+[90mCompiling project (test, Scala 3.9.0, JVM (system))[0m
+[90mCompiled project (test, Scala 3.9.0, JVM (system))[0m
+[[33mhint[0m] ./kyoui-runner/project.scala:8:20
+[[33mhint[0m] "munit is outdated, update to 1.3.6"
+[[33mhint[0m]      munit 1.1.1 -> org.scalameta::munit:1.3.6
+[[33mhint[0m] //> using test.dep org.scalameta::munit:1.1.1
+[[33mhint[0m]                    ^^^^^^^^^^^^^^^^^^^^^^^^^^

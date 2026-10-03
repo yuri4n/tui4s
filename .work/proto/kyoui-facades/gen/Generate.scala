@@ -36,6 +36,9 @@ object Generate:
         case Ref(elem: Rule)      // kyo.SignalRef[X] (two-way)
         case Children             // HtmlChildVal*
         case Pairs                // (String, String)*
+        // claude 2026-10-03: created two rules for pure (non-effect) parameters: varargs of a data type, a pure function
+        case Repeated(elem: Rule) // X* for a plain or data X (FileInput.accept(FileAccept*))
+        case Pure(in: Rule, out: Rule) // X => Y with no effect (Element.style(Style.type => Style))
     end Rule
 
     /** The effect points of one ecosystem. */
@@ -64,19 +67,21 @@ object Generate:
     object Zio extends Eco:
         val name    = "zio"
         val pkg     = "tui4s.interop.zio.ui"
-        val imports = List("_root_.zio.ZIO", "_root_.zio.stream.SubscriptionRef", s"$pkg.internal.Bridge")
+        // claude 2026-10-03: changed the ZIO ref type from zio.stream.SubscriptionRef (sealed, so the facade kept a
+        // second cell and raced) to the facade's own single-cell SignalRef (same package, so no import)
+        val imports = List("_root_.zio.ZIO", s"$pkg.internal.Bridge")
         def extraTypeParams(rules: List[Rule]) = ""
         def usingClause(rules: List[Rule])     = ""
         val actionType                         = "ZIO[Any, Nothing, Any]"
         def handlerType(in: String)            = s"$in => ZIO[Any, Nothing, Any]"
-        def refType(elem: String)              = s"SubscriptionRef[$elem]"
+        def refType(elem: String)              = s"SignalRef[$elem]"
         val refChildConversion =
-            """    /** A `SubscriptionRef[String]` made by `useSignal` as a reactive text child. */
-              |    implicit def fromRefString(r: SubscriptionRef[String])(using h: Here): Child =
+            """    /** A `SignalRef[String]` made by `useSignal` as a reactive text child. */
+              |    implicit def fromRefString(r: SignalRef[String])(using h: Here): Child =
               |        kyo.UI.Ast.HtmlChildVal.liftSignalString(Bridge.signal(r))(using h)""".stripMargin
         val refExtensions =
-            """extension [A](ref: SubscriptionRef[A])
-              |    /** The reactive view of a ref made by `useSignal` (fails for another SubscriptionRef). */
+            """extension [A](ref: SignalRef[A])
+              |    /** The reactive view of the ref. */
               |    def signal: Signal[A] = Bridge.signal(ref)
               |    /** A reactive subtree: `f` runs for every value of `ref`. */
               |    def render[N <: HtmlNode](f: A => N)(using h: Here): HtmlNode =
@@ -128,7 +133,24 @@ object Generate:
         "UI$.this.Href"          -> "Href",
         "UI$.this.Target"        -> "Target",
         "UI$.this.ImgSrc"        -> "ImgSrc",
-        "kyo.Style"              -> "Style"
+        "kyo.Style"              -> "Style",
+        // claude 2026-10-03: added FileAccept (FileInput.accept) and the companion object type of Style (Element.style)
+        "UI$.this.FileAccept"    -> "FileAccept",
+        "kyo.Style.type"         -> "StyleCompanion"
+    )
+
+    /** The kyo-ui data types that the fields of an aliased data type name: they get an alias too. */
+    // claude 2026-10-03: created, so a user can build a FileAccept.Image(ImageExt.Png) without a kyo import
+    private val fieldDataTypes = Map(
+        "FileAccept" -> List("ImageExt")
+    )
+
+    /** The top-level Kyo data types that an aliased data type needs: an alias, and a forwarder for each extension
+      * method of their file (`2.pct`, `2.em`: without them a Style needs `import kyo.*`).
+      */
+    // claude 2026-10-03: created, after the general leak check showed kyo.Length in most Style builders
+    private val topLevelData = Map(
+        "Style" -> List("Length")
     )
 
     private val plain = Map(
@@ -150,10 +172,18 @@ object Generate:
             case d if dataTypes.contains(d)                        => Some(Rule.Data(dataTypes(d)))
             case s"=> $e" if e == Effect                           => Some(Rule.Action)
             case Fn(in, out) if out == Effect                      => rule(in).collect { case r @ (_: Rule.Plain | _: Rule.Data) => Rule.Handler(r) }
+            // claude 2026-10-03: added the pure function rule (no effect in the result, plain or data on both sides)
+            case Fn(in, out) if !out.contains("kyo.kernel$package.<[") =>
+                for
+                    i <- rule(in).collect { case r @ (_: Rule.Plain | _: Rule.Data) => r }
+                    o <- rule(out).collect { case r @ (_: Rule.Plain | _: Rule.Data) => r }
+                yield Rule.Pure(i, o)
             case Ref(elem)                                         => rule(elem).collect { case r: Rule.Plain => Rule.Ref(r) }
             case Sig(elem)                                         => rule(elem).collect { case r @ (_: Rule.Plain | _: Rule.Data) => Rule.Sig(r) }
             case "Ast$.this.HtmlChildVal*"                         => Some(Rule.Children)
             case "scala.Tuple2[scala.Predef.String, scala.Predef.String]*" => Some(Rule.Pairs)
+            // claude 2026-10-03: added the varargs rule for a plain or data element type
+            case s"$elem*" => rule(elem).collect { case r @ (_: Rule.Plain | _: Rule.Data) => Rule.Repeated(r) }
             case _                                                 => None
         end match
     end rule
@@ -229,6 +259,9 @@ object Generate:
             case Rule.Ref(e)      => eco.refType(mirrorTypeOf(e))
             case Rule.Children    => "Child*"
             case Rule.Pairs       => "(String, String)*"
+            // claude 2026-10-03: added the mirror types of the two new rules
+            case Rule.Repeated(e) => s"${mirrorTypeOf(e)}*"
+            case Rule.Pure(i, o)  => s"${mirrorTypeOf(i)} => ${mirrorTypeOf(o)}"
 
         def argExprOf(p: String, r: Rule): String = r match
             case Rule.Action     => eco.actionExpr(p)
@@ -236,6 +269,8 @@ object Generate:
             case Rule.Ref(_)     => eco.refExpr(p)
             case Rule.Children   => s"$p*"
             case Rule.Pairs      => s"$p*"
+            // claude 2026-10-03: added the argument of a varargs rule (a pure function is passed as is)
+            case Rule.Repeated(_) => s"$p*"
             case _               => p
 
         val classes    = subset.map(n => ctx.findStaticClass(s"kyo.UI.Ast.$n"))
@@ -278,14 +313,23 @@ object Generate:
         val skippedFactories = factoryList.collect { case Left(r) => r }
 
         // Setters at the highest kyo-ui level that declares them; a class-level override of a trait setter is skipped.
-        val traitKeys = traits.flatMap(declaredSetters).map(_.key).toSet
-        val all = traits.flatMap(declaredSetters) ++ classes.flatMap(c => declaredSetters(c).filterNot(s => traitKeys(s.key)))
+        // claude 2026-10-03: changed: a class setter is left out only when a trait OF THAT CLASS declares the same
+        // setter. It was left out when ANY trait of the mirror declared it, so Opt.value(String) was lost to
+        // TextInput.value(String), and the report did not list it as skipped.
+        val traitSetters = traits.map(t => t -> declaredSetters(t).map(_.key).toSet).toMap
+        def inheritedKeys(c: ClassSymbol): Set[(String, List[String])] =
+            c.linearization.filter(traitSetters.contains).flatMap(traitSetters).toSet
+        val all = traits.flatMap(declaredSetters) ++
+            classes.flatMap(c => declaredSetters(c).filterNot(s => inheritedKeys(c)(s.key)))
 
         def dataNames(r: Rule): List[String] = r match
             case Rule.Data(n)     => List(n)
             case Rule.Handler(in) => dataNames(in)
             case Rule.Sig(e)      => dataNames(e)
             case Rule.Ref(e)      => dataNames(e)
+            // claude 2026-10-03: added the data types of the two new rules
+            case Rule.Repeated(e) => dataNames(e)
+            case Rule.Pure(i, o)  => dataNames(i) ++ dataNames(o)
             case _                => Nil
         val usedData = all.flatMap(_.rules.toList.flatten).flatMap(dataNames).distinct
 
@@ -347,25 +391,69 @@ object Generate:
             (header :: ms.map(m => m._2.linesIterator.map("    " + _).mkString("\n"))).mkString("\n")
         }
 
-        val dataAliases = usedData.flatMap {
-            case "Style" => List("type Style = kyo.Style", "val Style: kyo.Style.type = kyo.Style")
-            case n       => List(s"type $n = kyo.UI.$n", s"val $n: kyo.UI.$n.type = kyo.UI.$n")
+        // claude 2026-10-03: changed: the field data types of a used data type get an alias too (FileAccept -> ImageExt),
+        // and StyleCompanion (the type of the Style object, for `style(_.bold)`) is a type alias only
+        val extraData = usedData.flatMap(n => fieldDataTypes.getOrElse(n, Nil)).filterNot(usedData.contains).distinct
+        // claude 2026-10-03: added the top-level data types (Length) and the forwarders of their extension methods
+        val topData = (usedData ++ extraData).flatMap(n => topLevelData.getOrElse(n, Nil)).distinct
+        val topExtensions = topData.flatMap { n =>
+            val files = ctx.findPackage("kyo").declarations.collect {
+                case c: ClassSymbol if c.isModuleClass && c.name.toString.startsWith(n + "$package") => c
+            }
+            files.flatMap(_.declarations.collect { case t: TermSymbol if isPublic(t) && t.isExtensionMethod => t })
+                .flatMap { t =>
+                    t.declaredType match
+                        case m: MethodType if m.paramTypes.size == 1 =>
+                            val recv = m.paramTypes.head.showBasic
+                            val res  = finalResult(t.declaredType).showBasic.replace(s"kyo.$n", n)
+                            plain.get(recv).map(r => s"extension (v: $r) def ${t.name}: $res = kyo.${t.name}(v)")
+                        case _ => None
+                }
+                .sorted
+        }
+        val dataAliases = (usedData ++ extraData).flatMap {
+            case "Style"          => List("type Style = kyo.Style", "val Style: kyo.Style.type = kyo.Style")
+            case "StyleCompanion" => List("type StyleCompanion = kyo.Style.type")
+            case n                => List(s"type $n = kyo.UI.$n", s"val $n: kyo.UI.$n.type = kyo.UI.$n")
         } ++ List( // the field types of KeyboardEvent, so that `e.key == Keyboard.Enter` needs no kyo import
             "type Keyboard = kyo.UI.Keyboard",
             "val Keyboard: kyo.UI.Keyboard.type = kyo.UI.Keyboard",
             "type Modifiers = kyo.UI.Modifiers",
             "val Modifiers: kyo.UI.Modifiers.type = kyo.UI.Modifiers"
-        )
+        ) ++ topData.flatMap(n => List(s"type $n = kyo.$n", s"val $n: kyo.$n.type = kyo.$n")) ++ topExtensions
 
-        // Leaks through the data aliases: public members whose type names a kyo-core type.
-        val aliased = usedData.map(n => if n == "Style" then "kyo.Style" else s"kyo.UI.$n") ++
-            List("kyo.UI.Keyboard", "kyo.UI.Modifiers")
-        val leaks = aliased.flatMap { full =>
-            ctx.findStaticClass(full).declarations.collect {
-                case t: TermSymbol if isPublic(t) &&
-                        List("Signal", "SignalRef", "Stream", "Frame", "Chunk", "Maybe", "<")
-                            .exists(tok => Tokens.mentions(t.declaredType.showBasic, tok)) =>
-                    s"leak through alias: $full.${t.name}: ${t.declaredType.showBasic}"
+        // Leaks through the data aliases: a public member of an aliased type (or of its companion, or of a nested class
+        // such as an enum case) whose signature names a Kyo type that the mirror does not alias. A type nested in an
+        // aliased type (`Style.Prop`, `Href.Absolute`) is reachable through the alias, so it is not a leak.
+        // claude 2026-10-03: changed the leak check: it was a list of 7 token names, on the members of the class only;
+        // it missed kyo.HttpUrl in Href.Absolute and ImgSrc.Absolute (enum cases)
+        def fullName(n: String): String = n match
+            case "Style" | "StyleCompanion" => "kyo.Style"
+            case other                      => s"kyo.UI.$other"
+        val aliased = ((usedData ++ extraData).map(fullName) ++ List("kyo.UI.Keyboard", "kyo.UI.Modifiers") ++
+            topData.map(n => s"kyo.$n")).distinct
+        def kyoRefs(sig: String): List[String] =
+            """(?:kyo|UI\$\.this|Ast\$\.this|Style\$\.this)(?:\.[A-Za-z0-9_$]+)+""".r.findAllIn(sig).toList.map { r =>
+                val q = r.replace("UI$.this.", "kyo.UI.").replace("Ast$.this.", "kyo.UI.Ast.").replace("Style$.this.", "kyo.Style.")
+                if q.endsWith("kernel$package") then "kyo.<" else q.replaceAll("""\.[A-Za-z0-9_]+\$package""", "")
+            }.distinct
+        def allowedRef(r: String): Boolean = aliased.exists(a => r == a || r.startsWith(a + "."))
+        def classesOf(full: String): List[ClassSymbol] =
+            def nested(c: ClassSymbol): List[ClassSymbol] =
+                c :: c.declarations.collect { case n: ClassSymbol if isPublic(n) => n }.flatMap(nested)
+            val roots = List(
+                scala.util.Try(ctx.findStaticClass(full)).toOption,
+                scala.util.Try(ctx.findStaticModuleClass(full)).toOption
+            ).flatten
+            roots.flatMap(nested).distinct
+        val plumbing = Set("copy", "unapply", "fromProduct", "productElement", "productElementName", "ordinal", "equals",
+            "hashCode", "toString", "canEqual", "productArity", "productPrefix")
+        val leaks = aliased.flatMap(classesOf).distinct.flatMap { c =>
+            c.declarations.collect {
+                case t: TermSymbol if isPublic(t) && !plumbing(t.name.toString) && !t.name.toString.startsWith("copy$") &&
+                        !t.name.toString.startsWith("_") && kyoRefs(t.declaredType.showBasic).exists(r => !allowedRef(r)) =>
+                    val names = kyoRefs(t.declaredType.showBasic).filterNot(allowedRef).mkString(", ")
+                    s"leak through alias: ${c.displayFullName.replace("$", "")}.${t.name} names $names: ${t.declaredType.showBasic}"
             }
         }
 
@@ -473,7 +561,9 @@ object Generate:
             s"factories: ${factories.size}",
             s"setters generated: ${methods.size} (of ${all.size} at their highest level)",
             s"  with an effect point: ${methods.count(m => m._2.contains("Bridge."))}",
-            s"data aliases: ${usedData.mkString(", ")} + Keyboard, Modifiers"
+            // claude 2026-10-03: changed: the summary also lists the field data aliases
+            s"data aliases: ${usedData.mkString(", ")} + ${(extraData ++ List("Keyboard", "Modifiers") ++ topData).mkString(", ")}",
+            s"extension forwarders: ${topExtensions.size}"
         )
         Output(src, summary ++ skippedFactories ++ skipped ++ leaks)
     end generate

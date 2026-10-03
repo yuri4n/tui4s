@@ -1,0 +1,324 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m, -Xmx2g
+[90mCompiling project (Scala 3.9.0, JVM (system))[0m
+[90mCompiled project (Scala 3.9.0, JVM (system))[0m
+[90mCompiling project (test, Scala 3.9.0, JVM (system))[0m
+[90mCompiled project (test, Scala 3.9.0, JVM (system))[0m
+[[33mhint[0m] ./project.scala:10:15
+[[33mhint[0m] "fs2-core is outdated, update to 3.14.0"
+[[33mhint[0m]      fs2-core 3.12.2 -> co.fs2::fs2-core:3.14.0
+[[33mhint[0m] //> using dep co.fs2::fs2-core:3.12.2
+[[33mhint[0m]               ^^^^^^^^^^^^^^^^^^^^^^^
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m -Xmx2g
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=45837 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[leak-probe] kyo: interrupt (Scope ends)        rounds=300 heapMB before=  14 after= 528 delta= 514 perRoundKB= 1754 wallMs=  2099 kyoLoadAfter=0
+[leak-probe] kyo: quit, then Scope ends         rounds=300 heapMB before= 528 after= 530 delta=   2 perRoundKB=    6 wallMs=  3218 kyoLoadAfter=0
+Exception in thread "kyo-scheduler-worker-2" java.lang.OutOfMemoryError: Java heap space
+	at scala.collection.immutable.VectorBuilder.<init>(Vector.scala:1499)
+	at scala.collection.immutable.Vector$.newBuilder(Vector.scala:68)
+	at scala.collection.immutable.Vector$.newBuilder(Vector.scala:68)
+	at scala.collection.StrictOptimizedIterableOps.zipWithIndex(StrictOptimizedIterableOps.scala:197)
+	at scala.collection.StrictOptimizedIterableOps.zipWithIndex$(StrictOptimizedIterableOps.scala:29)
+	at scala.collection.immutable.Vector.zipWithIndex(Vector.scala:126)
+	at tui4s.kyoui.internal.Layout$.measuredKids(Layout.scala:326)
+	at tui4s.kyoui.internal.Layout$.relayout(Layout.scala:400)
+	at tui4s.kyoui.internal.Runner.$anonfun$5(Runner.scala:202)
+	at tui4s.kyoui.internal.Runner$$Lambda/0x000000005228ae00.apply(Unknown Source)
+	at scala.collection.AbstractIterable.foldLeft(Iterable.scala:979)
+	at tui4s.kyoui.internal.Runner.tui4s$kyoui$internal$Runner$$layoutStep(Runner.scala:199)
+	at tui4s.kyoui.internal.Runner$$anon$44.apply(Runner.scala:223)
+	at tui4s.kyoui.internal.Runner$$anon$44.apply(Runner.scala:219)
+	at kyo.kernel.internal.Eval$.loop$1(Eval.scala:379)
+	at kyo.kernel.internal.Eval$.guarded$1(Eval.scala:570)
+	at kyo.kernel.internal.Eval$.apply(Eval.scala:588)
+	at kyo.kernel.internal.Eval$.partial(Eval.scala:47)
+	at kyo.scheduler.IOTask.run(IOTask.scala:272)
+	at kyo.scheduler.Worker.runTask(Worker.scala:419)
+	at kyo.scheduler.Worker.run(Worker.scala:340)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.runWith(Thread.java:1487)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+Exception in thread "kyo-scheduler-worker-3" java.lang.OutOfMemoryError: Java heap space
+	at kyo.scheduler.IOTask$$anon$1.run(IOTask.scala:119)
+	at kyo.kernel.internal.Handler$LoopHandler.running(Handler.scala:103)
+	at kyo.kernel.internal.Eval$.loop$1(Eval.scala:179)
+	at kyo.kernel.internal.Eval$.guarded$1(Eval.scala:570)
+	at kyo.kernel.internal.Eval$.apply(Eval.scala:588)
+	at kyo.kernel.internal.Eval$.partial(Eval.scala:47)
+	at kyo.scheduler.IOTask.run(IOTask.scala:272)
+	at kyo.scheduler.Worker.runTask(Worker.scala:419)
+	at kyo.scheduler.Worker.run(Worker.scala:340)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.runWith(Thread.java:1487)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+Exception in thread "kyo-scheduler-worker-4" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "zio.internal.WeakConcurrentBag.GcThread-0" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-5" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-6" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-8" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-9" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:40:04.205628761Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:40:04.204387874Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-11" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-10" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-1" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-13" Exception in thread "kyo-scheduler-worker-7" java.lang.OutOfMemoryError: Java heap space
+java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:40:11.406374197Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-15" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-17" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-19" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-16" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-18" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:40:21.913690644Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-14" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-20" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-21" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-24" java.lang.OutOfMemoryError: Java heap space
+
+Exception: java.lang.OutOfMemoryError thrown from the UncaughtExceptionHandler in thread "kyo-scheduler-worker-25"
+Exception in thread "kyo-scheduler-worker-27" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-26" Exception in thread "kyo-scheduler-worker-22" java.lang.OutOfMemoryError: Java heap space
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-23" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-12" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-31" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-32" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-30" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-33" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-28" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-29" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-34" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:40:53.008689414Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:40:53.011378613Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-36" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:40:54.379307062Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-38" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-39" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-40" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:41:05.556245203Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-42" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-35" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-41" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-44" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-45" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-46" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-37" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-48" java.lang.OutOfMemoryError: Java heap space
+
+Exception: java.lang.OutOfMemoryError thrown from the UncaughtExceptionHandler in thread "kyo-scheduler-worker-49"
+Exception in thread "kyo-scheduler-worker-50" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-43" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-52" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:41:21.330813341Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-54" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-53" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-55" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:41:31.277165350Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-47" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-51" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-56" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-57" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-59" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-60" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-61" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:41:40.017744557Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-63" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-62" Exception in thread "kyo-scheduler-worker-64" java.lang.OutOfMemoryError: Java heap space
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-58" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-65" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-69" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-70" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-66" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:42:06.845568420Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-72" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-73" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-67" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-74" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-71" 2026-10-03T15:42:18.140039175Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-76" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-68" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-77" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-75" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:42:28.337556179Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:42:28.731000031Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-79" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-78" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-80" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-82" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-83" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-81" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:42:40.662038607Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-85" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-86" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-88" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-90" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-89" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-87" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:42:51.977239864Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-84" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-94" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-93" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-92" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-91" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-95" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-96" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-98" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-97" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:43:19.058322111Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-99" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-102" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-101" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-103" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-100" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-105" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-106" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:43:28.234696996Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-108" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-110" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-109" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-107" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:43:42.339592560Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:43:42.741564303Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-112" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-113" Exception in thread "kyo-scheduler-worker-114" java.lang.OutOfMemoryError: Java heap space
+java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:43:58.657610871Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-111" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-116" java.lang.OutOfMemoryError: Java heap space
+
+Exception: java.lang.OutOfMemoryError thrown from the UncaughtExceptionHandler in thread "kyo-scheduler-worker-117"
+Exception in thread "kyo-scheduler-worker-115" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:44:10.721538094Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:44:10.721545941Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-118" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-121" java.lang.OutOfMemoryError: Java heap space
+
+Exception: java.lang.OutOfMemoryError thrown from the UncaughtExceptionHandler in thread "kyo-scheduler-worker-122"
+Exception in thread "kyo-scheduler-worker-119" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-104" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-123" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:44:25.712090022Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-120" Exception in thread "kyo-scheduler-worker-125" java.lang.OutOfMemoryError: Java heap space
+java.lang.OutOfMemoryError: Java heap space
+
+Exception: java.lang.OutOfMemoryError thrown from the UncaughtExceptionHandler in thread "kyo-scheduler-worker-127"
+Exception in thread "kyo-scheduler-worker-128" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-126" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-124" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-129" 2026-10-03T15:44:47.685756675Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-131" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-133" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-135" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-134" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-130" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-137" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-136" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-140" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-138" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-139" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:45:21.273329225Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-132" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-144" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-142" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-143" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-141" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:45:39.113484338Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:45:39.113908835Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-146" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-147" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-150" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-149" Exception in thread "kyo-scheduler-worker-148" java.lang.OutOfMemoryError: Java heap space
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-151" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-152" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-145" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:45:54.935150862Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-153" Exception in thread "kyo-scheduler-worker-155" java.lang.OutOfMemoryError: Java heap space
+java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:46:15.635554354Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space: failed reallocation of scalar replaced objects
+Exception in thread "kyo-scheduler-worker-158" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-157" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-156" java.lang.OutOfMemoryError: Java heap space
+
+Exception: java.lang.OutOfMemoryError thrown from the UncaughtExceptionHandler in thread "kyo-scheduler-worker-161"
+Exception in thread "kyo-scheduler-worker-154" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-160" Exception in thread "kyo-scheduler-worker-159" java.lang.OutOfMemoryError: Java heap space
+java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:46:32.889547326Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-162" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-166" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-165" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-163" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:46:45.124327310Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-167" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-164" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-169" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:46:54.964104393Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-168" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-173" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-170" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-174" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-172" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-175" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:47:03.337755098Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-177" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-178" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-176" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-171" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-179" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-182" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-183" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-184" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-180" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-186" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-187" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-181" java.lang.OutOfMemoryError: Java heap space
+Exception in thread "kyo-scheduler-worker-189" java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:47:45.857711364Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+2026-10-03T15:47:45.858610343Z ERROR kyo.logs -- [<internal>:0:0] uncaught exception
+java.lang.OutOfMemoryError: Java heap space
+
+real	8m21.894s
+user	21m51.363s
+sys	0m9.993s

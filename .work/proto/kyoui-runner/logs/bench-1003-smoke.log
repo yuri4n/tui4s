@@ -1,0 +1,59 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m, -Xmx2g
+[90mCompiling project (Scala 3.9.0, JVM (system))[0m
+[90mCompiled project (Scala 3.9.0, JVM (system))[0m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m -Xmx2g
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=45837 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+cpus=4 load=0.89599609375 warm=30 n=50
+| scenario | events | p50 us | p99 us | max us | cells flushed: median (min-max) | cell writes | region updates | subtrees painted | settle p50 us | layout+paint+flush p50 us | late frames |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Counter: `+` key | 50 | 1837 | 3268 | 3268 | 1 (1-2) | 4 (4-4) | 1 (1-1) | 1 (1-1) | 936 | 610 | 0 |
+| Todo: Space toggles the first item (list of 3, focus on the list) | 50 | 2872 | 4153 | 4153 | 11 (11-11) | 228 (228-228) | 2 (2-2) | 2 (2-2) | 1428 | 1273 | 0 |
+| Todo loop: type `x` into the input | 50 | 641 | 925 | 925 | 2 (2-2) | 82 (82-82) | 0 (0-0) | 1 (1-1) | 259 | 243 | 0 |
+| Todo loop: Enter adds | 50 | 2695 | 3661 | 3661 | 356 (356-356) | 2477 (2467-2477) | 3 (3-3) | 1 (1-1) | 703 | 1860 | 0 |
+| Todo loop: Tab to the list | 50 | 1115 | 10876 | 10876 | 238 (238-238) | 1044 (1044-1044) | 0 (0-0) | 2 (2-2) | 38 | 843 | 0 |
+| Todo loop: Space toggles | 50 | 1261 | 1584 | 1584 | 4 (4-4) | 221 (221-221) | 2 (2-2) | 2 (2-2) | 652 | 479 | 0 |
+| Todo loop: `d` deletes the first item | 50 | 2377 | 3036 | 3036 | 356 (356-356) | 2459 (2449-2459) | 2 (2-2) | 1 (1-1) | 641 | 1553 | 0 |
+| Todo loop: Shift-Tab to the input | 50 | 1023 | 1427 | 1427 | 236 (236-236) | 908 (908-908) | 0 (0-0) | 2 (2-2) | 37 | 798 | 0 |
+| Todo grow: Enter adds, items 4-53 | 50 | 4946 | 22323 | 22323 | 0 (0-764) | 3258 (2492-6646) | 3 (3-3) | 1 (1-1) | 731 | 3807 | 0 |
+| Todo grow: Enter adds, items 154-203 | 50 | 7686 | 36872 | 36872 | 0 (0-0) | 3262 (3262-3262) | 3 (3-3) | 1 (1-1) | 832 | 6644 | 0 |
+| Dashboard: one sampler tick | 50 | 939 | 1571 | 1571 | 45 (4-57) | 267 (136-798) | 2 (1-2) | 2 (1-2) | 42 | 394 | 0 |
+todo grow: the screen after 200 adds (203 items):
+????????????????????????????????????????????????????????????????????????????????????????????????????
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+?                                                                                                  ?
+????????????????????????????????????????????????????????????????????????????????????????????????????
+
+load after the event runs: 1.06494140625
+| idle case | seconds | process CPU ms | % of one core | frames | top threads (CPU in the window) |
+| --- | --- | --- | --- | --- | --- |
+| no app mounted (JVM + Kyo baseline) | 2.0 | 320 | 15.98 | 0 | kyo-scheduler-timer-3#27=180.0ms, kyo-scheduler-clock-1#24=23.9ms, kyo-scheduler-timer-1#25=8.6ms, kyo-scheduler-timer-2#26=8.5ms, kyo-scheduler-timer-4#28=7.2ms |
+| Counter | 2.0 | 250 | 12.50 | 0 | kyo-scheduler-timer-3#27=178.0ms, kyo-scheduler-clock-1#24=27.7ms, kyo-scheduler-timer-1#25=8.5ms, kyo-scheduler-timer-2#26=8.1ms, kyo-scheduler-timer-4#28=6.1ms |
+| Todo | 2.0 | 250 | 12.50 | 0 | kyo-scheduler-timer-3#27=168.0ms, kyo-scheduler-clock-1#24=32.0ms, kyo-scheduler-timer-2#26=11.1ms, kyo-scheduler-timer-1#25=10.4ms, kyo-scheduler-timer-4#28=7.3ms |
+| Dashboard, live (sampler 250 ms + log 400 ms) | 2.0 | 480 | 23.99 | 13 | kyo-scheduler-timer-3#27=173.7ms, kyo-scheduler-clock-1#24=36.8ms, kyo-scheduler-worker-2#31=13.8ms, kyo-scheduler-timer-2#26=13.0ms, kyo-scheduler-timer-1#25=10.2ms |
+load at the end: 1.5166015625
+()

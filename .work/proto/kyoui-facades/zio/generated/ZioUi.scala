@@ -5,7 +5,6 @@ package tui4s.interop.zio.ui
 import scala.annotation.unchecked.uncheckedVariance
 import scala.language.implicitConversions
 import _root_.zio.ZIO
-import _root_.zio.stream.SubscriptionRef
 import tui4s.interop.zio.ui.internal.Bridge
 
 // ---- the source position of a node: kyo.Frame under a tui4s name, made at the call site ----
@@ -103,7 +102,7 @@ def ul(using h: Here): Ul = kyo.UI.ul(using h)
 
 extension [E <: BooleanInput](e: E)
     /** Forwards to kyo-ui's `UI.Ast.BooleanInput.checked`. */
-    def checked(v: SubscriptionRef[Boolean]): E =
+    def checked(v: SignalRef[Boolean]): E =
         (e: kyo.UI.Ast.BooleanInput).checked(v = Bridge.ref(v)).asInstanceOf[E]
     /** Forwards to kyo-ui's `UI.Ast.BooleanInput.checked`. */
     def checked(v: Signal[Boolean])(using html: E <:< HtmlNode): HtmlNode =
@@ -184,6 +183,9 @@ extension [E <: Element](e: E)
     /** Forwards to kyo-ui's `UI.Ast.Element.style`. */
     def style(v: Style): E =
         (e: kyo.UI.Ast.Element).style(v = v).asInstanceOf[E]
+    /** Forwards to kyo-ui's `UI.Ast.Element.style`. */
+    def style(f: StyleCompanion => Style): E =
+        (e: kyo.UI.Ast.Element).style(f = f).asInstanceOf[E]
 
 extension (e: H1)
     /** Forwards to kyo-ui's `UI.Ast.H1.apply`. */
@@ -378,7 +380,7 @@ extension (e: SpanElement)
 
 extension [E <: TextInput](e: E)
     /** Forwards to kyo-ui's `UI.Ast.TextInput.value`. */
-    def value(v: SubscriptionRef[String]): E =
+    def value(v: SignalRef[String]): E =
         (e: kyo.UI.Ast.TextInput).value(v = Bridge.ref(v)).asInstanceOf[E]
     /** Forwards to kyo-ui's `UI.Ast.TextInput.value`. */
     def value(v: String): E =
@@ -399,12 +401,23 @@ type WheelEvent = kyo.UI.WheelEvent
 val WheelEvent: kyo.UI.WheelEvent.type = kyo.UI.WheelEvent
 type Style = kyo.Style
 val Style: kyo.Style.type = kyo.Style
+type StyleCompanion = kyo.Style.type
 type InputFilter = kyo.UI.InputFilter
 val InputFilter: kyo.UI.InputFilter.type = kyo.UI.InputFilter
 type Keyboard = kyo.UI.Keyboard
 val Keyboard: kyo.UI.Keyboard.type = kyo.UI.Keyboard
 type Modifiers = kyo.UI.Modifiers
 val Modifiers: kyo.UI.Modifiers.type = kyo.UI.Modifiers
+type Length = kyo.Length
+val Length: kyo.Length.type = kyo.Length
+extension (v: Double) def em: Length.Em = kyo.em(v)
+extension (v: Double) def pct: Length.Pct = kyo.pct(v)
+extension (v: Double) def px: Length.Px = kyo.px(v)
+extension (v: Double) def vh: Length.Vh = kyo.vh(v)
+extension (v: Int) def em: Length.Em = kyo.em(v)
+extension (v: Int) def pct: Length.Pct = kyo.pct(v)
+extension (v: Int) def px: Length.Px = kyo.px(v)
+extension (v: Int) def vh: Length.Vh = kyo.vh(v)
 
 // ---- reactive values (hand-written template, the same for every ecosystem) ----
 
@@ -437,8 +450,8 @@ private def chunks[A](s: Signal[Seq[A]])(using h: Here, eq: CanEqual[A, A]): kyo
     given CanEqual[kyo.Chunk[A], kyo.Chunk[A]] = CanEqual.derived
     (s: kyo.Signal[Seq[A]]).map(seq => kyo.Chunk.from(seq))(using summon, h)
 
-extension [A](ref: SubscriptionRef[A])
-    /** The reactive view of a ref made by `useSignal` (fails for another SubscriptionRef). */
+extension [A](ref: SignalRef[A])
+    /** The reactive view of the ref. */
     def signal: Signal[A] = Bridge.signal(ref)
     /** A reactive subtree: `f` runs for every value of `ref`. */
     def render[N <: HtmlNode](f: A => N)(using h: Here): HtmlNode =
@@ -461,8 +474,8 @@ object Child:
         kyo.UI.Ast.HtmlChildVal.liftSignalString(s)(using h)
     implicit def fromSignalNode[N <: HtmlNode](s: Signal[N])(using h: Here): Child =
         kyo.UI.Ast.HtmlChildVal.lift[kyo.UI](kyo.UI.render(Signal.toKyo(s))[kyo.UI](n => n)(using h))
-    /** A `SubscriptionRef[String]` made by `useSignal` as a reactive text child. */
-    implicit def fromRefString(r: SubscriptionRef[String])(using h: Here): Child =
+    /** A `SignalRef[String]` made by `useSignal` as a reactive text child. */
+    implicit def fromRefString(r: SignalRef[String])(using h: Here): Child =
         kyo.UI.Ast.HtmlChildVal.liftSignalString(Bridge.signal(r))(using h)
 end Child
 

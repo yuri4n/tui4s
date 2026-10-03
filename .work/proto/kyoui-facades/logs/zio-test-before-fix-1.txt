@@ -1,0 +1,152 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m, -Xmx2g
+[90mCompiling project (test, Scala 3.9.0, JVM (system))[0m
+[90mCompiled project (test, Scala 3.9.0, JVM (system))[0m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m -Xmx2g
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=45837 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[zio counter] before:
+Left
+Count: 0
+(-)(+)
+Right
+Count: 0
+(-)(+)
+Component counter
+Count: 0
+(+)(reset)
+[zio counter] after a+2, b-1, c+1:
+Left
+Count: 2
+(-)(+)
+Right
+Count: -1
+(-)(+)
+Component counter
+Count: 1
+(+)(reset)
+[zio todo] screen 0:
+Todos
+[](Add)
+0 left
+[zio todo] screen 1:
+Todos
+[](Add)[ ]Buy milk(x)
+1 left
+[zio todo] screen 2:
+Todos
+[](Add)[ ]Buy milk(x)
+[ ]Walk the dog(x)
+2 left
+[zio todo] screen 3:
+Todos
+[](Add)[x]~Buy milk~(x)
+[ ]Walk the dog(x)
+1 left
+(Clear done)
+[zio todo] screen 4:
+Todos
+[](Add)[x]~Buy milk~(x)
+0 left
+(Clear done)
+[zio todo] screen 5:
+Todos
+[](Add)
+0 left
+[zio runtime] seen: caller-42 on caller-zio-pool
+(probe)
+[zio guard] error: tui4s: `onClick` takes a ZIO[Any, Nothing, Any] (or event => ZIO[Any, Nothing, Any]). Handle the errors of a ZIO that can fail (orDie, catchAll); a value of another type would never run.
+        val notAnEffect = compileErrors("""button("x").onClick(println("hi"))""")
+                                      ^
+
+[zio guard] error: tui4s: `onClick` takes a ZIO[Any, Nothing, Any] (or event => ZIO[Any, Nothing, Any]). Handle the errors of a ZIO that can fail (orDie, catchAll); a value of another type would never run.
+        val mayFail     = compileErrors("""button("x").onClick(ZIO.attempt(println("hi")))""")
+                                      ^
+
+[zio guard] error: tui4s: `onClick` takes a ZIO[Any, Nothing, Any] (or event => ZIO[Any, Nothing, Any]). Handle the errors of a ZIO that can fail (orDie, catchAll); a value of another type would never run.
+        val kyoEffect   = compileErrors("""button("x").onClick(kyo.Sync.defer(println("hi")))""")
+                                      ^
+
+[zio guard] error:
+Found:    tui4s.interop.zio.ui.Button
+Required: kyo.UI.Ast.Button?
+
+where:    Button  is a type in the top-level definitions in package ui with bounds <: tui4s.interop.zio.ui.Inline & tui4s.interop.zio.ui.Interactive &
+  tui4s.interop.zio.ui.Focusable & tui4s.interop.zio.ui.HasDisabled &
+  tui4s.interop.zio.ui.Activatable & tui4s.interop.zio.ui.Clickable
+          Button? is a class in object Ast
+val b: kyo.UI.Ast.Button = button("x")
+                                ^
+
+[zio guard] error:
+value onClick is not a member of tui4s.interop.zio.ui.Button.
+An extension method was tried, but could not be fully constructed:
+
+    tui4s.interop.zio.ui.onClick()
+
+    failed with:
+
+        value onClick: <overloaded tui4s.interop.zio.ui.onClick> does not take parameters
+button("x").onClick(f = (_: Any) => ())
+           ^
+
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.Modifiers: kyo.UI.Modifiers.type
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.Style: kyo.Style.type
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.InputFilter:  = kyo.UI.InputFilter
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.WheelEvent: kyo.UI.WheelEvent.type
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.Modifiers:  = kyo.UI.Modifiers
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.KeyboardEvent:  = kyo.UI.KeyboardEvent
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.KeyboardEvent: kyo.UI.KeyboardEvent.type
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.Style:  = kyo.Style
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.MouseEvent:  = kyo.UI.MouseEvent
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.MouseEvent: kyo.UI.MouseEvent.type
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.Keyboard: kyo.UI.Keyboard.type
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.Keyboard:  = kyo.UI.Keyboard
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.WheelEvent:  = kyo.UI.WheelEvent
+[zio surface] tui4s.interop.zio.ui.ZioUi$package$.InputFilter: kyo.UI.InputFilter.type
+Test run [36mtui4s.interop.zio.ui.ZioFacadeSuite[0m started
+[32mtui4s.interop.zio.ui.ZioFacadeSuite[0m: finished [90m3.692s[0m
+Test run [36mtui4s.interop.zio.ui.ZioFacadeSuite[0m finished: 0 failed, 0 ignored, 9 total [90m3.703s[0m
+[zio stress add] failures: 2 of 150; first: round 12:
+Todos
+[](Add)
+0 left
+[zio stress typing] items: 150 of 150, wrong or missing: 4 (item-2, item-11, missing item-26, missing item-117)
+Test run [36mtui4s.interop.zio.ui.ZioStressSuite[0m started
+[91m==> X [0m[91mtui4s.interop.zio.ui.ZioStressSuite[0m.[91mstress: input then click add, 150 fresh mounts: the handler reads the typed draft every time[0m [90m1.435s[0m munit.ComparisonFailException: /home/user/tui4s/.work/proto/kyoui-facades/zio/test/ZioStressSuite.test.scala:33
+32:        println(s"[zio stress add] failures: ${failures.size} of $rounds" + failures.headOption.fold("")(t => s"; first: $t"))
+[7m33:        assertEquals(failures.size, 0, failures.take(3).mkString("\n---\n"))[0m
+34:    }
+round 12:
+Todos
+[](Add)
+0 left
+---
+round 29:
+Todos
+[task-29](Add)
+0 left
+[1m=> Obtained[0m
+2
+[1m=> Diff[0m ([91m- expected[0m, [92m+ obtained[0m)
+[91m-0[0m
+[92m+2[0m
+[90m    at [0m[90mmunit.FunSuite.assertEquals[0m[90m([0m[90mFunSuite.scala[0m:[90m12[0m[90m)[0m
+[1m    at [0m[1mtui4s.interop.zio.ui.ZioStressSuite.$init$$$anonfun$1[0m[1m([0m[1mZioStressSuite.test.scala[0m:[1m33[0m[1m)[0m
+[91m==> X [0m[91mtui4s.interop.zio.ui.ZioStressSuite[0m.[91mstress: type char by char then Enter, 150 rounds on one mount: every item has the full word[0m [90m1.366s[0m munit.ComparisonFailException: /home/user/tui4s/.work/proto/kyoui-facades/zio/test/ZioStressSuite.test.scala:52
+51:            (if wrong.isEmpty then "" else wrong.take(5).mkString(" (", ", ", ")")))
+[7m52:        assertEquals(items, expected)[0m
+53:    }
+values are not the same
+[1m=> Diff[0m ([91m- expected[0m, [92m+ obtained[0m)
+   "item-25",
+[91m-  "item-26",[0m
+[92m+  "item-2",[0m
+   "item-27",
+[90m    at [0m[90mmunit.FunSuite.assertEquals[0m[90m([0m[90mFunSuite.scala[0m:[90m12[0m[90m)[0m
+[1m    at [0m[1mtui4s.interop.zio.ui.ZioStressSuite.$init$$$anonfun$2[0m[1m([0m[1mZioStressSuite.test.scala[0m:[1m52[0m[1m)[0m
+[32mtui4s.interop.zio.ui.ZioStressSuite[0m: finished [90m2.804s[0m
+Test run [36mtui4s.interop.zio.ui.ZioStressSuite[0m finished: [91m2 failed[0m, 0 ignored, 2 total [90m2.804s[0m
+Error: munit tests failed.
+
+real	0m10.320s
+user	0m20.639s
+sys	0m2.410s

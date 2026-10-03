@@ -1,0 +1,20 @@
+run 3 load=0.92 0.56 0.70 date=2026-10-03T15:14:35+00:00
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m, -Xmx2g
+[[33mhint[0m] ./project.scala:10:15
+[[33mhint[0m] "fs2-core is outdated, update to 3.14.0"
+[[33mhint[0m]      fs2-core 3.12.2 -> co.fs2::fs2-core:3.14.0
+[[33mhint[0m] //> using dep co.fs2::fs2-core:3.12.2
+[[33mhint[0m]               ^^^^^^^^^^^^^^^^^^^^^^^
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m -Xmx2g
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=45837 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Test run [36mintegration.CatsOnTerminalSuite[0m started
+[32mintegration.CatsOnTerminalSuite[0m: finished [90m1.758s[0m
+Test run [36mintegration.CatsOnTerminalSuite[0m finished: 0 failed, 0 ignored, 5 total [90m1.767s[0m
+Test run [36mintegration.ZioOnTerminalSuite[0m started
+[32mintegration.ZioOnTerminalSuite[0m: finished [90m0.509s[0m
+Test run [36mintegration.ZioOnTerminalSuite[0m finished: 0 failed, 0 ignored, 5 total [90m0.509s[0m
+
+real	0m6.603s
+user	0m13.685s
+sys	0m0.816s
+exit=0

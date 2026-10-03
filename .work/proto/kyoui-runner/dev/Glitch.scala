@@ -20,7 +20,7 @@ object Glitch:
             span(a.map(n => s"twice=${n * 2}"))
         )
 
-    def run(settle: Settle, n: Int)(using Frame): (Int, Long) < (Async & Scope) =
+    def run(settle: Settle, n: Int)(using Frame): (Int, Long, Long) < (Async & Scope) = // claude 2026-10-03: changed: also p99
         for
             h   <- Headless.start(40, 6, TuiOptions(settle = settle))(app)
             res <- Kyo.foreach(1 to n) { i =>
@@ -33,16 +33,24 @@ object Glitch:
                 }
             }
             _ <- h.quit
-        yield (res.map(_._1).sum, res.map(_._2).sorted.apply(n / 2) / 1000)
+        yield (res.map(_._1).sum, res.map(_._2).sorted.apply(n / 2) / 1000, res.map(_._2).sorted.apply(n * 99 / 100) / 1000)
 
+    // claude 2026-10-03: changed: args(1) == "confirm" compares Settle.Quiescent with confirm = 1, 2, 3 (the 2026-10-03
+    // settle fix); otherwise the old list. Prints p99 too.
     def main(args: Array[String]): Unit =
         import AllowUnsafe.embrace.danger
         val n = args.headOption.map(_.toInt).getOrElse(2000)
-        val r = KyoApp.Unsafe.runAndBlock(600.seconds) {
-            Kyo.foreach(Seq(Settle.Quiescent(20.millis), Settle.Hops(1, Duration.Zero), Settle.Hops(3, Duration.Zero),
-                Settle.Hops(6, Duration.Zero), Settle.Hops(3, 250.micros), Settle.Quiescent(20.millis))) { st =>
-                Scope.run(run(st, n)).map { (bad, med) =>
-                    Console.printLine(s"$st: split frames=$bad of $n, median us=$med")
+        val strategies =
+            if args.lift(1).contains("confirm") then
+                Seq(Settle.Quiescent(100.millis, 1), Settle.Quiescent(100.millis, 2), Settle.Quiescent(100.millis, 3),
+                    Settle.Quiescent(100.millis, 1), Settle.Quiescent(100.millis, 2), Settle.Quiescent(100.millis, 3))
+            else
+                Seq(Settle.Quiescent(20.millis), Settle.Hops(1, Duration.Zero), Settle.Hops(3, Duration.Zero),
+                    Settle.Hops(6, Duration.Zero), Settle.Hops(3, 250.micros), Settle.Quiescent(20.millis))
+        val r = KyoApp.Unsafe.runAndBlock(1200.seconds) {
+            Kyo.foreach(strategies) { st =>
+                Scope.run(run(st, n)).map { (bad, med, p99) =>
+                    Console.printLine(s"$st: split frames=$bad of $n, median us=$med, p99 us=$p99")
                 }
             }
         }

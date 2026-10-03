@@ -29,8 +29,13 @@ final case class TuiOptions(
 enum Settle:
     /** Until Kyo's scheduler has no queued or running task besides the runner itself (bounded by `max`). Reads the
       * scheduler's load; the most reliable choice with kyo's current `Signal` API.
+      *
+      * `confirm`: how many quiescent observations in a row, one scheduler hop apart, each followed by an empty inbox.
       */
-    case Quiescent(max: Duration)
+    // claude 2026-10-03: changed: added `confirm` (default 2). The probe's scan is not atomic and a woken task is
+    // invisible for a few instructions between `queue.poll()` and `runTask`; a second observation one hop later makes a
+    // false "quiescent" much less likely (it cannot make it impossible; see REPORT.md).
+    case Quiescent(max: Duration, confirm: Int = 2)
 
     /** Until `hops` scheduler round trips in a row bring nothing AND `window` has passed since the last news. */
     case Hops(hops: Int, window: Duration)
@@ -53,7 +58,12 @@ final case class FrameStats(
     settleNanos: Long = 0,
     renderNanos: Long = 0,
     /** The focused element: its `id`, or its tree position when it has none. */
-    focus: String = ""
+    focus: String = "",
+    // claude 2026-10-03: created the two fields below for the step 6 measurements
+    /** `System.nanoTime` at the end of the flush (so a caller can measure from the moment it sent the event). */
+    endNanos: Long = 0,
+    /** Subtrees painted in this frame (paint roots after nested roots are merged). */
+    subtrees: Int = 0
 )
 
 /** The terminal runner for kyo-ui. */
@@ -124,6 +134,22 @@ final class Headless private (
 ):
     /** True when the run has ended (a quit). */
     def finished(using Frame): Boolean < Sync = run.done
+
+    /** Waits until the run has ended, at most `timeout`. True when it ended. */
+    // claude 2026-10-03: created awaitEnd. The tests slept a fixed 50 ms after the quit key and then read `finished`; on a
+    // loaded machine the unmount can take longer. This reads `done` every 5 ms and returns as soon as it is true.
+    def awaitEnd(timeout: Duration)(using Frame): Boolean < Async =
+        Sync.defer(java.lang.System.nanoTime()).map { t0 =>
+            Loop.foreach {
+                run.done.map { d =>
+                    if d then Loop.done(true)
+                    else
+                        Sync.defer(java.lang.System.nanoTime()).map { now =>
+                            if now - t0 > timeout.toNanos then Loop.done(false) else Async.sleep(5.millis).andThen(Loop.continue)
+                        }
+                }
+            }
+        }
 
     /** The cell at (x, y) of the screen (to check colors). */
     def cell(x: Int, y: Int)(using Frame): jatatui.core.buffer.Cell < Sync = Sync.defer(backend.buffer().cellAt(x, y).copy())

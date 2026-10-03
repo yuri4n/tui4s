@@ -1,0 +1,60 @@
+PS1='PROMPT> '; export TERM=xterm-256color; cd /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/ptywork
+[?2004hbash-5.2# PS1='PROMPT> '; export TERM=xterm-256color; cd /tmp/claude-0/-home-user-tui4s/6d712dbd-bef77-57d0-b343-fd9d5dc2fafb/scratchpad/ptywork
+[?2004l[?2004hPROMPT> stty -a > /home/user/tui4s/.work/proto/kyoui-runner/logs/pty-stty-counter-before.log; echo STTTY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK counter-start@@
+ /home/user/tui4s/.work/proto/kyoui-runner/pty/run.sh apps.CounterMain; echo EXIT=$?
+[?2004l[?1049h[?25l[2J[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m
+@@MARK counter-plus1@@
+[2;8H1[39m[49m[59m[0m
+@@MARK counter-plus2@@
+[2;8H2[39m[49m[59m[0m
+@@MARK counter-minus@@
+[2;8H1[39m[49m[59m[0m
+@@MARK counter-q@@
+[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/proto/kyoui-runner/logs/pty-stty-counter-after.log; echo STTTY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/proto/kyoui-runner/logs/pty-stty-counter-before.log /home/user//tui4s/.work/proto/kyoui-runner/logs/pty-stty-counter-after.log && echo STTY_$((7*0))SAME || echo STTTY_$((7*0))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/proto/kyoui-runner/logs/pty-stty-counterflags-before.log; eccho STTY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK counterflags-start@@
+JFLAGS='-Dkyo.scheduler.cycleIntervalNs=10000000 -Dkyo.scheduler.blockingMonitorIntervalNs=200000000 -Dkyo.scheduler.regulator.concurrencyCollectIntervalMs=100' /home/user/tui4s/.work/proto/kyouui-runner/pty/run.sh apps.CounterMain; echo EXIT=$?
+[?2004l[?1049h[?25l[2J[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m
+@@MARK counterflags-plus@@
+[2;8H1[39m[49m[59m[0m
+@@MARK counterflags-ctrlc@@
+[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/proto/kyoui-runner/logs/pty-stty-counterflags-after.log; echho STTY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/proto/kyoui-runner/logs/pty-stty-counterflags-before.log /home//user/tui4s/.work/proto/kyoui-runner/logs/pty-stty-counterflags-after.log && echo STTY_$((7*0))SAME ||| echo STTY_$((7*0))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/proto/kyoui-runner/logs/pty-stty-todo-before.log; echo STTY__$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK todo-start@@
+TODO_FILE=/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/ptywwork/todo-pty.txt /home/user/tui4s/.work/proto/kyoui-runner/pty/run.sh apps.TodoMain; echo EXIT=$?
+[?2004l[?1049h[?25l[2J[1;1H[1m[4mTodo[1;7H[22m[24m[38;2;107;114;128m0 open / 0[2;1H[39mNew:[2;6H[7m[4m [27m                                       [3;1H[24m[38;2;100;116;139m┌──────────────────────────────────────────────────────────────────────────────────────────────────┐[4;1H│[4;100H│[5;1H│[5;100H│[6;1H└──────────────────────────────────────────────────────────────────────────────────────────────────┘[7;1H[38;2;34;197;94mloaded 0 items from /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/p[8;1H[38;2;107;114;128mTab: input/list  ↑↓: move  Space: toggle  d: delete  Ctrl-S: save  Esc: quit[39m[49m[59m[0m
+@@MARK todo-typed@@
+[2;6H[4mb[7m [39m[49m[59m[0m[2;7H[4mu[7m [39m[49m[59m[0m[2;8H[4my[7m [39m[49m[59m[0m[2;9H[4m [7m [39m[49m[59m[0m[2;10H[4mm[7m [39m[49m[59m[0m[2;11H[4mi[7m [39m[49m[59m[0m[2;12H[4ml[7m [39m[49m[59m[0m[2;13H[4mk[7m [39m[49m[59m[0m
+@@MARK todo-enter@@
+[4;2H[38;2;255;255;255m[48;2;99;102;241m[ ] buy milk[39m                                                                                      [1;7H[38;2;107;114;128m[49m1[1;16H1[2;6H[7m[4m[39m [27m  [2;10H     [39m[49m[59m[0m
+@@MARK todo-tab@@
+[2;6H[3m[4m[2mWhat needs doing? (Enter adds)[3;1H[22m[23m[24m[38;2;59;130;246m┌──────────────────────────────────────────────────────────────────────────────────────────────────┐[4;1H│[4;100H│[5;1H│[5;100H│[6;1H└──────────────────────────────────────────────────────────────────────────────────────────────────┘[39m[49m[59m[0m
+@@MARK todo-space@@
+[4;3H[38;2;255;255;255m[48;2;99;102;241mx[4;5H[9m[38;2;107;114;128m buy milk[1;7H[29m[49m0[39m[49m[59m[0m
+@@MARK todo-ctrls@@
+[7;1H[38;2;34;197;94msaved 1 items to /tmp/claude-0/[7;33Hhome-user-tui4s/6d712dbd-[7;59Hef7-5[7;65Hd0-b343-fd9d5dc2fafb/scratchpad/ptyw[39m[49m[59m[0m
+@@MARK todo-esc@@
+[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/proto/kyoui-runner/logs/pty-stty-todo-after.log; echo STTY_$$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/proto/kyoui-runner/logs/pty-stty-todo-before.log /home/user/tuii4s/.work/proto/kyoui-runner/logs/pty-stty-todo-after.log && echo STTY_$((7*0))SAME || echo STTY_$((77*0))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> 
+@@MARK end@@
+exit
+[?2004lexit

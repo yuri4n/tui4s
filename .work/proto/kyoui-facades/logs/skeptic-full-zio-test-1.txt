@@ -1,0 +1,14 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m, -Xmx2g
+[90mCompiling project (Scala 3.9.0, JVM (system))[0m
+[90mCompiled project (Scala 3.9.0, JVM (system))[0m
+[90mCompiling project (test, Scala 3.9.0, JVM (system))[0m
+[[31merror[0m] ./full-zio/test/FullMirrorSuite.test.scala:36:21
+[[31merror[0m] Not found: surface - did you mean Trace?
+[[31merror[0m]         val leaks = surface.SurfaceLeaks.leaks(List("tui4s.interop.zio.ui", "tui4s.interop.zio.ui.internal"))
+[[31merror[0m]                     ^^^^^^^
+[90mError compiling project (test, Scala 3.9.0, JVM (system))[0m
+Compilation failed
+
+real	0m3.887s
+user	0m0.311s
+sys	0m0.252s

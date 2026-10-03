@@ -1,0 +1,44 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m, -Xmx2g
+[90mCompiling project (Scala 3.9.0, JVM (system))[0m
+[[31merror[0m] ./full-zio/apps/Settings.scala:13:23
+[[31merror[0m] Not found: useSignal
+[[31merror[0m]             name   <- useSignal("")
+[[31merror[0m]                       ^^^^^^^^^
+[[31merror[0m] ./full-zio/generated/ZioUiFull.scala:8:8
+[[31merror[0m] value internal is not a member of tui4s.interop.zio.ui
+[[31merror[0m] import tui4s.interop.zio.ui.internal.Bridge
+[[31merror[0m]        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[[31merror[0m] ./full-zio/generated/ZioUiFull.scala:302:20
+[[31merror[0m] Not found: type SignalRef - did you mean Signal.type? or perhaps Signal?
+[[31merror[0m]     def checked(v: SignalRef[Boolean]): E =
+[[31merror[0m]                    ^^^^^^^^^
+[[31merror[0m] ./full-zio/generated/ZioUiFull.scala:511:18
+[[31merror[0m] Not found: type SignalRef - did you mean Signal.type? or perhaps Signal?
+[[31merror[0m]     def value(v: SignalRef[String]): HiddenInput =
+[[31merror[0m]                  ^^^^^^^^^
+[[31merror[0m] ./full-zio/generated/ZioUiFull.scala:809:18
+[[31merror[0m] Not found: type SignalRef - did you mean Signal.type? or perhaps Signal?
+[[31merror[0m]     def value(v: SignalRef[String]): E =
+[[31merror[0m]                  ^^^^^^^^^
+[[31merror[0m] ./full-zio/generated/ZioUiFull.scala:845:18
+[[31merror[0m] Not found: type SignalRef - did you mean Signal.type? or perhaps Signal?
+[[31merror[0m]     def value(v: SignalRef[Double]): RangeInput =
+[[31merror[0m]                  ^^^^^^^^^
+[[31merror[0m] ./full-zio/generated/ZioUiFull.scala:938:18
+[[31merror[0m] Not found: type SignalRef - did you mean Signal.type? or perhaps Signal?
+[[31merror[0m]     def value(v: SignalRef[String]): E =
+[[31merror[0m]                  ^^^^^^^^^
+[[31merror[0m] ./full-zio/generated/ZioUiFull.scala:1082:20
+[[31merror[0m] Not found: type SignalRef - did you mean Signal.type? or perhaps Signal?
+[[31merror[0m] extension [A](ref: SignalRef[A])
+[[31merror[0m]                    ^^^^^^^^^
+[[31merror[0m] ./full-zio/generated/ZioUiFull.scala:1107:35
+[[31merror[0m] Not found: type SignalRef - did you mean Signal.type? or perhaps Signal?
+[[31merror[0m]     implicit def fromRefString(r: SignalRef[String])(using h: Here): Child =
+[[31merror[0m]                                   ^^^^^^^^^
+[90mError compiling project (Scala 3.9.0, JVM (system))[0m
+Compilation failed
+
+real	0m1.309s
+user	0m0.184s
+sys	0m0.120s

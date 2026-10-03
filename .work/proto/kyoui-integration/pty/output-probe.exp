@@ -1,0 +1,37 @@
+#!/usr/bin/expect -f
+# claude 2026-10-03: created: EXTRA PTY probe. Starts each output probe main, presses Enter once on its button, quits with
+# Ctrl-C. probe-check.py then looks for the PROBE-* lines on the terminal and in tui4s.log.
+set timeout 40
+set here [file normalize [file dirname [info script]]]
+set logs [file normalize "$here/../logs"]
+set work $env(PTY_WORK)
+log_user 0
+log_file -a -noappend "$logs/pty-probe-session.log"
+# claude 2026-10-03: created proc mark
+proc mark {name} { send_log "\n@@MARK $name@@\n" }
+# claude 2026-10-03: created proc pump
+proc pump {ms} {
+    set end [expr {[clock milliseconds] + $ms}]
+    while {[clock milliseconds] < $end} { expect -timeout 1 -re {.+} {} timeout {} }
+}
+spawn -noecho /bin/bash --norc --noprofile
+set slave $spawn_out(slave,name)
+exec stty rows 30 columns 100 < $slave
+send "PS1='PROMPT> '; export TERM=xterm-256color; cd $work\r"
+expect -ex "PROMPT> "
+expect -ex "PROMPT> "
+foreach main {integration.ZioOutputProbeMain integration.CatsOutputProbeMain integration.ZioOutputProbeEarlyMain} {
+    mark "$main-start"
+    send "$here/run.sh $main; echo EXIT=\$?\r"
+    expect -ex "presses: 0"
+    pump 500
+    mark "$main-enter"; send "\r"; pump 1000
+    mark "$main-ctrlc"; send "\003"
+    expect -re {EXIT=([0-9]+)}
+    expect -ex "PROMPT> "
+    pump 300
+}
+mark "end"
+send "exit\r"
+expect eof
+log_file

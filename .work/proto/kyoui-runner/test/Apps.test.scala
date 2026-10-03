@@ -36,8 +36,8 @@ class AppsTest extends munit.FunSuite:
                 z  <- h.char('z')
                 _ = assertEquals((z.repainted, z.flushed, z.updates), (0, 0, 0))
                 q  <- h.char('q')
-                _  <- Async.sleep(50.millis)
-                fin <- h.finished
+                // claude 2026-10-03: changed a fixed 50 ms sleep + `finished` into a bounded wait for the end of the run
+                fin <- h.awaitEnd(10.seconds)
                 _ = assert(fin, "q quits")
             yield ()
         }
@@ -120,7 +120,9 @@ class AppsTest extends munit.FunSuite:
                 s3 <- h.screen
                 _ = assert(s3.contains("[ ] walk dog") && s3.contains("4 open / 4"), s3)
                 c  <- h.cell(2, s3.linesIterator.indexWhere(_.contains("walk dog")))
-                _ = assert(c.bg.toString.contains("Rgb[r=99, g=102, b=241]"), s"selected row has the indigo bg: ${c.bg}")
+                // claude 2026-10-03: changed to compare the colour value (record equality), not its toString: jatatui's
+                // Color.Rgb prints as "#6366F1". kyo-ui's Style.Color.indigo is Hex("#6366f1") = Rgb(0x63, 0x66, 0xf1).
+                _ = assertEquals(c.bg, jatatui.core.style.Color.Rgb(0x63, 0x66, 0xf1), "selected row has the indigo bg")
                 _  <- h.char('d')
                 s4 <- h.screen
                 _ = assert(!s4.contains("walk dog") && s4.contains("3 open / 3"), s4)
@@ -129,9 +131,23 @@ class AppsTest extends munit.FunSuite:
                 _ = assert(s5.contains("saved 3 items"), s5)
                 _ = assertEquals(java.nio.file.Files.readString(file), "[ ] buy milk\n[ ] write report\n[ ] call mom\n")
                 _  <- h.key(Keyboard.Escape)
-                _  <- Async.sleep(50.millis)
-                fin <- h.finished
-                _ = assert(fin)
+                // claude 2026-10-03: changed a fixed 50 ms sleep + `finished` into a bounded wait for the end of the run
+                fin <- h.awaitEnd(10.seconds)
+                _ = assert(fin, "Esc quits")
+            yield ()
+        }
+    }
+
+    // claude 2026-10-03: created: a list taller than the screen must not collapse the other items (CSS min-height: auto)
+    test("overflow: a list taller than the screen keeps the header and the input; the list is clipped at the bottom") {
+        val file = java.nio.file.Files.createTempFile("todo", ".txt")
+        java.nio.file.Files.writeString(file, (1 to 40).map(i => s"[ ] item $i").mkString("", "\n", "\n"))
+        run {
+            for
+                h <- Headless.start(100, 30)(apps.Todo.app(file.toString))
+                s <- h.screen
+                _ = assert(s.contains("Todo") && s.contains("40 open / 40") && s.contains("New:"), s)
+                _ = assert(s.contains("[ ] item 1") && s.contains("[ ] item 20") && !s.contains("item 40"), s)
             yield ()
         }
     }

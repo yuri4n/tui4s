@@ -1,0 +1,51 @@
+[?2004hbash-5.2# PS1='PROMPT> '; export TERM=xterm-256color; cd /tmp/claude-0/-home-userr-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/ptywork
+[?2004l[?2004hPROMPT> stty -a > /home/user/tui4s/.work/proto/kyoui-integration/logs/pty-stty-zio-before.log; echo SSTTY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK zio-start@@
+/home/user/tui4s/.work/proto/kyoui-integration/pty/run.sh integration.ZioCounterMain; echo EXXIT=$?
+[?2004l[?1049h[?25l[2J[1;1H[1m[4mLeft[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ -                                                                                                ][4;1H[27m[22m[[4;3H+[4;100H][5;1H[1m[4mRight[6;1H[22m[24mCount:[6;8H0[7;1H[[7;3H-[7;100H][8;1H[[8;3H+[8;100H][9;1H[1m[4mComponent counter[10;1H[22m[24mCount:[10;8H0[11;1H[[11;3H+[11;100H][12;1H[[12;3Hreset[12;100H][39m[49m[59m[0m
+@@MARK zio-enter@@
+[2;8H-1[39m[49m[59m[0m
+@@MARK zio-tab@@
+[3;1H[ -                                                                                                ][4;1H[7m[1m[ +                                                                                                ][39m[49m[59m[0m
+@@MARK zio-enter2@@
+[2;8H0 [39m[49m[59m[0m
+@@MARK zio-enter3@@
+[2;8H1[39m[49m[59m[0m
+@@MARK zio-tabtab@@
+[4;1H[ +                                                                                                ][7;1H[7m[1m[ -                                                                                                ][39m[49m[59m[0m[7;1H[ -                                                                                                ][8;1H[7m[1m[ +                                                                                                ][39m[49m[59m[0m
+@@MARK zio-enter4@@
+[6;8H1[39m[49m[59m[0m
+@@MARK zio-tab3@@
+[8;1H[ +                                                                                                ][11;1H[7m[1m[ +                                                                                                ][39m[49m[59m[0m
+@@MARK zio-enter5@@
+[10;8H1[39m[49m[59m[0m
+@@MARK zio-ctrlc@@
+[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/proto/kyoui-integration/logs/pty-stty-zio-after.log; echo STTTY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/proto/kyoui-integration/logs/pty-stty-zio-before.log /home/userr/tui4s/.work/proto/kyoui-integration/logs/pty-stty-zio-after.log && echo STTY_$((7*0))SAME || echo SSTTY_$((7*0))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/proto/kyoui-integration/logs/pty-stty-cats-before.log; echo  STTY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK cats-start@@
+/home/user/tui4s/.work/proto/kyoui-integration/pty/run.sh integration.CatsCounterMain; echo EEXIT=$?
+[?2004l[?1049h[?25l[2J[1;1H[1m[4mLeft[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ -                                                                                                ][4;1H[27m[22m[[4;3H+[4;100H][5;1H[1m[4mRight[6;1H[22m[24mCount:[6;8H0[7;1H[[7;3H-[7;100H][8;1H[[8;3H+[8;100H][9;1H[1m[4mComponent counter[10;1H[22m[24mCount:[10;8H0[11;1H[[11;3H+[11;100H][12;1H[[12;3Hreset[12;100H][39m[49m[59m[0m
+@@MARK cats-enter@@
+[2;8H-1[39m[49m[59m[0m
+@@MARK cats-tab@@
+[3;1H[ -                                                                                                ][4;1H[7m[1m[ +                                                                                                ][39m[49m[59m[0m
+@@MARK cats-enter2@@
+[2;8H0 [39m[49m[59m[0m
+@@MARK cats-ctrlc@@
+[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/proto/kyoui-integration/logs/pty-stty-cats-after.log; echo SSTTY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/proto/kyoui-integration/logs/pty-stty-cats-before.log /home/useer/tui4s/.work/proto/kyoui-integration/logs/pty-stty-cats-after.log && echo STTY_$((7*0))SAME || echoo STTY_$((7*0))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> 
+@@MARK end@@
+exit
+[?2004lexit

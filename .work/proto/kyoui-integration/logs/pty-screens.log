@@ -1,0 +1,496 @@
+===== after zio-start (bytes written in this step: 554, alt screen active: True)
+Left
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 0
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after zio-enter (bytes written in this step: 27, alt screen active: True)
+Left
+Count: -1
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 0
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after zio-tab (bytes written in this step: 239, alt screen active: True)
+Left
+Count: -1
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 0
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after zio-enter2 (bytes written in this step: 27, alt screen active: True)
+Left
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 0
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after zio-enter3 (bytes written in this step: 26, alt screen active: True)
+Left
+Count: 1
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 0
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after zio-tabtab (bytes written in this step: 478, alt screen active: True)
+Left
+Count: 1
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 0
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after zio-enter4 (bytes written in this step: 26, alt screen active: True)
+Left
+Count: 1
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 1
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 0
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after zio-tab3 (bytes written in this step: 240, alt screen active: True)
+Left
+Count: 1
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 1
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 0
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after zio-enter5 (bytes written in this step: 27, alt screen active: True)
+Left
+Count: 1
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 1
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 1
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after zio-ctrlc (bytes written in this step: 596, alt screen active: False)
+Left
+Count: 1
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 1
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 1
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after cats-start (bytes written in this step: 555, alt screen active: True)
+Left
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 0
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after cats-enter (bytes written in this step: 27, alt screen active: True)
+Left
+Count: -1
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 0
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after cats-tab (bytes written in this step: 239, alt screen active: True)
+Left
+Count: -1
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 0
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after cats-enter2 (bytes written in this step: 27, alt screen active: True)
+Left
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 0
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after cats-ctrlc (bytes written in this step: 445, alt screen active: False)
+Left
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 0
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after end (bytes written in this step: 21, alt screen active: False)
+Left
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 0
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

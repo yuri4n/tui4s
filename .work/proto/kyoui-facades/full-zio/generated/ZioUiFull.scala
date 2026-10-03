@@ -5,7 +5,6 @@ package tui4s.interop.zio.ui
 import scala.annotation.unchecked.uncheckedVariance
 import scala.language.implicitConversions
 import _root_.zio.ZIO
-import _root_.zio.stream.SubscriptionRef
 import tui4s.interop.zio.ui.internal.Bridge
 
 // ---- the source position of a node: kyo.Frame under a tui4s name, made at the call site ----
@@ -300,7 +299,7 @@ extension (e: Blockquote)
 
 extension [E <: BooleanInput](e: E)
     /** Forwards to kyo-ui's `UI.Ast.BooleanInput.checked`. */
-    def checked(v: SubscriptionRef[Boolean]): E =
+    def checked(v: SignalRef[Boolean]): E =
         (e: kyo.UI.Ast.BooleanInput).checked(v = Bridge.ref(v)).asInstanceOf[E]
     /** Forwards to kyo-ui's `UI.Ast.BooleanInput.checked`. */
     def checked(v: Signal[Boolean])(using html: E <:< HtmlNode): HtmlNode =
@@ -410,6 +409,9 @@ extension [E <: Element](e: E)
     /** Forwards to kyo-ui's `UI.Ast.Element.style`. */
     def style(v: Style): E =
         (e: kyo.UI.Ast.Element).style(v = v).asInstanceOf[E]
+    /** Forwards to kyo-ui's `UI.Ast.Element.style`. */
+    def style(f: StyleCompanion => Style): E =
+        (e: kyo.UI.Ast.Element).style(f = f).asInstanceOf[E]
 
 extension (e: EmailInput)
     /** Forwards to kyo-ui's `UI.Ast.EmailInput.onChange`. */
@@ -432,6 +434,9 @@ extension (e: EmailInput)
         scala.compiletime.error("tui4s: `onInput` takes a ZIO[Any, Nothing, Any] (or event => ZIO[Any, Nothing, Any]). Handle the errors of a ZIO that can fail (orDie, catchAll); a value of another type would never run.")
 
 extension (e: FileInput)
+    /** Forwards to kyo-ui's `UI.Ast.FileInput.accept`. */
+    def accept(vs: FileAccept*): FileInput =
+        (e: kyo.UI.Ast.FileInput).accept(vs = vs*)
     /** Forwards to kyo-ui's `UI.Ast.FileInput.onChange`. */
     def onChange(f: String => ZIO[Any, Nothing, Any]): FileInput =
         (e: kyo.UI.Ast.FileInput).onChange(f = Bridge.handler(f))
@@ -500,6 +505,14 @@ extension (e: Header)
     /** Forwards to kyo-ui's `UI.Ast.Header.apply`. */
     def apply(cs: Child*): Header =
         (e: kyo.UI.Ast.Header).apply(cs = cs*)
+
+extension (e: HiddenInput)
+    /** Forwards to kyo-ui's `UI.Ast.HiddenInput.value`. */
+    def value(v: SignalRef[String]): HiddenInput =
+        (e: kyo.UI.Ast.HiddenInput).value(v = Bridge.ref(v))
+    /** Forwards to kyo-ui's `UI.Ast.HiddenInput.value`. */
+    def value(v: String): HiddenInput =
+        (e: kyo.UI.Ast.HiddenInput).value(v = v)
 
 extension (e: Iframe)
     /** Forwards to kyo-ui's `UI.Ast.Iframe.src`. */
@@ -762,6 +775,9 @@ extension (e: Opt)
     /** Forwards to kyo-ui's `UI.Ast.Opt.selected`. */
     def selected(v: Boolean): Opt =
         (e: kyo.UI.Ast.Opt).selected(v = v)
+    /** Forwards to kyo-ui's `UI.Ast.Opt.value`. */
+    def value(v: String): Opt =
+        (e: kyo.UI.Ast.Opt).value(v = v)
 
 extension (e: P)
     /** Forwards to kyo-ui's `UI.Ast.P.apply`. */
@@ -790,7 +806,7 @@ extension (e: PasswordInput)
 
 extension [E <: PickerInput](e: E)
     /** Forwards to kyo-ui's `UI.Ast.PickerInput.value`. */
-    def value(v: SubscriptionRef[String]): E =
+    def value(v: SignalRef[String]): E =
         (e: kyo.UI.Ast.PickerInput).value(v = Bridge.ref(v)).asInstanceOf[E]
     /** Forwards to kyo-ui's `UI.Ast.PickerInput.value`. */
     def value(v: String): E =
@@ -826,7 +842,7 @@ extension (e: RangeInput)
     def step(v: Double): RangeInput =
         (e: kyo.UI.Ast.RangeInput).step(v = v)
     /** Forwards to kyo-ui's `UI.Ast.RangeInput.value`. */
-    def value(v: SubscriptionRef[Double]): RangeInput =
+    def value(v: SignalRef[Double]): RangeInput =
         (e: kyo.UI.Ast.RangeInput).value(v = Bridge.ref(v))
     /** Forwards to kyo-ui's `UI.Ast.RangeInput.value`. */
     def value(v: Double): RangeInput =
@@ -919,7 +935,7 @@ extension (e: TelInput)
 
 extension [E <: TextInput](e: E)
     /** Forwards to kyo-ui's `UI.Ast.TextInput.value`. */
-    def value(v: SubscriptionRef[String]): E =
+    def value(v: SignalRef[String]): E =
         (e: kyo.UI.Ast.TextInput).value(v = Bridge.ref(v)).asInstanceOf[E]
     /** Forwards to kyo-ui's `UI.Ast.TextInput.value`. */
     def value(v: String): E =
@@ -1004,18 +1020,33 @@ type WheelEvent = kyo.UI.WheelEvent
 val WheelEvent: kyo.UI.WheelEvent.type = kyo.UI.WheelEvent
 type Style = kyo.Style
 val Style: kyo.Style.type = kyo.Style
+type StyleCompanion = kyo.Style.type
 type InputFilter = kyo.UI.InputFilter
 val InputFilter: kyo.UI.InputFilter.type = kyo.UI.InputFilter
 type Href = kyo.UI.Href
 val Href: kyo.UI.Href.type = kyo.UI.Href
 type Target = kyo.UI.Target
 val Target: kyo.UI.Target.type = kyo.UI.Target
+type FileAccept = kyo.UI.FileAccept
+val FileAccept: kyo.UI.FileAccept.type = kyo.UI.FileAccept
 type ImgSrc = kyo.UI.ImgSrc
 val ImgSrc: kyo.UI.ImgSrc.type = kyo.UI.ImgSrc
+type ImageExt = kyo.UI.ImageExt
+val ImageExt: kyo.UI.ImageExt.type = kyo.UI.ImageExt
 type Keyboard = kyo.UI.Keyboard
 val Keyboard: kyo.UI.Keyboard.type = kyo.UI.Keyboard
 type Modifiers = kyo.UI.Modifiers
 val Modifiers: kyo.UI.Modifiers.type = kyo.UI.Modifiers
+type Length = kyo.Length
+val Length: kyo.Length.type = kyo.Length
+extension (v: Double) def em: Length.Em = kyo.em(v)
+extension (v: Double) def pct: Length.Pct = kyo.pct(v)
+extension (v: Double) def px: Length.Px = kyo.px(v)
+extension (v: Double) def vh: Length.Vh = kyo.vh(v)
+extension (v: Int) def em: Length.Em = kyo.em(v)
+extension (v: Int) def pct: Length.Pct = kyo.pct(v)
+extension (v: Int) def px: Length.Px = kyo.px(v)
+extension (v: Int) def vh: Length.Vh = kyo.vh(v)
 
 // ---- reactive values (hand-written template, the same for every ecosystem) ----
 
@@ -1048,8 +1079,8 @@ private def chunks[A](s: Signal[Seq[A]])(using h: Here, eq: CanEqual[A, A]): kyo
     given CanEqual[kyo.Chunk[A], kyo.Chunk[A]] = CanEqual.derived
     (s: kyo.Signal[Seq[A]]).map(seq => kyo.Chunk.from(seq))(using summon, h)
 
-extension [A](ref: SubscriptionRef[A])
-    /** The reactive view of a ref made by `useSignal` (fails for another SubscriptionRef). */
+extension [A](ref: SignalRef[A])
+    /** The reactive view of the ref. */
     def signal: Signal[A] = Bridge.signal(ref)
     /** A reactive subtree: `f` runs for every value of `ref`. */
     def render[N <: HtmlNode](f: A => N)(using h: Here): HtmlNode =
@@ -1072,8 +1103,8 @@ object Child:
         kyo.UI.Ast.HtmlChildVal.liftSignalString(s)(using h)
     implicit def fromSignalNode[N <: HtmlNode](s: Signal[N])(using h: Here): Child =
         kyo.UI.Ast.HtmlChildVal.lift[kyo.UI](kyo.UI.render(Signal.toKyo(s))[kyo.UI](n => n)(using h))
-    /** A `SubscriptionRef[String]` made by `useSignal` as a reactive text child. */
-    implicit def fromRefString(r: SubscriptionRef[String])(using h: Here): Child =
+    /** A `SignalRef[String]` made by `useSignal` as a reactive text child. */
+    implicit def fromRefString(r: SignalRef[String])(using h: Here): Child =
         kyo.UI.Ast.HtmlChildVal.liftSignalString(Bridge.signal(r))(using h)
 end Child
 

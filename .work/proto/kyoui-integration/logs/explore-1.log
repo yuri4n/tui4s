@@ -1,0 +1,214 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m, -Xmx2g
+[90mCompiling project (Scala 3.9.0, JVM (system))[0m
+[90mCompiled project (Scala 3.9.0, JVM (system))[0m
+[90mCompiling project (test, Scala 3.9.0, JVM (system))[0m
+[90mCompiled project (test, Scala 3.9.0, JVM (system))[0m
+[[33mhint[0m] ./project.scala:10:15
+[[33mhint[0m] "fs2-core is outdated, update to 3.14.0"
+[[33mhint[0m]      fs2-core 3.12.2 -> co.fs2::fs2-core:3.14.0
+[[33mhint[0m] //> using dep co.fs2::fs2-core:3.12.2
+[[33mhint[0m]               ^^^^^^^^^^^^^^^^^^^^^^^
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m -Xmx2g
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=45837 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+COUNTER s0:
+Left
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 0
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+COUNTER after Enter (FrameStats(1,Input,519,2,49219239,1,5612868,23503168,20093369,a-dec,4940944956764,1)):
+Left
+Count: -1
+[ -                                                                                                ]
+[ +                                                                                                ]
+Right
+Count: 0
+[ -                                                                                                ]
+[ +                                                                                                ]
+Component counter
+Count: 0
+[ +                                                                                                ]
+[ reset                                                                                            ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+tab: FrameStats(2,Input,306,200,19809869,0,8079604,764036,10958092,a-inc,4940969685884,2)
+TODO t0:
+Todos
+
+[ Add                                                                                              ]
+0 left
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TODO typed:
+Todos
+Buy milk
+[ Add                                                                                              ]
+0 left
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TODO enter (FrameStats(9,Input,1131,25,22606851,3,6474533,6609904,9517258,new,4941094273595,1)):
+Todos
+
+[ Add                                                                                              ]
+[ ]Buy milk[ x ]
+1 left
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TODO tab (FrameStats(10,Input,422,117,5313057,0,776030,395166,4121846,add,4941104701257,2))
+TODO tab2 (FrameStats(11,Input,111,103,4057227,0,478592,337942,3234196,done-1,4941110903776,2))
+TODO space (FrameStats(12,Input,1264,26,19171047,3,6891058,4055052,8219849,done-1,4941132345596,1)):
+Todos
+What needs doing?
+[ Add                                                                                              ]
+[x]~Buy milk~[ x ]
+0 left
+[ Clear done                                                                                       ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Test run [36mintegration.ExploreSuite[0m started
+[32mintegration.ExploreSuite[0m: finished [90m0.74s[0m
+Test run [36mintegration.ExploreSuite[0m finished: 0 failed, 0 ignored, 1 total [90m0.749s[0m
+
+real	0m14.169s
+user	0m8.158s
+sys	0m0.800s

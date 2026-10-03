@@ -94,7 +94,8 @@ class ZioFacadeSuite extends FunSuite:
         assert(text.contains("seen: caller-42 on caller-zio-pool"), text)
     }
 
-    test("pumps: a fiber outside any handler, a ZStream, and a ZIO observer of a ref that kyo-ui writes") {
+    // claude 2026-10-03: renamed (was "pumps: ..."): a ref has no pump fiber now, only useStream does
+    test("one source of truth: a fiber outside any handler, a ZStream, and `changes` of a ref that kyo-ui writes") {
         val (ticks, observed) = run(
             for
                 draft <- useSignal("")
@@ -104,7 +105,8 @@ class ZioFacadeSuite extends FunSuite:
                     count.render(n => p(s"count: $n")),
                     clock.render(n => p(s"tick: $n")),
                     input.id("in").value(draft),
-                    p(draft),                          // a SubscriptionRef[String] as a reactive text child
+                    // claude 2026-10-03: changed the comment below (the ref type is now SignalRef)
+                    p(draft),                          // a SignalRef[String] as a reactive text child
                     p(clock.map(n => s"clock=$n"))     // a Signal[String] as a reactive text child
                 )
                 h        <- Headless.mount(ZIO.succeed(ui))
@@ -168,21 +170,27 @@ class ZioFacadeSuite extends FunSuite:
         assert(noRawSetter.contains("error"), noRawSetter)
         assertEquals(ok, "")
     }
+    // claude 2026-10-03: changed: the AST check also covers a pure function setter and a Length forwarder
     test("the mirror builds the same kyo-ui AST as kyo-ui itself") {
-        val mirror = unsafeToKyo(div(h1("Todos"), ul(li(span("a")), li(span("b"))), input.id("new").placeholder("x")))
+        val mirror = unsafeToKyo(
+            div(h1("Todos").style(_.bold.padding(2.pct)), ul(li(span("a")), li(span("b"))), input.id("new").placeholder("x"))
+        )
         val direct: kyo.UI = kyo.UI.div(
-            kyo.UI.h1("Todos"),
+            kyo.UI.h1("Todos").style(_.bold.padding(kyo.pct(2))),
             kyo.UI.ul(kyo.UI.li(kyo.UI.span("a")), kyo.UI.li(kyo.UI.span("b"))),
             kyo.UI.input.id("new").placeholder("x")
         )
         assertEquals(mirror, direct)
     }
 
+    // claude 2026-10-03: changed the surface test: it allows a Kyo name only when it is an aliased kyo-ui data type
+    // (it allowed whole members by name); and it prints the Kyo names of each entry
     test("surface: the public API of the mirror names no Kyo type, except the aliases of kyo-ui data types") {
-        val leaks   = surface.SurfaceLeaks.leaks(List("tui4s.interop.zio.ui", "tui4s.interop.zio.ui.internal"))
-        leaks.foreach(l => println(s"[zio surface] $l"))
-        val allowed = Set("KeyboardEvent", "MouseEvent", "WheelEvent", "Keyboard", "Modifiers", "InputFilter", "Style")
-        val unexpected = leaks.filterNot(l => allowed.exists(a => l.where.endsWith("." + a)))
+        val leaks = surface.SurfaceLeaks.leaks(List("tui4s.interop.zio.ui", "tui4s.interop.zio.ui.internal"))
+        leaks.foreach(l => println(s"[zio surface] ${l.where} names ${l.names.mkString(", ")}"))
+        val aliases = Set("KeyboardEvent", "MouseEvent", "WheelEvent", "Keyboard", "Modifiers", "InputFilter")
+            .map("kyo.UI." + _) ++ Set("kyo.Style", "kyo.Length")
+        val unexpected = leaks.filterNot(_.onlyNames(aliases))
         assert(unexpected.isEmpty, unexpected.mkString("\n"))
     }
 end ZioFacadeSuite

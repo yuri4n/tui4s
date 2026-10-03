@@ -3,7 +3,7 @@ package tui4s.kyoui.internal
 import kyo.*
 import kyo.UI.Keyboard
 import kyo.UI.KeyboardEvent
-import kyo.UI.Modifiers
+// claude 2026-10-03: changed: removed the unused import kyo.UI.Modifiers (compiler warning)
 import kyo.UI.MouseEvent
 import kyo.UI.Ast.*
 

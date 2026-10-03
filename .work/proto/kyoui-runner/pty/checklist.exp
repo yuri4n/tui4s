@@ -1,0 +1,180 @@
+#!/usr/bin/expect -f
+# claude 2026-10-03: created: real-PTY checklist for the kyoui-runner apps (Counter, Todo), adapted from the desktop
+# script .work/scratch/pty/checklist.exp. It drives the apps in a pseudo-terminal of 100x30, writes @@MARK name@@ lines
+# into logs/pty-session.log (check.py replays the output between the marks with vt.py), checks raw mode from outside
+# while an app runs, and compares `stty -a` before and after each app.
+# Environment: KYOUI_JAR (the assembly jar), PTY_WORK (the working directory of the apps).
+
+set timeout 40
+set here [file normalize [file dirname [info script]]]
+set logs [file normalize "$here/../logs"]
+set work $env(PTY_WORK)
+log_user 0
+log_file -a -noappend "$logs/pty-session.log"
+# claude 2026-10-03: changed: results and notes are printed only after the session log is closed. `log_file -a` also
+# logs send_user output, and vt.py then drew that text onto the replayed screens.
+set results {}
+# claude 2026-10-03: created proc pass
+proc pass {name} { global results; lappend results "PASS $name" }
+# claude 2026-10-03: created proc fail
+proc fail {name why} { global results; lappend results "FAIL $name: $why" }
+# claude 2026-10-03: created proc mark
+proc mark {name} { send_log "\n@@MARK $name@@\n" }
+# claude 2026-10-03: created proc note
+proc note {text} {
+    global logs results
+    set f [open "$logs/pty-notes.log" a]; puts $f $text; close $f
+    lappend results "NOTE $text"
+}
+
+spawn -noecho /bin/bash --norc --noprofile
+set slave $spawn_out(slave,name)
+exec stty rows 30 columns 100 < $slave
+send "PS1='PROMPT> '; export TERM=xterm-256color; cd $work\r"
+expect -ex "PROMPT> "
+expect -ex "PROMPT> "
+
+# claude 2026-10-03: created proc wait_prompt
+proc wait_prompt {} { expect -ex "PROMPT> " }
+
+# Read (and so log) everything the app prints for about ms milliseconds.
+# claude 2026-10-03: created proc pump
+proc pump {ms} {
+    set end [expr {[clock milliseconds] + $ms}]
+    while {[clock milliseconds] < $end} {
+        expect -timeout 1 -re {.+} {} timeout {}
+    }
+}
+
+# claude 2026-10-03: created proc stty_save
+proc stty_save {name when} {
+    global logs
+    send "stty -a > $logs/pty-stty-$name-$when.log; echo STTY_\$((6*7))SAVED\r"
+    expect -ex "STTY_42SAVED"
+    wait_prompt
+}
+
+# claude 2026-10-03: created proc stty_compare
+proc stty_compare {name} {
+    global logs
+    stty_save $name after
+    send "cmp -s $logs/pty-stty-$name-before.log $logs/pty-stty-$name-after.log && echo STTY_\$((7*0))SAME || echo STTY_\$((7*0))DIFF\r"
+    expect {
+        -ex "STTY_0SAME" { pass "$name: stty -a after exit equals stty -a before start" }
+        -ex "STTY_0DIFF" { fail $name "stty -a differs after exit (see pty-stty-$name-*.log)" }
+        timeout { fail $name "no stty comparison" }
+    }
+    wait_prompt
+}
+
+# claude 2026-10-03: created proc run_app
+proc run_app {main {env ""}} {
+    global here
+    send "$env $here/run.sh $main; echo EXIT=\$?\r"
+}
+
+# The app is ready when it has entered the alternate screen and drawn the text.
+# claude 2026-10-03: created proc first_frame
+proc first_frame {name text} {
+    set t0 [clock milliseconds]
+    expect {
+        -ex "\x1b\[?1049h" { pass "$name: entered the alternate screen" }
+        timeout { fail $name "never entered the alternate screen"; return }
+    }
+    expect {
+        -ex $text { pass "$name: first frame drawn ([expr {[clock milliseconds] - $t0}] ms after the start command)" }
+        timeout { fail $name "no first frame (waited for '$text')" }
+    }
+    pump 500
+}
+
+# Raw mode, read from outside on the PTY slave while the app runs.
+# claude 2026-10-03: created proc raw_check
+proc raw_check {name} {
+    global slave logs
+    set modes [exec stty -a < $slave]
+    set f [open "$logs/pty-stty-$name-running.log" w]; puts $f $modes; close $f
+    if {[regexp {(^|\s)-icanon(\s|$)} $modes] && [regexp {(^|\s)-echo(\s|$)} $modes] && [regexp {(^|\s)-isig(\s|$)} $modes]} {
+        pass "$name: raw mode while running (-icanon -echo -isig)"
+    } else {
+        fail $name "not in raw mode while running: $modes"
+    }
+}
+
+# claude 2026-10-03: created proc back_at_prompt
+proc back_at_prompt {name {codes {0}}} {
+    expect {
+        -re {EXIT=([0-9]+)} {
+            set code $expect_out(1,string)
+            if {[lsearch -exact $codes $code] >= 0} { pass "$name: exit code $code" } else { fail $name "exit code $code, expected $codes" }
+        }
+        timeout { fail $name "app did not exit"; send "\003"; return }
+    }
+    wait_prompt
+}
+
+# claude 2026-10-03: created proc idle_cpu
+proc idle_cpu {name main secs} {
+    global here
+    set pid [string trim [exec pgrep -f "java.*$main"]]
+    set r [exec $here/cpu.sh $pid $secs]
+    note "idle CPU $name (pid $pid, no keys for $secs s): $r"
+}
+
+# ---- Counter (Kyo default scheduler settings): + + - then q
+stty_save counter before
+mark "counter-start"
+run_app apps.CounterMain
+first_frame "counter" "Count:"
+raw_check "counter"
+idle_cpu "counter, Kyo default scheduler" apps.CounterMain 10
+pump 200
+mark "counter-plus1";  send "+"; pump 500
+mark "counter-plus2";  send "+"; pump 500
+mark "counter-minus";  send -- "-"; pump 500
+mark "counter-q";      send "q"
+back_at_prompt "counter q"
+stty_compare "counter"
+
+# ---- Counter with the tui4s scheduler properties: idle CPU, then Ctrl-C quits
+stty_save counterflags before
+mark "counterflags-start"
+run_app apps.CounterMain "JFLAGS='-Dkyo.scheduler.cycleIntervalNs=10000000 -Dkyo.scheduler.blockingMonitorIntervalNs=20000000 -Dkyo.scheduler.regulator.concurrencyCollectIntervalMs=100'"
+first_frame "counter (tui4s scheduler properties)" "Count:"
+raw_check "counterflags"
+idle_cpu "counter, tui4s scheduler properties" apps.CounterMain 10
+pump 200
+mark "counterflags-plus"; send "+"; pump 500
+mark "counterflags-ctrlc"; send "\003"
+back_at_prompt "counter ctrl-c"
+stty_compare "counterflags"
+
+# ---- Todo: type an item, Enter, Tab to the list, Space toggles, Ctrl-S saves, Esc quits
+set todofile "$work/todo-pty.txt"
+file delete -force $todofile
+stty_save todo before
+mark "todo-start"
+run_app apps.TodoMain "TODO_FILE=$todofile"
+first_frame "todo" "Todo"
+raw_check "todo"
+mark "todo-typed";  send "buy milk"; pump 800
+mark "todo-enter";  send "\r"; pump 600
+mark "todo-tab";    send "\t"; pump 500
+mark "todo-space";  send " "; pump 500
+mark "todo-ctrls";  send "\x13"; pump 800
+mark "todo-esc";    send "\x1b"
+back_at_prompt "todo"
+stty_compare "todo"
+if {[file exists $todofile]} {
+    set fh [open $todofile r]; set content [read $fh]; close $fh
+    if {$content eq "\[x\] buy milk\n"} { pass "todo: saved file is '\[x\] buy milk'" } else { fail "todo file" "content: [string map {"\n" "\\n"} $content]" }
+} else {
+    fail "todo file" "no file $todofile"
+}
+
+mark "end"
+send "exit\r"
+expect eof
+log_file
+foreach r $results { send_user "$r\n" }
+send_user "\nPTY part: [llength [lsearch -all $results PASS*]] passed, [llength [lsearch -all $results FAIL*]] failed\n"

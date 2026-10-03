@@ -1,0 +1,30 @@
+PASS counter: alt screen entered
+PASS counter: first screen shows 'Count: 0'
+PASS counter: + shows 'Count: 1'
+PASS counter: second + shows 'Count: 2'
+PASS counter: - shows 'Count: 1'
+PASS counter: q leaves the alt screen and shows the cursor
+PASS counter: nothing stray after the restore (the next output is EXIT=0)
+INFO bytes written for counter-plus1: 26
+INFO bytes written for counter-plus2: 26
+INFO bytes written for counter-minus: 26
+PASS counter: partial repaint (one key writes < 200 bytes)
+PASS counter (flags): first screen
+PASS counter (flags): + shows 'Count: 1'
+PASS counter (flags): Ctrl-C leaves the alt screen and shows the cursor
+PASS todo: alt screen entered
+PASS todo: first screen has the title and '0 open / 0'
+PASS todo: typed text shows in the input ('New: buy milk')
+PASS todo: Enter adds '[ ] buy milk' and the count is '1 open / 1'
+PASS todo: Enter clears the input
+PASS todo: Tab writes something (the list's focus border)
+PASS todo: Space toggles to '[x] buy milk', '0 open / 1'
+PASS todo: Ctrl-S shows 'saved 1 items'
+PASS todo: Esc leaves the alt screen and shows the cursor
+INFO bytes written for todo-typed: 284
+INFO bytes written for todo-enter: 243
+INFO bytes written for todo-tab: 752
+INFO bytes written for todo-space: 118
+INFO bytes written for todo-ctrls: 160
+
+Screen part: 20 passed, 0 failed

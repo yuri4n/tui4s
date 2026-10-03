@@ -1,0 +1,374 @@
+<title>tui4s Side by Side</title>
+<!-- claude 2026-10-03: created this page. It renders .work/proto/side-by-side.json (verbatim app code of the
+     tui4s prototypes) as selectable columns. build.py fills in the data. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: a code reader. Tabs per app; 2-3 code columns with a variant picker each; facts table below. */
+:root {
+  --bg: #f3f5f5;
+  --surface: #ffffff;
+  --code-bg: #f9fbfb;
+  --ink: #182326;
+  --muted: #56666b;
+  --line: #d6dee0;
+  --accent: #0b6f7c;
+  --accent-soft: #dcefF1;
+  --old: #8a5a12;
+  --old-soft: #f6ead6;
+  --ok: #1f7a3a;
+  --ok-soft: #dff1e4;
+  --warn: #9a4d00;
+  --syn-key: #a3134f;
+  --syn-str: #2d6a1f;
+  --syn-type: #0b5f7a;
+  --syn-com: #6f7f84;
+  --syn-num: #9a4d00;
+  --syn-title: #2443a8;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --step-0: 0.875rem;
+  --step-1: 1rem;
+  --step-2: 1.25rem;
+  --step-3: 1.75rem;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1518; --surface: #151e22; --code-bg: #121a1d; --ink: #e2eaec; --muted: #93a4a9; --line: #2a373c;
+    --accent: #56c2cf; --accent-soft: #163a40; --old: #e0b065; --old-soft: #3a2d17; --ok: #7fd49a; --ok-soft: #173525;
+    --warn: #f0a35a; --syn-key: #f2789f; --syn-str: #9fd88c; --syn-type: #6fd0e2; --syn-com: #7f9095; --syn-num: #f0a35a;
+    --syn-title: #9db6ff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1518; --surface: #151e22; --code-bg: #121a1d; --ink: #e2eaec; --muted: #93a4a9; --line: #2a373c;
+  --accent: #56c2cf; --accent-soft: #163a40; --old: #e0b065; --old-soft: #3a2d17; --ok: #7fd49a; --ok-soft: #173525;
+  --warn: #f0a35a; --syn-key: #f2789f; --syn-str: #9fd88c; --syn-type: #6fd0e2; --syn-com: #7f9095; --syn-num: #f0a35a;
+  --syn-title: #9db6ff; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: var(--step-0); line-height: 1.5; }
+.wrap { max-width: 1680px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 48px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: var(--step-3); font-weight: 600; letter-spacing: -0.01em; }
+h2 { font-size: var(--step-2); font-weight: 600; }
+p { margin: 0; max-width: 72ch; }
+code { font-family: var(--font-mono); font-size: 0.92em; background: var(--accent-soft); padding: 0 0.25em; border-radius: 3px; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.top { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.lede { color: var(--muted); }
+.status { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill { display: inline-flex; align-items: baseline; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 3px 10px; font-size: 0.8rem; }
+.pill b { font-family: var(--font-display); font-weight: 600; }
+.pill .ok { color: var(--ok); font-family: var(--font-mono); font-size: 0.75rem; }
+.pill .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--muted); font-size: 0.75rem; }
+
+nav.tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line); position: sticky; top: env(safe-area-inset-top, 0px); background: var(--bg); z-index: 5; padding-top: 6px; }
+nav.tabs button { font: 500 var(--step-1)/1 var(--font-display); color: var(--muted); background: none; border: 0; border-bottom: 2px solid transparent; padding: 10px 12px; cursor: pointer; }
+nav.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+nav.tabs button:hover { color: var(--ink); }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.seg button { font: 500 0.8rem/1 var(--font-body); background: none; border: 0; padding: 7px 12px; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+.legend .l-old::before { background: var(--old); }
+.legend .l-new::before { background: var(--accent); }
+
+.cols { display: grid; gap: 14px; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); align-items: start; }
+@media (max-width: 1000px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+.col { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
+.col-head { display: grid; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: var(--radius) var(--radius) 0 0; }
+.col-head.old { border-top-color: var(--old); }
+.col-head .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.col-head select { font: 600 var(--step-1) var(--font-display); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; max-width: 100%; }
+.loc { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tag { font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 600; padding: 1px 6px; border-radius: 3px; }
+.tag.old { color: var(--old); background: var(--old-soft); }
+.tag.new { color: var(--accent); background: var(--accent-soft); }
+details.note { font-size: 0.8rem; color: var(--muted); }
+details.note summary { cursor: pointer; }
+details.note p { margin-top: 4px; }
+.none { padding: 18px 12px; color: var(--muted); font-style: italic; }
+.block + .block { border-top: 1px dashed var(--line); }
+.block-src { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); padding: 6px 12px 0; overflow-wrap: anywhere; }
+.block-src::before { content: "┌─ "; color: var(--line); }
+pre.code { margin: 0; padding: 8px 12px 12px; overflow-x: auto; background: var(--code-bg); font: 12.5px/1.55 var(--font-mono); tab-size: 4; }
+.col > .block:last-child pre.code { border-radius: 0 0 var(--radius) var(--radius); }
+.hljs-keyword, .hljs-built_in.hljs-keyword { color: var(--syn-key); }
+.hljs-string, .hljs-subst { color: var(--syn-str); }
+.hljs-type, .hljs-built_in, .hljs-class .hljs-title { color: var(--syn-type); }
+.hljs-comment, .hljs-doctag, .hljs-meta { color: var(--syn-com); font-style: italic; }
+.hljs-number, .hljs-literal { color: var(--syn-num); }
+.hljs-title, .hljs-title.function_ { color: var(--syn-title); }
+
+.facts-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+table.facts { border-collapse: collapse; width: 100%; font-size: 0.8rem; }
+table.facts th, table.facts td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+table.facts thead th { font-family: var(--font-display); font-size: 0.9rem; position: sticky; top: 0; background: var(--surface); }
+table.facts tbody th { font-weight: 600; color: var(--muted); width: 12rem; min-width: 9rem; }
+table.facts td { min-width: 16rem; }
+table.facts tr:last-child th, table.facts tr:last-child td { border-bottom: 0; }
+
+.prose { display: grid; gap: 10px; max-width: 80ch; }
+.prose ol, .prose ul { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
+.prose li > ul { margin-top: 4px; }
+.prose h2 { margin-top: 6px; }
+.panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+dl.kv { display: grid; grid-template-columns: minmax(9rem, 14rem) minmax(0, 1fr); gap: 8px 16px; margin: 0; }
+dl.kv dt { font-weight: 600; color: var(--muted); }
+dl.kv dd { margin: 0; }
+@media (max-width: 640px) { dl.kv { grid-template-columns: minmax(0, 1fr); } dl.kv dd { margin-bottom: 6px; } }
+footer { color: var(--muted); font-size: 0.75rem; border-top: 1px solid var(--line); padding-top: 10px; }
+@media (prefers-reduced-motion: no-preference) { nav.tabs button, .seg button { transition: color .15s, background-color .15s, border-color .15s; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">tui4s · kyo-ui direction · prototypes resumed 2026-10-03</div>
+    <h1>tui4s Side by Side</h1>
+    <p class="lede">The user code of each app, copied byte for byte from the prototype files and from the old branches. Pick the variants to compare in each column. The facts below the code come from the prototype reports.</p>
+    <div class="status" id="status"></div>
+  </header>
+
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <main id="view" class="panel"></main>
+
+  <footer>Assembled by Claude on 2026-10-03 from <code>.work/proto/side-by-side.json</code> (generator: <code>.work/proto/side-by-side-gen.py</code>). The code blocks are verbatim; a byte check compared all of them with the source files.</footer>
+</div>
+
+<script id="data" type="application/json">/*DATA*/</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/scala.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script>
+// claude 2026-10-03: created the page logic (tabs, column pickers, facts table)
+(function () {
+  const D = JSON.parse(document.getElementById('data').textContent);
+  const ORDER = D.variant_order;
+  const SHORT = {
+    'Current core (PRs 3-5, being replaced), Kyo': 'Old core · Kyo',
+    'Current core, old ZIO facade': 'Old core · ZIO',
+    'Current core, old Cats facade': 'Old core · Cats',
+    'kyo-ui + tui4s runner, hooks': 'kyo-ui · hooks',
+    'kyo-ui + tui4s runner, Component class': 'kyo-ui · Component',
+    'ZIO facade (generated mirror)': 'ZIO mirror',
+    'Cats facade (generated mirror)': 'Cats mirror',
+  };
+  const isOld = v => v.startsWith('Current core');
+  const short = v => SHORT[v] || v;
+  const DEFAULTS = {
+    Counter: [ORDER[0], ORDER[3], ORDER[5]],
+    Todo: [ORDER[0], ORDER[3], ORDER[5]],
+    Dashboard: [ORDER[0], ORDER[3], ORDER[1]],
+  };
+  const STATUS = [
+    ['Runner', 'DONE', '9/9 tests × 3 runs · PTY 16/16 + 20/20'],
+    ['Facades', 'DONE', 'ZIO 5/5 runs · Cats 5/5 runs · full mirror compiles'],
+    ['Integration', 'DONE', '12/12 × 3 · PTY 10/10 + 22/22'],
+  ];
+
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('sbs:' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('sbs:' + k, JSON.stringify(v)); } catch (e) {} },
+  };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const inline = s => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  const hl = code => {
+    try { if (window.hljs && hljs.getLanguage('scala')) return hljs.highlight(code, { language: 'scala', ignoreIllegals: true }).value; } catch (e) {}
+    return esc(code);
+  };
+  const el = (tag, attrs, html) => { const e = document.createElement(tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+
+  // Status pills
+  const st = document.getElementById('status');
+  STATUS.forEach(([name, s, ev]) => st.appendChild(el('span', { class: 'pill' }, `<b>${esc(name)}</b><span class="ok">${esc(s)}</span><span class="num">${esc(ev)}</span>`)));
+
+  // Tabs
+  const TABS = D.apps.map(a => a.app).concat(['Entry points', 'Differences']);
+  const tabsEl = document.getElementById('tabs');
+  const view = document.getElementById('view');
+  let current = store.get('tab', 'Counter');
+  if (!TABS.includes(current)) current = 'Counter';
+  const hash = (location.hash || '').slice(1).toLowerCase();
+  const fromHash = TABS.find(t => t.toLowerCase().replace(/\s+/g, '-') === hash);
+  if (fromHash) current = fromHash;
+
+  function renderTabs() {
+    tabsEl.innerHTML = '';
+    TABS.forEach(t => {
+      const b = el('button', { role: 'tab', 'aria-selected': String(t === current), id: 'tab-' + t.replace(/\s+/g, '-') }, esc(t));
+      b.addEventListener('click', () => { current = t; store.set('tab', t); renderTabs(); render(); });
+      tabsEl.appendChild(b);
+    });
+  }
+
+  function locOf(v) {
+    const f = v.facts && v.facts.lines;
+    if (!f) return '';
+    const m = String(f).match(/^(\d+)/);
+    return m ? m[1] + ' lines' : '';
+  }
+
+  function column(app, idx, n) {
+    const picks = store.get('picks:' + app.app, DEFAULTS[app.app] || ORDER.slice(0, 3));
+    const name = picks[idx] || ORDER[idx];
+    const v = app.variants.find(x => x.variant === name) || app.variants[0];
+    const col = el('section', { class: 'col', 'aria-label': short(v.variant) });
+    const head = el('div', { class: 'col-head' + (isOld(v.variant) ? ' old' : '') });
+    const row = el('div', { class: 'row' });
+    const sel = el('select', { id: `pick-${app.app}-${idx}`, 'aria-label': `Variant in column ${idx + 1}` });
+    const groups = [['Being replaced (PRs 3–5)', ORDER.filter(isOld)], ['kyo-ui direction', ORDER.filter(x => !isOld(x))]];
+    groups.forEach(([label, list]) => {
+      const og = el('optgroup', { label });
+      list.forEach(o => {
+        const has = app.variants.find(x => x.variant === o);
+        const opt = el('option', { value: o }, esc(short(o) + (has && has.blocks && has.blocks.length ? '' : ' (no version)')));
+        if (o === v.variant) opt.selected = true;
+        og.appendChild(opt);
+      });
+      sel.appendChild(og);
+    });
+    sel.addEventListener('change', () => {
+      const p = store.get('picks:' + app.app, DEFAULTS[app.app] || ORDER.slice(0, 3)).slice();
+      p[idx] = sel.value; store.set('picks:' + app.app, p); render();
+    });
+    row.appendChild(sel);
+    const meta = el('span', { class: 'loc' }, esc(locOf(v)));
+    row.appendChild(meta);
+    head.appendChild(row);
+    const tagRow = el('div', { class: 'row' });
+    tagRow.appendChild(el('span', { class: 'tag ' + (isOld(v.variant) ? 'old' : 'new') }, isOld(v.variant) ? 'being replaced' : 'kyo-ui'));
+    head.appendChild(tagRow);
+    if (v.note) {
+      const d = el('details', { class: 'note' });
+      d.appendChild(el('summary', null, 'About this column'));
+      d.appendChild(el('p', null, inline(v.note)));
+      head.appendChild(d);
+    }
+    col.appendChild(head);
+    if (!v.blocks || !v.blocks.length) {
+      col.appendChild(el('div', { class: 'none' }, inline(v.none || 'No version.')));
+    } else {
+      v.blocks.forEach(b => {
+        const blk = el('div', { class: 'block' });
+        blk.appendChild(el('div', { class: 'block-src' }, esc(b.source + (b.branch ? ' @ ' + b.branch : '') + ' · lines ' + b.lines + (b.tag ? ' · ' + b.tag : ''))));
+        const pre = el('pre', { class: 'code' });
+        const c = el('code', { class: 'hljs language-scala' });
+        c.innerHTML = hl(b.code);
+        c.style.background = 'none'; c.style.padding = '0';
+        pre.appendChild(c);
+        blk.appendChild(pre);
+        col.appendChild(blk);
+      });
+    }
+    return col;
+  }
+
+  function factsTable(app, variants) {
+    const wrap = el('div', { class: 'facts-wrap' });
+    const t = el('table', { class: 'facts' });
+    const thead = el('thead');
+    const hr = el('tr');
+    hr.appendChild(el('th', null, 'Fact'));
+    variants.forEach(v => hr.appendChild(el('th', null, esc(short(v.variant)))));
+    thead.appendChild(hr); t.appendChild(thead);
+    const tb = el('tbody');
+    Object.entries(D.fact_labels).forEach(([k, label]) => {
+      const tr = el('tr');
+      tr.appendChild(el('th', { scope: 'row' }, esc(label)));
+      variants.forEach(v => tr.appendChild(el('td', null, v.facts && v.facts[k] ? inline(v.facts[k]) : '<span style="color:var(--muted)">–</span>')));
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb); wrap.appendChild(t);
+    return wrap;
+  }
+
+  function renderApp(app) {
+    const n = store.get('ncols', 3);
+    const allFacts = store.get('allfacts', false);
+    view.innerHTML = '';
+    view.appendChild(el('p', null, inline(app.intro || '')));
+    const bar = el('div', { class: 'toolbar' });
+    const seg = el('div', { class: 'seg', role: 'group', 'aria-label': 'Number of columns' });
+    [2, 3].forEach(k => {
+      const b = el('button', { 'aria-pressed': String(n === k) }, k + ' columns');
+      b.addEventListener('click', () => { store.set('ncols', k); render(); });
+      seg.appendChild(b);
+    });
+    bar.appendChild(seg);
+    bar.appendChild(el('div', { class: 'legend' }, '<span class="l-old">Old core, PRs 3–5 (being replaced)</span><span class="l-new">kyo-ui direction (prototypes)</span>'));
+    view.appendChild(bar);
+    const cols = el('div', { class: 'cols' });
+    cols.style.setProperty('--n', n);
+    for (let i = 0; i < n; i++) cols.appendChild(column(app, i, n));
+    view.appendChild(cols);
+
+    const fh = el('div', { class: 'toolbar' });
+    fh.appendChild(el('h2', null, 'Facts'));
+    const fseg = el('div', { class: 'seg', role: 'group', 'aria-label': 'Facts table scope' });
+    [['Shown columns', false], ['All 7 variants', true]].forEach(([label, val]) => {
+      const b = el('button', { 'aria-pressed': String(allFacts === val) }, label);
+      b.addEventListener('click', () => { store.set('allfacts', val); render(); });
+      fseg.appendChild(b);
+    });
+    fh.appendChild(fseg);
+    view.appendChild(fh);
+    const picks = store.get('picks:' + app.app, DEFAULTS[app.app] || ORDER.slice(0, 3)).slice(0, n);
+    const chosen = allFacts ? ORDER : picks;
+    const vs = chosen.map(name => app.variants.find(x => x.variant === name)).filter(Boolean);
+    view.appendChild(factsTable(app, vs));
+  }
+
+  function renderEntry() {
+    const I = D.integration;
+    view.innerHTML = '';
+    view.appendChild(el('h2', null, esc(I.title)));
+    view.appendChild(el('p', null, inline(I.intro)));
+    const cols = el('div', { class: 'cols' });
+    cols.style.setProperty('--n', Math.min(3, I.blocks.length));
+    I.blocks.forEach(b => {
+      const col = el('section', { class: 'col' });
+      const head = el('div', { class: 'col-head' });
+      head.appendChild(el('div', { class: 'row' }, `<strong>${esc(b.source.split('/').slice(-2).join('/'))}</strong><span class="loc">lines ${esc(b.lines)}</span>`));
+      if (b.tag) head.appendChild(el('span', { class: 'loc' }, esc(b.tag)));
+      col.appendChild(head);
+      const blk = el('div', { class: 'block' });
+      const pre = el('pre', { class: 'code' });
+      const c = el('code', { class: 'hljs language-scala' }); c.innerHTML = hl(b.code); c.style.background = 'none'; c.style.padding = '0';
+      pre.appendChild(c); blk.appendChild(pre); col.appendChild(blk);
+      cols.appendChild(col);
+    });
+    view.appendChild(cols);
+    const dl = el('dl', { class: 'kv' });
+    Object.entries(I.facts).forEach(([k, v]) => { dl.appendChild(el('dt', null, esc(k))); dl.appendChild(el('dd', null, inline(v))); });
+    view.appendChild(dl);
+  }
+
+  function renderDiff() {
+    view.innerHTML = '';
+    const p = el('div', { class: 'prose' });
+    try { p.innerHTML = window.marked ? marked.parse(D.differences) : '<pre>' + esc(D.differences) + '</pre>'; }
+    catch (e) { p.innerHTML = '<pre>' + esc(D.differences) + '</pre>'; }
+    view.appendChild(p);
+  }
+
+  function render() {
+    const app = D.apps.find(a => a.app === current);
+    if (app) renderApp(app);
+    else if (current === 'Entry points') renderEntry();
+    else renderDiff();
+  }
+
+  renderTabs();
+  render();
+})();
+</script>

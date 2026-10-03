@@ -1,0 +1,35 @@
+PASS zio: alt screen entered
+PASS zio: first screen shows three 'Count: 0'
+PASS zio: after zio-enter: ['Count: -1', 'Count: 0', 'Count: 0']
+INFO bytes written for zio-enter: 27
+PASS zio: after zio-tab: ['Count: -1', 'Count: 0', 'Count: 0']
+INFO bytes written for zio-tab: 239
+PASS zio: after zio-enter2: ['Count: 0', 'Count: 0', 'Count: 0']
+INFO bytes written for zio-enter2: 27
+PASS zio: after zio-enter3: ['Count: 1', 'Count: 0', 'Count: 0']
+INFO bytes written for zio-enter3: 26
+PASS zio: after zio-tabtab: ['Count: 1', 'Count: 0', 'Count: 0']
+INFO bytes written for zio-tabtab: 478
+PASS zio: after zio-enter4: ['Count: 1', 'Count: 1', 'Count: 0']
+INFO bytes written for zio-enter4: 26
+PASS zio: after zio-tab3: ['Count: 1', 'Count: 1', 'Count: 0']
+INFO bytes written for zio-tab3: 240
+PASS zio: after zio-enter5: ['Count: 1', 'Count: 1', 'Count: 1']
+INFO bytes written for zio-enter5: 27
+PASS zio: Ctrl-C leaves the alt screen and shows the cursor
+PASS zio: nothing stray after the restore (the next output is EXIT=0)
+PASS zio: partial repaint (each Enter writes < 200 bytes)
+PASS zio: Tab writes something (the focus moves)
+PASS cats: alt screen entered
+PASS cats: first screen shows three 'Count: 0'
+PASS cats: after cats-enter: ['Count: -1', 'Count: 0', 'Count: 0']
+INFO bytes written for cats-enter: 27
+PASS cats: after cats-tab: ['Count: -1', 'Count: 0', 'Count: 0']
+INFO bytes written for cats-tab: 239
+PASS cats: after cats-enter2: ['Count: 0', 'Count: 0', 'Count: 0']
+INFO bytes written for cats-enter2: 27
+PASS cats: Ctrl-C leaves the alt screen and shows the cursor
+PASS cats: nothing stray after the restore (the next output is EXIT=0)
+PASS cats: partial repaint (each Enter writes < 200 bytes)
+
+Screen part: 22 passed, 0 failed

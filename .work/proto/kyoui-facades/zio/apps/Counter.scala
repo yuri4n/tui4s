@@ -2,7 +2,6 @@ package apps.zio
 
 import tui4s.interop.zio.ui.*
 import zio.*
-import zio.stream.SubscriptionRef
 
 /** Counter, hooks style. No Kyo type, no Kyo import. */
 object Counter:
@@ -21,7 +20,8 @@ object CounterComponent extends Component:
     type State = Int
     def initial = 0
 
-    def view(count: SubscriptionRef[Int]): HtmlNode =
+    // claude 2026-10-03: changed the state type to the facade's SignalRef
+    def view(count: SignalRef[Int]): HtmlNode =
         div(
             h1("Component counter"),
             count.render(n => p(s"Count: $n")),

@@ -6,7 +6,38 @@ section 8 = PR plan) -> `.work/impl/*.md` for the module you touch. Old, detaile
 Toolchain: `source .work/env.sh` (JDK 25, sbt, node 24, pnpm 10, IPv4, -Xss16m). Do NOT kill PID 7740 (or any sbt
 started from the main checkout): it is the user's Metals sbt server.
 
-## 2026-10-02: DIRECTION CHANGE (read first)
+<!-- claude 2026-10-03: created this section (cloud session resume) -->
+## 2026-10-03: RESUMED IN A CLOUD SESSION (read first)
+
+- The desktop pushed `.work/` to branch `wip/handoff` (commit 2044c03). The cloud session extracted it with
+  `git archive origin/wip/handoff .work | tar x`. Do not merge `wip/handoff`.
+- Cloud toolchain (not in env.sh; env.sh is for the Mac): JDK 25 from apt (`/usr/lib/jvm/java-25-openjdk-amd64`),
+  sbt launcher wrapper `/usr/local/bin/sbt`, scala-cli wrapper `/usr/local/bin/scala-cli` (sets JDK 25, proxy
+  truststore, proxy port from `$HTTPS_PROXY`, `JDK_JAVA_OPTIONS=-Xss16m -Xmx2g`). Always use `--jvm system`.
+  Maven Central sends HTTP 429 under parallel downloads: retry with backoff.
+- Baseline on the cloud machine (4 CPUs) before the resume: runner 7/8 (stale colour assertion at
+  `test/Apps.test.scala:123`); Cats facade 9/9; ZIO facade FLAKY (a different test fails on each run).
+- Resume run: workflow `wf_6bb71261-308` (6 agents, max 2 at once): resume runner + facades -> one skeptic each
+  (fix if refuted) -> integration (facade apps on the terminal runner, `.work/proto/kyoui-integration/`) +
+  side-by-side code (`.work/proto/SIDE-BY-SIDE.md`, `side-by-side.json`).
+- RESULT of `wf_6bb71261-308` (7 agents, about 2.0M tokens, all on the 4-CPU cloud machine):
+  - Runner: DONE. 9/9 tests x 3 runs; settle bug fixed (probe the scheduler before draining the inbox;
+    `Settle.Quiescent(100.millis, confirm = 2)`); overflow layout bug fixed; bench p50 0.3-0.75 ms per event;
+    real PTY Counter + Todo pass (16/16 terminal, 20/20 screen checks; stty restored). Skeptic: 0 blocking.
+  - Facades: DONE. ZIO flakiness root cause = two state cells (zio SubscriptionRef + kyo SignalRef) synced by
+    pumps; fix = facade-owned `SignalRef[A]` on the one kyo-ui cell (ZIO seals Ref/SubscriptionRef). ZIO 5/5, Cats
+    5/5 runs; full 52-element mirror compiles and runs. Skeptic: 1 blocking (REPORT missing) -> fixed.
+  - Integration: DONE (`.work/proto/kyoui-integration/`). Unchanged ZIO/Cats apps run on the terminal runner:
+    12/12 x 3, PTY 10/10 + 22/22. Runner problems found, NOT fixed: R1 watcher leak on interrupt (~1.75 MB/run),
+    R2 first-key race, R3 OutputGuard misses scala.Console.out; R4/R5 Kyo-free options, quit as a value.
+  - Side by side: `.work/proto/SIDE-BY-SIDE.md`, `side-by-side.json` (generator `side-by-side-gen.py DONE`).
+    Page: https://claude.ai/artifact/5caZtjTZk8uohrUy3QoRei (source in `.work/proto/side-by-side-page/`).
+- Open questions for the user are at the end of each REPORT.md (runner 8, facades 8, integration 4).
+- NEXT: the user reads the side-by-side page and answers the blocking questions; then plan the rework of PRs 3-5
+  on kyo-ui (runner proposal: (a) runner core, (b) terminal + app from PR 5, (c) examples/ptycheck/bench;
+  close or replace PRs 3 and 4).
+
+## 2026-10-02: DIRECTION CHANGE
 
 The user reviewed the core and said it is not a functional wrapper of jatatui and that the internals are not
 functional (true: internal/ is ~3.5k lines of mutable, Java-style code; Engine has 25 vars). They also asked

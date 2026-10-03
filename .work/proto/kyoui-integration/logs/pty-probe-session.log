@@ -1,0 +1,33 @@
+[?2004hbash-5.2# [Kbash-5.2# PS1='PROMPT> '; export TERM=xterm-256color; cd /tmp/claude-0/-home-user-tui4s/6d712dbd-bef77-57d0-b343-fd9d5dc2fafb/scratchpad/probework
+[?2004l[?2004hPROMPT> 
+@@MARK integration.ZioOutputProbeMain-start@@
+/home/user/tui4s/.work/proto/kyoui-integration/pty/run.sh integration.ZioOutputProbeMain; echho EXIT=$?
+[?2004l[?1049h[?25l[2J[1;1Hpresses:[1;10H0[2;1H[7m[1m[ write                                                                                            ][39m[49m[59m[0m
+@@MARK integration.ZioOutputProbeMain-enter@@
+[1;10H1[39m[49m[59m[0m
+@@MARK integration.ZioOutputProbeMain-ctrlc@@
+[?25h[?1049lEXIT=0
+[?2004hPROMPT> 
+@@MARK integration.CatsOutputProbeMain-start@@
+/home/user/tui4s/.work/proto/kyoui-integration/pty/run.sh integration.CatsOutputProbeMain; eccho EXIT=$?
+[?2004l[?1049h[?25l[2J[1;1Hpresses:[1;10H0[2;1H[7m[1m[ write                                                                                            ][39m[49m[59m[0m
+@@MARK integration.CatsOutputProbeMain-enter@@
+[1;10H1[39m[49m[59m[0m
+@@MARK integration.CatsOutputProbeMain-ctrlc@@
+[?25h[?1049lEXIT=0
+[?2004hPROMPT> 
+@@MARK integration.ZioOutputProbeEarlyMain-start@@
+/home/user/tui4s/.work/proto/kyoui-integration/pty/run.sh integration.ZioOutputProbeEarlyMainn; echo EXIT=$?
+[?2004lPROBE-EARLY-LINE before Tui.run
+[?1049h[?25l[2J[1;1Hpresses:[1;10H0[2;1H[7m[1m[ write                                                                                            ][39m[49m[59m[0m
+@@MARK integration.ZioOutputProbeEarlyMain-enter@@
+timestamp=2026-10-03T15:22:36.792991123Z level=INFO thread=#zio-fiber-150670725 message="PROBE-ZIO-LOGINFO" location=integration.ZioOutputProbeMain.app file=OutputProbe.scala line=20
+PROBE-ZIO-CONSOLE
+PROBE-ZIO-PRINTLN
+[1;10H1[39m[49m[59m[0m
+@@MARK integration.ZioOutputProbeEarlyMain-ctrlc@@
+[?25h[?1049lEXIT=0
+[?2004hPROMPT> 
+@@MARK end@@
+exit
+[?2004lexit

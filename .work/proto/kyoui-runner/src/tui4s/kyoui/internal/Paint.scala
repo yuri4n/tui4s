@@ -113,15 +113,16 @@ object Canvas:
 /** Paints laid-out nodes into the kept buffer. */
 object Paint:
 
-    /** Applies the damage of one frame and returns the rectangles to flush. */
-    def apply(canvas: Canvas, laid: Laid, env: Scene, damage: Vector[Damage]): Vector[Rect] =
+    /** Applies the damage of one frame. Returns the rectangles to flush and the number of subtrees painted. */
+    // claude 2026-10-03: changed: also returns the number of paint roots (subtrees repainted), for FrameStats.subtrees
+    def apply(canvas: Canvas, laid: Laid, env: Scene, damage: Vector[Damage]): (Vector[Rect], Int) =
         val clears = damage.collect { case c: Damage.Clear => c }.distinct
         val roots  = damage.collect { case Damage.Paint(p) => p }.distinct
         // a root under another root is painted by it
         val top = roots.filterNot(p => roots.exists(q => q != p && p.isUnder(q)))
         clears.foreach(c => canvas.clear(c.rect, c.bg))
         top.foreach(p => paintNode(canvas, laid, env, p, clipOf(laid, p)))
-        clears.map(_.rect) ++ top.flatMap(p => laid.nodes.get(p).map(_.rect))
+        (clears.map(_.rect) ++ top.flatMap(p => laid.nodes.get(p).map(_.rect)), top.size)
     end apply
 
     /** A node is clipped by the content boxes of its owners. */

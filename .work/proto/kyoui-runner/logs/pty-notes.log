@@ -1,0 +1,2 @@
+idle CPU counter, Kyo default scheduler (pid 16567, no keys for 10 s): cpu_ms=1540 wall_s=10.0 pct_of_one_core=15.39
+idle CPU counter, tui4s scheduler properties (pid 16664, no keys for 10 s): cpu_ms=620 wall_s=10.0 pct_of_one_core=6.20

@@ -1,0 +1,146 @@
+#!/usr/bin/expect -f
+# claude 2026-10-03: created: real-PTY checklist of the ZIO facade Counter (and, as an extra, the Cats facade Counter) on
+# the kyo-ui terminal runner. Adapted from .work/proto/kyoui-runner/pty/checklist.exp (same procs, other apps and keys).
+# It drives the apps in a pseudo-terminal of 100x30, writes @@MARK name@@ lines into logs/pty-session.log (check.py
+# replays the bytes between the marks with the runner's vt.py), reads `stty -a` of the PTY slave from outside while an
+# app runs (raw mode), and compares `stty -a` before and after each app.
+# Environment: KYOUI_JAR (the assembly jar), PTY_WORK (the working directory of the apps).
+
+set timeout 40
+set here [file normalize [file dirname [info script]]]
+set logs [file normalize "$here/../logs"]
+set work $env(PTY_WORK)
+log_user 0
+log_file -a -noappend "$logs/pty-session.log"
+set results {}
+# claude 2026-10-03: created proc pass
+proc pass {name} { global results; lappend results "PASS $name" }
+# claude 2026-10-03: created proc fail
+proc fail {name why} { global results; lappend results "FAIL $name: $why" }
+# claude 2026-10-03: created proc mark
+proc mark {name} { send_log "\n@@MARK $name@@\n" }
+
+spawn -noecho /bin/bash --norc --noprofile
+set slave $spawn_out(slave,name)
+exec stty rows 30 columns 100 < $slave
+send "PS1='PROMPT> '; export TERM=xterm-256color; cd $work\r"
+expect -ex "PROMPT> "
+expect -ex "PROMPT> "
+
+# claude 2026-10-03: created proc wait_prompt
+proc wait_prompt {} { expect -ex "PROMPT> " }
+
+# Read (and so log) everything the app prints for about ms milliseconds.
+# claude 2026-10-03: created proc pump
+proc pump {ms} {
+    set end [expr {[clock milliseconds] + $ms}]
+    while {[clock milliseconds] < $end} {
+        expect -timeout 1 -re {.+} {} timeout {}
+    }
+}
+
+# claude 2026-10-03: created proc stty_save
+proc stty_save {name when} {
+    global logs
+    send "stty -a > $logs/pty-stty-$name-$when.log; echo STTY_\$((6*7))SAVED\r"
+    expect -ex "STTY_42SAVED"
+    wait_prompt
+}
+
+# claude 2026-10-03: created proc stty_compare
+proc stty_compare {name} {
+    global logs
+    stty_save $name after
+    send "cmp -s $logs/pty-stty-$name-before.log $logs/pty-stty-$name-after.log && echo STTY_\$((7*0))SAME || echo STTY_\$((7*0))DIFF\r"
+    expect {
+        -ex "STTY_0SAME" { pass "$name: stty -a after exit equals stty -a before start" }
+        -ex "STTY_0DIFF" { fail $name "stty -a differs after exit (see pty-stty-$name-*.log)" }
+        timeout { fail $name "no stty comparison" }
+    }
+    wait_prompt
+}
+
+# claude 2026-10-03: created proc run_app
+proc run_app {main} {
+    global here
+    send "$here/run.sh $main; echo EXIT=\$?\r"
+}
+
+# claude 2026-10-03: created proc first_frame
+proc first_frame {name text} {
+    set t0 [clock milliseconds]
+    expect {
+        -ex "\x1b\[?1049h" { pass "$name: entered the alternate screen" }
+        timeout { fail $name "never entered the alternate screen"; return }
+    }
+    expect {
+        -ex $text { pass "$name: first frame drawn ([expr {[clock milliseconds] - $t0}] ms after the start command, JVM start included)" }
+        timeout { fail $name "no first frame (waited for '$text')" }
+    }
+    pump 500
+}
+
+# claude 2026-10-03: created proc raw_check
+proc raw_check {name} {
+    global slave logs
+    set modes [exec stty -a < $slave]
+    set f [open "$logs/pty-stty-$name-running.log" w]; puts $f $modes; close $f
+    if {[regexp {(^|\s)-icanon(\s|$)} $modes] && [regexp {(^|\s)-echo(\s|$)} $modes] && [regexp {(^|\s)-isig(\s|$)} $modes]} {
+        pass "$name: raw mode while running (-icanon -echo -isig)"
+    } else {
+        fail $name "not in raw mode while running: $modes"
+    }
+}
+
+# claude 2026-10-03: created proc back_at_prompt
+proc back_at_prompt {name {codes {0}}} {
+    expect {
+        -re {EXIT=([0-9]+)} {
+            set code $expect_out(1,string)
+            if {[lsearch -exact $codes $code] >= 0} { pass "$name: exit code $code" } else { fail $name "exit code $code, expected $codes" }
+        }
+        timeout { fail $name "app did not exit"; send "\003"; return }
+    }
+    wait_prompt
+}
+
+# ---- ZIO Counter (facade app, unchanged): Enter on "-" of Left, Tab + Enter Enter on "+", Tab Tab + Enter on "+" of
+# Right, Tab + Enter on "+" of the component counter, then Ctrl-C (the app has no quit key).
+stty_save zio before
+mark "zio-start"
+run_app integration.ZioCounterMain
+first_frame "zio counter" "Count:"
+raw_check "zio"
+pump 300
+mark "zio-enter";      send "\r"; pump 600
+mark "zio-tab";        send "\t"; pump 500
+mark "zio-enter2";     send "\r"; pump 500
+mark "zio-enter3";     send "\r"; pump 500
+mark "zio-tabtab";     send "\t"; pump 300; send "\t"; pump 500
+mark "zio-enter4";     send "\r"; pump 500
+mark "zio-tab3";       send "\t"; pump 300
+mark "zio-enter5";     send "\r"; pump 500
+mark "zio-ctrlc";      send "\003"
+back_at_prompt "zio counter ctrl-c"
+stty_compare "zio"
+
+# ---- EXTRA: Cats Counter (facade app, unchanged), the same keys up to the first Enter, then Ctrl-C.
+stty_save cats before
+mark "cats-start"
+run_app integration.CatsCounterMain
+first_frame "cats counter" "Count:"
+raw_check "cats"
+pump 300
+mark "cats-enter";     send "\r"; pump 600
+mark "cats-tab";       send "\t"; pump 500
+mark "cats-enter2";    send "\r"; pump 500
+mark "cats-ctrlc";     send "\003"
+back_at_prompt "cats counter ctrl-c"
+stty_compare "cats"
+
+mark "end"
+send "exit\r"
+expect eof
+log_file
+foreach r $results { send_user "$r\n" }
+send_user "\nPTY part: [llength [lsearch -all $results PASS*]] passed, [llength [lsearch -all $results FAIL*]] failed\n"

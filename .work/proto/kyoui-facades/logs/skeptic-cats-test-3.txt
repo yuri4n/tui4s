@@ -1,0 +1,104 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m, -Xmx2g
+[[33mhint[0m] ./cats/project.scala:4:15
+[[33mhint[0m] "fs2-core is outdated, update to 3.14.0"
+[[33mhint[0m]      fs2-core 3.12.2 -> co.fs2::fs2-core:3.14.0
+[[33mhint[0m] //> using dep co.fs2::fs2-core:3.12.2
+[[33mhint[0m]               ^^^^^^^^^^^^^^^^^^^^^^^
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m -Xmx2g
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=45837 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[cats counter] after a+2, b-1, c+1:
+Left
+Count: 2
+(-)(+)
+Right
+Count: -1
+(-)(+)
+Component counter
+Count: 1
+(+)(reset)
+[cats todo] screen 0:
+Todos
+[](Add)
+0 left
+[cats todo] screen 1:
+Todos
+[](Add)[ ]Buy milk(x)
+1 left
+[cats todo] screen 2:
+Todos
+[](Add)[ ]Buy milk(x)
+[ ]Walk the dog(x)
+2 left
+[cats todo] screen 3:
+Todos
+[](Add)[x]~Buy milk~(x)
+[ ]Walk the dog(x)
+1 left
+(Clear done)
+[cats todo] screen 4:
+Todos
+[](Add)[x]~Buy milk~(x)
+0 left
+(Clear done)
+[cats todo] screen 5:
+Todos
+[](Add)
+0 left
+[cats runtime] seen: caller-42 on caller-ce-pool
+(probe)
+[cats guard] error: tui4s: `onClick` takes an F[Unit] (or event => F[Unit]) for an F with a cats.effect.Async; use .void for an F[A]; a value of another type would never run.
+        val notAnEffect = compileErrors("""button("x").onClick(println("hi"))""")
+                                      ^
+
+[cats guard] error: tui4s: `onClick` takes an F[Unit] (or event => F[Unit]) for an F with a cats.effect.Async; use .void for an F[A]; a value of another type would never run.
+        val notUnit     = compileErrors("""button("x").onClick(IO.pure(1))""")
+                                      ^
+
+[cats guard] error: No given instance of type cats.effect.kernel.Async[Option] was found for parameter x$3 of method onClick in package tui4s.interop.cats.ui
+button("x").onClick(Option(()))
+                              ^
+
+[cats guard] error: tui4s: `onClick` takes an F[Unit] (or event => F[Unit]) for an F with a cats.effect.Async; use .void for an F[A]; a value of another type would never run.
+        val kyoEffect   = compileErrors("""button("x").onClick(kyo.Sync.defer(println("hi")))""")
+                                      ^
+
+[cats guard] error:
+Found:    tui4s.interop.cats.ui.Button
+Required: kyo.UI.Ast.Button?
+
+where:    Button  is a type in the top-level definitions in package ui with bounds <: tui4s.interop.cats.ui.Inline & tui4s.interop.cats.ui.Interactive &
+  tui4s.interop.cats.ui.Focusable & tui4s.interop.cats.ui.HasDisabled &
+  tui4s.interop.cats.ui.Activatable & tui4s.interop.cats.ui.Clickable
+          Button? is a class in object Ast
+val b: kyo.UI.Ast.Button = button("x")
+                                ^
+
+[cats surface] tui4s.interop.cats.ui.CatsUi$package$.Modifiers names kyo.UI.Modifiers.type
+[cats surface] tui4s.interop.cats.ui.CatsUi$package$.Style names kyo.Style.type
+[cats surface] tui4s.interop.cats.ui.CatsUi$package$.InputFilter names kyo.UI.InputFilter
+[cats surface] tui4s.interop.cats.ui.CatsUi$package$.WheelEvent names kyo.UI.WheelEvent.type
+[cats surface] tui4s.interop.cats.ui.CatsUi$package$.Modifiers names kyo.UI.Modifiers
+[cats surface] tui4s.interop.cats.ui.CatsUi$package$.KeyboardEvent names kyo.UI.KeyboardEvent
+[cats surface] tui4s.interop.cats.ui.CatsUi$package$.KeyboardEvent names kyo.UI.KeyboardEvent.type
+[cats surface] tui4s.interop.cats.ui.CatsUi$package$.Style names kyo.Style
+[cats surface] tui4s.interop.cats.ui.CatsUi$package$.Length names kyo.Length.type
+[cats surface] tui4s.interop.cats.ui.CatsUi$package$.MouseEvent names kyo.UI.MouseEvent
+[cats surface] tui4s.interop.cats.ui.CatsUi$package$.MouseEvent names kyo.UI.MouseEvent.type
+[cats surface] tui4s.interop.cats.ui.CatsUi$package$.Length names kyo.Length
+[cats surface] tui4s.interop.cats.ui.CatsUi$package$.StyleCompanion names kyo.Style.type
+[cats surface] tui4s.interop.cats.ui.CatsUi$package$.Keyboard names kyo.UI.Keyboard.type
+[cats surface] tui4s.interop.cats.ui.CatsUi$package$.Keyboard names kyo.UI.Keyboard
+[cats surface] tui4s.interop.cats.ui.CatsUi$package$.WheelEvent names kyo.UI.WheelEvent
+[cats surface] tui4s.interop.cats.ui.CatsUi$package$.InputFilter names kyo.UI.InputFilter.type
+Test run [36mtui4s.interop.cats.ui.CatsFacadeSuite[0m started
+[32mtui4s.interop.cats.ui.CatsFacadeSuite[0m: finished [90m3.24s[0m
+Test run [36mtui4s.interop.cats.ui.CatsFacadeSuite[0m finished: 0 failed, 0 ignored, 9 total [90m3.248s[0m
+[cats stress add] failures: 0 of 150
+[cats stress typing] items: 150 of 150, wrong or missing: 0
+Test run [36mtui4s.interop.cats.ui.CatsStressSuite[0m started
+[32mtui4s.interop.cats.ui.CatsStressSuite[0m: finished [90m2.697s[0m
+Test run [36mtui4s.interop.cats.ui.CatsStressSuite[0m finished: 0 failed, 0 ignored, 2 total [90m2.697s[0m
+
+real	0m9.624s
+user	0m20.429s
+sys	0m1.392s

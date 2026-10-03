@@ -1,0 +1,21 @@
+jar=/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/kyoui-apps.jar work=/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/ptywork date=2026-10-03T14:42:22+00:00 load=0.49 1.41 1.62
+PASS counter: entered the alternate screen
+PASS counter: first frame drawn (839 ms after the start command)
+PASS counter: raw mode while running (-icanon -echo -isig)
+NOTE idle CPU counter, Kyo default scheduler (pid 16567, no keys for 10 s): cpu_ms=1540 wall_s=10.0 pct_of_one_core=15.39
+PASS counter q: exit code 0
+PASS counter: stty -a after exit equals stty -a before start
+PASS counter (tui4s scheduler properties): entered the alternate screen
+PASS counter (tui4s scheduler properties): first frame drawn (872 ms after the start command)
+PASS counterflags: raw mode while running (-icanon -echo -isig)
+NOTE idle CPU counter, tui4s scheduler properties (pid 16664, no keys for 10 s): cpu_ms=620 wall_s=10.0 pct_of_one_core=6.20
+PASS counter ctrl-c: exit code 0
+PASS counterflags: stty -a after exit equals stty -a before start
+PASS todo: entered the alternate screen
+PASS todo: first frame drawn (873 ms after the start command)
+PASS todo: raw mode while running (-icanon -echo -isig)
+PASS todo: exit code 0
+PASS todo: stty -a after exit equals stty -a before start
+PASS todo: saved file is '[x] buy milk'
+
+PTY part: 16 passed, 0 failed

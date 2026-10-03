@@ -158,21 +158,27 @@ class CatsFacadeSuite extends FunSuite:
         List(notAnEffect, notUnit, noAsync, kyoEffect, noKyoType).foreach(e => assert(e.contains("error"), e))
         assertEquals(ok, "")
     }
+    // claude 2026-10-03: changed: the AST check also covers a pure function setter and a Length forwarder
     test("the mirror builds the same kyo-ui AST as kyo-ui itself") {
-        val mirror = unsafeToKyo(div(h1("Todos"), ul(li(span("a")), li(span("b"))), input.id("new").placeholder("x")))
+        val mirror = unsafeToKyo(
+            div(h1("Todos").style(_.bold.padding(2.pct)), ul(li(span("a")), li(span("b"))), input.id("new").placeholder("x"))
+        )
         val direct: kyo.UI = kyo.UI.div(
-            kyo.UI.h1("Todos"),
+            kyo.UI.h1("Todos").style(_.bold.padding(kyo.pct(2))),
             kyo.UI.ul(kyo.UI.li(kyo.UI.span("a")), kyo.UI.li(kyo.UI.span("b"))),
             kyo.UI.input.id("new").placeholder("x")
         )
         assertEquals(mirror, direct)
     }
 
+    // claude 2026-10-03: changed the surface test: it allows a Kyo name only when it is an aliased kyo-ui data type
+    // (it allowed whole members by name); and it prints the Kyo names of each entry
     test("surface: the public API of the mirror names no Kyo type, except the aliases of kyo-ui data types") {
-        val leaks   = surface.SurfaceLeaks.leaks(List("tui4s.interop.cats.ui", "tui4s.interop.cats.ui.internal"))
-        leaks.foreach(l => println(s"[cats surface] $l"))
-        val allowed = Set("KeyboardEvent", "MouseEvent", "WheelEvent", "Keyboard", "Modifiers", "InputFilter", "Style")
-        val unexpected = leaks.filterNot(l => allowed.exists(a => l.where.endsWith("." + a)))
+        val leaks = surface.SurfaceLeaks.leaks(List("tui4s.interop.cats.ui", "tui4s.interop.cats.ui.internal"))
+        leaks.foreach(l => println(s"[cats surface] ${l.where} names ${l.names.mkString(", ")}"))
+        val aliases = Set("KeyboardEvent", "MouseEvent", "WheelEvent", "Keyboard", "Modifiers", "InputFilter")
+            .map("kyo.UI." + _) ++ Set("kyo.Style", "kyo.Length")
+        val unexpected = leaks.filterNot(_.onlyNames(aliases))
         assert(unexpected.isEmpty, unexpected.mkString("\n"))
     }
 end CatsFacadeSuite

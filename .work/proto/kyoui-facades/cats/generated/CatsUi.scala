@@ -184,6 +184,9 @@ extension [E <: Element](e: E)
     /** Forwards to kyo-ui's `UI.Ast.Element.style`. */
     def style(v: Style): E =
         (e: kyo.UI.Ast.Element).style(v = v).asInstanceOf[E]
+    /** Forwards to kyo-ui's `UI.Ast.Element.style`. */
+    def style(f: StyleCompanion => Style): E =
+        (e: kyo.UI.Ast.Element).style(f = f).asInstanceOf[E]
 
 extension (e: H1)
     /** Forwards to kyo-ui's `UI.Ast.H1.apply`. */
@@ -399,12 +402,23 @@ type WheelEvent = kyo.UI.WheelEvent
 val WheelEvent: kyo.UI.WheelEvent.type = kyo.UI.WheelEvent
 type Style = kyo.Style
 val Style: kyo.Style.type = kyo.Style
+type StyleCompanion = kyo.Style.type
 type InputFilter = kyo.UI.InputFilter
 val InputFilter: kyo.UI.InputFilter.type = kyo.UI.InputFilter
 type Keyboard = kyo.UI.Keyboard
 val Keyboard: kyo.UI.Keyboard.type = kyo.UI.Keyboard
 type Modifiers = kyo.UI.Modifiers
 val Modifiers: kyo.UI.Modifiers.type = kyo.UI.Modifiers
+type Length = kyo.Length
+val Length: kyo.Length.type = kyo.Length
+extension (v: Double) def em: Length.Em = kyo.em(v)
+extension (v: Double) def pct: Length.Pct = kyo.pct(v)
+extension (v: Double) def px: Length.Px = kyo.px(v)
+extension (v: Double) def vh: Length.Vh = kyo.vh(v)
+extension (v: Int) def em: Length.Em = kyo.em(v)
+extension (v: Int) def pct: Length.Pct = kyo.pct(v)
+extension (v: Int) def px: Length.Px = kyo.px(v)
+extension (v: Int) def vh: Length.Vh = kyo.vh(v)
 
 // ---- reactive values (hand-written template, the same for every ecosystem) ----
 

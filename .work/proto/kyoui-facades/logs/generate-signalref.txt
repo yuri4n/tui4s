@@ -1,0 +1,55 @@
+Warning: Only java properties are supported in JAVA_OPTS and JDK_JAVA_OPTIONS environment variables. Other options are ignored: -Xss16m, -Xmx2g
+[90mCompiling project (Scala 3.9.0, JVM (system))[0m
+[90mCompiled project (Scala 3.9.0, JVM (system))[0m
+NOTE: Picked up JDK_JAVA_OPTIONS: -Xss16m -Xmx2g
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=45837 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+== zio: wrote /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/gen-after/zio/generated/ZioUi.scala (473 lines)
+   elements: 9, traits: 12 (Interactive, Block, Element, Inline, Clickable, Activatable, HasDisabled, Focusable, Void, ConstrainedInput, TextInput, BooleanInput)
+   factories: 9
+   setters generated: 67 (of 77 at their highest level)
+     with an effect point: 28
+   data aliases: MouseEvent, KeyboardEvent, WheelEvent, Style, InputFilter + Keyboard, Modifiers
+   skipped kyo.UI.Ast.Interactive.dragSource(kyo.Drag.Source): no rule
+   skipped kyo.UI.Ast.Interactive.dropTarget(kyo.Drag.Target): no rule
+   skipped kyo.UI.Ast.Interactive.onDragEnd(scala.Function1[kyo.Drag.End, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onDragEnter(scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onDragLeave(scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onDragOver(scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onDragStart(scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onDrop(scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[kyo.Drag.Decision, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onSortMove(scala.Function1[kyo.Drag.Move, kyo.kernel$package.<[kyo.Drag.Decision, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Element.style(scala.Function1[kyo.Style.type, kyo.Style]): no rule
+   leak through alias: kyo.UI.MouseEvent.<init>: (targetId: kyo.Maybe$package.Maybe[scala.Predef.String], modifiers: UI$.this.Modifiers)scala.Unit
+   leak through alias: kyo.UI.MouseEvent.targetId: kyo.Maybe$package.Maybe[scala.Predef.String]
+   leak through alias: kyo.UI.KeyboardEvent.<init>: (key: UI$.this.Keyboard, modifiers: UI$.this.Modifiers, targetId: kyo.Maybe$package.Maybe[scala.Predef.String])scala.Unit
+   leak through alias: kyo.UI.KeyboardEvent.targetId: kyo.Maybe$package.Maybe[scala.Predef.String]
+   leak through alias: kyo.UI.WheelEvent.<init>: (deltaX: scala.Double, deltaY: scala.Double, targetId: kyo.Maybe$package.Maybe[scala.Predef.String], modifiers: UI$.this.Modifiers)scala.Unit
+   leak through alias: kyo.UI.WheelEvent.targetId: kyo.Maybe$package.Maybe[scala.Predef.String]
+   leak through alias: kyo.Style.find: [A <: kyo.Style.Prop](using tag: kyo.ConcreteTag$package.ConcreteTag[A])kyo.Maybe$package.Maybe[A]
+   leak through alias: kyo.Style.props: kyo.Chunk[kyo.Style.Prop]
+   leak through alias: kyo.UI.Keyboard.charValue: kyo.Maybe$package.Maybe[scala.Predef.String]
+== cats: wrote /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/gen-after/cats/generated/CatsUi.scala (474 lines)
+   elements: 9, traits: 12 (Interactive, Block, Element, Inline, Clickable, Activatable, HasDisabled, Focusable, Void, ConstrainedInput, TextInput, BooleanInput)
+   factories: 9
+   setters generated: 67 (of 77 at their highest level)
+     with an effect point: 28
+   data aliases: MouseEvent, KeyboardEvent, WheelEvent, Style, InputFilter + Keyboard, Modifiers
+   skipped kyo.UI.Ast.Interactive.dragSource(kyo.Drag.Source): no rule
+   skipped kyo.UI.Ast.Interactive.dropTarget(kyo.Drag.Target): no rule
+   skipped kyo.UI.Ast.Interactive.onDragEnd(scala.Function1[kyo.Drag.End, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onDragEnter(scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onDragLeave(scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onDragOver(scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onDragStart(scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[scala.Any, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onDrop(scala.Function1[kyo.Drag.Event, kyo.kernel$package.<[kyo.Drag.Decision, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Interactive.onSortMove(scala.Function1[kyo.Drag.Move, kyo.kernel$package.<[kyo.Drag.Decision, kyo.Async$package.Async]]): no rule
+   skipped kyo.UI.Ast.Element.style(scala.Function1[kyo.Style.type, kyo.Style]): no rule
+   leak through alias: kyo.UI.MouseEvent.<init>: (targetId: kyo.Maybe$package.Maybe[scala.Predef.String], modifiers: UI$.this.Modifiers)scala.Unit
+   leak through alias: kyo.UI.MouseEvent.targetId: kyo.Maybe$package.Maybe[scala.Predef.String]
+   leak through alias: kyo.UI.KeyboardEvent.<init>: (key: UI$.this.Keyboard, modifiers: UI$.this.Modifiers, targetId: kyo.Maybe$package.Maybe[scala.Predef.String])scala.Unit
+   leak through alias: kyo.UI.KeyboardEvent.targetId: kyo.Maybe$package.Maybe[scala.Predef.String]
+   leak through alias: kyo.UI.WheelEvent.<init>: (deltaX: scala.Double, deltaY: scala.Double, targetId: kyo.Maybe$package.Maybe[scala.Predef.String], modifiers: UI$.this.Modifiers)scala.Unit
+   leak through alias: kyo.UI.WheelEvent.targetId: kyo.Maybe$package.Maybe[scala.Predef.String]
+   leak through alias: kyo.Style.find: [A <: kyo.Style.Prop](using tag: kyo.ConcreteTag$package.ConcreteTag[A])kyo.Maybe$package.Maybe[A]
+   leak through alias: kyo.Style.props: kyo.Chunk[kyo.Style.Prop]
+   leak through alias: kyo.UI.Keyboard.charValue: kyo.Maybe$package.Maybe[scala.Predef.String]

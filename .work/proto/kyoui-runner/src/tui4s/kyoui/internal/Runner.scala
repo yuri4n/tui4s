@@ -10,10 +10,12 @@ import tui4s.kyoui.TuiOptions
 /** The runner: one fiber that owns the world and the canvas.
   *
   * Each step takes one message (a key, a resize, or a region's new value), applies it (handlers run here), then SETTLES:
-  * it applies every queued region value and waits until `settleHops` consecutive scheduler round trips bring nothing
-  * new. Only then does it lay out what changed, paint it into the kept buffer and flush the changed cells: one frame per
-  * event, with all of that event's consequences in it.
+  * it applies every queued region value until the settle rule of [[tui4s.kyoui.Settle]] says that the consequences are
+  * in (default: the Kyo scheduler is quiescent, twice, one hop apart, each time before an empty drain). Only then does
+  * it lay out what changed, paint it into the kept buffer and flush the changed cells: one frame per event, with all of
+  * that event's consequences in it.
   */
+// claude 2026-10-03: changed the class comment: it described the old hop-count settle
 final class Runner(inbox: Channel[Msg], canvas: Canvas, options: TuiOptions, stats: Maybe[Channel[FrameStats]]):
 
     private def quitAction(using Frame): Unit < Sync = Abort.run[Closed](inbox.offer(Msg.Quit)).unit
@@ -121,19 +123,29 @@ final class Runner(inbox: Channel[Msg], canvas: Canvas, options: TuiOptions, sta
                         case _                 => nanos.map(t => Loop.continue(w.copy(pending = Set.empty), 0, t))
                     }
                 else
+                    // claude 2026-10-03: changed the order to "probe, THEN drain". Before, the loop drained, found nothing, and
+                    // then read the probe: a watcher that posted between the drain and the probe was parked again when the probe
+                    // ran, so the probe said "quiescent" and the frame flushed without that value (it got its own Background
+                    // frame). Seen on the 4-CPU container under CPU contention: 2-5 split frames per 500 events in the glitch
+                    // test. Now "done" needs the probe to say quiescent BEFORE a drain that finds nothing.
+                    val idleBefore = options.settle match
+                        case Settle.Quiescent(_, _) => SchedulerProbe.quiescent()
+                        case Settle.Hops(_, _)      => true
                     Abort.run[Closed](inbox.drain).map {
                         case Result.Success(msgs) if msgs.nonEmpty =>
                             Kyo.foldLeft(msgs)(w)(absorb).map(w1 => nanos.map(t => Loop.continue(w1, 0, t)))
                         case _ =>
                             nanos.map { now =>
                                 options.settle match
-                                    case Settle.Quiescent(max) =>
-                                        if SchedulerProbe.quiescent() then Loop.done(w)
+                                    // claude 2026-10-03: changed: `quiet` now counts quiescent observations in a row (each
+                                    // followed by an empty drain); the settle ends after `confirm` of them, one hop apart.
+                                    case Settle.Quiescent(max, confirm) =>
+                                        if idleBefore && quiet + 1 >= confirm then Loop.done(w)
                                         else if now - start > max.toNanos then
                                             if SchedulerProbe.debug then
                                                 java.lang.System.err.println(s"tui4s: settle timed out: ${SchedulerProbe.describe()}")
                                             Loop.done(w)
-                                        else hop.andThen(Loop.continue(w, quiet + 1, last))
+                                        else hop.andThen(Loop.continue(w, if idleBefore then quiet + 1 else 0, last))
                                     case Settle.Hops(hops, window) =>
                                         if quiet >= hops && now - last >= window.toNanos then Loop.done(w)
                                         else hop.andThen(Loop.continue(w, quiet + 1, last))
@@ -207,12 +219,13 @@ final class Runner(inbox: Channel[Msg], canvas: Canvas, options: TuiOptions, sta
         Sync.defer {
             if idle then (w, FrameStats(seq, cause, 0, 0, 0L, w.updates))
             else
-                val (w1, damage) = layoutStep(w)
-                val rects        = Paint(canvas, w1.laid, w1.env, damage)
-                val flushed      = canvas.flush(rects)
-                val repainted    = canvas.takeWrites()
+                // claude 2026-10-03: changed: also records the number of subtrees painted (FrameStats.subtrees)
+                val (w1, damage)    = layoutStep(w)
+                val (rects, roots)  = Paint(canvas, w1.laid, w1.env, damage)
+                val flushed         = canvas.flush(rects)
+                val repainted       = canvas.takeWrites()
                 val done = w1.copy(dirtyRegions = Vector.empty, dirtyNodes = Set.empty, full = false)
-                (done, FrameStats(seq, cause, repainted, flushed, 0L, w.updates))
+                (done, FrameStats(seq, cause, repainted, flushed, 0L, w.updates, subtrees = roots))
         }.map { (w1, s) =>
             nanos.map { t1 =>
                 val emit = stats match
@@ -223,7 +236,9 @@ final class Runner(inbox: Channel[Msg], canvas: Canvas, options: TuiOptions, sta
                                 case Some(Kind.El(e)) => e.attrs.identifier.getOrElse(f.showLoc)
                                 case _                => f.showLoc
                         }
+                        // claude 2026-10-03: changed: also the absolute end time of the flush (endNanos)
                         Abort.run[Closed](ch.put(s.copy(
+                            endNanos = t1,
                             nanos = t1 - t0,
                             handleNanos = handleNs,
                             settleNanos = settleNs,
