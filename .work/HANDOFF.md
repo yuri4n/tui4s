@@ -70,8 +70,8 @@ started from the main checkout): it is the user's Metals sbt server.
   question) gets no workflow and no agents: do it directly and report in a few lines.
 <!-- claude 2026-10-09: added this item (S8) -->
 - 2026-10-09: DECISIONS round 7: after W0 (run wf_bf024cec-c9f), run spike S8 (one agent; State-monad UI baseline;
-  PLAN section 0.6). NEXT after W0: push `.work/` to `wip/handoff`, give `gates.md` in the chat, then start S8 ONLY IF S1 or S2
-  is SOFT or NO-GO (round 7; the user can say "run it anyway").
+  PLAN section 0.6). NEXT after W0: push `.work/` to `wip/handoff`, give `gates.md` in the chat. S8 is CANCELLED and parked
+  (`design/parked/S8-state-ui.md`); do not run it unless the user asks.
 - (superseded) NEXT: the user reads the side-by-side page and answers the blocking questions; then plan the rework of PRs 3-5
   on kyo-ui (runner proposal: (a) runner core, (b) terminal + app from PR 5, (c) examples/ptycheck/bench;
   close or replace PRs 3 and 4).
