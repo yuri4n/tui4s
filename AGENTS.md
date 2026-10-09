@@ -71,6 +71,24 @@ push.
 - Never set `version` or `publishTo` in a build file. `project/ModuleVersioning.scala`
   and sbt-ci-release set them.
 
+## Branch and tag rules
+
+<!-- claude 2026-10-09: added this section -->
+
+GitHub rulesets protect `main` and the release tags. The source of truth is
+`.github/rulesets/` (see its `README.md`). A human admin applies the files.
+
+- You cannot push to `main`. Open a pull request. The only merge method is
+  squash.
+- The CI job `Format, compile, test, compatibility` must pass. Nobody can
+  bypass this rule.
+- A pull request needs 1 approval. Only a repository admin can bypass this
+  rule.
+- You cannot delete or move a release tag.
+
+If you change the `name` of the CI job, change
+`.github/rulesets/main-invariants.json` in the same pull request.
+
 ## Compatibility
 
 Each module has `modules/<m>/compat.sbt` with `versionPolicyIntention`. The
