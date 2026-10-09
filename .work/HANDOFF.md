@@ -16,11 +16,20 @@ started from the main checkout): it is the user's Metals sbt server.
   truststore, proxy port from `$HTTPS_PROXY`, `JDK_JAVA_OPTIONS=-Xss16m -Xmx2g`). Always use `--jvm system`.
   Maven Central sends HTTP 429 under parallel downloads: retry with backoff.
 <!-- claude 2026-10-09: added the agent limits of the cloud environment (user asked to record them) -->
-- AGENT LIMITS, CLOUD (this environment: 4 CPUs, 15 GB RAM). At most 2 agents at once, workflow agents and Agent-tool
-  agents together. Both can build. One workflow at a time. Announce a run of more than 10 agents. Timing numbers count
-  only from an agent that runs alone. Reason: the workflow runtime runs at most min(16, CPUs - 2) = 2 agents at once
-  here, and the resume run (wf_6bb71261-308) used 2 at once without problems. The local limits (Mac: at most 4 at once,
-  at most 2 that build) do NOT apply here. Before you use these numbers in a new container, check nproc.
+- AGENT LIMITS (user: "the sweet spot of cost x benefit for each environment"; claude 2026-10-09: changed this item).
+  Model: an agent is LLM-bound (read, review, write: almost no local CPU) or build-bound (scalac on Kyo, test JVMs:
+  all cores). The token cost almost does not change with concurrency; concurrency buys time. The hidden cost is CPU
+  contention: timing suites then fail falsely, and an agent spends tokens on a ghost. Thus: many LLM-bound agents,
+  few builds, and timing work alone.
+  - CLOUD (4 CPUs, 15 GB RAM): at most 2 agents at once (a hard cap: the workflow runtime runs at most
+    min(16, CPUs - 2) agents at once). Both can compile and run plain tests (memory is sufficient: sbt about 3 GB,
+    Bloop 2.2 GB). Do not add Agent-tool agents next to a workflow to pass the cap: on 4 cores they only add
+    contention.
+  - LOCAL (Mac): at most 4 agents at once; at most 2 that build, and not more than cores/4 (`sysctl -n hw.ncpu`).
+    More than 4 buys only time and uses the usage window faster. Never kill the Metals sbt server of the user.
+  - BOTH: timing-sensitive suites (plan 6.0: C2, C3, C4, T1, F1-F4) and all timing numbers run with no other build
+    on the machine. One workflow at a time. Announce a run of more than 10 agents. In a new container, check nproc
+    first.
 - Baseline on the cloud machine (4 CPUs) before the resume: runner 7/8 (stale colour assertion at
   `test/Apps.test.scala:123`); Cats facade 9/9; ZIO facade FLAKY (a different test fails on each run).
 - Resume run: workflow `wf_6bb71261-308` (6 agents, max 2 at once): resume runner + facades -> one skeptic each
