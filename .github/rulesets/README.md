@@ -36,6 +36,12 @@ Enterprise plan.
   `.github/workflows/ci.yml`. If you change that name, change
   `main-invariants.json` too. If you do not, no pull request can merge.
 - `integration_id` 15368 is GitHub Actions.
+- After the import, the two `main` rulesets had
+  `require_extra_approval_for_unattributed_changes` set to `true`. The first
+  version of these files did not have this parameter. On 2026-10-09, we did not
+  find GitHub documentation for it. If it stops a merge that the other rules
+  permit, set it to `false` in the UI and in the two `main-*.json` files.
+  <!-- claude 2026-10-09: added this note; synced main-*.json with the live rulesets (added require_extra_approval_for_unattributed_changes and required_reviewers) -->
 - To delete a release tag (for example, a tag that failed before publication),
   set `release tags` to **Disabled**, delete the tag, then set it to
   **Active** again.
