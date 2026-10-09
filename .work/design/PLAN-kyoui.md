@@ -110,7 +110,9 @@ the seam.
 <!-- claude 2026-10-09: added 0.6 (seventh round: spike S8) -->
 ### 0.6 S8: a State-monad UI as a baseline (DECISIONS round 7)
 
-One agent, after W0 ends (a quiet machine, one workflow at a time). Local only, in `.work/spikes/s8-state-ui/`.
+<!-- claude 2026-10-09: changed: S8 is conditional -->
+CONDITIONAL: S8 runs only if S1 or S2 is SOFT or NO-GO at gate 0 (DECISIONS round 7). One agent, after W0 ends (a
+quiet machine, one workflow at a time). Local only, in `.work/spikes/s8-state-ui/`.
 scala-cli. About 0.3-0.4 M tokens. S8 has no gate: it gives numbers, and the user reads them at gate 0.
 
 - Question: what does the reactive model of kyo-ui (signals, regions, settle) buy, compared with a State-monad UI?

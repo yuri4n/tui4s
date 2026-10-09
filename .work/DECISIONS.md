@@ -67,3 +67,7 @@ Seventh round (2026-10-09, after the State-monad question; recorded by Claude):
 - The user is "not sure" if State goes over the buffer or over the app model. S8 shows both: the buffer variant is
   new; the model variant is the old Elm core of PRs 3-5 (`update: (S, Event) => S` is `Event => State[S, Unit]`).
 - Spec: PLAN-kyoui.md section 0.6.
+- Later the same day (claude 2026-10-09: added): S8 is CONDITIONAL. It runs only if S1 or S2 of W0 is SOFT or NO-GO
+  (then the cost of the reactive model is real, and a baseline helps a decision). If both are GO, S8 does not run:
+  kyo-ui stays the model either way, and the C1 painter style needs no spike. Rule of the user: the sweet spot of cost
+  x benefit. The user can say "run it anyway".
