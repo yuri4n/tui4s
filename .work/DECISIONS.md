@@ -57,3 +57,13 @@ Sixth round (2026-10-09, after the kyo-compat review; recorded by Claude):
   primary + one-way copy + controlled inputs) is picked by a spike (SZ) at the start of the ZIO phase.
 - The ZIO phase starts after D merges (all Kyo work done).
 - Plan: PLAN-kyoui.md section 0 ("Revision 1") has the changes.
+
+<!-- claude 2026-10-09: added the seventh round -->
+Seventh round (2026-10-09, after the State-monad question; recorded by Claude):
+- The user asked to explore "the UI as State monads (`ZIO[State[...`) that change the buffer". It was never prototyped
+  (the closest was `proto/mut`: State over the app model, stopped when kyo-ui came).
+- Decision: option (b). kyo-ui stays the model. After W0, one spike (S8) builds a State-monad UI as a baseline, to
+  show what the reactive complexity of kyo-ui buys. No GO/NO-GO: the user reads the numbers at gate 0.
+- The user is "not sure" if State goes over the buffer or over the app model. S8 shows both: the buffer variant is
+  new; the model variant is the old Elm core of PRs 3-5 (`update: (S, Event) => S` is `Event => State[S, Unit]`).
+- Spec: PLAN-kyoui.md section 0.6.
