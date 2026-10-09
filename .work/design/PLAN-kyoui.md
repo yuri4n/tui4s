@@ -27,6 +27,86 @@ How to read this file:
 
 ---
 
+<!-- claude 2026-10-09: created section 0 (round 6 revision). It overrides the sections that it names. -->
+## 0. Revision 1: round 6 (2026-10-09). Kyo first, hand-written facades
+
+This section overrides the rest of the plan where they do not agree. The table in section 1 already shows the new
+order. Sections 3.4, 5.2, 5.3, 6.3, 6.8-6.11 and 6.15 still have the old text. Read them through 0.2.
+
+### 0.1 What the user decided (DECISIONS round 6)
+
+1. Order: the Kyo library first (C1-C4, T1, T2, P1, L1, L2, D). The ZIO phase starts only after D merges. The Cats
+   phase comes after the ZIO phase.
+2. The ZIO and Cats DSLs are written by hand. There is no code generator. ZIO and Cats users still see only types of
+   their own ecosystem (round 5 goal). A coverage test replaces the drift check.
+3. C3 sends all bound writes through one runner function (0.3).
+4. The ZIO state design is picked by a spike at the start of the ZIO phase (SZ, 0.4). The candidates:
+   - Z1: a ref type of tui4s with ZIO methods over the Kyo cell (the prototype). One cell. The name is not ZIO's.
+   - Z2: the user's `SubscriptionRef` is the primary. A Kyo copy follows it. The runner redirects bound writes to the
+     primary. A sync step runs before each settle. Two cells.
+   - Z3: the user's `SubscriptionRef` is the primary. A one-way copier is the only writer of the Kyo copy. The ZIO
+     `value(ref)` becomes "value from the copy + `onInput(ref.set)`" (a controlled input). The runner keeps its own
+     text for the focused field, so that a fast second key does not edit old text.
+5. Context: Kyo removed all its Typelevel modules (getkyo/kyo#1778, PR #1779). The Cats bridge stays vendored (round
+   2). Cats state is already one cell with a native type: fs2 `SignallingRef` is an open class, and the prototype
+   `KyoSignallingRef` extends it.
+
+### 0.2 What changes in the other sections
+
+| Section | Change |
+| --- | --- |
+| 2, A3 | Superseded: A3 is now Z1, one of the three candidates of SZ-1. The user does not confirm A3 now. |
+| 2, A4 | Void: there are no generated mirrors. A1 and A2 still need the user's confirmation. |
+| 1, items 1, 2, 7 | W0 has 5 agents (0.5). The stack is in phases: the Kyo stack ends with D; the ZIO and Cats PRs start from `main` after the stack before them merges. Tokens: 0.5. |
+| 3.4 | These decisions move to "before the ZIO phase" (gate Z). D-26, FC-D9 and FC-D10 are void: there is no generated code. FC-D2: option (c) "mirror every data type" is now the natural default, because each type is written by hand anyway; decide at gate Z. FC-D6 (all 52 elements) stays; the coverage test checks it. |
+| 4 | No change to PRs 1-5. D (PR 2) is the top of the Kyo stack, as before. The ZIO and Cats PRs are new stacks later. |
+| 5.2 S2 | Part 4 (facade cancel) moves to SZ. |
+| 5.2 S5 | Dropped (no generator). |
+| 5.2 S6 | Only the core part runs in W0. The facade part (facade runtimes in `modules/zio` and `modules/cats`, fs2 3.14.0) moves to SZ. |
+| 5.2 S7 | Moves to SZ. The core state key on `Component` stays in C4 and gets a plain Kyo test there (two `Component` classes at one position do not share state). |
+| 5.3 | Agent B does only S6 (core part). Agent D (S7) is removed. See 0.5. |
+| 6.3 C3 | Add the write seam (0.3). |
+| 6.8 F1 | No `codegen` project, no `sbt mirrors`, no drift check. Acceptance: the coverage test and the ZIO lift-trap canary. The size comes from SZ. If the hand-written DSL is more than about 1500 main lines, split F1 in two PRs (handlers and state first, the rest of the elements second). |
+| 6.10 F3 | The same as F1, for `F[_]`. |
+| 6.14 D | D documents the Kyo library only. The ZIO and Cats pages say "planned". F2 and F4 add their own docs pages. |
+
+### 0.3 The C3 write seam
+
+- Today the prototype writes a bound ref in three places: `Dispatch.scala:144`, `:163` and `:185`
+  (`case Present(UI.Bound.Ref(ref)) => ref.set(next)`).
+- C3 sends these writes through one internal runner function. Its default writes the Kyo ref, as today. It is not
+  public API.
+- Why: Z2 needs a place to redirect a write to the ZIO primary. Z3 needs a place where the runner keeps its own text
+  for the focused field. One seam keeps both open and costs little now. To add it later, the runner must open again.
+- Test: a test seam counts all bound writes (text input, textarea, checkbox, select) through the function. Size: about
+  +30 main lines, +60 test lines.
+
+### 0.4 SZ: the spike at the start of the ZIO phase
+
+Local only, in `.work/spikes/sz/`. At most 4 agents, at most 2 that build. Each agent writes its report early.
+
+| Part | Question and method | Gate |
+| --- | --- | --- |
+| SZ-1 state | Build Z1, Z2 and Z3 on Counter and Todo. Measure: (1) the types that a ZIO user sees in the app code; (2) lost characters when `typeText` sends 1000 characters with `paste = false` at full speed, 20 runs, also under the CI load model of S1; (3) split frames (S1 method); (4) lines to maintain. | The user picks Z1, Z2 or Z3 at gate Z. Z2 or Z3 with lost characters is NO-GO. |
+| SZ-2 DSL shape | Write the ZIO DSL by hand for the elements of Counter and Todo. Find a way to hide the Kyo-typed setters of kyo-ui (opaque types per element, or wrapper classes). Write the coverage test against the kyo-ui TASTy (start from `proto/kyoui-facades/gen/Inventory.scala`). Delete one setter: the test must fail. Check the lift trap: a ZIO value given to a kyo-ui setter must not compile from the ZIO API. | GO: no Kyo type in the app code; the trap does not compile; the coverage test fails on a missing setter. |
+| SZ-3 (old S7) | Facade components over the core hooks, for ZIO (and a Cats sketch). As old S7. | As old G7. |
+| SZ-4 (old S2 part 4, S6 facade part) | ZIO cancel and Cats cancel on a headless control: count live watchers. Facade runtimes under the real flags; fs2 3.14.0. | As old G2 and G6. |
+
+Gate Z: the user reads `.work/spikes/sz/gates.md` and decides Z1, Z2 or Z3, the DSL shape, and the 3.4 decisions.
+
+### 0.5 Tokens (estimate)
+
+| Phase | Work | Tokens |
+| --- | --- | --- |
+| Kyo | W0 (5 agents) + C1-C4, T1, T2, P1, L1, L2, D + about 4 fix rounds | about 19-23 M |
+| ZIO | SZ + F1, F2 + fix rounds | after SZ (the old F1 and F2 were 4.3-4.9 M with the generator) |
+| Cats | F3, F4 + fix rounds | after SZ (the old F3 and F4 were 4.2-4.8 M) |
+
+W0 is about 1.5-1.9 M (it was 2.0-2.4 M). The Kyo PR workflows keep their 6.15 numbers; C3 gets about +0.1 M for
+the seam.
+
+---
+
 ## 1. Summary
 
 1. First, ONE local spike workflow (W0: 6 agents, at most 3 at once, at most 2 that build). It answers the 7
@@ -47,26 +127,30 @@ How to read this file:
 7. Cost: 15 workflows plus small fix rounds, about 108 agent runs, about 29-35 M tokens (section 6.15; basis: the old
    8-agent PR workflows cost 2.1-2.4 M each). No workflow has more than 8 agents, so none needs an announcement.
 
+<!-- claude 2026-10-09: changed this table for round 6 (Kyo phase first; SZ added; F1-F4 hand-written and after D; L1, L2 renumbered; C3 seam) -->
 | # | Branch | Base | Purpose: what works after the merge | Main inventory ids | Size: hand-written main / test (G = generated) | Gate and acceptance (in addition to section 6.0) |
 | --- | --- | --- | --- | --- | --- | --- |
-| W0 | local only (`.work/spikes/`, local branch `spike/sbt-port`, never pushed) | - | The unknowns have numbers: G1-G7 are GO, SOFT or NO-GO. | RC-11, RC-8, RC-9, RC-12, RC-17, RC-18, FC-1..8, FC-17 | throw-away | Gate 0: the user reads `gates.md` and answers section 3.2 |
+| W0 | local only (`.work/spikes/`, local branch `spike/sbt-port`, never pushed) | - | The core unknowns have numbers: G1-G4 and G6 are GO, SOFT or NO-GO (round 6: S5 is dropped; S7 and the facade parts of S2 and S6 move to SZ). | RC-11, RC-8, RC-9, RC-12, RC-17, RC-18 | throw-away | Gate 0: the user reads `gates.md` and answers section 3.2 |
 | C1 | `feat/kyoui-01-render` | `main` after PR 1 merges (D-6 a); else `chore/cleanup` (D-6 b) | A kyo-ui `UI` value renders to terminal cells (layout, paint). | RC-1, RC-12 part, RC-16, RC-18, RC-19, OS-37..39, OS-12 part | ~1300 / ~450 | Golden screens; surface guard fails when one name goes; 0 warnings |
 | C2 | `feat/kyoui-02-regions` | C1 | Signals drive the screen. `Headless` with quit as a value, `Screen`. R1 and R2 fixed. | RC-3, RC-6..9, RC-11, RC-28, RC-30 part, RC-36, OS-5, OS-8, OS-16, OS-34 | ~1250 / ~650 | R2 seam test red before, green after; 0 live watchers after an interrupt; 1 run under CPU contention. GATE 1 |
-| C3 | `feat/kyoui-03-input` | C2 | Keys reach the UI: focus, handlers, grapheme editing, paste, `Tui.quit`. | RC-2 part, RC-14 part, RC-15 part, OS-11, OS-15 part | ~600 / ~500 | `TextFieldTest` adapted; R2 key variant; focus group/trap tests |
+| C3 | `feat/kyoui-03-input` | C2 | Keys reach the UI: focus, handlers, grapheme editing, paste, `Tui.quit`. All bound writes go through one runner function (round 6 seam). | RC-2 part, RC-14 part, RC-15 part, OS-11, OS-15 part | ~630 / ~560 | `TextFieldTest` adapted; R2 key variant; focus group/trap tests |
 | C4 | `feat/kyoui-04-components` | C3 | Both component styles: hooks and the `Component` class, mounted by the runner. | RC-4, RC-5 (+ state key), RC-8 part, RC-15 rest, FC-17 core part | ~300 / ~400 | A test per hook; no effect fiber after an interrupt |
 | T1 | `feat/kyoui-05-terminal` | C4 | `Tui.run` draws on the real terminal and restores it in all cases. CI `terminal` job is back. | RC-2 part, RC-10 part, RC-20..23, RC-27 part, RC-31 part, RC-33 part, OS-1..4, OS-10, OS-20, OS-41 | ~1300 Scala (~1150 carried) + ~450 kit (carried) / ~1300 | CI `terminal` job green 3 times (Counter rows); 3 bot fixes with negative controls |
 | T2 | `feat/kyoui-06-app-examples` | T1 | `TuiApp` main class; all examples on kyo-ui; all PTY cases. | RC-24, RC-25, RC-27 rest, RC-31 rest, RC-33, OS-6, OS-7, OS-18, OS-19, OS-50 | ~650 Scala + ~250 script / ~550 | PTY: Ctrl-C 0, `kill -TERM` 143, `kill -INT` 130, early `println` to the log |
 | P1 | `feat/kyoui-07-trace-bench` | T2 | Measure it: one trace line per frame, bench probes, JMH benches, a new baseline. | RC-26, RC-30 rest, RC-32, OS-9, OS-21, OS-40 | ~1150 / ~200 | JMH smoke; probes on an idle machine; `BASELINE.md` section |
-| F1 | `feat/kyoui-08-codegen-zio-dsl` | P1 | ZIO users build a kyo-ui value with ZIO types: codegen, ZIO mirror, drift check. | FC-1..9, FC-11 ZIO, FC-16, FC-19 part, FC-21, FC-23, FC-25, FC-26, FC-29..32, FC-35, FC-36, OS-17, OS-22, OS-42 | ~1450 (+G ~1120) / ~700 | `sbt mirrors` twice: no diff; fail-closed test. GATE 2 |
-| F2 | `feat/kyoui-09-zio-run` | F1 | ZIO users run, test and ship the app. | FC-12..15 ZIO, FC-17 ZIO, FC-19, FC-27, FC-33 ZIO, FC-34, OS-24, OS-25, OS-28, OS-29, OS-31, OS-33 | ~720 / ~900 | ZIO PTY rows; ZIO cancel test: 0 live watchers |
-| F3 | `feat/kyoui-10-cats-dsl` | F2 | Cats Effect users build a kyo-ui value with `F[_]`. | FC-10, FC-11 Cats, FC-20 part, FC-22, FC-24, FC-29/30/35 Cats, OS-23, OS-30 Cats, OS-35 | ~480 (+G ~1120) / ~500 | `CatsBridgeSuite` stress green 3 times |
-| F4 | `feat/kyoui-11-cats-run` | F3 | Cats users run, test and ship the app; three Counters give the same screen. | FC-12..15 Cats, FC-17 Cats, FC-20, FC-33 Cats, OS-24, OS-25, OS-27 lessons | ~740 / ~900 | Cats PTY rows (one `Tui.resource` app); screen parity |
-| L1 | `feat/kyoui-12-scroll` | F4 | Content below the screen is reachable: scroll in `overflow` columns. | RC-13 part, RR N7 | ~450 / ~300 | PTY row: long Todo list; "Todo grow" bench row |
-| L2 | `feat/kyoui-13-layout-polish` | L1 | Narrow rows, ellipsis, 256 colours, one log line per unsupported attribute kind. | RC-13 rest, RC-14 rest, RR N8 | ~250 / ~250 | Golden screens; log-line test |
-| D | `docs/docus` (= PR 2) | L2 (after a merge-up) | The docs site and the rules describe what exists. | OS-47 sweep, OS-48, OS-49, FC-28, FC-37 | ~1000 Markdown + ~100 rules | `docs` CI green; no deploy; each AGENTS.md rule true |
+| L1 | `feat/kyoui-08-scroll` | P1 | Content below the screen is reachable: scroll in `overflow` columns. | RC-13 part, RR N7 | ~450 / ~300 | PTY row: long Todo list; "Todo grow" bench row |
+| L2 | `feat/kyoui-09-layout-polish` | L1 | Narrow rows, ellipsis, 256 colours, one log line per unsupported attribute kind. | RC-13 rest, RC-14 rest, RR N8 | ~250 / ~250 | Golden screens; log-line test |
+| D | `docs/docus` (= PR 2) | L2 (after a merge-up) | The docs site and the rules describe what exists (Kyo only; ZIO and Cats are "planned"). END OF THE KYO PHASE. | OS-47 sweep, OS-48, OS-49, FC-28 core part, FC-37 core part | ~1000 Markdown + ~100 rules | `docs` CI green; no deploy; each AGENTS.md rule true |
+| SZ | local only (`.work/spikes/sz/`, never pushed) | `main` after D merges | ZIO PHASE START. The ZIO state design (Z1, Z2 or Z3) and the shape of the hand-written ZIO DSL have numbers. | FC-17, FC-D2, FC-D8, S2 part 4, S6 facade part, S7 | throw-away | Gate Z: the user picks Z1, Z2 or Z3 and the DSL shape (section 0.4) |
+| F1 | `feat/kyoui-10-zio-dsl` | `main` after D merges (SZ done) | ZIO users build a kyo-ui value with ZIO types: a HAND-WRITTEN ZIO DSL and a coverage test (no generator). | FC-1 part, FC-9, FC-11 ZIO, FC-16, FC-19 part, FC-21, FC-23, FC-25, FC-26, FC-29..32, FC-35, FC-36, OS-17, OS-22, OS-42 | after SZ (old: ~1450 + G ~1120) / ~700 | Coverage test red when one kyo-ui setter is missing (negative control); ZIO lift-trap canary. GATE 2 |
+| F2 | `feat/kyoui-11-zio-run` | F1 | ZIO users run, test and ship the app. The ZIO docs pages. | FC-12..15 ZIO, FC-17 ZIO, FC-19, FC-27, FC-28 ZIO, FC-33 ZIO, FC-34, FC-37 ZIO, OS-24, OS-25, OS-28, OS-29, OS-31, OS-33 | ~720 / ~900 | ZIO PTY rows; ZIO cancel test: 0 live watchers |
+| F3 | `feat/kyoui-12-cats-dsl` | `main` after F2 merges | CATS PHASE. Cats Effect users build a kyo-ui value with `F[_]`: a hand-written DSL in the shape that SZ picked. | FC-10, FC-11 Cats, FC-20 part, FC-22, FC-24, FC-29/30/35 Cats, OS-23, OS-30 Cats, OS-35 | after SZ / ~500 | `CatsBridgeSuite` stress green 3 times; coverage test as in F1 |
+| F4 | `feat/kyoui-13-cats-run` | F3 | Cats users run, test and ship the app; three Counters give the same screen. The Cats docs pages. | FC-12..15 Cats, FC-17 Cats, FC-20, FC-28 Cats, FC-33 Cats, FC-37 Cats, OS-24, OS-25, OS-27 lessons | ~740 / ~900 | Cats PTY rows (one `Tui.resource` app); screen parity |
 
-Gates: gate 0 after W0; gate 1 after C2 (the public run API); gate 2 after F1 (the generated ZIO API); gate 3 is the
-final review and the merges. Between the gates, implementation runs at most 2 PRs ahead of the user's review (P-11).
+<!-- claude 2026-10-09: changed the gates for round 6 -->
+Gates: gate 0 after W0; gate 1 after C2 (the public run API); gate K after D (the end of the Kyo phase: the Kyo stack
+merges); gate Z after SZ; gate 2 after F1 (the hand-written ZIO API); gate 3 is the final review and the merges of each
+phase. Between the gates, implementation runs at most 2 PRs ahead of the user's review (P-11).
 
 ---
 
@@ -1283,3 +1367,8 @@ commit, no push and no GitHub write. Read-only checks: `git show`, `git ls-tree`
    section 2 ("a CI run takes about 3 minutes"); the "bot" author of the 8 threads.
 6. Token and agent numbers are estimates (section 6.15). I re-added them: 108 agents and about 28.7-34.5 M tokens
    agree with the table.
+
+<!-- claude 2026-10-09: added this progress log entry -->
+- 2026-10-09: Revision 1 (round 6). Section 0 added; the section 1 table reordered (Kyo phase first, SZ added, F1-F4
+  hand-written and after D, L1 and L2 renumbered, C3 seam). No work started. Old version:
+  `git show be0089c:.work/design/PLAN-kyoui.md` on `wip/handoff`.

@@ -40,3 +40,20 @@ Fifth round (2026-10-02, after reviewing the core):
 - tui4s becomes a terminal BACKEND for kyo-ui (UI -> jatatui). Our own View/Keymap/Engine model is dropped.
 - Both component styles: hooks (`for count <- useSignal(0) yield ...`, useSignal = Signal.initRef) and the type-member `Component` class (runner allocates state at mount).
 - ZIO/Cats users must NOT see Kyo types: facades = a generated mirror of the kyo-ui DSL with ZIO / F[_] types at every effect point (handlers, signals, streams, components), building the same kyo-ui AST. Facade users import only the mirror (avoids the Kyo lift trap: kyo-ui handlers are `Any < Async`, a ZIO value would compile and never run).
+
+Sixth round (2026-10-09, after the kyo-compat review; recorded by Claude):
+- Order: the Kyo library (core) comes first. The ZIO module comes after it. The Cats module comes last.
+- The ZIO bindings are written by hand ("manual conversions"). There is no code generator. This replaces
+  "a generated mirror" in the fifth round. The goal of the fifth round stays: ZIO and Cats users see only
+  types of their own ecosystem.
+- Context: Kyo removed all its Typelevel modules (getkyo/kyo#1778, PR #1779, 2026-07-27). Only its JMH
+  benches still use cats-effect. The Cats bridge of tui4s stays vendored (second round). Prior art for one
+  artifact per backend with native types: ghostdogpr/sage and gruggiero/typesafe4s (kyo-compat, with a
+  vendored Cats Effect backend).
+- ZIO API: a hand-written ZIO DSL. ZIO users import only it. A coverage test fails when kyo-ui has a setter
+  that the DSL does not have. (Not call-site conversions, not a hybrid.)
+- C3 (input) sends all bound writes through one runner function, so that the ZIO state designs Z2 and Z3 stay open.
+- The ZIO state design (Z1 own ref type, Z2 SubscriptionRef primary + redirected writes, Z3 SubscriptionRef
+  primary + one-way copy + controlled inputs) is picked by a spike (SZ) at the start of the ZIO phase.
+- The ZIO phase starts after D merges (all Kyo work done).
+- Plan: PLAN-kyoui.md section 0 ("Revision 1") has the changes.

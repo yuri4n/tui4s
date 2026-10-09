@@ -37,6 +37,13 @@ started from the main checkout): it is the user's Metals sbt server.
   it, go ahead": planning run `wf_ccf6b226-c52` (9 agents, read-only) writes `.work/design/plan/*` and
   `.work/design/PLAN-kyoui.md` + `upstream-kyo-ui-issue.md` (DRAFT, never post without the user). Assumptions A1-A4
   (PR shape a/b/c; upstream issue draft only; ZIO SignalRef; checked-in mirrors + drift CI) await confirmation.
+<!-- claude 2026-10-09: added this item (round 6) -->
+- 2026-10-09: ROUND 6 (see DECISIONS.md). Kyo phase first (C1-C4, T1, T2, P1, L1, L2, D); the ZIO phase starts after D
+  merges, the Cats phase after it. No generator: the ZIO and Cats DSLs are hand-written, with a coverage test. C3
+  routes all bound writes through one runner function. The ZIO state design (Z1/Z2/Z3) is picked by spike SZ at the
+  ZIO start. Plan: `design/PLAN-kyoui.md` section 0. Kyo removed its Typelevel modules (getkyo/kyo#1778); our Cats
+  bridge is already vendored. Prior art: ghostdogpr/sage, gruggiero/typesafe4s (kyo-compat + vendored CE backend).
+  NEXT: the user confirms A1-A4 (A3 and A4 are now superseded by round 6) and D-1 (run W0 first); then W0 (5 agents).
 - (superseded) NEXT: the user reads the side-by-side page and answers the blocking questions; then plan the rework of PRs 3-5
   on kyo-ui (runner proposal: (a) runner core, (b) terminal + app from PR 5, (c) examples/ptycheck/bench;
   close or replace PRs 3 and 4).
