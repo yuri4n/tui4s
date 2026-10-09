@@ -78,6 +78,15 @@ started from the main checkout): it is the user's Metals sbt server.
   continues from its files, then M. FACT for all workflows: the subagent harness REFUSES report .md files ("Subagents
   should return findings as text"). Give each agent an output field for the report text; the orchestrator writes the
   file. The REPORT.md files of s6-flags, s3-drift and s4-weight were written this way.
+<!-- claude 2026-10-09: added this item (W0 done) -->
+- 2026-10-09 23:41: W0 DONE. Results: `design/plan/gates.md` (M), spike REPORT.md files, `design/upstream-w0-numbers.md`
+  (not applied to the draft yet). G1 NO-GO (Kyo values) / SOFT (tui4s values): ASK D-17. G2: R1 option (b); R2 GO
+  with "armkey". G3 NO-GO: ASK D-19 (pin RC7). G4 GO. G6 GO. NEW RISK K29: `Signal.observe` keeps about 1.7 KB per
+  change (about 300 MB per hour at 5 regions x 10 changes/s): decide at gate 0 for C2.
+  LESSON: a resume caches only the UNCHANGED PREFIX of agent() calls. I edited agent A (the first call), so B, C and E
+  ran again (1.4 M tokens in the resumed run) and spoiled some A timings. To resume, edit only calls after the last
+  cached one.
+  NEXT: gate 0. The user answers D-17, D-19, K29, D-4 (merge method), and the 3.1 RECs; then C1 (W1).
 - (superseded) NEXT: the user reads the side-by-side page and answers the blocking questions; then plan the rework of PRs 3-5
   on kyo-ui (runner proposal: (a) runner core, (b) terminal + app from PR 5, (c) examples/ptycheck/bench;
   close or replace PRs 3 and 4).
