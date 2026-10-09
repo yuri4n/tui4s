@@ -201,7 +201,7 @@ sets what S7 builds.
 - D-6. Merge PR 1 now. (a) REC: yes, with a merge commit. It is green and holds nothing of the old model. The stack
   then starts from `main`. (b) Later: the stack starts from `chore/cleanup`, and each PR base moves once more.
 - D-7. PR 2 (docs). (a) REC: keep PR 2 open until the end. At D, merge the L2 tip into `docs/docus` with a merge
-  commit, change the PR 2 base to the stack tip (`feat/kyoui-13-layout-polish`, or F4 if D-30 drops L1 and L2), and
+  commit, change the PR 2 base to the stack tip (`feat/kyoui-09-layout-polish`, or P1 if D-30 drops L1 and L2), and
   write the content in new commits. No rewrite, no early deploy, and the PR 2 rule "When a public API changes, change its page in the same pull request"
   (`origin/docs/docus:AGENTS.md`) does not bind the code PRs. Cost: the content review sits next to the 15k-line
   `pnpm-lock.yaml` of PR 2. (b) One fix commit on PR 2 now (remove "One model, three effect systems"; the
@@ -368,7 +368,7 @@ sets what S7 builds.
 | `chore/cleanup-7p2rll` (6f70179) | Not in the inventories; same head as `chore/cleanup`. Ask the user if it is still needed. Do not touch. | Unknown origin; harmless. |
 | `first-take` (05599dd) | The user's own branch. Do not touch. | Not part of this work. |
 | `spike/sbt-port` (local only) | Created by W0 in a local worktree; never pushed; deleted after gate 0. | Throw-away. |
-| New: `feat/kyoui-01-render` ... `feat/kyoui-13-layout-polish` | Created by the PR workflows, each from the branch below it. | Section 6. |
+| New: `feat/kyoui-01-render` ... `feat/kyoui-09-layout-polish` (Kyo phase; the ZIO and Cats branches `-10` to `-13` come later) | Created by the PR workflows, each from the branch below it. | Section 6. |
 
 How files carry: `git show <ref>:<path> > <new path>`, and the commit message names the source ref and commit.
 Never `git checkout <ref> -- <path>`: paths and packages change, and for the prototype the source is under the
@@ -792,13 +792,13 @@ agents cost about 2.0 M. So about 0.27-0.30 M per agent. Estimates: shape 8 abou
 - Acceptance: as 6.0; the CI `terminal` job with the Cats rows.
 - Size: ~540 glue + ~200 examples; tests ~900. Workflow: shape 8; about 2.1-2.4 M.
 
-### 6.12 L1 `feat/kyoui-12-scroll`: content below the screen is reachable
+### 6.12 L1 `feat/kyoui-08-scroll`: content below the screen is reachable
 
 - Content: RC-13 part (a scroll offset per container with `overflow`; focus follows the scroll; clip); RR N7; RR
   open question 2; a Todo with a long list in the examples; a PTY row; the bench "Todo grow" rows recorded again.
 - Size: ~450; tests ~300. Workflow: shape 6; about 1.6-1.9 M. Only if D-30 keeps scroll.
 
-### 6.13 L2 `feat/kyoui-13-layout-polish`: small layout gaps and unsupported attributes
+### 6.13 L2 `feat/kyoui-09-layout-polish`: small layout gaps and unsupported attributes
 
 - Content: RC-13 rest (row min-content width; ellipsis; 256-colour fallback when `COLORTERM` is not `truecolor`; the
   full-width button of IR item 4, checked against kyo-ui `HtmlRenderer.baseCss` first); RC-14 rest (one log line per
@@ -809,7 +809,7 @@ agents cost about 2.0 M. So about 0.27-0.30 M per agent. Estimates: shape 8 abou
 
 - Steps: (1) merge the L2 tip into `docs/docus` with a merge commit (the AGENTS.md "Documentation" section of PR 2 and
   the rows of the stack are in different sections, OS section 4); (2) the user changes the PR 2 base to the
-  stack tip (`feat/kyoui-13-layout-polish`, F4 if L1 and L2 drop, or `main` if the stack is merged); (3) content in new commits.
+  stack tip (`feat/kyoui-09-layout-polish`, P1 if L1 and L2 drop, or `main` if the stack is merged); (3) content in new commits.
 - Content: OS-49 (index: "one UI DSL (kyo-ui)"; "repaints only the regions whose signals changed, and sends only the
   changed cells"; the installation page names the launchers, not `run / fork`); getting started per ecosystem (Kyo,
   ZIO, Cats); concepts (UI values, signals, regions, hooks, `Component`, focus); testing (`Headless`, the facade kits,
@@ -1372,3 +1372,5 @@ commit, no push and no GitHub write. Read-only checks: `git show`, `git ls-tree`
 - 2026-10-09: Revision 1 (round 6). Section 0 added; the section 1 table reordered (Kyo phase first, SZ added, F1-F4
   hand-written and after D, L1 and L2 renumbered, C3 seam). No work started. Old version:
   `git show be0089c:.work/design/PLAN-kyoui.md` on `wip/handoff`.
+- 2026-10-09 (claude): renamed the L1 and L2 branches in D-7, 4.2, 6.12, 6.13 and 6.14 to `-08-scroll` and
+  `-09-layout-polish`; the fallback stack tip is P1 (no longer F4).

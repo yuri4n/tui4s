@@ -44,6 +44,15 @@ started from the main checkout): it is the user's Metals sbt server.
   ZIO start. Plan: `design/PLAN-kyoui.md` section 0. Kyo removed its Typelevel modules (getkyo/kyo#1778); our Cats
   bridge is already vendored. Prior art: ghostdogpr/sage, gruggiero/typesafe4s (kyo-compat + vendored CE backend).
   NEXT: the user confirms A1-A4 (A3 and A4 are now superseded by round 6) and D-1 (run W0 first); then W0 (5 agents).
+<!-- claude 2026-10-09: added this item (PR 1 merged, W0 started) -->
+- 2026-10-09 later: the user squash-merged PR 1 (`main` = 863db67) after the Codex fixes (version order like Maven,
+  `build.sbt` and `project/` watched). The user closed PRs 2, 3 and 4 without a merge. PR 5 is still open. Then the
+  user said "done. continue": W0 started with the RECs D-1 (a), D-11 (a), D-32 (a). The other 3.1 decisions
+  (D-3..D-10, D-12, D-13) go to gate 0, with 3.2. Effects on the plan: D-4 (the user used squash, so the next stacked
+  branch needs a rebase or a merge after each squash); D-7 is now option (c) (new docs branch at D; `docs/docus`
+  still exists).
+- STANDING RULE (user, 2026-10-09): "go simpler" on small tasks. A small task (a review reply, a small fix, a
+  question) gets no workflow and no agents: do it directly and report in a few lines.
 - (superseded) NEXT: the user reads the side-by-side page and answers the blocking questions; then plan the rework of PRs 3-5
   on kyo-ui (runner proposal: (a) runner core, (b) terminal + app from PR 5, (c) examples/ptycheck/bench;
   close or replace PRs 3 and 4).
