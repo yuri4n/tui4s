@@ -72,6 +72,12 @@ started from the main checkout): it is the user's Metals sbt server.
 - 2026-10-09: DECISIONS round 7: after W0 (run wf_bf024cec-c9f), run spike S8 (one agent; State-monad UI baseline;
   PLAN section 0.6). NEXT after W0: push `.work/` to `wip/handoff`, give `gates.md` in the chat. S8 is CANCELLED and parked
   (`design/parked/S8-state-ui.md`); do not run it unless the user asks.
+<!-- claude 2026-10-09: added this item (W0 restart) -->
+- 2026-10-09 21:09: the container restarted during W0. B (S6), C and E (S3, S4) were done and stay cached in the
+  journal; A (S1, S2) was cut; M had not started. Resumed the same run (`resumeFromRunId: wf_bf024cec-c9f`): A
+  continues from its files, then M. FACT for all workflows: the subagent harness REFUSES report .md files ("Subagents
+  should return findings as text"). Give each agent an output field for the report text; the orchestrator writes the
+  file. The REPORT.md files of s6-flags, s3-drift and s4-weight were written this way.
 - (superseded) NEXT: the user reads the side-by-side page and answers the blocking questions; then plan the rework of PRs 3-5
   on kyo-ui (runner proposal: (a) runner core, (b) terminal + app from PR 5, (c) examples/ptycheck/bench;
   close or replace PRs 3 and 4).
