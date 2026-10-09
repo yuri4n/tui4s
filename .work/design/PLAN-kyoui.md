@@ -551,6 +551,10 @@ worktrees (AGENTS.md "Toolchain": one sbt process in this repo; the shapes below
 `.work/worktrees/<branch>`; Maven Central HTTP 429: retry with a backoff; never start a TUI with `sbt run`; write notes
 early in `.work/impl/<pr>-*.md`; end each commit message and PR body with the attribution lines that the session gives.
 
+<!-- claude 2026-10-09: added the cloud limits (HANDOFF "AGENT LIMITS, CLOUD") -->
+Cloud limits (this environment, 4 CPUs): at most 2 agents at once, both can build. In the shapes below, the "At once"
+column is then at most 2: the reviewers and the skeptics run in two waves. The tokens do not change; the time does.
+
 Workflow shapes (user limits: at most 4 agents at once, at most 2 that build, one workflow at a time, announce more
 than 10 agents):
 

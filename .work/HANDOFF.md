@@ -15,6 +15,12 @@ started from the main checkout): it is the user's Metals sbt server.
   sbt launcher wrapper `/usr/local/bin/sbt`, scala-cli wrapper `/usr/local/bin/scala-cli` (sets JDK 25, proxy
   truststore, proxy port from `$HTTPS_PROXY`, `JDK_JAVA_OPTIONS=-Xss16m -Xmx2g`). Always use `--jvm system`.
   Maven Central sends HTTP 429 under parallel downloads: retry with backoff.
+<!-- claude 2026-10-09: added the agent limits of the cloud environment (user asked to record them) -->
+- AGENT LIMITS, CLOUD (this environment: 4 CPUs, 15 GB RAM). At most 2 agents at once, workflow agents and Agent-tool
+  agents together. Both can build. One workflow at a time. Announce a run of more than 10 agents. Timing numbers count
+  only from an agent that runs alone. Reason: the workflow runtime runs at most min(16, CPUs - 2) = 2 agents at once
+  here, and the resume run (wf_6bb71261-308) used 2 at once without problems. The local limits (Mac: at most 4 at once,
+  at most 2 that build) do NOT apply here. Before you use these numbers in a new container, check nproc.
 - Baseline on the cloud machine (4 CPUs) before the resume: runner 7/8 (stale colour assertion at
   `test/Apps.test.scala:123`); Cats facade 9/9; ZIO facade FLAKY (a different test fails on each run).
 - Resume run: workflow `wf_6bb71261-308` (6 agents, max 2 at once): resume runner + facades -> one skeptic each
