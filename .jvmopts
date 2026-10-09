@@ -1,0 +1,3 @@
+# JVM options for sbt (the sbt launcher reads this file).
+# Kyo inline for-comprehensions need a deep compiler stack. Kyo's own build uses -Xss10M.
+-Xss16m
