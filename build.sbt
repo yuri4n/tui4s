@@ -39,7 +39,8 @@ def module(id: String): Project =
     .settings(
       ModuleVersioning(
         tagPrefix = s"$id-v",
-        paths = Seq(s"modules/$id", "project/Versions.scala"),
+        // claude 2026-10-09: changed paths: also watch build.sbt and project/
+        paths = Seq(s"modules/$id", "build.sbt", "project"),
       ),
     )
     .settings(name := s"tui4s-$id")

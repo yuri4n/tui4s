@@ -62,8 +62,11 @@ push.
 ## Dependencies and versions
 
 - `project/Versions.scala` holds the versions that more than one module uses
-  (Scala, Kyo, jatatui, munit). All published modules watch this file. A change
-  in it marks all modules as unreleased.
+  (Scala, Kyo, jatatui, munit).
+- Each published module watches its own `modules/<m>` directory, the root
+  `build.sbt` and the `project` directory. A change in the root `build.sbt` or
+  in `project` marks all modules as unreleased.
+  <!-- claude 2026-10-09: changed the watched files: build.sbt and project/ too -->
 - A version that only one module uses goes in `modules/<m>/build.sbt`.
 - Never set `version` or `publishTo` in a build file. `project/ModuleVersioning.scala`
   and sbt-ci-release set them.
