@@ -26,6 +26,9 @@ jobs:
           java-version: 25 # Kyo 1.0.0-RC7 needs JDK 25
           cache: sbt
       - uses: sbt/setup-sbt@v1
+      # claude 2026-10-09: added the table test of the release version order
+      - name: Release script version order
+        run: bash scripts/version-order-test.sh
       # alias: scalafmtCheckAll; scalafmtSbtCheck; Test/compile; test; versionPolicyCheck
       - run: sbt -v check
       - name: Show module versions

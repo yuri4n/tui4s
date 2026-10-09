@@ -10,6 +10,11 @@ set -euo pipefail
 
 die() { echo "release: $*" >&2; exit 1; }
 
+# claude 2026-10-09: source version-order.sh from the directory of this script, before any cd
+script_dir=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source-path=SCRIPTDIR source=version-order.sh
+. "$script_dir/version-order.sh"
+
 MODULES=${MODULES:-"core zio cats"}
 REMOTE=${REMOTE:-origin}
 BRANCH=${BRANCH:-main}
@@ -26,7 +31,9 @@ for arg in "$@"; do
 done
 
 [[ " $MODULES " == *" $module "* ]] || die "module must be one of: $MODULES"
-[[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || die "version must look like 0.2.0 or 0.2.0-RC1"
+# claude 2026-10-09: changed the version check to version_valid (narrow accepted forms)
+version_valid "$version" \
+  || die "version must be x.y.z or x.y.z-<alpha|beta|M|RC><n> (no leading zeros, n >= 1), e.g. 0.2.0 or 0.2.0-RC1"
 tag="$module-v$version"
 
 cd "$(git rev-parse --show-toplevel)"
@@ -45,8 +52,11 @@ if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then die "tag $tag alr
 prev=$(git describe --tags --abbrev=0 --match "$module-v[0-9]*" 2>/dev/null || true)
 if [[ -n $prev ]]; then
   prev_v=${prev#"$module-v"}
-  highest=$(printf '%s\n%s\n' "$prev_v" "$version" | sort -V | tail -n1)
-  [[ $prev_v != "$version" && $highest == "$version" ]] || die "$version is not greater than the last release $prev_v"
+  # claude 2026-10-09: changed sort -V to version_gt (Maven order: 0.2.0 > 0.2.0-RC1),
+  # and stop if the last tag has no accepted form
+  version_valid "$prev_v" \
+    || die "the last tag $prev has no accepted version form. The script cannot compare $version with it"
+  version_gt "$version" "$prev_v" || die "$version is not greater than the last release $prev_v"
   echo "==> Last release of $module: $prev_v"
 else
   echo "==> First release of $module"

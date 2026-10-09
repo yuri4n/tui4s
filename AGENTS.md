@@ -31,15 +31,20 @@ Cats Effect users write tui4s apps without Kyo types in their code.
 
 ## Daily commands
 
-| Command                        | What it does                                               |
-| ------------------------------ | ---------------------------------------------------------- |
-| `sbt fmt`                      | Formats all Scala and sbt files.                           |
-| `sbt check`                    | Does the same checks as CI: format, compile, test, compat. |
-| `sbt versions`                 | Shows the version of each module (released or snapshot).   |
-| `sbt core/test`                | Runs the tests of one module.                              |
-| `sbt "examples/runMain <main>"` | Runs an example in the real terminal (forked JVM).         |
+<!-- claude 2026-10-09: changed the sbt check row and added the version order test row -->
 
-Run `sbt fmt` and `sbt check` before each push.
+| Command                              | What it does                                                  |
+| ------------------------------------ | ------------------------------------------------------------- |
+| `sbt fmt`                            | Formats all Scala and sbt files.                              |
+| `sbt check`                          | Does the sbt checks of CI: format, compile, test, compat.     |
+| `bash scripts/version-order-test.sh` | Tests the version order of the release script (CI runs it).   |
+| `sbt versions`                       | Shows the version of each module (released or snapshot).      |
+| `sbt core/test`                      | Runs the tests of one module.                                 |
+| `sbt "examples/runMain <main>"`      | Runs an example in the real terminal (forked JVM).            |
+
+<!-- claude 2026-10-09: changed: also run the version order test before each push -->
+Run `sbt fmt`, `sbt check` and `bash scripts/version-order-test.sh` before each
+push.
 
 ## Rules for code
 
@@ -89,6 +94,16 @@ module to Maven Central and creates its GitHub release (see
 3. Release: `scripts/release.sh <module> <version>`. The script checks the
    module, asks for confirmation, creates the tag `<module>-v<version>`, and
    pushes only that tag.
+
+<!-- claude 2026-10-09: added the accepted version forms and their order -->
+A version is `x.y.z` or `x.y.z-<q><n>`: `<q>` is `alpha`, `beta`, `M` or `RC`,
+and `<n>` is 1 or more (for example `0.2.0-RC1`). The numbers have no leading
+zeros. The script orders versions as Maven does: it compares `x`, `y` and `z`
+as numbers. For the same `x.y.z`, `alpha` < `beta` < `M` < `RC` < no `<q>`, and
+for the same `<q>`, the larger `<n>` is greater (`RC10` > `RC2`).
+<!-- claude 2026-10-09: added the coursier difference for M -->
+coursier (and thus sbt) puts `M` below `alpha` and `beta`. Thus, do not release
+an `M` version after an `alpha` or `beta` of the same `x.y.z`.
 
 If the script says that an inter-project dependency is unreleased, release that
 module first (`core` before `zio` and `cats`). Wait until its release run is
