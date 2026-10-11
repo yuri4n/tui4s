@@ -87,6 +87,14 @@ started from the main checkout): it is the user's Metals sbt server.
   ran again (1.4 M tokens in the resumed run) and spoiled some A timings. To resume, edit only calls after the last
   cached one.
   NEXT: gate 0. The user answers D-17, D-19, K29, D-4 (merge method), and the 3.1 RECs; then C1 (W1).
+- 2026-10-11: GATE 0 (partly answered; DECISIONS.md eighth round). D-17 (c) + TODO on the Kyo fix of the lost
+  wakeup; D-19 yes; D-4 (c) squash + rebase of the next branch; D-8 CHANGED to sbt-tpolecat (unused warnings stay
+  warnings; CI mode open); K29 PENDING (the user gave two answers; asked). The user wants upstream issues at
+  getkyo/kyo for the lost wakeup and the `observe` leak if none exist (drafts first; the user approves each post),
+  and TODOs and notes on GitHub Projects and the wiki "as much as you can" (from the cloud: issues yes; Projects v2
+  no tool; wiki no credentials). NEXT: the user answers K29 and the CI-mode question; then the upstream drafts, the
+  GitHub issues for the TODOs, and C1 (W1) with sbt-tpolecat.
+<!-- claude 2026-10-11: added this item -->
 - (superseded) NEXT: the user reads the side-by-side page and answers the blocking questions; then plan the rework of PRs 3-5
   on kyo-ui (runner proposal: (a) runner core, (b) terminal + app from PR 5, (c) examples/ptycheck/bench;
   close or replace PRs 3 and 4).

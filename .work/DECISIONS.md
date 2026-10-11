@@ -73,3 +73,27 @@ Seventh round (2026-10-09, after the State-monad question; recorded by Claude):
   (then the cost of the reactive model is real, and a baseline helps a decision). If both are GO, S8 does not run:
   kyo-ui stays the model either way, and the C1 painter style needs no spike. Rule of the user: the sweet spot of cost
   x benefit. The user can say "run it anyway".
+
+<!-- claude 2026-10-11: added the eighth round (gate 0) -->
+Eighth round (2026-10-11, gate 0, after W0; recorded by Claude from the user's answers in the chat):
+- D-17 (half-updated frames): option (c): accept SOFT with the conditions of `design/plan/gates.md`. The user adds a
+  TODO tied to the Kyo release that fixes the lost wakeup in `Signal.combineLatest`: when it ships, re-measure S1
+  and remove the conditions that the fix makes unneeded. The TODO lives on GitHub (see "Tracking" below).
+- D-19 (pin Kyo and kyo-ui to 1.0.0-RC7 for the first release): yes.
+- K29 (`Signal.observe` leak): PENDING. The user wrote both "A but TODO if kyo fixes it" (own watcher loop, removed
+  when Kyo fixes `observe`) and "3. C" (accept and document). Claude asked which one. In both cases: an upstream
+  issue, and a TODO tied to the Kyo fix.
+- Upstream issues (user): "we need issues at kyo and kyoui if they are not there yet" for the lost wakeup and the
+  leak. Both bugs are in kyo-core `Signal`, and kyo-ui is a module of getkyo/kyo, so both issues go to getkyo/kyo.
+  Drafts first; the user approves each post. The standing rule stays: nothing is posted without the user.
+- D-4 (merge method of the stack): option (c): squash merges; Claude rebases the next branch of the stack after each
+  merge. A history rewrite only on Claude's own branches; one CI re-run per rebase.
+- D-8 (-Werror everywhere) is CHANGED. User: "warnings of unused and stuff are warnings, use sbt-tpolecat". The scalac
+  flags come from sbt-tpolecat. Unused-code warnings stay warnings in development. OPEN: whether the CI mode of
+  sbt-tpolecat (fatal warnings in CI) is wanted, or warnings everywhere.
+- Tracking (user: "use GitHub Projects and the wiki as much as you can"): TODOs go to GitHub issues (and a Project);
+  notes go to the wiki, as far as a session can reach them. From this cloud session: issues yes (GitHub MCP);
+  Projects v2: no tool here (the user creates the Project with an auto-add workflow, and new issues land on it);
+  wiki: no credentials here (private repo; the proxy serves only the main repo).
+- The 3.1 RECs (D-3, D-5, D-9, D-10, D-12, D-13, D-16, D-18): proposed as "I take my recommendations unless you
+  object". The user did not object.
