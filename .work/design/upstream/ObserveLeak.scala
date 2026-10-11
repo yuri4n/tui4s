@@ -1,7 +1,7 @@
 // claude 2026-10-11: created. Minimal reproducer for the upstream issue "Signal.observe keeps memory per value change".
 // Reduced from .work/spikes/s2-r1r2/probes/ObserveBound.scala (mode "observe"). One ref, one observe watcher, N writes.
 // Each write waits until the watcher saw it, then pauses 200 us so the watcher re-arms before the next write.
-// Run: scala-cli run --jvm system ObserveLeak.scala -J -Xmx48m -- 30000
+// Run: timeout 300 scala-cli run --jvm system ObserveLeak.scala -J -Xmx48m -- 30000  (the JVM hangs after the OOM)
 //> using scala 3.9.0
 //> using dep io.getkyo::kyo-core:1.0.0-RC7
 import kyo.*

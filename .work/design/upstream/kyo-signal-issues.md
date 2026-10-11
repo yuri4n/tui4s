@@ -12,7 +12,9 @@ them at gate 0 (DECISIONS.md, eighth round): "we need issues at kyo and kyoui if
   bound to yuri4n/tui4s; the search API and the web page answer 403). Two searches:
   - https://github.com/getkyo/kyo/issues?q=observe+memory+OR+leak+OR+race
   - https://github.com/getkyo/kyo/issues?q=combineLatest+OR+%22lost+wakeup%22+OR+nextWith
-- Issue 1 has a tested minimal reproducer: `ObserveLeak.scala` next to this file (post it as a gist or inline).
+- Issue 1 has a tested minimal reproducer: `ObserveLeak.scala` next to this file (post it as a gist or inline). Tested
+  2026-10-11 on this machine: 1.7 KB per change, OOM before 27 000 changes with `-Xmx48m`. The JVM hangs after the OOM:
+  run it under `timeout`.
 - Issue 2 has no minimal reproducer yet. Its evidence is the split-frame statistics of spike S1 (a 6-region UI). The
   Kyo Scaladoc of `observe` documents the window, so the issue is a request to close it, not only a bug report. If the
   Kyo team asks for a reproducer, a small one is: two refs, `a.combineLatest(b).observe(record)`, a writer that sets
@@ -82,9 +84,26 @@ object ObserveLeak:
 end ObserveLeak
 ```
 
-Run: `scala-cli run --jvm system ObserveLeak.scala -J -Xmx48m -- 30000`
+Run: `timeout 300 scala-cli run --jvm system ObserveLeak.scala -J -Xmx48m -- 30000`
 
-Output on my machine: [W0-REPRO: paste the lines of the run here]
+Output on my machine (Linux x86_64, 4 CPUs, JDK 25; the heap is read after three `System.gc()` calls):
+
+```
+writes=3000  heapKB=9523  bytesPerWrite=1666
+writes=6000  heapKB=14743 bytesPerWrite=1724
+writes=9000  heapKB=19707 bytesPerWrite=1714
+writes=12000 heapKB=24861 bytesPerWrite=1725
+writes=15000 heapKB=29715 bytesPerWrite=1712
+writes=18000 heapKB=34626 bytesPerWrite=1706
+writes=21000 heapKB=39472 bytesPerWrite=1698
+writes=24000 heapKB=44307 bytesPerWrite=1692
+
+Exception: java.lang.OutOfMemoryError thrown from the UncaughtExceptionHandler in thread "kyo-scheduler-worker-2"
+Exception: java.lang.OutOfMemoryError thrown from the UncaughtExceptionHandler in thread "kyo-scheduler-worker-1"
+```
+
+The growth is linear (about 1.7 KB per change) and the watcher dies between 24 000 and 27 000 changes. After the
+`OutOfMemoryError` the JVM does not exit (the writer waits for a watcher that is gone), so run it under `timeout`.
 
 **Where the memory goes.** `observe` holds each value with `holdUntilChanged`, which runs one
 `Async.race(Seq(nextWith(_ => ()), Async.sleep(repairInterval)))` per change (`Signal.scala`, the `observe(repairInterval)`
