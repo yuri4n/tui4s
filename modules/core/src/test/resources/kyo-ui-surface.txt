@@ -1,0 +1,164 @@
+# kyo-ui surface list (RC-12, C1 part): the types of kyo.UI.Ast and the cases of kyo.Style.Prop
+# in the kyo-ui jar on the test class path (io.getkyo::kyo-ui, Versions.kyo). KyoUiSurfaceTest reads the
+# TASTy of the jar with tasty-query and compares it with this list. A new, removed or changed line fails
+# the test: read the kyo-ui change, update the runner, then update this list.
+# Format: kind<TAB>name<TAB>detail. Lines that start with # are comments.
+# ast.type: kind, visibility and parents of a class, trait or object of kyo.UI.Ast (a class and its
+#   companion object are one line). enum.case: a case of kyo.Style.Prop with its fields.
+ast.type	UI.Ast.Activatable	trait public extends UI,Element
+ast.type	UI.Ast.Anchor	case class public extends UI,Inline,Interactive,Focusable,Activatable,Clickable
+ast.type	UI.Ast.AsHtmlChild	trait public extends 
+ast.type	UI.Ast.AsHtmlChildLowPriority	trait public extends AsHtmlChildLowestPriority
+ast.type	UI.Ast.AsHtmlChildLowestPriority	trait public extends 
+ast.type	UI.Ast.Attrs	case class private[kyo] extends 
+ast.type	UI.Ast.Block	trait public extends UI,Element,HtmlContent
+ast.type	UI.Ast.Blockquote	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.BooleanInput	trait public extends UI,Focusable,HasDisabled
+ast.type	UI.Ast.Br	case class public extends UI,Block,Void
+ast.type	UI.Ast.Button	case class public extends UI,Inline,Interactive,Focusable,HasDisabled,Activatable,Clickable
+ast.type	UI.Ast.Checkbox	case class public extends UI,Inline,Interactive,BooleanInput,Void
+ast.type	UI.Ast.Clickable	trait public extends UI,Element
+ast.type	UI.Ast.Code	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.ColorInput	case class public extends UI,Inline,Interactive,PickerInput,Void
+ast.type	UI.Ast.ConstrainedInput	trait public extends UI,TextInput
+ast.type	UI.Ast.DateInput	case class public extends UI,Inline,Interactive,PickerInput,Void
+ast.type	UI.Ast.Div	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Dropdown	case class public extends UI,Block,Interactive,PickerInput
+ast.type	UI.Ast.Element	trait public extends UI
+ast.type	UI.Ast.EmailInput	case class public extends UI,Inline,Interactive,ConstrainedInput,Void
+ast.type	UI.Ast.FileInput	case class public extends UI,Inline,Interactive,Focusable,HasDisabled,Void
+ast.type	UI.Ast.Focusable	trait public extends UI,Element
+ast.type	UI.Ast.Footer	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Foreach	case class public extends UI
+ast.type	UI.Ast.Form	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Fragment	case class public extends UI
+ast.type	UI.Ast.H1	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.H2	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.H3	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.H4	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.H5	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.H6	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.HasDisabled	trait public extends UI,Element
+ast.type	UI.Ast.Header	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.HiddenInput	case class public extends UI,Inline,Void
+ast.type	UI.Ast.Hr	case class public extends UI,Block,Void
+ast.type	UI.Ast.HtmlChildVal	class public extends AnyVal
+ast.type	UI.Ast.HtmlContent	trait public extends UI
+ast.type	UI.Ast.Iframe	case class public extends UI,Block,Void
+ast.type	UI.Ast.Img	case class public extends UI,Inline,Void
+ast.type	UI.Ast.Inline	trait public extends UI,Element,HtmlContent
+ast.type	UI.Ast.Input	case class public extends UI,Inline,Interactive,ConstrainedInput,Void
+ast.type	UI.Ast.Interactive	trait public extends UI,Element
+ast.type	UI.Ast.KeyedChild	case class private[kyo] extends UI
+ast.type	UI.Ast.Label	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Li	case class public extends UI,Inline,Interactive
+ast.type	UI.Ast.Main	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Nav	case class public extends UI,Inline,Interactive
+ast.type	UI.Ast.NumberInput	case class public extends UI,Inline,Interactive,TextInput,Void
+ast.type	UI.Ast.Ol	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Opt	case class public extends UI,Block
+ast.type	UI.Ast.P	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.PasswordInput	case class public extends UI,Inline,Interactive,ConstrainedInput,Void
+ast.type	UI.Ast.PickerInput	trait public extends UI,Focusable,HasDisabled
+ast.type	UI.Ast.Pre	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Radio	case class public extends UI,Inline,Interactive,BooleanInput,Void
+ast.type	UI.Ast.RangeInput	case class public extends UI,Inline,Interactive,Focusable,HasDisabled,Void
+ast.type	UI.Ast.RawHtml	case class public extends UI
+ast.type	UI.Ast.Reactive	case class public extends UI
+ast.type	UI.Ast.SearchInput	case class public extends UI,Inline,Interactive,ConstrainedInput,Void
+ast.type	UI.Ast.Section	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Select	case class public extends UI,Block,Interactive,PickerInput
+ast.type	UI.Ast.SpanElement	case class public extends UI,Inline,Interactive
+ast.type	UI.Ast.SvgInteractiveNode	trait public extends UI,SvgNode,Interactive
+ast.type	UI.Ast.SvgNode	trait public extends UI,Element
+ast.type	UI.Ast.SvgRootNode	trait public extends UI,SvgInteractiveNode,Inline,HtmlContent
+ast.type	UI.Ast.Table	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Tbody	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Td	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.TelInput	case class public extends UI,Inline,Interactive,ConstrainedInput,Void
+ast.type	UI.Ast.Text	case class public extends UI,HtmlContent
+ast.type	UI.Ast.TextInput	trait public extends UI,Focusable,HasDisabled
+ast.type	UI.Ast.TextInputAttrs	case class private[kyo] extends 
+ast.type	UI.Ast.Textarea	case class public extends UI,Block,Interactive,ConstrainedInput,Void
+ast.type	UI.Ast.Th	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.TimeInput	case class public extends UI,Inline,Interactive,PickerInput,Void
+ast.type	UI.Ast.Tr	case class public extends UI,Inline,Interactive
+ast.type	UI.Ast.Ul	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.UrlInput	case class public extends UI,Inline,Interactive,ConstrainedInput,Void
+ast.type	UI.Ast.Void	trait public extends UI,Element
+enum.case	Style.Prop.AccentColorProp	(color:Color)
+enum.case	Style.Prop.ActiveProp	(style:Style)
+enum.case	Style.Prop.Align	(value:Alignment)
+enum.case	Style.Prop.AlignSelf	(value:Alignment)
+enum.case	Style.Prop.AnimationDelayProp	(ms:Int)
+enum.case	Style.Prop.AnimationProp	(durationMs:Int,easing:Easing,name:String)
+enum.case	Style.Prop.BackgroundClipProp	(value:BackgroundClip)
+enum.case	Style.Prop.BgColor	(color:Color)
+enum.case	Style.Prop.BgGradientProp	(colorSpace:GradientColorSpace,colors:Chunk[Color],direction:GradientDirection,positions:Chunk[Double])
+enum.case	Style.Prop.BlurProp	(value:Length)
+enum.case	Style.Prop.BorderCollapseProp	(value:BorderCollapse)
+enum.case	Style.Prop.BorderColorProp	(bottom:Color,left:Color,right:Color,top:Color)
+enum.case	Style.Prop.BorderRadiusProp	(bottomLeft:Length,bottomRight:Length,topLeft:Length,topRight:Length)
+enum.case	Style.Prop.BorderStyleProp	(value:BorderStyle)
+enum.case	Style.Prop.BorderWidthProp	(bottom:Length,left:Length,right:Length,top:Length)
+enum.case	Style.Prop.Bottom	(value:Length)
+enum.case	Style.Prop.BrightnessProp	(value:Double)
+enum.case	Style.Prop.ContrastProp	(value:Double)
+enum.case	Style.Prop.CursorProp	(value:Cursor)
+enum.case	Style.Prop.DisabledProp	(style:Style)
+enum.case	Style.Prop.DisplayProp	(value:Display)
+enum.case	Style.Prop.FlexBasisProp	(value:Length)
+enum.case	Style.Prop.FlexDirectionProp	(value:FlexDirection)
+enum.case	Style.Prop.FlexGrowProp	(value:Double)
+enum.case	Style.Prop.FlexShrinkProp	(value:Double)
+enum.case	Style.Prop.FlexWrapProp	(value:FlexWrap)
+enum.case	Style.Prop.FocusProp	(style:Style)
+enum.case	Style.Prop.FontFamilyProp	(value:FontFamily)
+enum.case	Style.Prop.FontSizeProp	(value:Length)
+enum.case	Style.Prop.FontStyleProp	(value:FontStyle)
+enum.case	Style.Prop.FontVariantLigaturesProp	(value:FontVariantLigatures)
+enum.case	Style.Prop.FontWeightProp	(value:FontWeight)
+enum.case	Style.Prop.Gap	(value:Length)
+enum.case	Style.Prop.GrayscaleProp	(value:Double)
+enum.case	Style.Prop.Height	(value:Length)
+enum.case	Style.Prop.HiddenProp	-
+enum.case	Style.Prop.HoverProp	(style:Style)
+enum.case	Style.Prop.HueRotateProp	(value:Double)
+enum.case	Style.Prop.InvertProp	(value:Double)
+enum.case	Style.Prop.Justify	(value:Justification)
+enum.case	Style.Prop.Left	(value:Length)
+enum.case	Style.Prop.LetterSpacingProp	(value:Length)
+enum.case	Style.Prop.LineHeightProp	(value:Double)
+enum.case	Style.Prop.ListStyleProp	(value:ListStyle)
+enum.case	Style.Prop.Margin	(bottom:Length,left:Length,right:Length,top:Length)
+enum.case	Style.Prop.MaxHeight	(value:Length)
+enum.case	Style.Prop.MaxWidth	(value:Length)
+enum.case	Style.Prop.MinHeight	(value:Length)
+enum.case	Style.Prop.MinWidth	(value:Length)
+enum.case	Style.Prop.OpacityProp	(value:Double)
+enum.case	Style.Prop.OverflowProp	(value:Overflow)
+enum.case	Style.Prop.OverflowXProp	(value:Overflow)
+enum.case	Style.Prop.OverflowYProp	(value:Overflow)
+enum.case	Style.Prop.Padding	(bottom:Length,left:Length,right:Length,top:Length)
+enum.case	Style.Prop.PositionProp	(value:Position)
+enum.case	Style.Prop.Right	(value:Length)
+enum.case	Style.Prop.SaturateProp	(value:Double)
+enum.case	Style.Prop.ScrollMarginTopProp	(value:Length)
+enum.case	Style.Prop.ScrollbarColorProp	(thumb:Color,track:Color)
+enum.case	Style.Prop.ScrollbarGutterProp	(value:ScrollbarGutter)
+enum.case	Style.Prop.ScrollbarWidthProp	(value:ScrollbarWidth)
+enum.case	Style.Prop.SepiaProp	(value:Double)
+enum.case	Style.Prop.ShadowProp	(blur:Length,color:Color,spread:Length,x:Length,y:Length)
+enum.case	Style.Prop.StrokeDashoffsetProp	(value:Double)
+enum.case	Style.Prop.TextAlignProp	(value:TextAlign)
+enum.case	Style.Prop.TextColor	(color:Color)
+enum.case	Style.Prop.TextDecorationProp	(value:TextDecoration)
+enum.case	Style.Prop.TextOverflowProp	(value:TextOverflow)
+enum.case	Style.Prop.TextTransformProp	(value:TextTransform)
+enum.case	Style.Prop.TextWrapProp	(value:TextWrap)
+enum.case	Style.Prop.Top	(value:Length)
+enum.case	Style.Prop.TransitionProp	(durationMs:Int,easing:Easing,property:TransitionProperty)
+enum.case	Style.Prop.TranslateProp	(x:Length,y:Length)
+enum.case	Style.Prop.WhiteSpaceProp	(value:WhiteSpace)
+enum.case	Style.Prop.Width	(value:Length)
+enum.case	Style.Prop.ZIndexProp	(value:Int)
