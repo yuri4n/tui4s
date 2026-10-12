@@ -12,13 +12,13 @@ screen. tui4s lays it out in terminal cells and paints it with
 [jatatui](https://github.com/oyvindberg/jatatui), a Java port of ratatui that
 replaces tui-scala. tui4s has no UI DSL of its own: the DSL is kyo-ui.
 
-| Directory       | sbt id     | Artifact                         | UI DSL                               | Release tag      | Published |
-| --------------- | ---------- | -------------------------------- | ------------------------------------ | ---------------- | --------- |
-| `modules/core`  | `core`     | `io.github.yuri4n::tui4s-core`   | kyo-ui                               | `core-v<semver>` | yes       |
-| `modules/zio`   | `zio`      | `io.github.yuri4n::tui4s-zio`    | a ZIO DSL over kyo-ui (planned)      | `zio-v<semver>`  | yes       |
-| `modules/cats`  | `cats`     | `io.github.yuri4n::tui4s-cats`   | a Cats Effect DSL over kyo-ui (planned) | `cats-v<semver>` | yes    |
-| `examples`      | `examples` | none                             | -                                    | none             | no        |
-| `docs`          | none       | none (Nuxt Docus site)           | -                                    | none             | no        |
+| Directory       | sbt id     | Artifact                         | UI DSL                                  | Release tag      | Published |
+| --------------- | ---------- | -------------------------------- | --------------------------------------- | ---------------- | --------- |
+| `modules/core`  | `core`     | `io.github.yuri4n::tui4s-core`   | kyo-ui                                  | `core-v<semver>` | yes       |
+| `modules/zio`   | `zio`      | `io.github.yuri4n::tui4s-zio`    | a ZIO DSL over kyo-ui (planned)         | `zio-v<semver>`  | yes       |
+| `modules/cats`  | `cats`     | `io.github.yuri4n::tui4s-cats`   | a Cats Effect DSL over kyo-ui (planned) | `cats-v<semver>` | yes       |
+| `examples`      | `examples` | none                             | -                                       | none             | no        |
+| `docs`          | none       | none (Nuxt Docus site)           | -                                       | none             | no        |
 
 The core uses Kyo and kyo-ui (both at `Versions.kyo`). The `zio` and `cats`
 modules will let ZIO and Cats Effect users write tui4s apps without Kyo types
@@ -82,7 +82,9 @@ push.
 ## Dependencies and versions
 
 - `project/Versions.scala` holds the versions that more than one module uses
-  (Scala, Kyo, jatatui, munit).
+  (Scala, Kyo, jatatui, munit, tasty-query). tasty-query is there because the
+  core tests use it now and the zio and cats coverage tests will use it later.
+  <!-- claude 2026-10-12: changed: tasty-query named, with the reason (review R1-3, R2-5) -->
 - Each published module watches its own `modules/<m>` directory, the root
   `build.sbt` and the `project` directory. A change in the root `build.sbt` or
   in `project` marks all modules as unreleased.
