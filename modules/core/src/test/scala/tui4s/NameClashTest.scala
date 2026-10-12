@@ -11,8 +11,9 @@ import tui4s.testkit.*
   * `import tui4s.*`, `import tui4s.spi.*` and `import tui4s.testkit.*` that
   * uses the public names of the core: no name is ambiguous (OS-16 lesson).
   */
-// claude 2026-10-12: created
-class NameClashTest extends Test[Any]:
+// claude 2026-10-12: created; changed (review R1-7): a RunnerSuite, as the
+// rule of AGENTS.md says for a suite that runs the runner
+class NameClashTest extends RunnerSuite:
 
     "kyo.*, kyo.UI.*, kyo.test.*, tui4s.*, tui4s.spi.* and tui4s.testkit.* together" in {
       val options: TuiOptions =
