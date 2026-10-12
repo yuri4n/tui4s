@@ -15,15 +15,22 @@ class SettleTest extends RunnerSuite:
 
     "a quiet run: 50 frames, no settle timeout, no repair" in {
       for
-          n  <- Signal.initRef(0)
-          h  <- Headless.start(30, 2)(_ => div(span(n.map(v => s"n=$v"))))
-          _  <- h.drainFrames
-          ok <- Kyo.foreach(1 to 50)(i =>
-                  n.set(i).andThen(h.awaitScreen(showing(s"n=$i"), 2.seconds)),
-                )
-          fs <- h.drainFrames
+          n   <- Signal.initRef(0)
+          h   <- Headless.start(30, 2)(_ => div(span(n.map(v => s"n=$v"))))
+          _   <- h.drainFrames
+          // the frames of a write are read after the stats of its frame
+          // arrived (review R2-3)
+          all <- Kyo.foreach(1 to 50)(i =>
+                   n.set(i)
+                     .andThen(h.awaitScreen(showing(s"n=$i"), 2.seconds))
+                     .map(ok =>
+                       framesUntil(h, 500.millis)(_.updates > 0).map((ok, _)),
+                     ),
+                 )
+          ok   = all.map(_._1)
+          fs   = all.flatMap(_._2)
       yield
-          assert(ok.forall(identity) && fs.size >= 50)
+          assert(ok.forall(identity) && fs.count(_.updates > 0) >= 50)
           assert(
             fs.forall(_.settleTimeouts == 0),
             s"timeouts: ${fs.filter(_.settleTimeouts > 0)}",

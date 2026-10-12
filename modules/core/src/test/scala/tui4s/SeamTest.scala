@@ -7,17 +7,22 @@ import tui4s.testkit.Headless
 
 /** R2 (D-16, armkey): a write that lands in the window of a young watcher
   * reaches the screen through the verify pass, not through the 1 s repair. The
-  * seam holds the window of every watcher open for 200 ms after the start
-  * (spike S2, `r2-external` is the model).
+  * seam holds the window of every watcher open for 500 ms after the start, and
+  * the repair tick is off (1 h), so only the verify pass can carry the write to
+  * the screen (spike S2, `r2-external` is the model).
   */
-// claude 2026-10-12: created (RC-9)
+// claude 2026-10-12: created (RC-9); changed (review R3-1, R2-9, K2-1, X-1):
+// the tick is off, the leaf has no wall-clock bound, the Scaladoc says 500 ms
 class SeamTest extends RunnerSuite:
 
     /** Every watcher sleeps 500 ms after its arm step (n = 0): longer than a
-      * cold first frame, so the write below is inside the window.
+      * cold first frame, so the write below is inside the window. The repair
+      * tick is off: a right screen then proves the verify pass.
       */
-    private val seam =
-      Knobs(seam = n => if n == 0 then 500.millis else Duration.Zero)
+    private val seam = Knobs(
+      seam = n => if n == 0 then 500.millis else Duration.Zero,
+      repairInterval = 1.hour,
+    )
 
     final case class Refs(
         a: SignalRef[Int],
@@ -41,21 +46,23 @@ class SeamTest extends RunnerSuite:
         div(r.a.render(n => span(r.t.map(s => s"[n=$n:$s]")))),
       )
 
-    "R2: an EXTERNAL write in the arm window is on the screen when the window ends (the verify pass), not at the 1 s repair" in {
+    "R2: an EXTERNAL write in the arm window is on the screen when the window ends (the verify pass; the repair tick is off)" in {
+      // No wall-clock bound: under CPU contention the first frame and the arm
+      // step take longer, and with the tick off only the verify pass can make
+      // the screen right (review R3-1, K2-1). The time of the leaf is in the
+      // log.
       Knobs.let(seam) {
         for
             r  <- refs
-            t0 <- now
             h  <- Headless.start(60, 12)(_ => app(r))
             // every watcher has started and sleeps in its window
             _  <- Async.sleep(50.millis)
             _  <- r.a.set(1).andThen(r.t.set("t1;")).andThen(r.l.set(Chunk(1)))
             ok <- awaitAll(h, 3.seconds)("[a=1]", "t1;", "[f=1]", "[n=1:t1;]")
-            t1 <- now
-            ms  = (t1 - t0) / 1_000_000
+            s  <- h.screen
         yield assert(
-          ok && ms <= 700,
-          s"the screen was right after $ms ms (ok=$ok)",
+          ok,
+          s"the screen was not right within 3 s (the verify pass did not carry the write):\n$s",
         )
       }
     }

@@ -169,7 +169,10 @@ class WatcherTest extends RunnerSuite:
               _   <- h.drainFrames
               _   <- a.set(2)                // in the window: the watcher sleeps
               ok2 <- h.awaitScreen(showing("[a=2]"), 300.millis)
-              fs  <- h.drainFrames
+              // the stats of the repair frame can be in flight (review R2-3)
+              fs  <-
+                if ok2 then framesUntil(h, 500.millis)(_.repaired > 0)
+                else h.drainFrames
               _   <- Async.sleep(100.millis) // the window closes
               _   <- a.set(3)                // after the window: the loop wakes up
               ok3 <- h.awaitScreen(showing("[a=3]"), 2.seconds)
