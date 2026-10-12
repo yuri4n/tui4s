@@ -2,6 +2,7 @@ package tui4s
 
 import kyo.*
 import kyo.UI.*
+import tui4s.internal.Knobs
 import tui4s.testkit.Headless
 
 /** The headless kit: the quit value, resize, idle, awaitScreen (RC-7, D-15). */
@@ -74,6 +75,74 @@ class HeadlessTest extends RunnerSuite:
     // claude 2026-10-12: created (review R2-8 a): the old `start` waited for
     // the first frame with no look at the run fiber, so a failed UI hung
     // until the leaf timeout and its error was never shown
+    /* claude 2026-10-12: created (PR #11 review: Codex, Headless.scala:88): the
+     * runner */
+    // flushes a frame cell by cell on its fiber while a test fiber can read the
+    // screen. ONE region paints all the rows from one value, so a frame is
+    // never torn by itself; the seam widens the flush (a spin between the
+    // rows); without the backend's monitor the reader then sees torn frames
+    // (rows with two values); with it, never. The natural window is
+    // microseconds wide.
+    "screen is never a torn frame: a read during a flush sees one value on every row" in {
+      Knobs.let(Knobs(flushSeam = 100.micros)) {
+        for
+            n      <- Signal.initRef(0)
+            h      <-
+              Headless.start(24, 12)(_ =>
+                div(
+                  n.map(v =>
+                    div(Vector.fill(12)(span((v % 10).toString * 22))*),
+                  ),
+                ),
+              )
+            writer <- Fiber.initUnscoped(
+                        Kyo.foreachDiscard(1 to 300)(i =>
+                          n.set(i)
+                            .andThen(
+                              Clock.let(Clock.live)(Async.sleep(1.millis)),
+                            ),
+                        ),
+                      )
+            read   <- Loop(0, 0, Set.empty[String]) { (reads, torn, seen) =>
+                        writer.done.map { done =>
+                          if done then Loop.done((reads, torn, seen.size))
+                          else
+                              h.screen.map { s =>
+                                val values =
+                                  s.rows.map(_.trim).filter(_.nonEmpty).distinct
+                                // one scheduler round trip: the writer and the
+                                // runner get their workers between two reads
+                                Fiber
+                                  .initUnscoped(Kyo.unit)
+                                  .map(_.get)
+                                  .andThen(
+                                    Loop.continue(
+                                      reads + 1,
+                                      if values.size > 1 then torn + 1 else torn,
+                                      seen ++ values,
+                                    ),
+                                  )
+                              }
+                        }
+                      }
+            fin    <- h.finished
+        yield
+            assert(
+              read._2 == 0,
+              s"${read._2} torn reads of ${read._1} (${read._3} distinct values seen)",
+            )
+            assert(
+              read._1 > 100,
+              s"only ${read._1} reads: the reader did not run",
+            )
+            assert(
+              read._3 > 3,
+              s"only ${read._3} distinct values: the screen did not change",
+            )
+            assert(!fin, "the run ended during the writes")
+      }
+    }
+
     "start fails fast when the UI fails, with the error" in {
       for
           t0 <- now

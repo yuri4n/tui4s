@@ -18,7 +18,12 @@ import tui4s.internal.*
   * The run ends with the enclosing `Scope`: `start` registers a finalizer that
   * posts the quit message and waits (at most 5 s) until the run fiber has
   * ended, so no watcher outlives the test.
+  *
+  * One test fiber drives a `Headless`. Its methods are not for two fibers at
+  * the same time: `resize` and `nextFrame` take frames from one shared channel,
+  * so a second caller can take the frame that the first one waits for.
   */
+// claude 2026-10-12: changed (PR #11 review: Codex, Headless.scala:115): the one-driver rule
 // claude 2026-10-12: changed: the final API (RC-7, D-15): the quit value, Screen,
 // awaitScreen, Vector[FrameStats], no TestBackend and no jatatui Cell in the
 // API; the key methods are C3
@@ -84,17 +89,28 @@ final class Headless private (
         }
       }
 
-    /** The screen as it is now: rows, cell styles and the cursor. */
-    def screen(using Frame): Screen < Sync = Sync.defer(Screen.of(backend))
+    /** The screen as it is now: rows, cell styles and the cursor. The read
+      * holds the backend's monitor, which the runner holds while it flushes a
+      * frame or resizes the backend: a screen is never a torn frame.
+      */
+    /* claude 2026-10-12: changed (PR #11 review: Codex, Headless.scala:88): the
+     * monitor */
+    def screen(using Frame): Screen < Sync =
+      Sync.defer(backend.synchronized(Screen.of(backend)))
 
     /** The rows of the screen as it is now, with their trailing spaces (one
-      * string per row, one place per cell).
+      * string per row, one place per cell). Under the backend's monitor, as
+      * `screen`.
       */
+    /* claude 2026-10-12: changed (PR #11 review: Codex, Headless.scala:88): the
+     * monitor */
     def lines(using Frame): Vector[String] < Sync = Sync.defer {
-      val buf = backend.buffer()
-      Vector.tabulate(buf.area.height)(y =>
-        (0 until buf.area.width).map(x => buf.cellAt(x, y).symbol()).mkString,
-      )
+      backend.synchronized {
+        val buf = backend.buffer()
+        Vector.tabulate(buf.area.height)(y =>
+          (0 until buf.area.width).map(x => buf.cellAt(x, y).symbol()).mkString,
+        )
+      }
     }
 
     /** Resizes the screen and waits for the frame of the resize. Background
@@ -144,7 +160,9 @@ object Headless:
           inbox   <- Channel.initUnscoped[Msg](4096)
           frames  <- Channel.initUnscoped[FrameStats](1 << 16)
           backend <- Sync.defer(TestBackend(width, height))
-          canvas  <- Sync.defer(Canvas(backend))
+          /* claude 2026-10-12: changed (PR #11 review: Codex,
+           * Headless.scala:88): the seam */
+          canvas  <- Sync.defer(Canvas(backend, knobs.flushSeam))
           runner   = Runner(inbox, canvas, options, Present(frames), knobs)
           seq     <- AtomicLong.init(1L)
           run     <- Fiber.init(ui(runner.quit).map(runner.run))

@@ -14,11 +14,17 @@ import kyo.*
   * @param repairInterval
   *   how often the repair tick re-reads `current` of every region (the same
   *   role as Kyo's `Signal.defaultRepairInterval`, 1 s)
+  * @param flushSeam
+  *   a spin between the row chunks of a flush. It holds open the window in
+  *   which a reader of the backend can see a torn frame (microseconds wide with
+  *   no seam). The torn-screen test of the headless kit uses it.
   */
-// claude 2026-10-12: created (D-16, K29)
+// claude 2026-10-12: created (D-16, K29); changed (PR #11 review: Codex,
+// Headless.scala:88): flushSeam
 private[tui4s] final case class Knobs(
     seam: Int => Duration = _ => Duration.Zero,
     repairInterval: Duration = Signal.defaultRepairInterval,
+    flushSeam: Duration = Duration.Zero,
 )
 
 private[tui4s] object Knobs:

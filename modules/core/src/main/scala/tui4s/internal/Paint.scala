@@ -25,6 +25,8 @@ final class Canvas private (
     private var back: Buffer,
     private var front: Buffer,
     val backend: Backend,
+    flushSeamNanos: Long, /* claude 2026-10-12: created (the test seam
+     * `Knobs.flushSeam`) */
 ):
     private var writes = 0
 
@@ -38,16 +40,21 @@ final class Canvas private (
 
     /** A new size. A `TestBackend` (the headless kit) has no terminal that
       * resizes it, so the canvas resizes it here: on the runner fiber, the one
-      * fiber that writes the backend (it is not thread-safe).
+      * fiber that writes the backend (it is not thread-safe). The backend's
+      * monitor is held: a reader of a `TestBackend` holds it too (see `flush`).
       */
-    // claude 2026-10-12: changed (review R2-4): the TestBackend is resized here
+    /* claude 2026-10-12: changed (review R2-4): the TestBackend is resized
+     * here; */
+    // changed (PR #11 review: Codex, Headless.scala:88): under the monitor
     def resize(s: Size): Unit =
+      backend.synchronized {
         backend match
             case tb: TestBackend => tb.resize(s.w, s.h)
             case _               => ()
         back = Buffer.empty(JRect.of(0, 0, s.w, s.h))
         front = Buffer.empty(JRect.of(0, 0, s.w, s.h))
         backend.clear()
+      }
 
     private def inside(x: Int, y: Int): Boolean =
       x >= 0 && y >= 0 && x < back.area.width && y < back.area.height
@@ -126,20 +133,46 @@ final class Canvas private (
           end for
         }.toVector
         if updates.nonEmpty then
-            backend.draw(updates.asJava)
-            backend.flush()
+            /* claude 2026-10-12: changed (PR #11 review: Codex,
+             * Headless.scala:88): the */
+            // backend's monitor makes the flush one step for a reader of a
+            // `TestBackend` (the headless kit reads under the same monitor), so
+            // a screen is never a torn frame. The terminal backend has no
+            // other holder of the monitor. With the test seam, the draw goes
+            // one row at a time with a spin between the rows.
+            backend.synchronized {
+              if flushSeamNanos <= 0L then backend.draw(updates.asJava)
+              else
+                  updates.grouped(back.area.width.max(1)).foreach { chunk =>
+                    backend.draw(chunk.asJava)
+                    val t0 = java.lang.System.nanoTime()
+                    while java.lang.System.nanoTime() - t0 < flushSeamNanos do
+                        (
+                    )
+                  }
+              end if
+              backend.flush()
+            }
+        end if
         updates.size
     end flush
 end Canvas
 
 object Canvas:
-    def apply(backend: Backend): Canvas =
+    /** @param flushSeam
+      *   the test seam `Knobs.flushSeam` (zero in a real run)
+      */
+    /* claude 2026-10-12: changed (PR #11 review: Codex, Headless.scala:88):
+     * flushSeam */
+    def apply(backend: Backend, flushSeam: Duration = Duration.Zero): Canvas =
         val s = backend.size()
         new Canvas(
           Buffer.empty(JRect.of(0, 0, s.width, s.height)),
           Buffer.empty(JRect.of(0, 0, s.width, s.height)),
           backend,
+          flushSeam.toNanos,
         )
+    end apply
 end Canvas
 
 /** Paints laid-out nodes into the kept buffer. */
