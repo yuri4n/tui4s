@@ -91,8 +91,14 @@ tui4s.stress.LeakProbe'`. A test run under CPU contention sets
   removes only its own race: issue #8). The glitch test (AppsTest) asserts 0
   split frames in 500 events and prints the count; a run under CPU contention
   sets `-Dtui4s.load=1` in the test JVM, which allows 1. One event is one
-  write: two writes from a test fiber are two events for the runner. The
-  runner settles on the JVM-wide Kyo scheduler, so core test suites run one
+  write. The runner cannot tell a consequence of the active event from an
+  independent write that lands while it settles (a Kyo signal carries no
+  cause), so the writes that land inside one settle window share one frame:
+  a frame is a batch, and `FrameStats.updates` counts its region values. The
+  glitch test writes one ref at a time and waits for its frame; two writes
+  from a test fiber with no wait between them give one frame or two.
+  <!-- claude 2026-10-12: changed this sentence (PR #11 review: Codex, Runner.scala:394) -->
+  The runner settles on the JVM-wide Kyo scheduler, so core test suites run one
   at a time: a suite that runs the runner extends `RunnerSuite` (sequential
   leaves), and sbt runs one test JVM at a time. A test that writes a
   `SignalRef` and reads the screen waits with `Headless.awaitScreen`; the kit
