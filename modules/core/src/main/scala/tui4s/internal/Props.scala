@@ -1,7 +1,5 @@
 package tui4s.internal
 
-// claude 2026-10-09: created (carried from .work/proto/kyoui-runner/src/tui4s/kyoui/internal/Props.scala; new path and package only)
-
 import jatatui.core.style.Color as JColor
 import jatatui.core.style.Modifier
 import jatatui.core.style.Style as JStyle
@@ -22,7 +20,9 @@ import kyo.UI.Ast.*
 enum Dir:
     case Row, Column
 
-/** Text attributes. Children inherit them, like CSS `color`, `font-weight`, `text-decoration` and `text-align`. */
+/** Text attributes. Children inherit them, like CSS `color`, `font-weight`,
+  * `text-decoration` and `text-align`.
+  */
 final case class TextAttrs(
     fg: Option[JColor],
     bold: Boolean,
@@ -32,16 +32,16 @@ final case class TextAttrs(
     dim: Boolean,
     reverse: Boolean,
     transform: TextTransform,
-    align: TextAlign
+    align: TextAlign,
 ):
     def style: JStyle =
         val mods = List(
-            bold      -> Modifier.BOLD,
-            italic    -> Modifier.ITALIC,
-            underline -> Modifier.UNDERLINED,
-            strike    -> Modifier.CROSSED_OUT,
-            dim       -> Modifier.DIM,
-            reverse   -> Modifier.REVERSED
+          bold      -> Modifier.BOLD,
+          italic    -> Modifier.ITALIC,
+          underline -> Modifier.UNDERLINED,
+          strike    -> Modifier.CROSSED_OUT,
+          dim       -> Modifier.DIM,
+          reverse   -> Modifier.REVERSED,
         ).collect { case (true, m) => m }.foldLeft(Modifier.EMPTY)(_.insert(_))
         val base = JStyle.empty().withAddModifier(mods)
         fg.fold(base)(base.withFg)
@@ -50,16 +50,35 @@ final case class TextAttrs(
     def apply(text: String): String = transform match
         case TextTransform.uppercase  => text.toUpperCase
         case TextTransform.lowercase  => text.toLowerCase
-        case TextTransform.capitalize => text.split(" ", -1).map(_.capitalize).mkString(" ")
+        case TextTransform.capitalize =>
+          text.split(" ", -1).map(_.capitalize).mkString(" ")
         case TextTransform.none       => text
 end TextAttrs
 
 object TextAttrs:
     val default: TextAttrs =
-        TextAttrs(None, false, false, false, false, false, false, TextTransform.none, TextAlign.left)
+      TextAttrs(
+        None,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        TextTransform.none,
+        TextAlign.left,
+      )
+end TextAttrs
 
 /** The box-drawing characters of a border. */
-final case class Glyphs(tl: String, tr: String, bl: String, br: String, h: String, v: String)
+final case class Glyphs(
+    tl: String,
+    tr: String,
+    bl: String,
+    br: String,
+    h: String,
+    v: String,
+)
 
 object Glyphs:
     val solid: Glyphs   = Glyphs("┌", "┐", "└", "┘", "─", "│")
@@ -92,7 +111,7 @@ final case class Props(
     text: TextAttrs,
     hidden: Boolean,
     listStyle: Option[ListStyle],
-    decoration: Sides
+    decoration: Sides,
 ):
     def insets: Sides = border.fold(Sides.zero)(_.sides) + padding + decoration
 end Props
@@ -101,10 +120,33 @@ object Props:
 
     /** The props of a text node or of the screen: no box, inherited text. */
     def neutral(text: TextAttrs): Props =
-        Props(Dir.Column, 0, Sides.zero, Sides.zero, None, None, None, None, None, None, None, 0, 1, Alignment.stretch, None,
-            Justification.start, None, text, false, None, Sides.zero)
+      Props(
+        Dir.Column,
+        0,
+        Sides.zero,
+        Sides.zero,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        0,
+        1,
+        Alignment.stretch,
+        None,
+        Justification.start,
+        None,
+        text,
+        false,
+        None,
+        Sides.zero,
+      )
 
-    /** One cell per pixel: `padding(1.px)` is one cell. `Pct` is relative to the parent size, `Auto` and `Calc` are absent. */
+    /** One cell per pixel: `padding(1.px)` is one cell. `Pct` is relative to
+      * the parent size, `Auto` and `Calc` are absent.
+      */
     def cells(l: Length, parent: Int, screen: Int): Option[Int] = l match
         case Length.Px(v)   => Some(math.round(v).toInt)
         case Length.Em(v)   => Some(math.round(v).toInt)
@@ -118,21 +160,38 @@ object Props:
     def color(c: kyo.Style.Color): Option[JColor] = c match
         case h: kyo.Style.Color.Hex      => hex(h.value)
         case r: kyo.Style.Color.Rgb      => Some(JColor.Rgb(r.r, r.g, r.b))
-        case r: kyo.Style.Color.Rgba     => if r.a < 0.5 then None else Some(JColor.Rgb(r.r, r.g, r.b))
+        case r: kyo.Style.Color.Rgba     =>
+          if r.a < 0.5 then None else Some(JColor.Rgb(r.r, r.g, r.b))
         case kyo.Style.Color.Transparent => None
         case _                           => None
 
     private def hex(v: String): Option[JColor] =
-        val d = v.stripPrefix("#")
+        val d                    = v.stripPrefix("#")
         def byte(s: String): Int = Integer.parseInt(s, 16)
         d.length match
-            case 3 | 4 => Some(JColor.Rgb(byte(d.substring(0, 1) * 2), byte(d.substring(1, 2) * 2), byte(d.substring(2, 3) * 2)))
-            case 6 | 8 => Some(JColor.Rgb(byte(d.substring(0, 2)), byte(d.substring(2, 4)), byte(d.substring(4, 6))))
+            case 3 | 4 =>
+              Some(
+                JColor.Rgb(
+                  byte(d.substring(0, 1) * 2),
+                  byte(d.substring(1, 2) * 2),
+                  byte(d.substring(2, 3) * 2),
+                ),
+              )
+            case 6 | 8 =>
+              Some(
+                JColor.Rgb(
+                  byte(d.substring(0, 2)),
+                  byte(d.substring(2, 4)),
+                  byte(d.substring(4, 6)),
+                ),
+              )
             case _     => None
+        end match
     end hex
 
     def defaultDir(el: Element): Dir = el match
-        case _: Nav | _: Li | _: SpanElement | _: Button | _: Anchor | _: Tr => Dir.Row
+        case _: Nav | _: Li | _: SpanElement | _: Button | _: Anchor | _: Tr =>
+          Dir.Row
         case _                                                               => Dir.Column
 
     def isDisabled(el: Element): Boolean = el match
@@ -140,58 +199,80 @@ object Props:
         case _               => false
 
     def isHidden(el: Element): Boolean =
-        el.attrs.hidden.getOrElse(false) || el.attrs.uiStyle.props.exists {
-            case Prop.HiddenProp => true
-            case _               => false
-        } || (el match
-            case _: HiddenInput => true
-            case _              => false)
+      el.attrs.hidden.getOrElse(false) || el.attrs.uiStyle.props.exists {
+        case Prop.HiddenProp => true
+        case _               => false
+      } || (el match
+          case _: HiddenInput => true
+          case _              => false)
 
-    /** Focusable in the terminal: kyo-ui `Focusable` elements, anchors, and any element with `tabIndex >= 0`. */
+    /** Focusable in the terminal: kyo-ui `Focusable` elements, anchors, and any
+      * element with `tabIndex >= 0`.
+      */
     def isFocusable(el: Element): Boolean =
-        !isDisabled(el) && !isHidden(el) && (el.attrs.tabIndex match
-            case Present(n) => n >= 0
-            case Absent =>
-                el match
-                    case _: Focusable | _: Anchor | _: Dropdown => true
-                    case _                                      => false
-        )
+      !isDisabled(el) && !isHidden(el) && (el.attrs.tabIndex match
+          case Present(n) => n >= 0
+          case Absent     =>
+            el match
+                case _: Focusable | _: Anchor | _: Dropdown => true
+                case _                                      => false)
 
-    /** Elements that show the focus themselves (reverse video); other focusables rely on `Style.focus(...)` or a heavy border. */
+    /** Elements that show the focus themselves (reverse video); other
+      * focusables rely on `Style.focus(...)` or a heavy border.
+      */
     def nativeFocus(el: Element): Boolean = el match
-        case _: Button | _: Checkbox | _: Radio | _: Select | _: Anchor | _: Dropdown => true
-        case _                                                                       => false
+        case _: Button | _: Checkbox | _: Radio | _: Select | _: Anchor |
+            _: Dropdown =>
+          true
+        case _ => false
 
-    def resolve(el: Element, inherited: TextAttrs, focused: Boolean, listStyle: Option[ListStyle], index: Int): Props =
-        val base0 = neutral(typeText(el, inherited)).copy(
-            dir = defaultDir(el),
-            align = defaultDir(el) match
-                case Dir.Row    => Alignment.center
-                case Dir.Column => Alignment.stretch
+    def resolve(
+        el: Element,
+        inherited: TextAttrs,
+        focused: Boolean,
+        listStyle: Option[ListStyle],
+        index: Int,
+    ): Props =
+        val base0         = neutral(typeText(el, inherited)).copy(
+          dir = defaultDir(el),
+          align = defaultDir(el) match
+              case Dir.Row    => Alignment.center
+              case Dir.Column => Alignment.stretch,
         )
-        val base = el match
-            case _: Button => base0.copy(decoration = Sides.lr(2, 2), shrink = 0)
-            case _: Li =>
-                listStyle match
-                    case Some(ListStyle.disc)    => base0.copy(decoration = Sides.lr(2, 0))
-                    case Some(ListStyle.decimal) => base0.copy(decoration = Sides.lr(s"${index + 1}. ".length, 0))
-                    case _                       => base0
-            case _ => base0
-        val withStyle = applyStyle(base, el.attrs.uiStyle)
-        val pseudo = el.attrs.uiStyle.props.foldLeft(withStyle) {
-            case (p, Prop.FocusProp(s)) if focused          => applyStyle(p, s)
-            case (p, Prop.DisabledProp(s)) if isDisabled(el) => applyStyle(p, s)
-            case (p, _)                                     => p
+        val base          = el match
+            case _: Button =>
+              base0.copy(decoration = Sides.lr(2, 2), shrink = 0)
+            case _: Li     =>
+              listStyle match
+                  case Some(ListStyle.disc)    =>
+                    base0.copy(decoration = Sides.lr(2, 0))
+                  case Some(ListStyle.decimal) =>
+                    base0.copy(decoration =
+                      Sides.lr(s"${index + 1}. ".length, 0),
+                    )
+                  case _                       => base0
+            case _         => base0
+        val withStyle     = applyStyle(base, el.attrs.uiStyle)
+        val pseudo        = el.attrs.uiStyle.props.foldLeft(withStyle) {
+          case (p, Prop.FocusProp(s)) if focused           => applyStyle(p, s)
+          case (p, Prop.DisabledProp(s)) if isDisabled(el) => applyStyle(p, s)
+          case (p, _)                                      => p
         }
         val hasFocusStyle = el.attrs.uiStyle.props.exists {
-            case _: Prop.FocusProp => true
-            case _                 => false
+          case _: Prop.FocusProp => true
+          case _                 => false
         }
-        val focusDefault =
-            if !focused || hasFocusStyle then pseudo
-            else if nativeFocus(el) then pseudo.copy(text = pseudo.text.copy(reverse = true, bold = true))
-            else pseudo.border.fold(pseudo)(b => pseudo.copy(border = Some(b.copy(glyphs = Glyphs.heavy))))
-        if isDisabled(el) then focusDefault.copy(text = focusDefault.text.copy(dim = true)) else focusDefault
+        val focusDefault  =
+          if !focused || hasFocusStyle then pseudo
+          else if nativeFocus(el) then
+              pseudo.copy(text = pseudo.text.copy(reverse = true, bold = true))
+          else
+              pseudo.border.fold(pseudo)(b =>
+                pseudo.copy(border = Some(b.copy(glyphs = Glyphs.heavy))),
+              )
+        if isDisabled(el) then
+            focusDefault.copy(text = focusDefault.text.copy(dim = true))
+        else focusDefault
     end resolve
 
     private def typeText(el: Element, t: TextAttrs): TextAttrs = el match
@@ -206,55 +287,97 @@ object Props:
         case _         => t
 
     def applyStyle(p: Props, s: kyo.Style): Props =
-        s.props.foldLeft(p) { (p, prop) =>
-            prop match
-                case Prop.BgColor(c)              => p.copy(bg = color(c))
-                case Prop.TextColor(c)            => p.copy(text = p.text.copy(fg = color(c)))
-                case Prop.Padding(t, r, b, l)     => p.copy(padding = Sides(side(t), side(r), side(b), side(l)))
-                case Prop.Margin(t, r, b, l)      => p.copy(margin = Sides(side(t), side(r), side(b), side(l)))
-                case Prop.Gap(v)                  => p.copy(gap = side(v))
-                case Prop.FlexDirectionProp(d)    =>
-                    p.copy(dir = d match
-                        case FlexDirection.row | FlexDirection.rowReverse       => Dir.Row
-                        case FlexDirection.column | FlexDirection.columnReverse => Dir.Column)
-                case Prop.Align(a)                 => p.copy(align = a)
-                case Prop.AlignSelf(a)             => p.copy(alignSelf = Some(a))
-                case Prop.Justify(j)               => p.copy(justify = j)
-                case Prop.Width(v)                 => p.copy(width = Some(v))
-                case Prop.Height(v)                => p.copy(height = Some(v))
-                case Prop.MinWidth(v)              => p.copy(minW = Some(v))
-                case Prop.MaxWidth(v)              => p.copy(maxW = Some(v))
-                case Prop.MinHeight(v)             => p.copy(minH = Some(v))
-                case Prop.MaxHeight(v)             => p.copy(maxH = Some(v))
-                case Prop.FlexGrowProp(v)          => p.copy(grow = v)
-                case Prop.FlexShrinkProp(v)        => p.copy(shrink = v)
-                case Prop.FontWeightProp(w)        =>
-                    val bold = w match
-                        case FontWeight.bold | FontWeight.w600 | FontWeight.w700 | FontWeight.w800 | FontWeight.w900 => true
-                        case _                                                                                       => false
-                    p.copy(text = p.text.copy(bold = bold))
-                case Prop.FontStyleProp(f)         => p.copy(text = p.text.copy(italic = f == FontStyle.italic))
-                case Prop.TextDecorationProp(d)    =>
-                    p.copy(text = p.text.copy(underline = d == TextDecoration.underline, strike = d == TextDecoration.strikethrough))
-                case Prop.TextTransformProp(t)     => p.copy(text = p.text.copy(transform = t))
-                case Prop.TextAlignProp(a)         => p.copy(text = p.text.copy(align = a))
-                case Prop.OpacityProp(v)           => p.copy(text = p.text.copy(dim = v < 0.7))
-                case Prop.ListStyleProp(l)         => p.copy(listStyle = Some(l))
-                case Prop.HiddenProp               => p.copy(hidden = true)
-                case Prop.BorderWidthProp(t, r, b, l) =>
-                    val sides = Sides(side(t).min(1), side(r).min(1), side(b).min(1), side(l).min(1))
-                    val prev  = p.border.getOrElse(Border(Sides.zero, Glyphs.solid, None))
-                    p.copy(border = if sides.nonZero then Some(prev.copy(sides = sides)) else None)
-                case Prop.BorderStyleProp(st) =>
-                    st match
-                        case BorderStyle.none   => p.copy(border = None)
-                        case BorderStyle.solid  => p.copy(border = p.border.map(b => b.copy(glyphs = if b.glyphs == Glyphs.rounded then b.glyphs else Glyphs.solid)))
-                        case BorderStyle.dashed => p.copy(border = p.border.map(_.copy(glyphs = Glyphs.dashed)))
-                        case BorderStyle.dotted => p.copy(border = p.border.map(_.copy(glyphs = Glyphs.dotted)))
-                case Prop.BorderColorProp(c, _, _, _) => p.copy(border = p.border.map(_.copy(fg = color(c))))
-                case Prop.BorderRadiusProp(a, _, _, _) =>
-                    if side(a) > 0 then p.copy(border = p.border.map(b => if b.glyphs == Glyphs.solid then b.copy(glyphs = Glyphs.rounded) else b))
-                    else p
-                case _ => p
-        }
+      s.props.foldLeft(p) { (p, prop) =>
+        prop match
+            case Prop.BgColor(c)                   => p.copy(bg = color(c))
+            case Prop.TextColor(c)                 => p.copy(text = p.text.copy(fg = color(c)))
+            case Prop.Padding(t, r, b, l)          =>
+              p.copy(padding = Sides(side(t), side(r), side(b), side(l)))
+            case Prop.Margin(t, r, b, l)           =>
+              p.copy(margin = Sides(side(t), side(r), side(b), side(l)))
+            case Prop.Gap(v)                       => p.copy(gap = side(v))
+            case Prop.FlexDirectionProp(d)         =>
+              p.copy(dir = d match
+                  case FlexDirection.row | FlexDirection.rowReverse       => Dir.Row
+                  case FlexDirection.column | FlexDirection.columnReverse =>
+                    Dir.Column)
+            case Prop.Align(a)                     => p.copy(align = a)
+            case Prop.AlignSelf(a)                 => p.copy(alignSelf = Some(a))
+            case Prop.Justify(j)                   => p.copy(justify = j)
+            case Prop.Width(v)                     => p.copy(width = Some(v))
+            case Prop.Height(v)                    => p.copy(height = Some(v))
+            case Prop.MinWidth(v)                  => p.copy(minW = Some(v))
+            case Prop.MaxWidth(v)                  => p.copy(maxW = Some(v))
+            case Prop.MinHeight(v)                 => p.copy(minH = Some(v))
+            case Prop.MaxHeight(v)                 => p.copy(maxH = Some(v))
+            case Prop.FlexGrowProp(v)              => p.copy(grow = v)
+            case Prop.FlexShrinkProp(v)            => p.copy(shrink = v)
+            case Prop.FontWeightProp(w)            =>
+              val bold = w match
+                  case FontWeight.bold | FontWeight.w600 | FontWeight.w700 |
+                      FontWeight.w800 | FontWeight.w900 =>
+                    true
+                  case _ => false
+              p.copy(text = p.text.copy(bold = bold))
+            case Prop.FontStyleProp(f)             =>
+              p.copy(text = p.text.copy(italic = f == FontStyle.italic))
+            case Prop.TextDecorationProp(d)        =>
+              p.copy(text =
+                p.text.copy(
+                  underline = d == TextDecoration.underline,
+                  strike = d == TextDecoration.strikethrough,
+                ),
+              )
+            case Prop.TextTransformProp(t)         =>
+              p.copy(text = p.text.copy(transform = t))
+            case Prop.TextAlignProp(a)             => p.copy(text = p.text.copy(align = a))
+            case Prop.OpacityProp(v)               =>
+              p.copy(text = p.text.copy(dim = v < 0.7))
+            case Prop.ListStyleProp(l)             => p.copy(listStyle = Some(l))
+            case Prop.HiddenProp                   => p.copy(hidden = true)
+            case Prop.BorderWidthProp(t, r, b, l)  =>
+              val sides = Sides(
+                side(t).min(1),
+                side(r).min(1),
+                side(b).min(1),
+                side(l).min(1),
+              )
+              val prev  =
+                p.border.getOrElse(Border(Sides.zero, Glyphs.solid, None))
+              p.copy(border = if sides.nonZero then
+                  Some(prev.copy(sides = sides))
+              else None)
+            case Prop.BorderStyleProp(st)          =>
+              st match
+                  case BorderStyle.none   => p.copy(border = None)
+                  case BorderStyle.solid  =>
+                    p.copy(border =
+                      p.border.map(b =>
+                        b.copy(glyphs = if b.glyphs == Glyphs.rounded then
+                            b.glyphs
+                        else Glyphs.solid),
+                      ),
+                    )
+                  case BorderStyle.dashed =>
+                    p.copy(border =
+                      p.border.map(_.copy(glyphs = Glyphs.dashed)),
+                    )
+                  case BorderStyle.dotted =>
+                    p.copy(border =
+                      p.border.map(_.copy(glyphs = Glyphs.dotted)),
+                    )
+            case Prop.BorderColorProp(c, _, _, _)  =>
+              p.copy(border = p.border.map(_.copy(fg = color(c))))
+            case Prop.BorderRadiusProp(a, _, _, _) =>
+              if side(a) > 0 then
+                  p.copy(border =
+                    p.border.map(b =>
+                      if b.glyphs == Glyphs.solid then
+                          b.copy(glyphs = Glyphs.rounded)
+                      else b,
+                    ),
+                  )
+              else p
+            case _                                 => p
+      }
 end Props
