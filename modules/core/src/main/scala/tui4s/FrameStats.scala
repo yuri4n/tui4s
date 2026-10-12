@@ -33,9 +33,13 @@ final case class FrameStats(
       */
     subtrees: Int = 0,
     /** Values that the runner found by a re-read of a signal, not from a
-      * watcher: the verify pass and the repair tick (a lost wakeup).
+      * watcher: the verify pass and the repair tick (a lost wakeup). A
+      * `Reactive` value with closures or nested signals never compares equal to
+      * its last render, so each verify and each repair tick renders it again:
+      * the frame then has `repaired > 0` and usually `flushed == 0`.
       */
-    // claude 2026-10-12: created (K29, D-16)
+    // claude 2026-10-12: created (K29, D-16); changed: the Reactive re-render
+    // (review R2-5)
     repaired: Int = 0,
     /** Settles that ran out of their `max` while this frame was prepared (0 or
       * 1; 2 with the re-check). The frame can then miss a consequence of the

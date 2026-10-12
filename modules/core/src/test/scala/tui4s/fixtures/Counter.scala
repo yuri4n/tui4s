@@ -3,9 +3,11 @@ package tui4s.fixtures
 import kyo.*
 import kyo.UI.*
 
-/** The Counter in plain kyo-ui: only kyo-ui's API, plus `Tui.quit` for the quit
-  * key.
+/** The Counter in plain kyo-ui: only kyo-ui's API. A test writes the count; the
+  * keys and the quit key come in a later pull request.
   */
+// claude 2026-10-12: changed the Scaladoc (review R1-5, R3-7): no key handler
+// and no `Tui.quit` after the cut
 object Counter:
 
     // claude 2026-10-12: created (RC-19): the view over a count that the caller

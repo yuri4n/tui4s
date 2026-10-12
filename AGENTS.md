@@ -64,6 +64,13 @@ the real terminal come in the next pull requests.
 Run `sbt fmt`, `sbt check` and `bash scripts/version-order-test.sh` before each
 push.
 
+The stress probes (`tui4s.stress.*`) are ignored in `sbt check`. To run one,
+set `-Dtui4s.stress=<rounds>` in the test JVM and run it alone on the machine:
+`sbt 'set core / Test / javaOptions += "-Dtui4s.stress=150"' 'core/testOnly
+tui4s.stress.LeakProbe'`. A test run under CPU contention sets
+`-Dtui4s.load=1` the same way (the glitch test then allows 1 split frame).
+<!-- claude 2026-10-12: created this paragraph (review R3-8, R3-2) -->
+
 ## Rules for code
 
 - Do not write to stdout or stderr while a terminal UI runs. The output
@@ -78,13 +85,29 @@ push.
   into a `Buffer`, or run the app on `tui4s.testkit.Headless`.
 - The frame contract is SOFT (decision D-17 c): one frame per event with all
   of its consequences; 0 split frames with no load, and at most 1 per 10 000
-  under load (Kyo 1.0.0-RC7 can lose a wakeup in `Signal.combineLatest`). The
+  under load (Kyo 1.0.0-RC7 can lose a wakeup in `Signal.combineLatest`, and
+  a region on `combineLatest`, `zip`, `switchMap` or `combineLatestAll` still
+  runs one `Async.race` per change inside Kyo; the watcher loop of the runner
+  removes only its own race: issue #8). The glitch test (AppsTest) asserts 0
+  split frames in 500 events and prints the count; a run under CPU contention
+  sets `-Dtui4s.load=1` in the test JVM, which allows 1. One event is one
+  write: two writes from a test fiber are two events for the runner. The
   runner settles on the JVM-wide Kyo scheduler, so core test suites run one
   at a time: a suite that runs the runner extends `RunnerSuite` (sequential
   leaves), and sbt runs one test JVM at a time. A test that writes a
   `SignalRef` and reads the screen waits with `Headless.awaitScreen`; the kit
-  itself never waits unless a method's name says so.
-  <!-- claude 2026-10-12: created this item (D-17 c, RC-19) -->
+  itself never waits unless a method's name says so. The runner posts the
+  stats of a frame after its flush: a test that counts frames after
+  `awaitScreen` waits for them with `RunnerSuite.framesUntil`.
+  <!-- claude 2026-10-12: created this item (D-17 c, RC-19); changed: the races inside Kyo, the glitch assertion and the load flag, one event is one write, framesUntil (review R2-6, R3-2, K2-2, R2-3) -->
+- A `Reactive` region whose UI holds a closure (a handler) or a nested signal
+  never compares equal to its last render. The verify pass and the repair
+  tick (every 1 s) render it again: the frame has `repaired > 0` and, when
+  the cells did not change, `flushed == 0`; the terminal gets no bytes. Kyo's
+  `Signal.observe` repair timer does the same. A test that counts frames
+  turns the tick off (`Knobs.let(Knobs(repairInterval = 1.hour))`) or drains
+  these frames first.
+  <!-- claude 2026-10-12: created this item (review R2-5) -->
 - The test JVM sets the tui4s scheduler values (`modules/core/build.sbt`,
   `Test / javaOptions`): `kyo.scheduler.cycleIntervalNs=10000000`,
   `kyo.scheduler.blockingMonitorIntervalNs=20000000` and

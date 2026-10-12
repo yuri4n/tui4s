@@ -3,10 +3,13 @@ package tui4s.fixtures
 import kyo.*
 import kyo.UI.*
 
-/** The Dashboard in plain kyo-ui: tabs (Left / Right), a gauge and a sparkline
-  * fed by a 250 ms sampler, a log pane fed by a stream, `p` pauses the sampler
-  * (logs go on), `q` quits.
+/** The Dashboard in plain kyo-ui: one tab per series, a gauge and a sparkline
+  * fed by a 250 ms sampler, a log pane fed by a stream. `tab` and `paused` are
+  * refs that a test writes; the keys (the tabs, the pause, the quit) come in a
+  * later pull request.
   */
+// claude 2026-10-12: changed the Scaladoc (review R1-5, R3-7): no key handler
+// after the cut
 object Dashboard:
 
     val series = Seq("CPU", "Memory", "Network")

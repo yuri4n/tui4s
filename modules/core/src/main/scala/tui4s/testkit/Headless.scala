@@ -139,6 +139,7 @@ object Headless:
         ui: (Unit < Sync) => UI < (Async & Scope),
     )(using Frame): Headless < (Async & Scope) =
       for
+          // claude 2026-10-12: changed: the knobs (test seams) reach the runner
           knobs   <- Knobs.get
           inbox   <- Channel.initUnscoped[Msg](4096)
           frames  <- Channel.initUnscoped[FrameStats](1 << 16)
