@@ -171,8 +171,9 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
    relayout compares `tableCols == ctx.cols`, a tautology (:703); (F4) `rowReverse`/`columnReverse` lose the reverse
    flag (Props.scala:303); (F5) a percentage height resolves against the screen, not the parent (Layout.scala:264);
    (F6) a constant `RangeInput` value is read from the scene only (Paint.scala:393). Fixes AND regression tests are
-   APPLIED but UNCOMMITTED in the C1 worktree `.work/worktrees/feat-kyoui-01-render` (git status shows 4 M + 1 new
-   test file). The patch script is `<scratchpad>/codexfix.py` (per fix: tests | code). NOT compiled yet: W2's agents
+   SAVED as `.work/impl/c1-codexfix.patch` (the full diff, 4 files + the new RelayoutTest.scala; `git apply` it in
+   the C1 worktree) and as the script `.work/impl/c1-codexfix.py` (per fix: tests | code). The worktree is clean
+   (the stop hook asked for no uncommitted changes; unverified code is not pushed to a PR branch). NOT compiled yet: W2's agents
    own sbt (one sbt on the machine). When W2 ends: (1) negative control: a temp worktree at 66d9299 with ONLY the
    tests (`codexfix.py <wt> all tests`), run `core/testOnly tui4s.GoldenScreenTest tui4s.RelayoutTest` -> 6 failures,
    log `.work/impl/c1-fix-negative-control.log`; (2) in the C1 worktree: `sbt fmt`, `SBT_TPOLECAT_CI=1 sbt check`,
