@@ -64,6 +64,9 @@ final case class World(
     // re-reads them after the settle
     youngNow: Set[Loc] = Set.empty,
     youngPrev: Set[Loc] = Set.empty,
+    // claude 2026-10-12: created (D-17 c, RR O6): settles of this step that
+    // ran out of `max`
+    settleTimeouts: Int = 0,
 ):
     def env: Scene =
       Scene(

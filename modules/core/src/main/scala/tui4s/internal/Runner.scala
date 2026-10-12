@@ -98,7 +98,7 @@ final class Runner(
                       .map(remember)
             // claude 2026-10-12: changed (D-16, armkey): the initial mount is
             // settled and verified before the Initial frame
-            w0s  <- settle(w0).map(w => verify(w, input = false)).map(remember)
+            w0s  <- settleAndVerify(w0, input = false).map(remember)
             w1   <- frame(w0s, 0L, FrameCause.Initial, t0).map(remember)
             _    <- Loop(w1)(step)
         yield ()
@@ -118,6 +118,7 @@ final class Runner(
                                  w1.copy(
                                    updates = 0,
                                    repaired = 0,
+                                   settleTimeouts = 0,
                                    youngPrev = w1.youngNow,
                                    youngNow = Set.empty,
                                  ),
@@ -127,7 +128,7 @@ final class Runner(
                 input        = msg match
                                    case Msg.Resize(_, _) => true
                                    case _                => false
-                w3          <- settle(w2).map(w => verify(w, input)).map(remember)
+                w3          <- settleAndVerify(w2, input).map(remember)
                 t2          <- nanos
                 (seq, cause) = msg match
                                    case Msg.Resize(_, s) =>
@@ -161,6 +162,23 @@ final class Runner(
           case Msg.Repair          => repairAll(w)
           case Msg.Quit            => w.copy(quit = true)
 
+    /** The settle, the verify pass, and the re-check (D-17 c): when the verify
+      * pass repaired a value, its consequences (a remount, the watchers that
+      * the write woke) get one more settle before the frame.
+      */
+    // claude 2026-10-12: created (RC-11)
+    private def settleAndVerify(w: World, input: Boolean)(using
+        Frame,
+    ): World < Async =
+      settle(w).map { w1 =>
+        verify(w1, input).map { w2 =>
+          // TODO(#9): drop the re-check when Kyo closes the lost-wakeup window
+          // of `Signal` (the conditions of D-17 c).
+          // https://github.com/yuri4n/tui4s/issues/9
+          if w2.repaired > w1.repaired then settle(w2) else w2
+        }
+      }
+
     /** The verify pass (D-16, armkey; spike S2 section 4.3). After the settle
       * it re-reads `current` of the regions mounted in this step or the step
       * before, and in an Input step (a resize; keys come later) also of the
@@ -169,15 +187,32 @@ final class Runner(
       * registration of `nextWith`) reaches this frame, not the repair tick. The
       * regions that a repair mounts are not young: no cascade (a `Reactive`
       * value with closures never compares equal).
+      *
+      * The pull check (D-17 c, spike S1 section 4.3) adds every bound and
+      * `Foreach` region: a derived signal computes `current` synchronously, so
+      * the re-read sees each write of the event, also one that the probe
+      * missed. `Reactive` regions are not pulled: their value is a UI with
+      * closures, so two renders never compare equal.
       */
-    // claude 2026-10-12: created (RC-9)
+    // claude 2026-10-12: created (RC-9, RC-11)
     private def verify(w: World, input: Boolean)(using Frame): World < Sync =
         val unarmed = if input then mount.unarmedRegions(w) else Set.empty[Loc]
-        val targets = (w.youngNow ++ w.youngPrev ++ unarmed).toSeq
+        // TODO(#9): drop the pull check when Kyo closes the lost-wakeup window
+        // of `Signal` (the conditions of D-17 c).
+        // https://github.com/yuri4n/tui4s/issues/9
+        val pulled  = w.regions.collect {
+          case (
+                p,
+                RegionState(_, Source.Bound(_) | Source.Many(_), _, _, _, _),
+              ) =>
+            p
+        }
+        val targets = (w.youngNow ++ w.youngPrev ++ unarmed ++ pulled).toSeq
         val keep    = w.youngNow
         Kyo
           .foldLeft(targets)(w)((acc, p) => verifyRegion(acc, p, None))
           .map(_.copy(youngNow = keep))
+    end verify
 
     /** Re-reads `current` of every region and applies a value that differs (as
       * if its watcher had posted it): the repair of a lost wakeup. A `Reactive`
@@ -304,16 +339,14 @@ final class Runner(
     private def settle(w: World)(using Frame): World < Async =
       nanos.map { start =>
         Loop(w, 0, start) { (w, quiet, last) =>
-          /* The order is "probe, THEN drain". A loop that drains first, finds
-           * nothing, and then reads the probe */
-          /* can miss a watcher that posted between the drain and the probe:
-           * it is parked again when the probe */
-          /* runs, so the probe says "quiescent" and the frame flushes without
-           * that value (it gets its own */
-          /* Background frame). Seen on a 4-CPU container under CPU contention:
-           * 2-5 split frames per 500 events */
-          /* in the glitch test. "Done" needs the probe to say quiescent BEFORE
-           * a drain that finds nothing. */
+          // The order is "probe, THEN drain". A loop that drains first, finds
+          // nothing, and then reads the probe can miss a watcher that posted
+          // between the drain and the probe: it is parked again when the probe
+          // runs, so the probe says "quiescent" and the frame flushes without
+          // that value (it gets its own Background frame). Seen on a 4-CPU
+          // container under CPU contention: 2-5 split frames per 500 events
+          // in the glitch test. "Done" needs the probe to say quiescent BEFORE
+          // a drain that finds nothing.
           val idleBefore = options.settle match
               case Settle.Quiescent(_, _) => SchedulerProbe.quiescent()
               case Settle.Hops(_, _)      => true
@@ -325,17 +358,17 @@ final class Runner(
             case _                                     =>
               nanos.map { now =>
                 options.settle match
-                    /* `quiet` counts quiescent observations in a row (each
-                     * followed by an empty drain); */
-                    // the settle ends after `confirm` of them, one hop apart.
+                    // `quiet` counts quiescent observations in a row (each
+                    // followed by an empty drain); the settle ends after
+                    // `confirm` of them, one hop apart.
                     case Settle.Quiescent(max, confirm) =>
                       if idleBefore && quiet + 1 >= confirm then Loop.done(w)
                       else if now - start > max.toNanos then
-                          if SchedulerProbe.debug then
-                              java.lang.System.err.println(
-                                s"tui4s: settle timed out: ${SchedulerProbe.describe()}",
-                              )
-                          Loop.done(w)
+                          // claude 2026-10-12: changed (D-17 c, RR O6): the
+                          // frame counts the timeout; no print to stderr
+                          Loop.done(
+                            w.copy(settleTimeouts = w.settleTimeouts + 1),
+                          )
                       else
                           hop.andThen(
                             Loop.continue(
@@ -462,6 +495,7 @@ final class Runner(
                     0L,
                     w.updates,
                     repaired = w.repaired,
+                    settleTimeouts = w.settleTimeouts,
                   ),
                 )
             else
@@ -485,6 +519,7 @@ final class Runner(
                     w.updates,
                     subtrees = roots,
                     repaired = w.repaired,
+                    settleTimeouts = w.settleTimeouts,
                   ),
                 )
           }

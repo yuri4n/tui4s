@@ -35,7 +35,7 @@ class SplitProbe extends StressSuite:
           _  <- h.drainFrames
           t0 <- now
           _  <- n.set(v)
-          f  <- h.nextFrame
+          _  <- h.nextFrame
           s0 <- h.screen
           ok <- h.awaitScreen(_.contains(s"n=$v"), 2.seconds)
           t1 <- now

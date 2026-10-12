@@ -32,4 +32,10 @@ final case class FrameStats(
       */
     // claude 2026-10-12: created (K29, D-16)
     repaired: Int = 0,
+    /** Settles that ran out of their `max` while this frame was prepared (0 or
+      * 1; 2 with the re-check). The frame can then miss a consequence of the
+      * event: it comes in a later frame.
+      */
+    // claude 2026-10-12: created (D-17 c, RR O6; it replaces a stderr print)
+    settleTimeouts: Int = 0,
 )
