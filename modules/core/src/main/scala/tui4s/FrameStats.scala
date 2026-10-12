@@ -1,12 +1,17 @@
 package tui4s
 
-enum FrameCause:
+/** Why a frame was made: the first frame, an input (a resize; keys come later),
+  * or a change in the background (a signal, the repair tick).
+  */
+// claude 2026-10-12: changed: CanEqual (OS-16), Scaladoc
+enum FrameCause derives CanEqual:
     case Initial, Input, Background
 
 /** What one frame cost. `repainted`: cell writes into the kept buffer;
   * `flushed`: cells sent to the terminal; `nanos`: from the event to the end of
   * the flush; `updates`: region values applied.
   */
+// claude 2026-10-12: changed: CanEqual (OS-16)
 final case class FrameStats(
     seq: Long,
     cause: FrameCause,
@@ -38,4 +43,4 @@ final case class FrameStats(
       */
     // claude 2026-10-12: created (D-17 c, RR O6; it replaces a stderr print)
     settleTimeouts: Int = 0,
-)
+) derives CanEqual
