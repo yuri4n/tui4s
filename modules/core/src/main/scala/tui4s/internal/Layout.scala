@@ -355,15 +355,15 @@ object Layout:
     // ---- arrange: flex positions of measured items inside a content rect ----
 
     def arrange(
-        p: Props,
+        p0: Props,
         box: Rect,
-        items: Vector[Measured],
+        items0: Vector[Measured],
         cols: Vector[Int],
     ): Vector[Rect] =
-      if items.isEmpty then Vector.empty
+      if items0.isEmpty then Vector.empty
       else if cols.nonEmpty then
           // a table row: fixed column widths
-          items.zipWithIndex.map { (m, j) =>
+          items0.zipWithIndex.map { (m, j) =>
             val x = box.x + cols.take(j).sum + j
             Rect(
               x,
@@ -373,6 +373,20 @@ object Layout:
             )
           }
       else
+          /* claude 2026-10-12: changed (PR #10 review: Codex, Props.scala:303):
+           * a */
+          // reversed container (`rowReverse`, `columnReverse`) places its
+          // items in the opposite order, with the main start at the far end
+          // (so `justify: start` packs them there, as in CSS). The rects
+          // come back in the items' own order.
+          val items                    = if p0.reverse then items0.reverse else items0
+          val p                        =
+            if !p0.reverse then p0
+            else
+                p0.copy(justify = p0.justify match
+                    case Justification.start => Justification.end
+                    case Justification.end   => Justification.start
+                    case j                   => j)
           val column                   = p.dir == Dir.Column
           def mainOf(s: Size): Int     = if column then s.h else s.w
           def crossOf(s: Size): Int    = if column then s.w else s.h
@@ -466,7 +480,7 @@ object Layout:
           val offsets                  = sizes.zip(items).scanLeft(start) { case (acc, (s, m)) =>
             acc + s + mMain(m) + p.gap + between
           }
-          items.zip(sizes).zip(offsets).map { case ((m, s), off) =>
+          val rects                    = items.zip(sizes).zip(offsets).map { case ((m, s), off) =>
             val mainPos       =
               off + (if column then m.props.margin.t else m.props.margin.l)
             val crossRoom     = (crossSize - mCross(m)).max(0)
@@ -490,6 +504,7 @@ object Layout:
             if column then Rect(box.x + crossPos, box.y + mainPos, crossLen, s)
             else Rect(box.x + mainPos, box.y + crossPos, s, crossLen)
           }
+          if p0.reverse then rects.reverse else rects
     end arrange
 
     // ---- layout: build the nodes of an item and its subtree ----

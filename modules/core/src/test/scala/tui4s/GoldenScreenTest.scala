@@ -113,6 +113,21 @@ class GoldenScreenTest extends ScreenSuite:
         )
         assertScreen(div.style(_.row)(span("abc"), span("def")), 5, 1, "abcde")
       }
+      // claude 2026-10-12: created (PR #10 review: Codex, Props.scala:303)
+      "rowReverse and columnReverse place the items from the end" in {
+        assertScreen(
+          div.style(_.rowReverse)(span("a"), span("b")),
+          4,
+          1,
+          "  ba",
+        )
+        assertScreen(
+          div.style(_.columnReverse.height(3.px))(span("a"), span("b")),
+          1,
+          3,
+          "\nb\na",
+        )
+      }
     }
 
     "gap and padding" - {
