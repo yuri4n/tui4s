@@ -1,0 +1,82 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38765 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-01-render-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-01-render/)
+[info] compiling 3 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 2 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+[success] Total time: 25 s, completed Oct 12, 2026, 5:29:25 PM
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38765 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+[1m=== GoldenScreenTest ===[0m
+    [1m[32m[PASS][0m[0m borders › rounded  [2m(341ms)[0m
+    [1m[32m[PASS][0m[0m borders › dashed, with the border colour on the glyphs  [2m(64ms)[0m
+    [1m[32m[PASS][0m[0m borders › solid  [2m(319ms)[0m
+    [1m[32m[PASS][0m[0m colours and text attributes › a child inherits the text colour  [2m(57ms)[0m
+    [1m[32m[PASS][0m[0m colours and text attributes › bold, italic, underline; h1 is bold and underlined  [2m(354ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › gap in a row and in a column  [2m(25ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › justify: center, end, spaceBetween  [2m(372ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › rowReverse and columnReverse place the items from the end  [2m(45ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › padding moves the content inside the box  [2m(18ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › padding inside a border  [2m(20ms)[0m
+    [1m[32m[PASS][0m[0m colours and text attributes › text colour and background  [2m(409ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › flexGrow takes the free space of the row  [2m(36ms)[0m
+    [1m[32m[PASS][0m[0m overflow is clipped › rows below a fixed height are not painted  [2m(23ms)[0m
+    [1m[32m[PASS][0m[0m overflow is clipped › cells right of a fixed width are not painted  [2m(10ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › flexGrow takes the free rows of a column  [2m(81ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › at the spaces  [2m(18ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › no wrap in a row  [2m(17ms)[0m
+    [1m[32m[PASS][0m[0m wide characters › take two cells each  [2m(25ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › a long word of wide characters splits by cells, not by characters  [2m(36ms)[0m
+    [1m[32m[PASS][0m[0m placeholders › an image shows its alt text in brackets  [2m(36ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › flexShrink removes only the deficit; the last item loses the cell  [2m(120ms)[0m
+    [1m[32m[PASS][0m[0m percentage sizes › a percentage height is relative to the parent, not to the screen  [2m(30ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › a long word splits  [2m(61ms)[0m
+    [1m[32m[PASS][0m[0m placeholders › an svg (a chart) shows [chart], dim  [2m(44ms)[0m
+    [1m[32m[PASS][0m[0m inputs › a range input shows its constant value  [2m(23ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › a row puts its items side by side; a column stacks them  [2m(465ms)[0m
+    [1m[32m[PASS][0m[0m decorations › a button has brackets; list items have markers  [2m(55ms)[0m
+[2m---[0m GoldenScreenTest: [32m27 passed[0m, [31m0 failed[0m  [2m(998ms)[0m
+
+Results: [32m27 passed[0m, [31m0 failed[0m  (total: 998ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== RenderTest ===[0m
+  [1m[32m[PASS][0m[0m a text in a div fills the first row  [2m(7ms)[0m
+  [1m[32m[PASS][0m[0m the screen has the given size  [2m(24ms)[0m
+[2m---[0m RenderTest: [32m2 passed[0m, [31m0 failed[0m  [2m(33ms)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 33ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== KyoUiSurfaceTest ===[0m
+  [1m[32m[PASS][0m[0m compare reports an added, a removed and a changed line  [2m(32ms)[0m
+  [1m[32m[PASS][0m[0m the UI.Ast types and the Style.Prop cases are the checked-in list  [2m(4.4s)[0m
+[2m---[0m KyoUiSurfaceTest: [32m2 passed[0m, [31m0 failed[0m  [2m(4.4s)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 4.4s)
+Running 1 suite(s) with parallelism 8
+
+[1m=== RelayoutTest ===[0m
+  [1m[32m[PASS][0m[0m a retained table row follows the new column widths  [2m(53ms)[0m
+[2m---[0m RelayoutTest: [32m1 passed[0m, [31m0 failed[0m  [2m(56ms)[0m
+
+Results: [32m1 passed[0m, [31m0 failed[0m  (total: 56ms)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 8 s, completed Oct 12, 2026, 5:29:33 PM

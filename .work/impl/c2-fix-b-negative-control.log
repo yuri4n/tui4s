@@ -1,0 +1,265 @@
+F: NEGATIVE CONTROL for review R2-4 and R2-8 a: the new HeadlessTest leaves on the OLD kit (12034e4, no fix yet); core/testOnly tui4s.HeadlessTest
+Mon Oct 12 16:25:15 UTC 2026
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38765 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-02-regions-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-02-regions/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-02-regions/)
+[info] compiling 2 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-02-regions/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 3 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-02-regions/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+[info] compiling 7 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-02-regions/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38765 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+[1m=== HeadlessTest ===[0m
+  [1m[32m[PASS][0m[0m the quit value ends the run; awaitEnd and finished see it  [2m(386ms)[0m
+  [1m[32m[PASS][0m[0m resize: the frame of the resize lays the content out again  [2m(62ms)[0m
+kyo-test hang diagnostics on STUCK leaf: resize while a signal writes fast: the runner resizes the backend, so no frame hits a smaller buffer
+
+--- kyo-scheduler-clock-1 (TIMED_WAITING) ---
+  at java.base@25.0.4.1/jdk.internal.misc.Unsafe.park(Native Method)
+  at java.base@25.0.4.1/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:408)
+  at app//kyo.scheduler.InternalClock.update(InternalClock.scala:69)
+  at app//kyo.scheduler.InternalClock.$init$$$anonfun$1(InternalClock.scala:61)
+  at app//kyo.scheduler.InternalClock$$Lambda/0x000000002115d398.run(Unknown Source)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+  at java.base@25.0.4.1/java.lang.Thread.runWith(Thread.java:1487)
+  at java.base@25.0.4.1/java.lang.Thread.run(Thread.java:1474)
+
+--- Signal Dispatcher (RUNNABLE) ---
+
+--- Common-Cleaner (TIMED_WAITING) ---
+  at java.base@25.0.4.1/java.lang.Object.wait0(Native Method)
+  at java.base@25.0.4.1/java.lang.Object.wait(Object.java:389)
+  at java.base@25.0.4.1/java.lang.ref.ReferenceQueue.remove0(ReferenceQueue.java:123)
+  at java.base@25.0.4.1/java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:201)
+  at java.base@25.0.4.1/jdk.internal.ref.CleanerImpl.run(CleanerImpl.java:146)
+  at java.base@25.0.4.1/java.lang.Thread.runWith(Thread.java:1487)
+  at java.base@25.0.4.1/java.lang.Thread.run(Thread.java:1474)
+  at java.base@25.0.4.1/jdk.internal.misc.InnocuousThread.run(InnocuousThread.java:148)
+
+--- kyo-core-clock-executor-2 (TIMED_WAITING) ---
+  at java.base@25.0.4.1/jdk.internal.misc.Unsafe.park(Native Method)
+  at java.base@25.0.4.1/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:271)
+  at java.base@25.0.4.1/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:1803)
+  at java.base@25.0.4.1/java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1166)
+  at java.base@25.0.4.1/java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:883)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1016)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1076)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+  at java.base@25.0.4.1/java.lang.Thread.runWith(Thread.java:1487)
+  at java.base@25.0.4.1/java.lang.Thread.run(Thread.java:1474)
+
+--- pool-1-thread-1 (WAITING) ---
+  at java.base@25.0.4.1/jdk.internal.misc.Unsafe.park(Native Method)
+  at java.base@25.0.4.1/java.util.concurrent.locks.LockSupport.park(LockSupport.java:223)
+  at java.base@25.0.4.1/java.util.concurrent.locks.AbstractQueuedSynchronizer.acquire(AbstractQueuedSynchronizer.java:790)
+  at java.base@25.0.4.1/java.util.concurrent.locks.AbstractQueuedSynchronizer.acquireSharedInterruptibly(AbstractQueuedSynchronizer.java:1139)
+  at app//scala.concurrent.impl.Promise$DefaultPromise.tryAwait0(Promise.scala:267)
+  at app//scala.concurrent.impl.Promise$DefaultPromise.result(Promise.scala:285)
+  at app//scala.concurrent.Await$.result$$anonfun$1(package.scala:216)
+  at app//scala.concurrent.Await$$$Lambda/0x00000000211ac900.apply(Unknown Source)
+  at app//scala.concurrent.BlockContext$DefaultBlockContext$.blockOn(BlockContext.scala:67)
+  at app//scala.concurrent.Await$.result(package.scala:133)
+  at app//kyo.test.runner.internal.SbtTask.runSuite(SbtTask.scala:59)
+  at app//kyo.test.runner.internal.SbtTask.execute(SbtTask.scala:43)
+  at app//sbt.ForkMain$Run.lambda$runTest$1(ForkMain.java:414)
+  at app//sbt.ForkMain$Run$$Lambda/0x0000000021116878.call(Unknown Source)
+  at java.base@25.0.4.1/java.util.concurrent.FutureTask.run(FutureTask.java:328)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+  at java.base@25.0.4.1/java.lang.Thread.runWith(Thread.java:1487)
+  at java.base@25.0.4.1/java.lang.Thread.run(Thread.java:1474)
+
+--- kyo-scheduler-timer-2 (WAITING) ---
+  at java.base@25.0.4.1/jdk.internal.misc.Unsafe.park(Native Method)
+  at java.base@25.0.4.1/java.util.concurrent.locks.LockSupport.park(LockSupport.java:369)
+  at java.base@25.0.4.1/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:520)
+  at java.base@25.0.4.1/java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:4364)
+  at java.base@25.0.4.1/java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:4310)
+  at java.base@25.0.4.1/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1752)
+  at java.base@25.0.4.1/java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1161)
+  at java.base@25.0.4.1/java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:883)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1016)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1076)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+  at java.base@25.0.4.1/java.lang.Thread.runWith(Thread.java:1487)
+  at java.base@25.0.4.1/java.lang.Thread.run(Thread.java:1474)
+
+--- kyo-scheduler-worker-3 (RUNNABLE) ---
+  at java.base@25.0.4.1/java.lang.Thread.dumpThreads(Native Method)
+  at java.base@25.0.4.1/java.lang.Thread.getAllStackTraces(Thread.java:2246)
+  at app//kyo.test.runner.internal.ThreadDump$.render(ThreadDump.scala:9)
+  at app//kyo.test.runner.ConsoleReporter.onLeafHeartbeat(ConsoleReporter.scala:159)
+  at app//kyo.test.runner.TestRunner$.kyo$test$runner$TestRunner$$$_$_$run$16(TestRunner.scala:350)
+  at app//kyo.test.runner.TestRunner$$anon$19.apply(TestRunner.scala:350)
+  at app//kyo.Clock$Stopwatch$$anon$7.apply(Clock.scala:134)
+  at app//kyo.kernel.internal.Eval$.loop$1(Eval.scala:379)
+  at app//kyo.kernel.internal.Eval$.guarded$1(Eval.scala:570)
+  at app//kyo.kernel.internal.Eval$.apply(Eval.scala:588)
+  at app//kyo.kernel.internal.Eval$.partial(Eval.scala:47)
+  at app//kyo.scheduler.IOTask.run(IOTask.scala:272)
+  at app//kyo.scheduler.Worker.runTask(Worker.scala:419)
+  at app//kyo.scheduler.Worker.run(Worker.scala:340)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+  at java.base@25.0.4.1/java.lang.Thread.runWith(Thread.java:1487)
+  at java.base@25.0.4.1/java.lang.Thread.run(Thread.java:1474)
+
+--- main (WAITING) ---
+  at java.base@25.0.4.1/jdk.internal.misc.Unsafe.park(Native Method)
+  at java.base@25.0.4.1/java.util.concurrent.locks.LockSupport.park(LockSupport.java:223)
+  at java.base@25.0.4.1/java.util.concurrent.FutureTask.awaitDone(FutureTask.java:511)
+  at java.base@25.0.4.1/java.util.concurrent.FutureTask.get(FutureTask.java:192)
+  at app//sbt.ForkMain$Run.runTestTasks(ForkMain.java:386)
+  at app//sbt.ForkMain$Run.runTests(ForkMain.java:359)
+  at app//sbt.ForkMain$Run.run(ForkMain.java:192)
+  at app//sbt.ForkMain$Run.access$100(ForkMain.java:187)
+  at app//sbt.ForkMain.main(ForkMain.java:178)
+  at app//sbt.ForkMain.main(ForkMain.java:164)
+
+--- Finalizer (WAITING) ---
+  at java.base@25.0.4.1/java.lang.Object.wait0(Native Method)
+  at java.base@25.0.4.1/java.lang.Object.wait(Object.java:389)
+  at java.base@25.0.4.1/java.lang.Object.wait(Object.java:351)
+  at java.base@25.0.4.1/java.lang.ref.ReferenceQueue.remove0(ReferenceQueue.java:137)
+  at java.base@25.0.4.1/java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:215)
+  at java.base@25.0.4.1/java.lang.ref.Finalizer$FinalizerThread.run(Finalizer.java:165)
+
+--- kyo-scheduler-timer-4 (TIMED_WAITING) ---
+  at java.base@25.0.4.1/jdk.internal.misc.Unsafe.park(Native Method)
+  at java.base@25.0.4.1/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:408)
+  at app//kyo.scheduler.BlockingMonitor.loop$1(BlockingMonitor.scala:140)
+  at app//kyo.scheduler.BlockingMonitor.$init$$$anonfun$2(BlockingMonitor.scala:146)
+  at app//kyo.scheduler.BlockingMonitor.$init$$$anonfun$adapted$1(BlockingMonitor.scala:126)
+  at app//kyo.scheduler.BlockingMonitor$$Lambda/0x000000002119ed60.call(Unknown Source)
+  at java.base@25.0.4.1/java.util.concurrent.FutureTask.run(FutureTask.java:328)
+  at java.base@25.0.4.1/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:309)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+  at java.base@25.0.4.1/java.lang.Thread.runWith(Thread.java:1487)
+  at java.base@25.0.4.1/java.lang.Thread.run(Thread.java:1474)
+
+--- kyo-core-clock-executor-1 (WAITING) ---
+  at java.base@25.0.4.1/jdk.internal.misc.Unsafe.park(Native Method)
+  at java.base@25.0.4.1/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:271)
+  at java.base@25.0.4.1/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:1803)
+  at java.base@25.0.4.1/java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1166)
+  at java.base@25.0.4.1/java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:883)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1016)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1076)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+  at java.base@25.0.4.1/java.lang.Thread.runWith(Thread.java:1487)
+  at java.base@25.0.4.1/java.lang.Thread.run(Thread.java:1474)
+
+--- kyo-scheduler-worker-2 (TIMED_WAITING) ---
+  at java.base@25.0.4.1/jdk.internal.misc.Unsafe.park(Native Method)
+  at java.base@25.0.4.1/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:408)
+  at java.base@25.0.4.1/java.util.concurrent.LinkedTransferQueue$DualNode.await(LinkedTransferQueue.java:452)
+  at java.base@25.0.4.1/java.util.concurrent.SynchronousQueue$Transferer.xferLifo(SynchronousQueue.java:194)
+  at java.base@25.0.4.1/java.util.concurrent.SynchronousQueue.xfer(SynchronousQueue.java:235)
+  at java.base@25.0.4.1/java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:338)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1015)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1076)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+  at java.base@25.0.4.1/java.lang.Thread.runWith(Thread.java:1487)
+  at java.base@25.0.4.1/java.lang.Thread.run(Thread.java:1474)
+
+--- Notification Thread (RUNNABLE) ---
+
+--- kyo-scheduler-timer-3 (TIMED_WAITING) ---
+  at java.base@25.0.4.1/jdk.internal.misc.Unsafe.park(Native Method)
+  at java.base@25.0.4.1/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:408)
+  at app//kyo.scheduler.Scheduler.$init$$$anonfun$10(Scheduler.scala:535)
+  at app//kyo.scheduler.Scheduler.$init$$$anonfun$adapted$1(Scheduler.scala:530)
+  at app//kyo.scheduler.Scheduler$$Lambda/0x000000002119fbc8.call(Unknown Source)
+  at java.base@25.0.4.1/java.util.concurrent.FutureTask.run(FutureTask.java:328)
+  at java.base@25.0.4.1/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:309)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+  at java.base@25.0.4.1/java.lang.Thread.runWith(Thread.java:1487)
+  at java.base@25.0.4.1/java.lang.Thread.run(Thread.java:1474)
+
+--- kyo-scheduler-worker-4 (TIMED_WAITING) ---
+  at java.base@25.0.4.1/jdk.internal.misc.Unsafe.park(Native Method)
+  at java.base@25.0.4.1/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:408)
+  at java.base@25.0.4.1/java.util.concurrent.LinkedTransferQueue$DualNode.await(LinkedTransferQueue.java:452)
+  at java.base@25.0.4.1/java.util.concurrent.SynchronousQueue$Transferer.xferLifo(SynchronousQueue.java:194)
+  at java.base@25.0.4.1/java.util.concurrent.SynchronousQueue.xfer(SynchronousQueue.java:235)
+  at java.base@25.0.4.1/java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:338)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1015)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1076)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+  at java.base@25.0.4.1/java.lang.Thread.runWith(Thread.java:1487)
+  at java.base@25.0.4.1/java.lang.Thread.run(Thread.java:1474)
+
+--- kyo-scheduler-timer-1 (TIMED_WAITING) ---
+  at java.base@25.0.4.1/jdk.internal.misc.Unsafe.park(Native Method)
+  at java.base@25.0.4.1/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:271)
+  at java.base@25.0.4.1/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:1803)
+  at java.base@25.0.4.1/java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1166)
+  at java.base@25.0.4.1/java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:883)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1016)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1076)
+  at java.base@25.0.4.1/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+  at java.base@25.0.4.1/java.lang.Thread.runWith(Thread.java:1487)
+  at java.base@25.0.4.1/java.lang.Thread.run(Thread.java:1474)
+
+--- Reference Handler (RUNNABLE) ---
+  at java.base@25.0.4.1/java.lang.ref.Reference.waitForReferencePendingList(Native Method)
+  at java.base@25.0.4.1/java.lang.ref.Reference.processPendingReferences(Reference.java:246)
+  at java.base@25.0.4.1/java.lang.ref.Reference$ReferenceHandler.run(Reference.java:208)
+
+=== kyo-scheduler ===
+scheduler: currentWorkers=4 allocatedWorkers=4 loadAvg=0.25 activeThreads=1 totalThreads=3 flushes=0
+  worker[0] running=false mount='' load=0 executions=13381 blocked=false stalled=false frame=
+  worker[1] running=true mount='kyo-scheduler-worker-3' load=1 executions=13545 blocked=false stalled=false frame=java.base/java.lang.Thread.getStackTrace(Thread.java:2193)
+  worker[2] running=false mount='' load=0 executions=13459 blocked=false stalled=false frame=
+  worker[3] running=false mount='' load=0 executions=13449 blocked=false stalled=false frame=
+busyFiberTraces:
+BusyWorker(kyo-scheduler-worker-3,)
+
+[33m  [STUCK] resize while a signal writes fast: the runner resizes the backend, so no frame hits a smaller buffer  [2m(1m)[0m[0m
+  [1m[31m[FAIL][0m[0m resize while a signal writes fast: the runner resizes the backend, so no frame hits a smaller buffer  [2m(1m 42s)[0m *** FAILED ***
+
+    )
+    // message: resizes without their frame: 34 of 40 (run ended: true)
+
+[33m  [STUCK] start fails fast when the UI fails, with the error  [2m(1m)[0m[0m
+[33m  [STUCK] start fails fast when the UI fails, with the error  [2m(2m)[0m[0m
+  [1m[31m[TIMEOUT][0m[0m start fails fast when the UI fails, with the error  (limit: 2m) *** FAILED ***
+  [1m[32m[PASS][0m[0m idle: no frame without a change  [2m(1.8s)[0m
+  [1m[32m[PASS][0m[0m awaitScreen: true before the timeout; false after it when nothing changes  [2m(324ms)[0m
+[2m---[0m HeadlessTest: [32m4 passed[0m, [31m2 failed (1 timed out)[0m  [2m(3m 45s)[0m
+FAILURES (2):
+  resize while a signal writes fast: the runner resizes the backend, so no frame hits a smaller buffer  [FAIL]
+    )
+    // message: resizes without their frame: 34 of 40 (run ended: true)
+  start fails fast when the UI fails, with the error  [TIMEOUT]
+    limit: 2m
+
+Results: [32m4 passed[0m, [31m2 failed (1 timed out)[0m  (total: 3m 45s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.HeadlessTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 281 s (0:04:41.0), completed Oct 12, 2026, 4:30:06 PM
+sbt exit 1
+Mon Oct 12 16:30:06 UTC 2026

@@ -1,0 +1,101 @@
+F: contention run (the acceptance model of PLAN 6.0: taskset -c 0,1 for sbt, 2 busy loops on CPUs 0,1) at 46356d2: core/testOnly SeamTest AppsTest WatcherTest SettleTest HeadlessTest with -Dtui4s.load=1 (as the acceptance's contention run passes it)
+busy loops: 22281 22282
+Mon Oct 12 16:42:45 UTC 2026
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38765 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-02-regions-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-02-regions/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-02-regions/)
+[info] Defining core / Test / javaOptions
+[info] The new value will be used by core / Test / bspBuildTargetJvmEnvironmentItem, core / Test / bspBuildTargetRun and 6 others.
+[info] 	Run `last` for details.
+[info] Reapplying settings...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-02-regions/)
+[info] compiling 17 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-02-regions/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 23 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-02-regions/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38765 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 4
+
+[1m=== SeamTest ===[0m
+  [1m[32m[PASS][0m[0m R2: an EXTERNAL write in the arm window is on the screen when the window ends (the verify pass; the repair tick is off)  [2m(1.0s)[0m
+  [1m[32m[PASS][0m[0m R2 cascade: one write in the window gives at most 2 frames in 900 ms  [2m(1.0s)[0m
+[2m---[0m SeamTest: [32m2 passed[0m, [31m0 failed[0m  [2m(3.1s)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 3.1s)
+Running 1 suite(s) with parallelism 4
+
+[1m=== AppsTest ===[0m
+  [1m[32m[PASS][0m[0m counter: writes to the count reach the screen; the kit's quit ends the run  [2m(471ms)[0m
+  [1m[32m[PASS][0m[0m two counters are independent  [2m(408ms)[0m
+  [1m[32m[PASS][0m[0m todo: load, add, select, toggle, delete, save, status  [2m(482ms)[0m
+  [1m[32m[PASS][0m[0m overflow: a list taller than the screen keeps the header and the input; the list is clipped  [2m(204ms)[0m
+  [1m[32m[PASS][0m[0m dashboard: a sampler tick updates the gauge and the sparkline in one frame; tabs; pause  [2m(748ms)[0m
+  [1m[32m[PASS][0m[0m idle: no frame at all when nothing changes  [2m(1.9s)[0m
+[glitch] splits=0 of 500 (events by frame count: 1 frames: 500; events with a settle timeout: 1; not seen in 2 s: 0; load flag: true)
+  [1m[32m[PASS][0m[0m glitch-free: one event (one write to one ref) updates all 4 dependent regions in one frame (500 events)  [2m(4.9s)[0m
+[2m---[0m AppsTest: [32m7 passed[0m, [31m0 failed[0m  [2m(9.3s)[0m
+
+Results: [32m7 passed[0m, [31m0 failed[0m  (total: 9.3s)
+Running 1 suite(s) with parallelism 4
+
+[1m=== WatcherTest ===[0m
+  [1m[32m[PASS][0m[0m R1: 0 live fibers after an INTERRUPTED run  [2m(202ms)[0m
+  [1m[32m[PASS][0m[0m R1: 0 live fibers after an interrupt INSIDE A SETTLE (a remount in flight)  [2m(1.3s)[0m
+  [1m[32m[PASS][0m[0m R1: 0 live fibers after a quit, and after the scope of the kit ends  [2m(41ms)[0m
+  [1m[32m[PASS][0m[0m K29: 200 writes to every region kind all reach the screen  [2m(1.3s)[0m
+  [1m[32m[PASS][0m[0m K29: a write in the window is lost by the loop and repaired by the tick within 2 ticks  [2m(735ms)[0m
+[2m---[0m WatcherTest: [32m5 passed[0m, [31m0 failed[0m  [2m(3.7s)[0m
+
+Results: [32m5 passed[0m, [31m0 failed[0m  (total: 3.7s)
+Running 1 suite(s) with parallelism 4
+
+[1m=== SettleTest ===[0m
+  [1m[32m[PASS][0m[0m the pull check: a bound and a Foreach write lost by the loop reach the frame of the NEXT event (the tick is off)  [2m(609ms)[0m
+  [1m[32m[PASS][0m[0m a quiet run: 50 frames, no settle timeout, no repair  [2m(322ms)[0m
+  [1m[31m[FAIL][0m[0m a CPU-bound fiber delays the settle: the probe sees it, the frame counts a timeout  [2m(656ms)[0m *** FAILED ***
+
+    assert(f.settleTimeouts == 1, s"frame: $f")
+    // message: frame: FrameStats(0,Background,6,1,71740208,1,78503,71182937,476783,,10021812897917,1,0,0)
+
+[2m---[0m SettleTest: [32m2 passed[0m, [31m1 failed[0m  [2m(1.5s)[0m
+FAILURES (1):
+  a CPU-bound fiber delays the settle: the probe sees it, the frame counts a timeout  [FAIL]
+    assert(f.settleTimeouts == 1, s"frame: $f")
+    // message: frame: FrameStats(0,Background,6,1,71740208,1,78503,71182937,476783,,10021812897917,1,0,0)
+
+Results: [32m2 passed[0m, [31m1 failed[0m  (total: 1.5s)
+Running 1 suite(s) with parallelism 4
+
+[1m=== HeadlessTest ===[0m
+  [1m[32m[PASS][0m[0m the quit value ends the run; awaitEnd and finished see it  [2m(31ms)[0m
+  [1m[32m[PASS][0m[0m resize: the frame of the resize lays the content out again  [2m(48ms)[0m
+  [1m[32m[PASS][0m[0m resize while a signal writes fast: the runner resizes the backend, so no frame hits a smaller buffer  [2m(143ms)[0m
+  [1m[32m[PASS][0m[0m start fails fast when the UI fails, with the error  [2m(15ms)[0m
+  [1m[32m[PASS][0m[0m idle: no frame without a change  [2m(1.8s)[0m
+  [1m[32m[PASS][0m[0m awaitScreen: true before the timeout; false after it when nothing changes  [2m(327ms)[0m
+[2m---[0m HeadlessTest: [32m6 passed[0m, [31m0 failed[0m  [2m(2.4s)[0m
+
+Results: [32m6 passed[0m, [31m0 failed[0m  (total: 2.4s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.SettleTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 241 s (0:04:01.0), completed Oct 12, 2026, 4:47:46 PM
+sbt exit 1
+Mon Oct 12 16:47:46 UTC 2026
+busy loops killed: 22281 22282

@@ -1,0 +1,44 @@
+== 14:32 carry check of the working tree (the carry commit) ==
+OK   whole file modules/core/src/main/scala/tui4s/internal/World.scala == fe06611:modules/core/src/main/scala/tui4s/internal/World.scala
+OK   whole file modules/core/src/main/scala/tui4s/internal/Mount.scala == fe06611:modules/core/src/main/scala/tui4s/internal/Mount.scala
+OK   whole file modules/core/src/main/scala/tui4s/internal/Runner.scala == fe06611:modules/core/src/main/scala/tui4s/internal/Runner.scala
+OK   whole file modules/core/src/main/scala/tui4s/internal/SchedulerProbe.scala == fe06611:modules/core/src/main/scala/tui4s/internal/SchedulerProbe.scala
+OK   whole file modules/core/src/main/scala/tui4s/spi/Settle.scala == fe06611:modules/core/src/main/scala/tui4s/spi/Settle.scala
+OK   whole file modules/core/src/main/scala/tui4s/testkit/Headless.scala == fe06611:modules/core/src/main/scala/tui4s/testkit/Headless.scala
+OK   whole file modules/core/src/test/scala/tui4s/fixtures/Counter.scala == fe06611:modules/core/src/test/scala/tui4s/fixtures/Counter.scala
+OK   whole file modules/core/src/test/scala/tui4s/fixtures/Todo.scala == fe06611:modules/core/src/test/scala/tui4s/fixtures/Todo.scala
+OK   whole file modules/core/src/test/scala/tui4s/fixtures/Dashboard.scala == fe06611:modules/core/src/test/scala/tui4s/fixtures/Dashboard.scala
+OK   whole file modules/core/src/test/scala/tui4s/fixtures/Widgets.scala == fe06611:modules/core/src/test/scala/tui4s/fixtures/Widgets.scala
+OK   split file modules/core/src/main/scala/tui4s/TuiOptions.scala: 12 code lines == fe06611:modules/core/src/main/scala/tui4s/Tui.scala lines 14-25; frame lines added: ['package tui4s', '// claude 2026-10-12: created (carried from fe06611:modules/core/src/main/scala/tui4s/Tui.scala lines 14-25; new file, package and imports only)', 'import kyo.*', 'import tui4s.spi.Settle']
+OK   split file modules/core/src/main/scala/tui4s/FrameStats.scala: 23 code lines == fe06611:modules/core/src/main/scala/tui4s/Tui.scala lines 27-50; frame lines added: ['package tui4s', '// claude 2026-10-12: created (carried from fe06611:modules/core/src/main/scala/tui4s/Tui.scala lines 27-50; new file and package only)']
+lines of fe06611:modules/core/src/main/scala/tui4s/Tui.scala NOT carried (object Tui: T1, C3): 3-108 (52 code lines)
+not carried from fe06611 (later PRs): tui4s/Component.scala, tui4s/Hooks.scala (C4); internal/ComponentSpec.scala (C4); internal/Dispatch.scala, internal/Keys.scala (C3, T1); internal/OutputGuard.scala (T1); test fixtures/CounterStyles.scala (C4), test AppsTest.scala (C2 writes new kyo-test suites)
+RESULT OK
+== line counts ==
+   19 modules/core/src/main/scala/tui4s/TuiOptions.scala
+   28 modules/core/src/main/scala/tui4s/FrameStats.scala
+   61 modules/core/src/main/scala/tui4s/internal/World.scala
+  182 modules/core/src/main/scala/tui4s/internal/Mount.scala
+  255 modules/core/src/main/scala/tui4s/internal/Runner.scala
+   43 modules/core/src/main/scala/tui4s/internal/SchedulerProbe.scala
+   21 modules/core/src/main/scala/tui4s/spi/Settle.scala
+  103 modules/core/src/main/scala/tui4s/testkit/Headless.scala
+   60 modules/core/src/test/scala/tui4s/fixtures/Counter.scala
+  100 modules/core/src/test/scala/tui4s/fixtures/Dashboard.scala
+  116 modules/core/src/test/scala/tui4s/fixtures/Todo.scala
+   42 modules/core/src/test/scala/tui4s/fixtures/Widgets.scala
+ 1030 total
+== 'claude 20' mark lines per file (carry headers + prototype marks) ==
+modules/core/src/main/scala/tui4s/TuiOptions.scala:1
+modules/core/src/main/scala/tui4s/FrameStats.scala:2
+modules/core/src/main/scala/tui4s/internal/World.scala:1
+modules/core/src/main/scala/tui4s/internal/Mount.scala:1
+modules/core/src/main/scala/tui4s/internal/Runner.scala:6
+modules/core/src/main/scala/tui4s/internal/SchedulerProbe.scala:1
+modules/core/src/main/scala/tui4s/spi/Settle.scala:2
+modules/core/src/main/scala/tui4s/testkit/Headless.scala:2
+modules/core/src/test/scala/tui4s/fixtures/Counter.scala:1
+modules/core/src/test/scala/tui4s/fixtures/Dashboard.scala:1
+modules/core/src/test/scala/tui4s/fixtures/Todo.scala:1
+modules/core/src/test/scala/tui4s/fixtures/Widgets.scala:1
+total marks: 20

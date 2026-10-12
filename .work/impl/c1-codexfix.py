@@ -164,22 +164,19 @@ import tui4s.internal.*
 class RelayoutTest extends Test[Any]:
 
     "a retained table row follows the new column widths" in {{
-        // row 2's first cell is a region; row 1 does not change
-        val sig            = Signal.initConst("a")
-        val ui             = table(tr(td("x"), td("y")), tr(td(sig), td("z")))
-        def env(first: String): Scene =
-          Scene(
-            _ => Some(Content.Single(UI.Ast.Text(first))),
-            None,
-            Size(20, 4),
-            _ => 0,
-          )
-        val laid1          = Layout.layoutAll(ui, env("a"))
+        // row 2 is a region. Its two cells swap their widths: the columns
+        // move, but the table keeps its size, so the table's owner does not
+        // lay the table out again. Row 1 does not change.
+        def row(a: String, b: String) = tr(td(a), td(b))
+        val sig            = Signal.initConst(row("a", "bbbbbbbb"))
+        val ui             = table(row("x", "y"), sig)
+        def env(second: UI): Scene =
+          Scene(_ => Some(Content.Single(second)), None, Size(20, 4), _ => 0)
+        val laid1          = Layout.layoutAll(ui, env(row("a", "bbbbbbbb")))
         val region         = laid1.regionOwner.keys.head
         val owner          = laid1.regionOwner(region)
-        // the region's text grows: the first column gets wider
         val (laid2, _)     =
-          Layout.relayout(laid1, owner, Set.empty, env("aaaaaaaa"), ui)
+          Layout.relayout(laid1, owner, Set.empty, env(row("aaaaaaaa", "b")), ui)
         val secondCells    = laid2.nodes.values.filter(n =>
           n.index == 1 && (n.kind match
               case Kind.El(_: UI.Ast.Td) => true
@@ -607,7 +604,7 @@ def f6_tests():
     "inputs" - {{
       "a range input shows its constant value" in {{
         assertScreen(
-          div.style(_.row)(rangeInput("r").value(50.0)),
+          div.style(_.row)(rangeInput.value(50.0)),
           12,
           1,
           "─────●──────",

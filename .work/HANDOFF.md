@@ -140,7 +140,8 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
   then Cats.
 - `main` = 863db67 (PR 1 squash-merged: build, CI, release automation, AGENTS.md). Nothing else is merged.
 - PRs 2, 3 and 4 are closed (old stack; their branches stay, plan 4.2). PR 5 stays open until the user closes it (C1 is
-  open as PR #10 since 2026-10-12). PR 7 (rulesets for main and the release tags, branch `claude/epic-bohr-eflkfz`) is
+  open as PR #10 since 2026-10-12; C2 as PR #11 against feat/kyoui-01-render, 2026-10-12 evening; this session
+  watches both). PR 7 (rulesets for main and the release tags, branch `claude/epic-bohr-eflkfz`) is
   open and is NOT from this session: do not touch it (plan 4.4: repo settings are the user's).
 - Old-stack branches (`feat/core-*`, `feat/zio`, `feat/cats`, `docs/docus`): unchanged. `feat/zio` and `feat/cats` are
   backups of work that is not merged. `first-take` is the user's own branch: do not touch.
@@ -165,7 +166,7 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
 
 ## Next steps, in order
 
-0. PENDING (claude 2026-10-12 14:40 UTC): a C1 fix round for the 6 Codex (review bot) P2 findings on PR #10, all in
+0. DONE 2026-10-12 about 18:00 UTC (claude): the C1 fix round for the 6 Codex (review bot) P2 findings on PR #10, all in
    the carried Layout/Props/Paint code and all REAL by reading: (F1) `wrap` splits a long word by chars, not cells
    (Layout.scala:114); (F2) flex-shrink `ceil` over-cuts (3 one-cell items in 2 cells render blank; :399); (F3) table
    relayout compares `tableCols == ctx.cols`, a tautology (:703); (F4) `rowReverse`/`columnReverse` lose the reverse
@@ -187,7 +188,10 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
    instead of `-Werror` (D-8 changed); kyo-test replaces munit in core; the surface guard (tasty-query); golden screen
    tests; AGENTS.md and README lines; PR template. Branch from `origin/main`. ASK before the push: the session's
    designated branch is `chore/cleanup-7p2rll`; the plan names `feat/kyoui-*` (plan 4.2 and 4.4).
-2. RUNNING since 2026-10-12 about 14:20 UTC (claude): W2 = workflow wf_4ed01b5c-abd, 9 agents (I, R1-R3, K1-K3, F, V), script
+2. DONE 2026-10-12 17:20 UTC (claude): W2 = workflow wf_4ed01b5c-abd (2.62 M tokens, 3 h 03 min, 9 agents, 466 tool
+   calls). C2 tip 6b72f3b (23 commits: 16 + 7 review fixes; 27 findings + 3 extras, all confirmed, 30 fixed, 4 not fixed
+   with reasons); then the merge of C1's round 2 = 5537217, check green (c2-merge-check.log); pushed; PR #11 opened against feat/kyoui-01-render
+   (see the chat). GATE 1 questions: the chat report of 2026-10-12 evening and DECISIONS tenth round. Was: 9 agents (I, R1-R3, K1-K3, F, V), script
    tui4s-w2-c2-regions-wf_4ed01b5c-abd.js in the session workflows dir (shape 8 + a final-runs agent V: 3 core test runs,
    one under taskset contention, the glitch suite with and without the scheduler values). Branch feat/kyoui-02-regions from
    feat/kyoui-01-render 66d9299, worktree .work/worktrees/feat-kyoui-02-regions. D-14 (a) and D-15 (a) TAKEN as RECs by

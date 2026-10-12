@@ -112,3 +112,27 @@ Eighth round (2026-10-11, gate 0, after W0; recorded by Claude from the user's a
   answered these two by name. C2 (W2) builds on them. An objection costs a fix round on C2.
 - W2 (C2) started without an explicit "go C2": the plan's order and the WIP limit P-11 (2 PRs above `main`) allow it,
   and the user's "continue" covers the plan's next step. The user can stop it.
+
+## Tenth round (2026-10-12 evening, gate 1 is OPEN; claude)
+
+<!-- claude 2026-10-12: created this section -->
+
+- C1 round 2: the six Codex findings on PR #10 are real bugs of the carried layout and paint code; fixed in six commits
+  (d028b2c, 49dfcf0, d0ac460, 707fd10, d46f2d0, f525808), each with a regression test and the negative control
+  (the tests fail at 66d9299). Decisions taken inside the fixes, open to the user: (a) flex-shrink rounding: the
+  largest fractions take the extra cuts, the LAST item first when equal (leading content survives, as with overflow);
+  (b) a percentage height under an auto-height parent is `auto` (CSS), definite = the screen, an explicit height, or a
+  size the flex parent imposed (`Layout.definiteContentH`); (c) reverse containers flip `justify` start/end (CSS).
+- Gate 1 questions (from W2; the user decides, none taken yet):
+  1. Seal `tui4s.internal` with `private[tui4s]` on its top-level types in C3 (REC of the API review), or leave it
+     bytecode-public and unsealed until the first release.
+  2. The glitch test: 0 split frames in 500 events, and 1 allowed only with `-Dtui4s.load=1` (the contention run).
+     On a 2-CPU CI runner under load the S1 rate gives a 1-3 percent chance of 1 split per run: keep the strict 0 in
+     CI, or set the flag in ci.yml?
+  3. The repair tick (1 s) re-renders a Reactive region whose UI holds handlers or nested signals once per second
+     (two renders never compare equal; no cells change; Kyo's own observe repair does the same). Accept until Kyo
+     fixes observe (#8), or compare Reactive content another way in C3?
+  4. The settle canary cancels itself on a JVM with one Kyo worker (a 2-CPU runner under load). Acceptable in CI, or
+     require a second worker (a fourth scheduler value beyond D-17 c)?
+  5. D-14 (a) java.time.Duration and D-15 (a) the quit value are now built and tested (TuiOptions, Headless.start):
+     confirm or object (an objection is a fix round on C2).

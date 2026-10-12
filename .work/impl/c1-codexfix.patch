@@ -442,7 +442,7 @@ index 8ec3965..532b54a 100644
 +    "inputs" - {
 +      "a range input shows its constant value" in {
 +        assertScreen(
-+          div.style(_.row)(rangeInput("r").value(50.0)),
++          div.style(_.row)(rangeInput.value(50.0)),
 +          12,
 +          1,
 +          "─────●──────",

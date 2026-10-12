@@ -1,0 +1,35 @@
+== 15:10 SplitProbe AFTER armkey (the working tree of the armkey commit), rounds=200, alone (load: 1.51 1.21 0.98 1/103 10574) ==
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-02-regions-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-02-regions/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-02-regions/)
+[info] Defining core / Test / javaOptions
+[info] The new value will be used by core / Test / bspBuildTargetJvmEnvironmentItem, core / Test / bspBuildTargetRun and 6 others.
+[info] 	Run `last` for details.
+[info] Reapplying settings...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-02-regions/)
+Running 1 suite(s) with parallelism 8
+
+[1m=== SplitProbe ===[0m
+[probe] split first write  rounds= 200 atOnce= 200 late300ms=  0 repaired1500ms=  0 lost=  0 maxMs=   38
+[probe] split steady       rounds= 200 atOnce= 200 late300ms=  0 repaired1500ms=  0 lost=  0 maxMs=    2
+  [1m[32m[PASS][0m[0m first write after the start, and steady writes  [2m(2.3s)[0m
+[2m---[0m SplitProbe: [32m1 passed[0m, [31m0 failed[0m  [2m(2.6s)[0m
+
+Results: [32m1 passed[0m, [31m0 failed[0m  (total: 2.6s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 7 s, completed Oct 12, 2026, 3:11:12 PM
+sbt exit 0

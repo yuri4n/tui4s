@@ -1,0 +1,173 @@
+C2 feat/kyoui-02-regions: implementer notes (agent I, 2026-10-12). Plain text, ASD-STE100.
+Worktree: .work/worktrees/feat-kyoui-02-regions, branch feat/kyoui-02-regions from feat/kyoui-01-render 66d9299.
+
+14:19 Read: PLAN 6.0, 6.2, 0, 3.1, 3.2; gates.md; S1 4.3/5/7; S2 2/3/4.3/6/9; DECISIONS eighth round; RC and OS rows; c1-pr-body, c1-notes.
+14:40 Read the sources: fe06611 (World, Mount, Runner, SchedulerProbe, Settle, Headless, Tui.scala, fixtures, AppsTest);
+      S2 runner-src (ensure + armkey modes), S2.test.scala, ObserveBound, LeakProbe, SplitProbe; S1 runner copy
+      (status probe, pull check, settleTimedOut/pulled); core-3-terminal SchedulerDefaults, Screen, ScreenTest,
+      NameClashTest, StrictEqualityTest; S6 REPORT + verify-carry.py; C1 AGENTS.md, README, PR template, build files;
+      Kyo RC7 Signal.scala (.work/scratch/kyo-src = RC7: observe at 116-147, holdUntilChanged 135-138),
+      Scheduler.status() (Scheduler.scala:584, top/Status.scala, WorkerStatus.load), kyo-test README (kyo-rc7/docs).
+      Facts:
+      - kyo-test: Test[Any] leaves are `Unit < (Async & Abort[Any] & Scope)`; leaves run in PARALLEL by default
+        (parallelism 0 = pool). A suite that uses Headless must set `override def config = super.config.sequential`.
+        `.ignore(reason)` skips the body; `.timeout(d)`; default per-leaf timeout 60 s; failOnNoAssertion on.
+      - sbt: Test / testForkedParallel default false (suites one at a time in the forked JVM).
+      - Signal: currentWith (Signal.scala:67), nextWith (:89); observe = one Async.race per value (:136, :142).
+        combineLatest.nextWith = awaitAny = Async.race(next) (:223, :286): a race per value stays for combineLatest
+        regions even with the own loop (Kyo-internal).
+      - Widgets.scala: plain kyo-ui (onClick, focusGroup are attributes). Dashboard needs it. Carry it (the task said
+        C3; the smallest correct thing is to carry it, nothing to cut).
+      - CounterStyles.scala: only Component + Hooks + Tui (C4, T1). Nothing is left after the cut: NOT carried; C4.
+      - Tui4sQuit (the quit Local) lives in Dispatch.scala (C3). Runner.scoped goes; D-15 quit value replaces it.
+      - Scope.ensure(v) exists (Scope.scala:51). Sync.ensure(f)(v) (Sync.scala:61).
+      Plan of the seams (private[tui4s]): internal.Knobs(seam: Int => Duration, repairInterval: Duration) as a Local;
+      Runner/Mount read it at start. Gauge: Runner.liveFibers (weak set in Mount + the tick fiber).
+14:34 step 0 build commit 646941e (fmt-clean before the carry: scalafmtSbtCheck green in c2-step0-compile.log; 0 warnings).
+      step 1 carry commit dc3cfb5: 12 files, 1042 lines, 20 'claude 20' marks (12 carry headers + 8 prototype marks:
+      FrameStats 1, Runner 5, Settle 1, Headless 1). c2-carry-verify.log: RESULT OK. Widgets.scala carried (Dashboard
+      needs it); CounterStyles.scala not carried (nothing left after the cut; C4).
+      step 2: marks 20 -> 0 (Runner probe-then-drain + confirm, Settle confirm, Headless awaitEnd explanations stay as
+      plain comments). sbt fmt: 8 files reformatted; diffstat carry -> format: 12 files +1147/-620 (-w: +799/-272);
+      lines after fmt: 1557 (main 1111: TuiOptions 23, FrameStats 30, World 94, Mount 353, Runner 397, SchedulerProbe 58,
+      Settle 27, Headless 129; fixtures 446).
+14:38 step 4a cut commit: 8 files +117/-400 (before fmt). core/Test/compile: 0 errors, 0 warnings after the cut
+      (c2-step4a-compile.log). The one E198 after the first cut was Mount.post (used only by the hook mount): cut too.
+      Step 3 (strict-flag fixes) has NOTHING to fix: S6's 25aab29 touched Component.scala, Layout.scala, AppsTest.scala
+      only, none of the C2 files. 0 changed lines for step 3.
+15:00 commits so far: e7e6be0 Screen (5 tests), cf41394 TuiOptions Kyo-free (2 tests), bc528ea Headless API (4 tests),
+      R1 ensure (WatcherTest 2 tests; negative control c2-r1-negative-control.log: both cases fail without the ensure).
+      LeakProbe 150 rounds (c2-leak-probe.log): interrupt 995 KB / 150 = 6.6 KB per run; quit 223 KB / 150 = 1.5 KB.
+      The 6.6 KB per interrupted run still has the observe leak of the first value (K29 is the next step).
+15:30 Commits after R1: 8062052 K29 loop + tick (WatcherTest 4; ObserveLeakProbe: observe 2303 B/write, runner loop 12,
+      bare loop 0: c2-observe-leak-probe.log), dc1a4b2 armkey (SeamTest 2; red c2-r2-seam-red.log 1109/1141 ms, green
+      c2-r2-seam-green.log; SplitProbe before/after 200/200 at once: c2-split-probe-before.log, -after.log),
+      e53a885 settle conditions (SettleTest 2), dbcae8c AppsTest 7, 776ba31 guard C2 part (negative control
+      c2-guard-negative-control.log), 810cfc7 lessons (NameClash 1, StrictEquality 1), eb65039 docs, 1a35c35 fmt.
+      Final: SBT_TPOLECAT_CI=1 sbt clean check at 1a35c35 alone: exit 0, 0 [warn], 0 [error], 54 passed, 3 ignored
+      (c2-check.log). greps: System.err/println in main 0; jatatui.widgets 0. version-order-test 55/55.
+      Sizes: main added from the format commit 866 (Knobs 33 + Screen 227 new; carried deltas Runner 265, Mount 145,
+      Headless 90, SchedulerProbe 31, FrameStats 18, TuiOptions 16, World 16, Settle 14; Paint 2, package 9);
+      build 30; docs 34; tests 1539 added (fixtures 394 carried + 1145 new). Whole PR: 37 files +3159/-23.
+      Flakes seen: the R1 interrupt test once read the gauge before the mount (cold JVM) -> the test now waits for
+      the mount. The first SeamTest draft measured from before `start` with a 200 ms seam -> seam 500 ms, limit 700 ms.
+
+== API review (RC-36), 1a35c35 ==
+Public, package tui4s: TuiOptions(autoFocus: Boolean = true, settle: Settle = Quiescent(100 ms)) derives CanEqual;
+  enum FrameCause { Initial, Input, Background } derives CanEqual; FrameStats(seq: Long, cause, repainted: Int,
+  flushed: Int, nanos: Long, updates: Int, handleNanos, settleNanos, renderNanos: Long = 0, focus: String = "",
+  endNanos: Long = 0, subtrees: Int = 0, repaired: Int = 0, settleTimeouts: Int = 0) derives CanEqual;
+  package object tui4s (Scaladoc only).
+Public, package tui4s.spi: enum Settle derives CanEqual { Quiescent(max: java.time.Duration, confirm: Int = 2);
+  Hops(hops: Int, window: java.time.Duration) }.
+Public, package tui4s.testkit: final class Headless (private constructor): quit: Unit < Sync; finished: Boolean < Sync;
+  awaitEnd(timeout: kyo.Duration): Boolean < Async; awaitScreen(predicate: Screen => Boolean, timeout: kyo.Duration):
+  Boolean < Async; screen: Screen < Sync; lines: Vector[String] < Sync; resize(w: Int, h: Int): FrameStats < Async;
+  nextFrame: FrameStats < Async; drainFrames: Vector[FrameStats] < Sync. object Headless.start(width: Int, height: Int,
+  options: TuiOptions = TuiOptions())(ui: (Unit < Sync) => UI < (Async & Scope))(using Frame): Headless < (Async & Scope).
+  final case class CellStyle(fg: Option[String], bg: Option[String], bold, dim, italic, underlined, reversed, crossedOut:
+  Boolean) derives CanEqual; CellStyle.plain. final case class Screen(rows: Vector[String], styles: Vector[Vector[CellStyle]],
+  cursor: Option[(Int, Int)]) derives CanEqual: text, row(y), contains(s), find(s), region(x, y, w, h), styleAt(x, y),
+  toString. Top-level: diffScreen(actual: Screen, expected: String): Option[String]; assertScreen(actual, expected): Unit.
+Kyo types in the public API: UI, <, Sync, Async, Scope, Frame; kyo.Duration in Headless only (a Kyo test kit; the
+  Kyo-free types TuiOptions and Settle use java.time.Duration). No jatatui type; no Kyo-internal type (kyo.scheduler is
+  used only inside tui4s.internal.SchedulerProbe through its public status()).
+private[tui4s] seams (bytecode-public; MiMa sees them): testkit.Headless.liveFibers; internal.Runner.liveFibers;
+  internal.Mount.track, liveFibers, unarmedRegions; internal.Knobs (case class: seam: Int => Duration,
+  repairInterval: Duration) and object Knobs (default, let, get: a Local that Headless.start reads); testkit.Screen.of
+  (backend) and of(buf, cursor); testkit.CellStyle.of(JStyle); internal.discard (C1); internal.Render (C1).
+tui4s.internal (public inside the package, bytecode-public): Msg, Source, ItemState, RegionState, World, Mount, Runner,
+  SchedulerProbe (C2); Loc, Rect, Size, Sides, Content, Scene, Kind, Node, Laid, Damage, Item, Flat, Layout, Canvas,
+  Paint, Dir, TextAttrs, Glyphs, Border, Props (C1).
+REC on sealing tui4s.internal: seal it in C3 (the next PR that reworks Runner and adds Dispatch): put `private[tui4s]`
+  on every top-level type of the package (about 40 one-word edits). Why: the facades live in tui4s.interop.* (inside the
+  tui4s namespace, other sbt modules), so they keep access; users and Scaladoc lose the internals; MiMa treats
+  private[tui4s] as public bytecode either way, so compat.sbt (Compatibility.None until the first release) does not change.
+  Not in C2, because the gate-1 review reads the internal shapes as they are, and a seal here would mix with the carry
+  delta of the P-8 guide.
+
+== K2 skeptic (2026-10-12, read only; one sbt check + at most 2 single-suite runs)
+15:55 SBT_TPOLECAT_CI=1 sbt check at 1a35c35, alone: exit 0, 0 [warn], 0 [error], 54 passed, 3 ignored (c2-k2-check.log).
+      zinc did not recompile (the implementer's clean check compiled under CI mode); the tree is stable.
+15:58 Reads: Runner, Mount, World, Headless, Knobs, Canvas, FrameStats, SchedulerProbe, Settle; the suites; Kyo RC7
+      Fiber.initUnscoped (IOTask parent = Absent: "Deliberately unparented"), IOTask.interrupt (an idle task claims the
+      word and drops its continuation), SignalRef.nextWith (uninterruptible next promise), Channel.put (offer, else a
+      parked putFiber), Sync.ensure (Bracket.ensuringWith); jatatui TestBackend.draw/resize, Buffer.indexOf/resize.
+      R2-1: the window is real: a remount inside absorb (settle), inside verify (then the re-check settle), or inside
+      the initial settleAndVerify starts watchers that are in the Loop state, not in `last`; the settle has async
+      points (hop = Fiber.initUnscoped(unit).get); an interrupt there leaves them parked on nextWith (unparented).
+      R2-2: two kernel steps (capture, then Sync.defer); a preemption + interrupt between them orphans the tick. Tiny.
+      R2-3: flush L504, put L538-551; awaitScreen polls the buffer; the gap is real (Kyo/OS preemption of the runner).
+      R2-4: backend.resize on the test fiber; TestBackend.draw -> cellAt -> indexOf throws outside the area.
+      R2-5..R2-9: docs gaps and test margins; see the structured output.
+16:00 Single-suite run 1: core/testOnly tui4s.SeamTest under contention (taskset -c 0,1 + 2 busy loops): c2-k2-SeamTest.log.
+16:02 SeamTest under contention (c2-k2-SeamTest.log): 1 passed, 1 FAILED: "R2: an EXTERNAL write in the arm window ..."
+      -> "the screen was right after 839 ms (ok=true)". The limit is 700 ms, measured from BEFORE Headless.start; the
+      repair tick is at run start + 1000 ms, so the verify pass did its job and only the wall-clock margin failed
+      (the first frame and the Armed step took about 340 ms under 2x2 contention: settle timeouts of 100 ms). The cascade
+      leaf passed. NEW finding (the reviewers missed it): the leaf fails the acceptance contention run. Fix: pin the
+      repair tick off (Knobs(repairInterval = 1.hour), as R2-9 asks) and drop the 700 ms limit (with the tick off, a
+      right screen within the 3 s awaitAll proves the verify pass), or measure from the arm, not from before start.
+16:03 Single-suite run 2: core/testOnly tui4s.AppsTest under the same contention: c2-k2-AppsTest.log.
+16:05 AppsTest under contention (c2-k2-AppsTest.log): 6 passed, 1 FAILED: glitch-free "split frames: 4 of 500" (allowance 1).
+      Three causes can give a counted split and the message prints only the sum: (1) R2-3's stats race (awaitScreen sees
+      the buffer before the FrameStats put; counts 2 per instance), (2) NEW: the event is two writes from the TEST fiber
+      (AppsTest L190); the prototype did both writes inside the key handler (proto test/Apps.test.scala L193-194), in the
+      runner's step before the settle. An OS slice between the two writes (1-4 ms under 2x2) beats the settle (2 hops), so
+      the runner flushes a's consequences and then b's: a real second frame, not a runner split. (3) a settle split
+      (S1: at most 0.58 per 10 000 under the same model, so at most about 0.03 of these 4). Fix: one ref with 4 (5)
+      derived regions, the bounded frame wait of R2-3, a per-cause breakdown in the message. The two-write event belongs
+      to C3 (a key handler).
+      Verdicts: R2-1..R2-9 all confirmed (R2-2 narrow; R2-9 for SeamTest, the AppsTest margin is 850 ms and held).
+      Extra: K2-1 SeamTest leaf 1 limit (839 ms under contention), K2-2 the non-atomic glitch event. Both block the
+      acceptance contention run as the tests stand; neither shows a runner defect. PR worktree untouched (git status clean).
+
+== F fixer (2026-10-12): the review fixes on feat/kyoui-02-regions (new commits on 1a35c35)
+16:09 Start. Machine quiet (no java). HEAD 1a35c35, clean. Plan: A runner (R2-1 interruptAll, R2-2 tick exit, R2-7 Repair
+      backlog, R2-8 b quit flag) + the R2-1 test; B testkit (R2-4 resize on the runner fiber, R2-8 a start fails fast) + tests;
+      C tests (R2-3 framesUntil, R2-9/R3-9 tick off, R3-1/K2-1 seam leaf, R3-2/K2-2 glitch one-ref event + load flag + print,
+      X-1, R1-7 RunnerSuite, R1-8 pull-check test); D docs and marks (R2-5, R2-6, R3-8, R1-5/R3-7, R1-6); E PR body
+      (R1-1, R1-2, R1-3, R1-4, R3-10, the review-fixes table). Negative controls: R2-1 (interruptAll off), the verify pass off.
+16:21 A: WatcherTest green with R2-1/R2-2/R2-7/R2-8 b (c2-fix-a-watcher.log); negative control (interruptAll off):
+      the new leaf red, the rest green (c2-fix-r2-1-negative-control.log). Commit 12034e4. scalafmt rewrapped one mark
+      in `step` into a block comment; repaired in the next commit (no amend).
+16:30 B: the R2-4 and R2-8 a leaves on the OLD kit: red (34 of 40 resizes without their frame, the run ended; start
+      timed out at 2 min) (c2-fix-b-negative-control.log); with the fix 6 passed (c2-fix-b-headless.log). Commit cbd0ad0.
+16:36 C: SeamTest, AppsTest, WatcherTest, SettleTest, NameClashTest green with the test fixes; [glitch] splits=0 of 500
+      (c2-fix-c-tests.log). Commits a57bb0d (robust counts, one-ref event, load flag, tick off), 83d654f (NameClash).
+16:38 C2: the pull-check leaf green (c2-fix-c2-settle.log); negative control 1 (pull check off): only that leaf red
+      (c2-fix-pull-negative-control.log); negative control 2 (verifyRegion no-op): SeamTest 2 red with the final text,
+      the pull-check leaf red, the K29 repair leaf red, the R1 leaves green (c2-fix-verify-negative-control.log). 65c51a8.
+16:40 D docs and marks: 46356d2 (AGENTS.md written by python, not refused).
+16:46 SBT_TPOLECAT_CI=1 sbt clean check at 46356d2, alone: exit 0, 0 [warn], 0 [error], 58 passed, 3 ignored (c2-fix-check.log).
+      version-order-test: 55 of 55 (c2-fix-version-order-test.log).
+16:48 Contention run (taskset -c 0,1 + 2 busy loops; -Dtui4s.load=1) of SeamTest, AppsTest, WatcherTest, SettleTest,
+      HeadlessTest (c2-fix-contention.log): 4 suites green ([glitch] splits=0 of 500, 1 settle timeout); SettleTest's
+      canary FAILED: settleNanos 71 ms, settleTimeouts 0: the write landed about 430 ms into the 500 ms spin (the test
+      fiber's sleep resumed late). Retrying canary (3 attempts, spin 1 s, valid iff the step started >= 150 ms before the
+      spin end): quiet green; under contention "no attempt ran its step early enough" (3.3 s = 3 spins): the write lands
+      only AFTER each spin: ONE Kyo worker on a 2-CPU JVM under load (minWorkers = cores/2; a RUNNABLE spin is not a
+      blocked worker; the regulator backs off under load). K3 predicted this case. Decision: the leaf cancels itself
+      (kyo-test `cancel`, visible as cancelled) when no attempt could be a canary; the quiet runs and a 4-CPU machine
+      run it. Not a runner defect; disclosed in the PR body.
+16:58 Commit 6b72f3b (the canary: 3 attempts, cancel with one worker; AGENTS.md sentence). SettleTest under contention:
+      2 passed, 1 cancelled, sbt exit 0 (c2-fix-contention-settle.log).
+17:02 Round 2: SBT_TPOLECAT_CI=1 sbt clean check at 6b72f3b, alone: exit 0, 0 [warn], 0 [error], 58 passed, 3 ignored
+      (c2-fix-check.log). version-order-test 55 of 55 (c2-fix-version-order-test.log). PR body rewritten
+      (c2-pr-body.txt): the cuts and the seams inline (R1-1), the counts (R1-2), 1109 ms (R1-3), autoFocus and the
+      mains (R1-4), P-6 row 4 red state (R3-10), the "Review fixes" table, P-12, the API review at the tip.
+      Not done: the text of issue #8 (GitHub); the optional repairAll heuristic (R2-5); a combineLatest mode of
+      ObserveLeakProbe (R2-6, optional); the LeakProbe not re-measured after interruptAll. Tree clean; no JVM left.
+
+== V final-runs agent (2026-10-12): the acceptance runs of plan 6.0 and 6.2 on feat/kyoui-02-regions at 6b72f3b
+17:06 Start. HEAD 6b72f3b, tree clean, JDK 25.0.4.1, no JVM on the machine (pgrep -x java: none), 4 CPUs, 15 GB.
+      Plan: 3 core/test runs in a row (run 2 under contention: taskset -c 0,1 + 2 pinned busy loops killed by PID;
+      the task's command has no -Dtui4s.load flag, so the glitch assertion is 0 also under contention), the glitch suite
+      (tui4s.AppsTest) with the Kyo scheduler values and with the tui4s values, the 3 greps, the final CI-mode check and
+      the version-order test. No code change. Logs: /home/user/tui4s/.work/impl/c2-final-*.log and c2-glitch-*.log.
+17:09 Run 1 (quiet): exit 0, 91 s, 58 passed, 0 failed, 3 ignored; [glitch] splits=0 of 500; SettleTest 3 passed (c2-final-run-1.log).
+17:10 Run 2 (CONTENTION: taskset -c 0,1, busy loops PIDs 25617 25618, killed by PID after the run): exit 0, 45 s, 57 passed, 0 failed, 3 ignored, 1 cancelled (the SettleTest canary cancels itself with one Kyo worker, as 6b72f3b says); [glitch] splits=0 of 500 (load flag: false) (c2-final-run-contention.log).
+17:11 Run 3 (quiet): exit 0, 23 s, 58 passed, 0 failed, 3 ignored; [glitch] splits=0 of 500; SettleTest 3 passed (c2-final-run-3.log). 3 of 3 green.
+17:12 Glitch suite (AppsTest) with the Kyo scheduler values (set --= the 3 flags; show javaOptions proves it): 7 passed, [glitch] splits=0 of 500, exit 0 (c2-glitch-kyo-values.log). With the tui4s values (build default): 7 passed, splits=0 of 500, exit 0 (c2-glitch-tui4s-values.log). Greps: System.err/println in core main 0 hits; jatatui.widgets in core 0 hits; getDeclaredField/setAccessible in core main 0 hits.
+17:14 Final check (SBT_TPOLECAT_CI=1 sbt clean check, alone): exit 0, 0 [warn], 0 [error], 58 passed, 3 ignored, scalafmt and versionPolicyCheck green (c2-final-check.log). version-order-test: 55 of 55 (c2-final-version-order-test.log). ALL GREEN. Next: the PR body (c2-pr-body.txt) with the final runs.
+17:16 PR body updated (c2-pr-body.txt, 256 lines): P-3 the base and the final check, P-13 the final check log and the table of the 3 runs (run 2 under contention), the section Acceptance (plan 6.0 and 6.2 items, the glitch comparison, the grep output), the logs list. No .md write was needed; no refusal. Tree clean at 6b72f3b, no JVM left. Done.

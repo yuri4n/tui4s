@@ -1,0 +1,34 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-02-regions-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-02-regions/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-02-regions/)
+[info] compiling 3 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-02-regions/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 2 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-02-regions/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Running 1 suite(s) with parallelism 8
+
+[1m=== ScreenTest ===[0m
+  [1m[32m[PASS][0m[0m styles: a bold coloured cell, and unset colours read as unset  [2m(234ms)[0m
+  [1m[32m[PASS][0m[0m a wide character takes two cells and one place in its row  [2m(233ms)[0m
+  [1m[32m[PASS][0m[0m text, rows, toString, region, cursor  [2m(245ms)[0m
+  [1m[32m[PASS][0m[0m assertScreen throws an AssertionError with the diff  [2m(39ms)[0m
+  [1m[32m[PASS][0m[0m diffScreen: None when equal, rows otherwise  [2m(252ms)[0m
+[2m---[0m ScreenTest: [32m5 passed[0m, [31m0 failed[0m  [2m(698ms)[0m
+
+Results: [32m5 passed[0m, [31m0 failed[0m  (total: 698ms)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 21 s, completed Oct 12, 2026, 2:45:33 PM
