@@ -15,11 +15,11 @@ private[tui4s] object Render:
 
     /** The screen buffer after one frame of `ui` on `w` x `h` cells. */
     def buffer(ui: UI, w: Int, h: Int, focus: Option[Loc] = None): Buffer =
-        val backend = TestBackend(w, h)
-        val canvas  = Canvas(backend)
-        val env     = Scene(_ => None, focus, Size(w, h), _ => 0)
-        val laid    = Layout.layoutAll(ui, env)
-        val damage  =
+        val backend    = TestBackend(w, h)
+        val canvas     = Canvas(backend)
+        val env        = Scene(_ => None, focus, Size(w, h), _ => 0)
+        val laid       = Layout.layoutAll(ui, env)
+        val damage     =
           Vector(Damage.Clear(Rect(0, 0, w, h), None), Damage.Paint(Loc.screen))
         val (rects, _) = Paint(canvas, laid, env, damage)
         discard(canvas.flush(rects))
@@ -29,10 +29,17 @@ private[tui4s] object Render:
     /** One string per row of `buffer`: the symbol of each cell. */
     def lines(buffer: Buffer): Vector[String] =
       Vector.tabulate(buffer.area.height) { y =>
-        (0 until buffer.area.width).map(x => buffer.cellAt(x, y).symbol()).mkString
+        (0 until buffer.area.width)
+          .map(x => buffer.cellAt(x, y).symbol())
+          .mkString
       }
 
     /** The rows of the screen after one frame of `ui` on `w` x `h` cells. */
-    def text(ui: UI, w: Int, h: Int, focus: Option[Loc] = None): Vector[String] =
+    def text(
+        ui: UI,
+        w: Int,
+        h: Int,
+        focus: Option[Loc] = None,
+    ): Vector[String] =
       lines(buffer(ui, w, h, focus))
 end Render

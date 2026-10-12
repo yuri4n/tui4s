@@ -16,13 +16,15 @@ import tastyquery.jdk.ClasspathLoaders
 /** The kyo-ui surface that the runner depends on, read from the TASTy of the
   * kyo-ui jar on the test class path (RC-12, C1 part): the types of
   * `kyo.UI.Ast` and the cases of `kyo.Style.Prop`. One line per item,
-  * `kind<TAB>name<TAB>detail`, the same format as the spike S3 guard. C2 and
-  * C3 add the hashes of the dispatch and region rules.
+  * `kind<TAB>name<TAB>detail`, the same format as the spike S3 guard. C2 and C3
+  * add the hashes of the dispatch and region rules.
   */
 // claude 2026-10-12: created (from .work/spikes/s3-drift/guard/Guard.scala)
 object KyoUiSurface:
 
-    /** One surface line. The key is `(kind, name)`; `detail` is what may change. */
+    /** One surface line. The key is `(kind, name)`; `detail` is what may
+      * change.
+      */
     final case class Item(kind: String, name: String, detail: String):
         def key: (String, String) = (kind, name)
         def line: String          = s"$kind\t$name\t$detail"
@@ -37,8 +39,8 @@ object KyoUiSurface:
     /** The lines of a list: `#` comments and blank lines are skipped. */
     def parse(lines: List[String]): List[Item] =
       lines.filter(l => l.nonEmpty && !l.startsWith("#")).map { l =>
-          val c = l.split("\t", -1)
-          Item(c(0), c(1), if c.length > 2 then c(2) else "")
+        val c = l.split("\t", -1)
+        Item(c(0), c(1), if c.length > 2 then c(2) else "")
       }
 
     /** The surface of the kyo-ui jar on this JVM's class path. */
@@ -59,8 +61,10 @@ object KyoUiSurface:
     def compare(now: List[Item], base: List[Item]): List[String] =
         val b       = base.map(i => i.key -> i).toMap
         val n       = now.map(i => i.key -> i).toMap
-        val added   = now.filterNot(i => b.contains(i.key)).map(i => s"ADDED\t${i.line}")
-        val removed = base.filterNot(i => n.contains(i.key)).map(i => s"REMOVED\t${i.line}")
+        val added   =
+          now.filterNot(i => b.contains(i.key)).map(i => s"ADDED\t${i.line}")
+        val removed =
+          base.filterNot(i => n.contains(i.key)).map(i => s"REMOVED\t${i.line}")
         val changed = now
           .filter(i => b.get(i.key).exists(_.detail != i.detail))
           .map(i => s"CHANGED\t${i.line}\twas: ${b(i.key).detail}")
@@ -82,7 +86,9 @@ object KyoUiSurface:
         /** All classes of the kyo-ui jar, nested ones too. */
         private lazy val allClasses: List[ClassSymbol] =
             def nested(c: ClassSymbol): List[ClassSymbol] =
-              c :: c.declarations.collect { case n: ClassSymbol => n }.flatMap(nested)
+              c :: c.declarations
+                .collect { case n: ClassSymbol => n }
+                .flatMap(nested)
             ctx
               .findSymbolsByClasspathEntry(kyoUi)
               .toList
@@ -117,7 +123,8 @@ object KyoUiSurface:
         private def tpe(t: Any): String = t match
             case t: TypeRef         => nm(t.name)
             case t: TermRef         => nm(t.name) + ".type"
-            case t: AppliedType     => tpe(t.tycon) + t.args.map(tpe).mkString("[", ",", "]")
+            case t: AppliedType     =>
+              tpe(t.tycon) + t.args.map(tpe).mkString("[", ",", "]")
             case t: ConstantType    => "'" + t.value.value.toString
             case t: ByNameType      => "=>" + tpe(t.resultType)
             case t: RepeatedType    => tpe(t.elemType) + "*"
@@ -134,7 +141,9 @@ object KyoUiSurface:
         /** Constructor fields of a class, by name. */
         private def fields(c: ClassSymbol): List[String] =
           c.declarations
-            .collect { case t: TermSymbol if t.isParamAccessor && !t.isMethod => t }
+            .collect {
+              case t: TermSymbol if t.isParamAccessor && !t.isMethod => t
+            }
             .map(f => s"${nm(f.name)}:${tpe(f.declaredType)}")
             .sorted
 
@@ -147,7 +156,9 @@ object KyoUiSurface:
               else "class"
             val parents = c.parents
               .map(tpe)
-              .filterNot(Set("Object", "Product", "Serializable", "Equals", "Any"))
+              .filterNot(
+                Set("Object", "Product", "Serializable", "Equals", "Any"),
+              )
               .mkString(",")
             s"$kind ${vis(c)} extends $parents"
         end shape
@@ -156,7 +167,9 @@ object KyoUiSurface:
         def astTypeItems: List[Item] =
             val ast = ctx.findStaticModuleClass("kyo.UI.Ast")
             allClasses
-              .filter(c => c.owner == ast && !c.isSynthetic && !full(c).endsWith("$"))
+              .filter(c =>
+                c.owner == ast && !c.isSynthetic && !full(c).endsWith("$"),
+              )
               .groupBy(full)
               .values
               .map(cs => cs.find(!_.isModuleClass).getOrElse(cs.head))
@@ -168,9 +181,10 @@ object KyoUiSurface:
         def propCaseItems: List[Item] =
             val prop = ctx.findStaticClass("kyo.Style.Prop")
             prop.companionClass.toList.flatMap(_.declarations).collect {
-              case t: TermSymbol if t.isEnumCase                                    =>
+              case t: TermSymbol if t.isEnumCase =>
                 Item("enum.case", s"${full(prop)}.${nm(t.name)}", "-")
-              case c: ClassSymbol if c.isCaseClass && c.isEnum && !c.isModuleClass =>
+              case c: ClassSymbol
+                  if c.isCaseClass && c.isEnum && !c.isModuleClass =>
                 Item(
                   "enum.case",
                   s"${full(prop)}.${nm(c.name)}",
@@ -180,6 +194,8 @@ object KyoUiSurface:
         end propCaseItems
 
         def all: List[Item] =
-          (astTypeItems ++ propCaseItems).distinctBy(_.key).sortBy(i => (i.kind, i.name))
+          (astTypeItems ++ propCaseItems)
+            .distinctBy(_.key)
+            .sortBy(i => (i.kind, i.name))
     end Reader
 end KyoUiSurface

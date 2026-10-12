@@ -25,12 +25,13 @@ abstract class ScreenSuite extends Test[Any]:
         AssertScope,
     ): Unit =
         val actual = screen(ui, w, h)
-        val want   = expected.split("\n", -1).toVector.map(_.replaceAll("\\s+$", ""))
+        val want   =
+          expected.split("\n", -1).toVector.map(_.replaceAll("\\s+$", ""))
         val padded = want ++ Vector.fill((h - want.size).max(0))("")
         assert(
           actual == padded,
           "screen differs\n--- expected:\n" + padded.mkString("\n") +
-              "\n--- actual:\n" + actual.mkString("\n"),
+            "\n--- actual:\n" + actual.mkString("\n"),
         )
     end assertScreen
 end ScreenSuite

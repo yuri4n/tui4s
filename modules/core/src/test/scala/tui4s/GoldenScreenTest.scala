@@ -31,7 +31,9 @@ class GoldenScreenTest extends ScreenSuite:
         )
       }
       "dashed, with the border colour on the glyphs" in {
-        val ui = div("hi").style(_.border(1.px, Style.BorderStyle.dashed, Style.Color.red))
+        val ui = div("hi").style(
+          _.border(1.px, Style.BorderStyle.dashed, Style.Color.red),
+        )
         assertScreen(
           ui,
           6,
@@ -40,7 +42,7 @@ class GoldenScreenTest extends ScreenSuite:
             |╎hi  ╎
             |└╌╌╌╌┘""".stripMargin,
         )
-        val b = buffer(ui, 6, 3)
+        val b  = buffer(ui, 6, 3)
         assert(b.cellAt(0, 0).fg == JColor.Rgb(239, 68, 68))
         assert(b.cellAt(1, 1).fg != JColor.Rgb(239, 68, 68))
       }
@@ -69,7 +71,7 @@ class GoldenScreenTest extends ScreenSuite:
         assert(b.cellAt(2, 0).modifier.contains(Modifier.ITALIC))
         assert(b.cellAt(4, 0).modifier.contains(Modifier.UNDERLINED))
         assert(!b.cellAt(2, 0).modifier.contains(Modifier.BOLD))
-        val h = buffer(h1("T"), 2, 1)
+        val h  = buffer(h1("T"), 2, 1)
         assert(h.cellAt(0, 0).modifier.contains(Modifier.BOLD))
         assert(h.cellAt(0, 0).modifier.contains(Modifier.UNDERLINED))
       }
@@ -81,28 +83,41 @@ class GoldenScreenTest extends ScreenSuite:
         assertScreen(div(span("a"), span("b")), 3, 3, "a\nb")
       }
       "justify: center, end, spaceBetween" in {
-        def row(j: Style.Justification) = div.style(_.row.justify(j))(span("ab"), span("cd"))
+        def row(j: Style.Justification) =
+          div.style(_.row.justify(j))(span("ab"), span("cd"))
         assertScreen(row(Style.Justification.center), 8, 1, "  abcd")
         assertScreen(row(Style.Justification.end), 8, 1, "    abcd")
         assertScreen(row(Style.Justification.spaceBetween), 8, 1, "ab    cd")
       }
       "flexGrow takes the free space of the row" in {
-        val ui = div.style(_.row)(span("a").style(_.flexGrow(1).bg(_.red)), span("b"))
+        val ui =
+          div.style(_.row)(span("a").style(_.flexGrow(1).bg(_.red)), span("b"))
         assertScreen(ui, 6, 1, "a    b")
         val b  = buffer(ui, 6, 1)
         assert(b.cellAt(4, 0).bg == JColor.Rgb(239, 68, 68))
         assert(b.cellAt(5, 0).bg != JColor.Rgb(239, 68, 68))
       }
       "flexGrow takes the free rows of a column" in {
-        val ui = div.style(_.height(3.px))(span("a").style(_.flexGrow(1)), span("b"))
+        val ui =
+          div.style(_.height(3.px))(span("a").style(_.flexGrow(1)), span("b"))
         assertScreen(ui, 3, 3, "a\n\nb")
       }
     }
 
     "gap and padding" - {
       "gap in a row and in a column" in {
-        assertScreen(div.style(_.row.gap(2.px))(span("ab"), span("cd")), 8, 1, "ab  cd")
-        assertScreen(div.style(_.gap(1.px))(span("a"), span("b")), 3, 3, "a\n\nb")
+        assertScreen(
+          div.style(_.row.gap(2.px))(span("ab"), span("cd")),
+          8,
+          1,
+          "ab  cd",
+        )
+        assertScreen(
+          div.style(_.gap(1.px))(span("a"), span("b")),
+          3,
+          3,
+          "a\n\nb",
+        )
       }
       "padding moves the content inside the box" in {
         assertScreen(div("x").style(_.padding(1.px, 2.px)), 7, 3, "\n  x")
@@ -173,8 +188,18 @@ class GoldenScreenTest extends ScreenSuite:
         // kyo-ui's base CSS has `ul, ol { list-style: none }`: a marker needs
         // an explicit list style
         assertScreen(ul(li("a"), li("b")), 5, 2, "a\nb")
-        assertScreen(ul(li("a"), li("b")).style(_.listStyle(_.disc)), 5, 2, "• a\n• b")
-        assertScreen(ol(li("a"), li("b")).style(_.listStyle(_.decimal)), 5, 2, "1. a\n2. b")
+        assertScreen(
+          ul(li("a"), li("b")).style(_.listStyle(_.disc)),
+          5,
+          2,
+          "• a\n• b",
+        )
+        assertScreen(
+          ol(li("a"), li("b")).style(_.listStyle(_.decimal)),
+          5,
+          2,
+          "1. a\n2. b",
+        )
       }
     }
 end GoldenScreenTest
