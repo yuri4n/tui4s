@@ -7,7 +7,6 @@ import kyo.UI.Ast.*
   * ever talk to the runner through these.
   */
 enum Msg:
-    case Key(ev: UI.KeyboardEvent, seq: Long)
     case Resize(size: Size, seq: Long)
     case Content(region: Loc, gen: Long, value: Any)
     case Quit
@@ -18,7 +17,6 @@ enum Source:
     case Many(fe: Foreach[Any, UI])
     case Bound(ref: SignalRef[?])
     case Local
-    case Comp(spec: ComponentSpec, key: String)
 
 /** One rendered item of a `Foreach` region. */
 final case class ItemState(key: String, index: Int, value: Any, ui: UI)
@@ -50,8 +48,6 @@ final case class World(
     dirtyRegions: Vector[Loc],
     dirtyNodes: Set[Loc],
     full: Boolean,
-    comps: Map[String, SignalRef[Any]],
-    pending: Set[Loc],
     backlog: Vector[Msg],
     updates: Int,
     quit: Boolean,
@@ -85,8 +81,6 @@ object World:
         Vector.empty,
         Set.empty,
         true,
-        Map.empty,
-        Set.empty,
         Vector.empty,
         0,
         false,

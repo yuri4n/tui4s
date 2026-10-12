@@ -2,9 +2,6 @@ package tui4s.testkit
 
 import jatatui.core.backend.TestBackend
 import kyo.*
-import kyo.UI.Keyboard
-import kyo.UI.KeyboardEvent
-import kyo.UI.Modifiers
 import tui4s.FrameCause
 import tui4s.FrameStats
 import tui4s.TuiOptions
@@ -42,35 +39,6 @@ final class Headless private (
     /** The cell at (x, y) of the screen (to check colors). */
     def cell(x: Int, y: Int)(using Frame): jatatui.core.buffer.Cell < Sync =
       Sync.defer(backend.buffer().cellAt(x, y).copy())
-
-    /** Sends a key and waits for its frame. Background frames that come first
-      * are returned too (in order).
-      */
-    def press(ev: KeyboardEvent)(using Frame): FrameStats < Async =
-      seq.getAndIncrement
-        .map { n =>
-          inbox.put(Msg.Key(ev, n)).andThen {
-            Loop.foreach {
-              frames.take.map { s =>
-                if s.cause == FrameCause.Input && s.seq == n then Loop.done(s)
-                else Loop.continue
-              }
-            }
-          }
-        }
-        .handle(Abort.run[Closed])
-        .map(_.getOrThrow)
-
-    def key(k: Keyboard, ctrl: Boolean = false, shift: Boolean = false)(using
-        Frame,
-    ): FrameStats < Async =
-      press(KeyboardEvent(k, Modifiers(ctrl = ctrl, shift = shift), Absent))
-
-    def char(c: Char)(using Frame): FrameStats < Async =
-      key(if c == ' ' then Keyboard.Space else Keyboard.Char(c))
-
-    def typeText(s: String)(using Frame): Chunk[FrameStats] < Async =
-      Kyo.foreach(Chunk.from(s.toSeq))(char)
 
     def resize(w: Int, h: Int)(using Frame): FrameStats < Async =
       seq.getAndIncrement
@@ -123,7 +91,7 @@ object Headless:
           canvas  <- Sync.defer(Canvas(backend))
           runner   = Runner(inbox, canvas, options, Present(frames))
           seq     <- AtomicLong.init(1L)
-          run     <- Fiber.init(runner.scoped(ui.map(runner.run)))
+          run     <- Fiber.init(ui.map(runner.run))
           _       <- Abort.run[Closed](frames.take).map(_.getOrThrow)
       yield Headless(inbox, frames, backend, seq, run)
 end Headless

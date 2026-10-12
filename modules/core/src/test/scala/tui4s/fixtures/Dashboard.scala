@@ -2,7 +2,6 @@ package tui4s.fixtures
 
 import kyo.*
 import kyo.UI.*
-import tui4s.Tui
 
 /** The Dashboard in plain kyo-ui: tabs (Left / Right), a gauge and a sparkline
   * fed by a 250 ms sampler, a log pane fed by a stream, `p` pauses the sampler
@@ -99,16 +98,7 @@ object Dashboard:
       )
 
     def view(s: State): UI =
-      div.onKeyDown {
-        case KeyboardEvent(Keyboard.ArrowLeft, _, _)  =>
-          s.tab.updateAndGet(t => (t + series.size - 1) % series.size)
-        case KeyboardEvent(Keyboard.ArrowRight, _, _) =>
-          s.tab.updateAndGet(t => (t + 1) % series.size)
-        case KeyboardEvent(Keyboard.Char('p'), _, _)  =>
-          s.paused.updateAndGet(!_)
-        case KeyboardEvent(Keyboard.Char('q'), _, _)  => Tui.quit
-        case _                                        => ()
-      }(
+      div(
         div
           .style(_.row.gap(2.px))(h1("Dashboard"), Widgets.tabs(s.tab, series)),
         overview(s),
@@ -135,6 +125,3 @@ object Dashboard:
                )
       yield view(s)
 end Dashboard
-
-object DashboardMain extends KyoApp:
-    run(Tui.run(Dashboard.app))

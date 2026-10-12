@@ -1,7 +1,6 @@
 package tui4s.internal
 
 import kyo.*
-import kyo.UI.Keyboard
 import tui4s.FrameCause
 import tui4s.FrameStats
 import tui4s.spi.Settle
@@ -24,35 +23,24 @@ final class Runner(
     stats: Maybe[Channel[FrameStats]],
 ):
 
-    private def quitAction(using Frame): Unit < Sync =
-      Abort.run[Closed](inbox.offer(Msg.Quit)).unit
-    private val mount                                = Mount(inbox)
-    private val dispatch                             = Dispatch(quitAction)
+    private val mount = Mount(inbox)
 
     private def nanos(using Frame): Long < Sync =
       Sync.defer(java.lang.System.nanoTime())
 
-    /** Runs `v` with this run's quit action in scope (the UI's construction, so
-      * fibers it starts can quit too).
-      */
-    def scoped[A, S](v: => A < S)(using Frame): A < S =
-      Tui4sQuit.let(quitAction)(v)
-
     def run(root: UI)(using Frame): Unit < Async =
-      Tui4sQuit.let(quitAction) {
-        for
-            t0 <- nanos
-            w0 <- mount.walk(
-                    root,
-                    Loc.root,
-                    World.init(root, canvas.size),
-                    Map.empty,
-                  )
-            w1 <- frame(w0, 0L, FrameCause.Initial, t0)
-            wn <- Loop(w1)(step)
-            _  <- mount.unmountAll(wn)
-        yield ()
-      }
+      for
+          t0 <- nanos
+          w0 <- mount.walk(
+                  root,
+                  Loc.root,
+                  World.init(root, canvas.size),
+                  Map.empty,
+                )
+          w1 <- frame(w0, 0L, FrameCause.Initial, t0)
+          wn <- Loop(w1)(step)
+          _  <- mount.unmountAll(wn)
+      yield ()
 
     private def step(
         w: World,
@@ -67,7 +55,6 @@ final class Runner(
                 w3          <- settle(w2)
                 t2          <- nanos
                 (seq, cause) = msg match
-                                   case Msg.Key(_, s)    => (s, FrameCause.Input)
                                    case Msg.Resize(_, s) =>
                                      (s, FrameCause.Input)
                                    case _                => (0L, FrameCause.Background)
@@ -84,20 +71,14 @@ final class Runner(
               case _                 => (Msg.Quit, w)
             }
 
-    private def isCtrlC(ev: UI.KeyboardEvent): Boolean =
-      ev.key == Keyboard.Char('c') && ev.modifiers.ctrl
-
     private def handle(w: World, msg: Msg)(using Frame): World < Async =
       msg match
-          case Msg.Key(ev, _) if options.ctrlCQuits && isCtrlC(ev) =>
-            w.copy(quit = true)
-          case Msg.Key(ev, _)                                      => dispatch.onKey(w, ev)
-          case Msg.Resize(size, _)                                 =>
+          case Msg.Resize(size, _) =>
             Sync
               .defer(canvas.resize(size))
               .andThen(w.copy(size = size, full = true))
-          case c: Msg.Content                                      => apply(w, c)
-          case Msg.Quit                                            => w.copy(quit = true)
+          case c: Msg.Content      => apply(w, c)
+          case Msg.Quit            => w.copy(quit = true)
 
     /** A region's new value. Late messages of an unmounted watcher (old
       * generation) are dropped.
@@ -106,21 +87,20 @@ final class Runner(
       w.regions.get(c.region) match
           case Some(r) if r.gen == c.gen =>
             r.source match
-                case Source.One(_) | Source.Comp(_, _) =>
+                case Source.One(_)   =>
                   val content = Content.Single(c.value.asInstanceOf[UI])
                   if r.content == content then w
                   else
                       val w1 = w.copy(
                         regions = w.regions
                           .updated(c.region, r.copy(content = content)),
-                        pending = w.pending - c.region,
                       )
                       mount.remount(
                         w1.markRegion(c.region).copy(updates = w1.updates + 1),
                         c.region,
                       )
                   end if
-                case Source.Many(fe)                   =>
+                case Source.Many(fe) =>
                   val items = mount.reconcile(
                     fe,
                     r.items,
@@ -140,7 +120,7 @@ final class Runner(
                         c.region,
                       )
                   end if
-                case Source.Bound(_)                   =>
+                case Source.Bound(_) =>
                   if r.content == Content.Value(c.value) then w
                   else
                       w.copy(
@@ -150,7 +130,7 @@ final class Runner(
                         ),
                         updates = w.updates + 1,
                       ).markNode(c.region)
-                case Source.Local                      => w
+                case Source.Local    => w
           case _                         => w
 
     private def absorb(w: World, msg: Msg)(using Frame): World < Sync =
@@ -173,71 +153,52 @@ final class Runner(
     private def settle(w: World)(using Frame): World < Async =
       nanos.map { start =>
         Loop(w, 0, start) { (w, quiet, last) =>
-          if w.pending.nonEmpty then
-              /* a component mount is running its effect: its first content will
-               * come, wait for it (bounded) */
-              Abort
-                .run[Timeout | Closed](
-                  Async.timeout(options.pendingTimeout)(inbox.take),
-                )
-                .map {
-                  case Result.Success(m) =>
-                    absorb(w, m)
-                      .map(w1 => nanos.map(t => Loop.continue(w1, 0, t)))
-                  case _                 =>
-                    nanos.map(t =>
-                      Loop.continue(w.copy(pending = Set.empty), 0, t),
-                    )
-                }
-          else
-              /* The order is "probe, THEN drain". A loop that drains first,
-               * finds nothing, and then reads the probe */
-              /* can miss a watcher that posted between the drain and the probe:
-               * it is parked again when the probe */
-              /* runs, so the probe says "quiescent" and the frame flushes
-               * without that value (it gets its own */
-              /* Background frame). Seen on a 4-CPU container under CPU
-               * contention: 2-5 split frames per 500 events */
-              /* in the glitch test. "Done" needs the probe to say quiescent
-               * BEFORE a drain that finds nothing. */
-              val idleBefore = options.settle match
-                  case Settle.Quiescent(_, _) => SchedulerProbe.quiescent()
-                  case Settle.Hops(_, _)      => true
-              Abort.run[Closed](inbox.drain).map {
-                case Result.Success(msgs) if msgs.nonEmpty =>
-                  Kyo
-                    .foldLeft(msgs)(w)(absorb)
-                    .map(w1 => nanos.map(t => Loop.continue(w1, 0, t)))
-                case _                                     =>
-                  nanos.map { now =>
-                    options.settle match
-                        /* `quiet` counts quiescent observations in a row (each
-                         * followed by an empty drain); */
-                        /* the settle ends after `confirm` of them, one hop
-                         * apart. */
-                        case Settle.Quiescent(max, confirm) =>
-                          if idleBefore && quiet + 1 >= confirm then
-                              Loop.done(w)
-                          else if now - start > max.toNanos then
-                              if SchedulerProbe.debug then
-                                  java.lang.System.err.println(
-                                    s"tui4s: settle timed out: ${SchedulerProbe.describe()}",
-                                  )
-                              Loop.done(w)
-                          else
-                              hop.andThen(
-                                Loop.continue(
-                                  w,
-                                  if idleBefore then quiet + 1 else 0,
-                                  last,
-                                ),
+          /* The order is "probe, THEN drain". A loop that drains first, finds
+           * nothing, and then reads the probe */
+          /* can miss a watcher that posted between the drain and the probe:
+           * it is parked again when the probe */
+          /* runs, so the probe says "quiescent" and the frame flushes without
+           * that value (it gets its own */
+          /* Background frame). Seen on a 4-CPU container under CPU contention:
+           * 2-5 split frames per 500 events */
+          /* in the glitch test. "Done" needs the probe to say quiescent BEFORE
+           * a drain that finds nothing. */
+          val idleBefore = options.settle match
+              case Settle.Quiescent(_, _) => SchedulerProbe.quiescent()
+              case Settle.Hops(_, _)      => true
+          Abort.run[Closed](inbox.drain).map {
+            case Result.Success(msgs) if msgs.nonEmpty =>
+              Kyo
+                .foldLeft(msgs)(w)(absorb)
+                .map(w1 => nanos.map(t => Loop.continue(w1, 0, t)))
+            case _                                     =>
+              nanos.map { now =>
+                options.settle match
+                    /* `quiet` counts quiescent observations in a row (each
+                     * followed by an empty drain); */
+                    // the settle ends after `confirm` of them, one hop apart.
+                    case Settle.Quiescent(max, confirm) =>
+                      if idleBefore && quiet + 1 >= confirm then Loop.done(w)
+                      else if now - start > max.toNanos then
+                          if SchedulerProbe.debug then
+                              java.lang.System.err.println(
+                                s"tui4s: settle timed out: ${SchedulerProbe.describe()}",
                               )
-                        case Settle.Hops(hops, window)      =>
-                          if quiet >= hops && now - last >= window.toNanos then
-                              Loop.done(w)
-                          else hop.andThen(Loop.continue(w, quiet + 1, last))
-                  }
+                          Loop.done(w)
+                      else
+                          hop.andThen(
+                            Loop.continue(
+                              w,
+                              if idleBefore then quiet + 1 else 0,
+                              last,
+                            ),
+                          )
+                    case Settle.Hops(hops, window)      =>
+                      if quiet >= hops && now - last >= window.toNanos then
+                          Loop.done(w)
+                      else hop.andThen(Loop.continue(w, quiet + 1, last))
               }
+          }
         }
       }
     end settle

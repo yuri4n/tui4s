@@ -9,9 +9,6 @@ import kyo.UI.Ast.*
   */
 final class Mount(inbox: Channel[Msg]):
 
-    private def post(path: Loc, gen: Long, v: Any)(using Frame): Unit < Async =
-      Abort.run[Closed](inbox.put(Msg.Content(path, gen, v))).unit
-
     private def watch[A](signal: Signal[A], path: Loc, gen: Long)(using
         Frame,
     ): Fiber[Any, Nothing] < Sync =
@@ -86,49 +83,47 @@ final class Mount(inbox: Channel[Msg]):
               case (acc, (c, i)) => walk(c, path :+ i.toString, acc, reclaim)
             }
           case r: Reactive[?]     =>
-            ComponentSpec.lookup(r.signal) match
-                case Some(spec) => mountComponent(spec, path, w, reclaim)
-                case None       =>
-                  reclaim.get(path) match
-                      case Some(
-                            old @ RegionState(
-                              _,
-                              Source.One(sig),
-                              _,
-                              Content.Single(c),
-                              _,
-                              _,
-                            ),
-                          ) if sig eq r.signal =>
-                        walk(
-                          c,
-                          path :+ "~",
-                          w.copy(regions = w.regions.updated(path, old)),
-                          reclaim,
-                        )
-                      case _ =>
-                        val (gen, w1) = w.gen
-                        for
-                            cur     <- r.signal.current
-                            watcher <- watch(r.signal, path, gen)
-                            region   = RegionState(
-                                         path,
-                                         Source.One(r.signal),
-                                         gen,
-                                         Content.Single(cur),
-                                         Vector.empty,
-                                         Some(watcher),
-                                       )
-                            w2      <- walk(
-                                         cur,
-                                         path :+ "~",
-                                         w1.copy(regions =
-                                           w1.regions.updated(path, region),
-                                         ),
-                                         reclaim,
-                                       )
-                        yield w2
-                        end for
+            reclaim.get(path) match
+                case Some(
+                      old @ RegionState(
+                        _,
+                        Source.One(sig),
+                        _,
+                        Content.Single(c),
+                        _,
+                        _,
+                      ),
+                    ) if sig eq r.signal =>
+                  walk(
+                    c,
+                    path :+ "~",
+                    w.copy(regions = w.regions.updated(path, old)),
+                    reclaim,
+                  )
+                case _ =>
+                  val (gen, w1) = w.gen
+                  for
+                      cur     <- r.signal.current
+                      watcher <- watch(r.signal, path, gen)
+                      region   = RegionState(
+                                   path,
+                                   Source.One(r.signal),
+                                   gen,
+                                   Content.Single(cur),
+                                   Vector.empty,
+                                   Some(watcher),
+                                 )
+                      w2      <- walk(
+                                   cur,
+                                   path :+ "~",
+                                   w1.copy(regions =
+                                     w1.regions.updated(path, region),
+                                   ),
+                                   reclaim,
+                                 )
+                  yield w2
+                  end for
+            end match
           case fe0: Foreach[?, ?] =>
             /* Erasure-forced: a Foreach carries its own A for signal, key and
              * render (kyo-ui's `applyTyped` is private). */
@@ -204,104 +199,6 @@ final class Mount(inbox: Channel[Msg]):
             }
           case _                  => w
 
-    private def mountComponent(
-        spec: ComponentSpec,
-        path: Loc,
-        w: World,
-        reclaim: Map[Loc, RegionState],
-    )(using Frame): World < Sync =
-      spec match
-          case ComponentSpec.Instance(c)          =>
-            val key       = s"${path.mkString("/")}|${c.getClass.getName}"
-            val (gen, w1) = w.gen
-            for
-                state   <- w1.comps.get(key) match
-                               case Some(ref) =>
-                                 Kyo.lift(ref.asInstanceOf[SignalRef[c.State]])
-                               case None      =>
-                                 given CanEqual[c.State, c.State] =
-                                   CanEqual.derived
-                                 Signal.initRef[c.State](c.initial)
-                content  = c.view(state)
-                /* the old mount's effects stop; a new one starts for the new
-                 * instance (with the kept state) */
-                _       <- reclaim
-                             .get(path)
-                             .flatMap(_.watcher)
-                             .fold(Kyo.unit)(_.interrupt.unit)
-                effects <-
-                  Fiber.initUnscoped(
-                    Abort.run[Throwable](Scope.run(c.onMount(state))).unit,
-                  )
-                region   = RegionState(
-                             path,
-                             Source.Comp(spec, key),
-                             gen,
-                             Content.Single(content),
-                             Vector.empty,
-                             Some(effects),
-                           )
-                w2      <- walk(
-                             content,
-                             path :+ "~",
-                             w1.copy(
-                               regions = w1.regions.updated(path, region),
-                               comps = w1.comps
-                                 .updated(key, state.asInstanceOf[SignalRef[Any]]),
-                             ),
-                             reclaim.removed(path),
-                           )
-            yield w2
-            end for
-          case ComponentSpec.Hook(identity, body) =>
-            reclaim.get(path) match
-                case Some(
-                      old @ RegionState(
-                        _,
-                        Source.Comp(ComponentSpec.Hook(id, _), _),
-                        _,
-                        content,
-                        _,
-                        _,
-                      ),
-                    ) if id == identity =>
-                  val w1 = w.copy(regions = w.regions.updated(path, old))
-                  content match
-                      case Content.Single(c) =>
-                        walk(c, path :+ "~", w1, reclaim)
-                      case _                 => w1.copy(pending = w1.pending + path)
-                case _ =>
-                  val (gen, w1) = w.gen
-                  Fiber
-                    .initUnscoped(
-                      Abort
-                        .run[Throwable](
-                          Scope.run(
-                            body()
-                              .map(ui => post(path, gen, ui))
-                              .andThen(Async.never[Unit]),
-                          ),
-                        )
-                        .unit,
-                    )
-                    .map { fiber =>
-                      w1.copy(
-                        regions = w1.regions.updated(
-                          path,
-                          RegionState(
-                            path,
-                            Source.Comp(spec, identity),
-                            gen,
-                            Content.Pending,
-                            Vector.empty,
-                            Some(fiber),
-                          ),
-                        ),
-                        pending = w1.pending + path,
-                      )
-                    }
-            end match
-
     /** Replaces the content of the region at `path` (already updated in `w`),
       * mounting the regions in its new content and unmounting the old ones it
       * no longer has.
@@ -325,25 +222,9 @@ final class Mount(inbox: Channel[Msg]):
             .foreachDiscard(stale.toSeq)(r =>
               r.watcher.fold(Kyo.unit)(_.interrupt.unit),
             )
-            .andThen(gcComps(w1))
+            .andThen(w1)
         }
     end remount
-
-    /** Drops the state of components that are no longer mounted. */
-    def gcComps(w: World): World =
-        val live = w.regions.values.collect {
-          case RegionState(
-                _,
-                Source.Comp(_: ComponentSpec.Instance, key),
-                _,
-                _,
-                _,
-                _,
-              ) =>
-            key
-        }.toSet
-        w.copy(comps = w.comps.filter((k, _) => live.contains(k)))
-    end gcComps
 
     /** Unmounts every region (end of the run). */
     def unmountAll(w: World)(using Frame): Unit < Sync =

@@ -5,7 +5,6 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import kyo.*
 import kyo.UI.*
-import tui4s.Tui
 
 /** The Todo app in plain kyo-ui. Components are plain functions of signals and
   * actions.
@@ -84,13 +83,9 @@ object Todo:
         else Style.empty),
       )
 
-    def list(
-        rows: Signal[Chunk[Row]],
-        onKey: KeyboardEvent => Any < Async,
-    ): UI =
+    def list(rows: Signal[Chunk[Row]]): UI =
       ul.id("list")
         .tabIndex(0)
-        .onKeyDown(onKey)
         .style(
           _.border(1.px, Style.Color.slate)
             .minHeight(4.px)
@@ -111,75 +106,30 @@ object Todo:
 
     def app(file: String): UI < (Async & Scope) =
       for
-          loaded  <- load(file)
-          items   <- Signal.initRef(loaded)
-          draft   <- Signal.initRef("")
-          cursor  <- Signal.initRef(0)
-          status  <- Signal.initRef(s"loaded ${loaded.size} items from $file")
-          nextId  <- AtomicInt.init(loaded.size + 1)
-          rows     =
+          loaded <- load(file)
+          items  <- Signal.initRef(loaded)
+          draft  <- Signal.initRef("")
+          cursor <- Signal.initRef(0)
+          status <- Signal.initRef(s"loaded ${loaded.size} items from $file")
+          nextId <- AtomicInt.init(loaded.size + 1)
+          rows    =
             items
               .combineLatest(cursor)
               .map((ts, c) => ts.zipWithIndex.map((t, i) => Row(t, i == c)))
-          count    = items.map(ts => s"${ts.count(!_.done)} open / ${ts.size}")
-          add      = draft.get.map { text =>
-                       if text.trim.isEmpty then ()
-                       else
-                           nextId.getAndIncrement
-                             .map(id =>
-                               items.updateAndGet(_ :+ Item(id, text.trim, false)),
-                             )
-                             .andThen(draft.set(""))
-                     }
-          atCursor = (f: (Chunk[Item], Int) => Chunk[Item]) =>
-                       cursor.get.map(c =>
-                         items.updateAndGet(ts =>
-                           if c >= 0 && c < ts.size then f(ts, c) else ts,
-                         ),
-                       )
-          toggle   =
-            atCursor((ts, c) => ts.updated(c, ts(c).copy(done = !ts(c).done)))
-          delete   = atCursor((ts, c) => ts.take(c) ++ ts.drop(c + 1)).map(ts =>
-                       cursor.updateAndGet(c => c.min(ts.size - 1).max(0)),
-                     )
-          move     = (d: Int) =>
-                       items.get.map(ts =>
-                         cursor.updateAndGet(c =>
-                           (c + d).max(0).min((ts.size - 1).max(0)),
-                         ),
-                       )
-          /* The result type is load-bearing: without it the match widens to
-           * `Any` and kyo lifts the effects as plain */
-          /* values, so they never run (the "lift trap"; see REPORT.md section
-           * 5). */
-          listKeys = (e: KeyboardEvent) =>
-                       (e.key match
-                           case Keyboard.ArrowUp | Keyboard.Char('k')   =>
-                             move(-1)
-                           case Keyboard.ArrowDown | Keyboard.Char('j') =>
-                             move(1)
-                           case Keyboard.Space                          => toggle
-                           case Keyboard.Char('d')                      => delete
-                           case _                                       => ()
-                       ): Any < Async
-          saveAll  = items.get.map(ts =>
-                       Abort.run[java.io.IOException](save(file, ts)).map {
-                         case Result.Success(_) =>
-                           status.set(s"saved ${ts.size} items to $file")
-                         case other             => status.set(s"save failed: $other")
-                       },
-                     )
-      yield main.onKeyDown {
-        case KeyboardEvent(Keyboard.Char('s'), mods, _) if mods.ctrl => saveAll
-        case KeyboardEvent(Keyboard.Escape, _, _)                    => Tui.quit
-        case _                                                       => ()
-      }(
+          count   = items.map(ts => s"${ts.count(!_.done)} open / ${ts.size}")
+          add     = draft.get.map { text =>
+                      if text.trim.isEmpty then ()
+                      else
+                          nextId.getAndIncrement
+                            .map(id =>
+                              items.updateAndGet(_ :+ Item(id, text.trim, false)),
+                            )
+                            .andThen(draft.set(""))
+                    }
+      yield main(
         header(count),
         inputBar(draft, add),
-        list(rows, listKeys),
+        list(rows),
         footer(status),
       )
 end Todo
-
-object TodoMain extends KyoApp:
-    run(Tui.run(Todo.app(sys.env.getOrElse("TODO_FILE", "todos.txt"))))
