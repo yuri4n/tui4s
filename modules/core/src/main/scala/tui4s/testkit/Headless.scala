@@ -28,11 +28,16 @@ final class Headless private (
     backend: TestBackend,
     seq: AtomicLong,
     run: Fiber[Unit, Scope],
+    runner: Runner,
 ):
     /** Ends the run. The same action as the quit value that `start` gave the
       * UI.
       */
     def quit(using Frame): Unit < Sync = Headless.quitOf(inbox)
+
+    /** The fibers of the run that have not ended: the R1 gauge for tests. */
+    // claude 2026-10-12: created (RC-8)
+    private[tui4s] def liveFibers(using Frame): Int < Sync = runner.liveFibers
 
     /** True when the run has ended. */
     def finished(using Frame): Boolean < Sync = run.done
@@ -137,7 +142,7 @@ object Headless:
           runner   = Runner(inbox, canvas, options, Present(frames))
           seq     <- AtomicLong.init(1L)
           run     <- Fiber.init(ui(quitOf(inbox)).map(runner.run))
-          h        = Headless(inbox, frames, backend, seq, run)
+          h        = Headless(inbox, frames, backend, seq, run, runner)
           // it quits and waits before its scope ends (RC-7)
           _       <- Scope.ensure(h.quit.andThen(h.awaitEnd(5.seconds)))
           _       <- Abort.run[Closed](frames.take).map(_.getOrThrow)

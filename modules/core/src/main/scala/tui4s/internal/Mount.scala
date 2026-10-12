@@ -9,16 +9,47 @@ import kyo.UI.Ast.*
   */
 final class Mount(inbox: Channel[Msg]):
 
+    // claude 2026-10-12: created (R1, RC-8): the fibers this run started that
+    // have not ended, for the live-fiber gauge of the tests. Weak, so that the
+    // gauge itself keeps no fiber alive.
+    private val started =
+      java.util.Collections.synchronizedSet(
+        java.util.Collections.newSetFromMap(
+          new java.util.WeakHashMap[Fiber[Any, Nothing], java.lang.Boolean](),
+        ),
+      )
+
+    /** Adds a fiber of this run to the gauge. */
+    private[tui4s] def track(f: Fiber[Any, Nothing]): Unit =
+      discard(started.add(f))
+
+    /** The fibers of this run that have not ended (the watchers and the fibers
+      * the runner tracked): the R1 gauge for tests.
+      */
+    private[tui4s] def liveFibers(using Frame): Int < Sync =
+        import scala.jdk.CollectionConverters.*
+        Sync
+          .defer(started.synchronized(started.asScala.toList))
+          .map(fs =>
+            Kyo.foldLeft(fs)(0)((n, f) =>
+              f.done.map(d => if d then n else n + 1),
+            ),
+          )
+    end liveFibers
+
+    // claude 2026-10-12: changed: the watcher joins the gauge
     private def watch[A](signal: Signal[A], path: Loc, gen: Long)(using
         Frame,
     ): Fiber[Any, Nothing] < Sync =
-      Fiber.initUnscoped(
-        Abort
-          .run[Closed](
-            signal.observe(v => inbox.put(Msg.Content(path, gen, v))),
-          )
-          .unit,
-      )
+      Fiber
+        .initUnscoped(
+          Abort
+            .run[Closed](
+              signal.observe(v => inbox.put(Msg.Content(path, gen, v))),
+            )
+            .unit,
+        )
+        .map(f => Sync.defer { track(f); f })
 
     /** The `SignalRef` an element is bound to (`.value(ref)` or
       * `.checked(ref)`), as kyo-ui's `collectSignalRef`.

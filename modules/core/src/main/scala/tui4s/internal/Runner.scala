@@ -28,19 +28,43 @@ final class Runner(
     private def nanos(using Frame): Long < Sync =
       Sync.defer(java.lang.System.nanoTime())
 
+    // claude 2026-10-12: created (R1 option b, RC-8): the last world, so that
+    // `stop` can unmount it when the run ends in any way
+    private val last =
+      new java.util.concurrent.atomic.AtomicReference[Option[World]](None)
+
+    private def remember(w: World)(using Frame): World < Sync =
+      Sync.defer { last.set(Some(w)); w }
+
+    /** The fibers of this run that have not ended: a gauge for tests (R1). */
+    private[tui4s] def liveFibers(using Frame): Int < Sync = mount.liveFibers
+
+    /** Stops the watchers of the last world. It interrupts them and does not
+      * wait for them.
+      */
+    private def stop(using Frame): Unit < Sync =
+      Sync.defer(last.get()).map(_.fold(Kyo.unit)(mount.unmountAll))
+
+    // claude 2026-10-12: changed (R1 option b, RC-8): `unmountAll` runs in a
+    // `Sync.ensure` around the run, so an interrupted run stops its watchers
+    // too. It does not wait for them: a run-owned Scope (option a) waits for a
+    // CPU-bound watcher and breaks the end order (spike S2, gates.md G2).
     def run(root: UI)(using Frame): Unit < Async =
-      for
-          t0 <- nanos
-          w0 <- mount.walk(
-                  root,
-                  Loc.root,
-                  World.init(root, canvas.size),
-                  Map.empty,
-                )
-          w1 <- frame(w0, 0L, FrameCause.Initial, t0)
-          wn <- Loop(w1)(step)
-          _  <- mount.unmountAll(wn)
-      yield ()
+      Sync.ensure(stop) {
+        for
+            t0 <- nanos
+            w0 <- mount
+                    .walk(
+                      root,
+                      Loc.root,
+                      World.init(root, canvas.size),
+                      Map.empty,
+                    )
+                    .map(remember)
+            w1 <- frame(w0, 0L, FrameCause.Initial, t0).map(remember)
+            _  <- Loop(w1)(step)
+        yield ()
+      }
 
     private def step(
         w: World,
@@ -50,15 +74,16 @@ final class Runner(
           next(w).map { (msg, w1) =>
             for
                 t0          <- nanos
-                w2          <- handle(w1.copy(updates = 0), msg)
+                w2          <- handle(w1.copy(updates = 0), msg).map(remember)
                 t1          <- nanos
-                w3          <- settle(w2)
+                w3          <- settle(w2).map(remember)
                 t2          <- nanos
                 (seq, cause) = msg match
                                    case Msg.Resize(_, s) =>
                                      (s, FrameCause.Input)
                                    case _                => (0L, FrameCause.Background)
                 w4          <- frame(w3, seq, cause, t0, t1 - t0, t2 - t1)
+                                 .map(remember)
             yield Loop.continue(w4)
           }
 
