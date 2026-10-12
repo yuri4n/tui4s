@@ -1,11 +1,16 @@
-// tui4s: declarative terminal UIs for Scala 3.
+// tui4s: a terminal runner for kyo-ui, in Scala 3.
+// claude 2026-10-12: changed this header: tui4s runs kyo-ui (line 1, core line)
 //
 // Published modules (each one has its own releases; see AGENTS.md):
-//   core -> io.github.yuri4n::tui4s-core  (Kyo + jatatui)
+//   core -> io.github.yuri4n::tui4s-core  (kyo-ui on Kyo + jatatui)
 //   zio  -> io.github.yuri4n::tui4s-zio   (ZIO integration)
 //   cats -> io.github.yuri4n::tui4s-cats  (Cats Effect integration)
 // ModuleVersioning and sbt-ci-release set `version` and `publishTo`. Never set
 // them here.
+
+// claude 2026-10-12: created: sbt-tpolecat types that build.sbt uses
+import org.typelevel.sbt.tpolecat.DevMode
+import org.typelevel.scalacoptions.ScalacOptions
 
 ThisBuild / organization      := "io.github.yuri4n"
 ThisBuild / homepage          := Some(url("https://github.com/yuri4n/tui4s"))
@@ -20,13 +25,24 @@ ThisBuild / developers        := List(
 )
 ThisBuild / scalaVersion      := Versions.scala
 ThisBuild / semanticdbEnabled := true
-ThisBuild / scalacOptions ++= Seq(
-  "-deprecation",
-  "-feature",
-  "-Wunused:all",
-  "-Wvalue-discard",
-  "-Wnonunit-statement",
-  "-Yexplicit-nulls",
+
+// Compiler options (D-8). sbt-tpolecat sets them. Its default set for Scala 3
+// has -deprecation, -feature, -unchecked, -Wvalue-discard,
+// -Wnonunit-statement and the -Wunused:* checks. On a developer machine the
+// warnings stay warnings (DevMode). CI sets the environment variable
+// SBT_TPOLECAT_CI, which adds -Werror (CiMode). To get the CI behaviour in a
+// local sbt session, run `tpolecatCiMode` first.
+// claude 2026-10-12: created: the two settings below replace the hand-written
+// scalacOptions list
+ThisBuild / tpolecatDefaultOptionsMode := DevMode
+ThisBuild / tpolecatDevModeOptions ++= Set(
+  // Reference types are not nullable. Java results get flexible types.
+  ScalacOptions.privateExplicitNulls,
+  // Each inlined Kyo method that carries @nowarn adds this warning, with no
+  // source position, under -Wunused. It says nothing about our code.
+  ScalacOptions.other(
+    "-Wconf:msg=@nowarn annotation does not suppress any warnings:s",
+  ),
 )
 
 // Unreleased inter-project deps have dynver versions like 0.2.0+3-1a2b3c4d.

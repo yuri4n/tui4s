@@ -16,6 +16,9 @@ jobs:
   sbt:
     name: Format, compile, test, compatibility
     runs-on: ubuntu-latest
+    # claude 2026-10-12: created: sbt-tpolecat CI mode, a warning fails the build (D-8)
+    env:
+      SBT_TPOLECAT_CI: "1"
     steps:
       - uses: actions/checkout@v7
         with:
