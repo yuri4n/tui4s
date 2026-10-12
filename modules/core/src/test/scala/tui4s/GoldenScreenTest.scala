@@ -210,6 +210,18 @@ class GoldenScreenTest extends ScreenSuite:
       }
     }
 
+    // claude 2026-10-12: created (PR #10 review: Codex, Layout.scala:264)
+    "percentage sizes" - {
+      "a percentage height is relative to the parent, not to the screen" in {
+        val ui = div.style(_.height(4.px))(
+          div("x").style(_.height(50.pct).bg(_.red)),
+        )
+        val b  = buffer(ui, 4, 20)
+        assert(b.cellAt(0, 1).bg == JColor.Rgb(239, 68, 68))
+        assert(b.cellAt(0, 2).bg != JColor.Rgb(239, 68, 68))
+      }
+    }
+
     "decorations" - {
       "a button has brackets; list items have markers" in {
         // in a row the button keeps its natural width; a root block stretches

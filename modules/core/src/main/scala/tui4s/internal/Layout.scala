@@ -226,6 +226,7 @@ object Layout:
     def measureItem(
         item: Item,
         availW: Int,
+        availH: Option[Int],
         parent: Props,
         env: Scene,
         listStyle: Option[ListStyle],
@@ -254,45 +255,60 @@ object Layout:
             Measured(
               item,
               p,
-              measureElement(e, item.path, p, availW - p.margin.h, env),
+              measureElement(
+                e,
+                item.path,
+                p,
+                availW - p.margin.h,
+                availH.map(h => (h - p.margin.v).max(0)),
+                env,
+              ),
             )
           case _          => Measured(item, Props.neutral(parent.text), Size.zero)
 
+    /** @param availH
+      *   the height of the containing block when it is definite: a percentage
+      *   height is relative to it. `None` makes a percentage height `auto`, as
+      *   in CSS.
+      */
     def measureElement(
         e: Element,
         path: Loc,
         p: Props,
         availW: Int,
+        availH: Option[Int],
         env: Scene,
     ): Size =
-        val ins           = p.insets
-        val fixedW        = p.width.flatMap(Props.cells(_, availW, env.screen.h))
-        val inner         = (fixedW.getOrElse(availW) - ins.h).max(0)
-        val content: Size = intrinsic(e).getOrElse {
+        val ins                            = p.insets
+        val fixedW                         = p.width.flatMap(Props.cells(_, availW, env.screen.h))
+        /* claude 2026-10-12: changed (PR #10 review: Codex, Layout.scala:264):
+         * a */
+        // percentage height was relative to the screen
+        def cellsH(l: Length): Option[Int] = l match
+            case Length.Pct(v) => availH.map(h => (v * h / 100).toInt)
+            case _             => Props.cells(l, 0, env.screen.h)
+        val fixedH                         = p.height.flatMap(cellsH)
+        val inner                          = (fixedW.getOrElse(availW) - ins.h).max(0)
+        val innerH                         = fixedH.map(h => (h - ins.v).max(0))
+        val content: Size                  = intrinsic(e).getOrElse {
           e match
               case _: Table => tableSize(e, path, p, inner, env)._2
               case _        =>
                 val flat     = itemsOf(e, path, env)
                 val measured = flat.items.zipWithIndex.map((it, i) =>
-                  measureItem(it, inner, p, env, p.listStyle, i),
+                  measureItem(it, inner, innerH, p, env, p.listStyle, i),
                 )
                 combine(p, measured)
         }
-        val w             = fixedW.getOrElse(content.w + ins.h)
-        val h             = p.height
-          .flatMap(Props.cells(_, env.screen.h, env.screen.h))
-          .getOrElse(content.h + ins.v)
+        val w                              = fixedW.getOrElse(content.w + ins.h)
+        val h                              = fixedH.getOrElse(content.h + ins.v)
         Size(
           clamp(
             w,
             p.minW.flatMap(Props.cells(_, availW, env.screen.h)),
             p.maxW.flatMap(Props.cells(_, availW, env.screen.h)),
           ),
-          clamp(
-            h,
-            p.minH.flatMap(Props.cells(_, env.screen.h, env.screen.h)),
-            p.maxH.flatMap(Props.cells(_, env.screen.h, env.screen.h)),
-          ),
+          clamp(h, p.minH.flatMap(cellsH), p.maxH.flatMap(cellsH)),
         )
     end measureElement
 
@@ -342,7 +358,7 @@ object Layout:
             row.path,
             env,
           ).items.zipWithIndex.map((c, i) =>
-            measureItem(c, inner, rp, env, None, i).size.w,
+            measureItem(c, inner, None, rp, env, None, i).size.w,
           )
         }
         val ncols = cells.map(_.size).maxOption.getOrElse(0)
@@ -526,13 +542,24 @@ object Layout:
         env: Scene,
         root: UI,
     ): (Vector[Measured], Vector[Loc], Vector[Int]) =
-        val inner = node.content.w
+        val inner               = node.content.w
+        /* claude 2026-10-12: created (PR #10 review: Codex, Layout.scala:264):
+         * the height */
+        // that the kids' percentages resolve against: the content height when
+        // this node's height is definite (the screen, an explicit height, or
+        // a size that the flex parent imposed), else none
+        val availH: Option[Int] = node.kind match
+            case Kind.Screen => Some(node.content.h)
+            case _
+                if node.props.height.isDefined || node.rect.h != node.natural.h =>
+              Some(node.content.h)
+            case _           => None
         node.kind match
             case Kind.Screen       =>
               val flat = flatten(root, Loc.root, Nil, env)
               (
                 flat.items.zipWithIndex.map((it, i) =>
-                  measureItem(it, inner, node.props, env, None, i),
+                  measureItem(it, inner, availH, node.props, env, None, i),
                 ),
                 flat.regions,
                 Vector.empty,
@@ -547,7 +574,7 @@ object Layout:
               }
               (
                 rows.zipWithIndex.map((it, i) =>
-                  measureItem(it, inner, node.props, env, None, i),
+                  measureItem(it, inner, availH, node.props, env, None, i),
                 ),
                 flat.regions,
                 Vector.empty,
@@ -559,6 +586,7 @@ object Layout:
                   measureItem(
                     it,
                     inner,
+                    availH,
                     node.props,
                     env,
                     node.props.listStyle,
@@ -673,8 +701,9 @@ object Layout:
           case (Kind.Txt(a, _), b: Text) => a == b.value
           case _                         => false
 
-    // claude 2026-10-12: changed: the unused parameter `kids` is removed
-    private def naturalOf(node: Node, env: Scene): Size =
+    // claude 2026-10-12: changed: the unused parameter `kids` is removed;
+    // changed (PR #10 review: Codex, Layout.scala:264): `availH` added
+    private def naturalOf(node: Node, availH: Option[Int], env: Scene): Size =
       node.kind match
           case Kind.Screen    => node.natural
           case Kind.El(e)     =>
@@ -683,6 +712,7 @@ object Layout:
               node.path,
               node.props,
               node.availW - node.props.margin.h,
+              availH.map(h => (h - node.props.margin.v).max(0)),
               env,
             )
           case Kind.Txt(_, _) => node.natural
@@ -787,7 +817,12 @@ object Layout:
                 ),
               )
               val propsChanged       = node.props != node0.props
-              val newNatural         = naturalOf(updatedNode, env)
+              /* claude 2026-10-12: changed (PR #10 review: Codex,
+               * Layout.scala:264): the */
+              // owner's content height, as `measuredKids` gives it
+              val ownerH             =
+                node.owner.flatMap(laid3.nodes.get).map(_.content.h)
+              val newNatural         = naturalOf(updatedNode, ownerH, env)
               (node.owner, newNatural != node0.natural || propsChanged) match
                   case (Some(owner), true) =>
                     relayout(laid3, owner, Set(container), env, root)
