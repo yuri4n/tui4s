@@ -104,7 +104,18 @@ object Todo:
 
     // ---- the app ----
 
-    def app(file: String): UI < (Async & Scope) =
+    // claude 2026-10-12: created (RC-19): the state, the init, the add action
+    // and the view are separate, so that a test writes the refs
+    /** The refs of the app. */
+    final case class State(
+        items: SignalRef[Chunk[Item]],
+        draft: SignalRef[String],
+        cursor: SignalRef[Int],
+        status: SignalRef[String],
+        nextId: AtomicInt,
+    )
+
+    def init(file: String): State < Sync =
       for
           loaded <- load(file)
           items  <- Signal.initRef(loaded)
@@ -112,24 +123,31 @@ object Todo:
           cursor <- Signal.initRef(0)
           status <- Signal.initRef(s"loaded ${loaded.size} items from $file")
           nextId <- AtomicInt.init(loaded.size + 1)
-          rows    =
-            items
-              .combineLatest(cursor)
-              .map((ts, c) => ts.zipWithIndex.map((t, i) => Row(t, i == c)))
-          count   = items.map(ts => s"${ts.count(!_.done)} open / ${ts.size}")
-          add     = draft.get.map { text =>
-                      if text.trim.isEmpty then ()
-                      else
-                          nextId.getAndIncrement
-                            .map(id =>
-                              items.updateAndGet(_ :+ Item(id, text.trim, false)),
-                            )
-                            .andThen(draft.set(""))
-                    }
-      yield main(
-        header(count),
-        inputBar(draft, add),
-        list(rows),
-        footer(status),
-      )
+      yield State(items, draft, cursor, status, nextId)
+
+    /** The add action: the draft becomes a new item (Enter in the input). */
+    def add(s: State): Unit < Sync =
+      s.draft.get.map { text =>
+        if text.trim.isEmpty then ()
+        else
+            s.nextId.getAndIncrement
+              .map(id => s.items.updateAndGet(_ :+ Item(id, text.trim, false)))
+              .andThen(s.draft.set(""))
+      }.unit
+
+    def view(s: State): UI =
+        val rows  =
+          s.items
+            .combineLatest(s.cursor)
+            .map((ts, c) => ts.zipWithIndex.map((t, i) => Row(t, i == c)))
+        val count = s.items.map(ts => s"${ts.count(!_.done)} open / ${ts.size}")
+        main(
+          header(count),
+          inputBar(s.draft, add(s)),
+          list(rows),
+          footer(s.status),
+        )
+    end view
+
+    def app(file: String): UI < (Async & Scope) = init(file).map(view)
 end Todo
