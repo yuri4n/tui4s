@@ -613,11 +613,8 @@ object Layout:
           case (Kind.Txt(a, _), b: Text) => a == b.value
           case _                         => false
 
-    private def naturalOf(
-        node: Node,
-        kids: Vector[Measured],
-        env: Scene,
-    ): Size =
+    // claude 2026-10-12: changed: the unused parameter `kids` is removed
+    private def naturalOf(node: Node, env: Scene): Size =
       node.kind match
           case Kind.Screen    => node.natural
           case Kind.El(e)     =>
@@ -727,7 +724,7 @@ object Layout:
                 ),
               )
               val propsChanged       = node.props != node0.props
-              val newNatural         = naturalOf(updatedNode, kids, env)
+              val newNatural         = naturalOf(updatedNode, env)
               (node.owner, newNatural != node0.natural || propsChanged) match
                   case (Some(owner), true) =>
                     relayout(laid3, owner, Set(container), env, root)
