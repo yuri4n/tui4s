@@ -57,6 +57,13 @@ ThisBuild / tpolecatExcludeOptions += ScalacOptions.privateCheckAllPatmat
 ThisBuild / versionPolicyIgnoredInternalDependencyVersions :=
   Some("^\\d+\\.\\d+\\.\\d+\\+\\d+".r)
 
+// One test JVM at a time (D-9). The core tests settle on the JVM-wide Kyo
+// scheduler. A second test JVM on the same CPUs raises the rate of split
+// frames (spike S1: 3 JVMs on 2 CPUs gave 0.67 to 1.50 per 10 000). With this
+// limit, sbt runs the forked test JVMs of the modules one after the other.
+// claude 2026-10-12: created
+Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
+
 /** A published module in `modules/<id>`, versioned from its `<id>-v*` tags. */
 def module(id: String): Project =
   Project(id, file(s"modules/$id"))
