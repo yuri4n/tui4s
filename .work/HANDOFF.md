@@ -170,7 +170,12 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
    instead of `-Werror` (D-8 changed); kyo-test replaces munit in core; the surface guard (tasty-query); golden screen
    tests; AGENTS.md and README lines; PR template. Branch from `origin/main`. ASK before the push: the session's
    designated branch is `chore/cleanup-7p2rll`; the plan names `feat/kyoui-*` (plan 4.2 and 4.4).
-2. **C2 (W2, shape 8)** with the gate 0 outcomes: R1 option (b) (AtomicReference last world + unmountAll in
+2. RUNNING since 2026-10-12 about 14:20 UTC (claude): W2 = workflow wf_4ed01b5c-abd, 9 agents (I, R1-R3, K1-K3, F, V), script
+   tui4s-w2-c2-regions-wf_4ed01b5c-abd.js in the session workflows dir (shape 8 + a final-runs agent V: 3 core test runs,
+   one under taskset contention, the glitch suite with and without the scheduler values). Branch feat/kyoui-02-regions from
+   feat/kyoui-01-render 66d9299, worktree .work/worktrees/feat-kyoui-02-regions. D-14 (a) and D-15 (a) TAKEN as RECs by
+   the 3.1 rule (gates.md: 'REC (a) stays'); the user can object. If this session is lost: read the journal.jsonl in the
+   workflow transcript dir before a resume. **C2 (W2, shape 8)** with the gate 0 outcomes: R1 option (b) (AtomicReference last world + unmountAll in
    `Sync.ensure`), armkey (D-16), the own watcher loop with the repair tick (K29 option 2; TODO issue #8), the settle
    conditions of D-17 (c) (public scheduler probe, tui4s scheduler values in `TuiApp` and the test JVM, re-check after
    settle, `awaitScreen`; TODO issue #9).

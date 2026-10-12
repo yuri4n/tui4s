@@ -99,3 +99,16 @@ Eighth round (2026-10-11, gate 0, after W0; recorded by Claude from the user's a
   wiki: no credentials here (private repo; the proxy serves only the main repo).
 - The 3.1 RECs (D-3, D-5, D-9, D-10, D-12, D-13, D-16, D-18): proposed as "I take my recommendations unless you
   object". The user did not object.
+
+## Ninth round (2026-10-12, after gate 0; claude)
+
+<!-- claude 2026-10-12: created this section -->
+
+- The user said "ok let's continue" to the W1 report that asked for a yes to push `feat/kyoui-01-render` and open its
+  PR. Taken as the yes: the branch is pushed; PR #10 `feat(core): a kyo-ui value renders to cells` is open against
+  `main`; CI green. The stack uses the plan's branch names (plan 4.2, 4.4), not the session's designated branch.
+- D-14 (duration type) and D-15 (quit as a value): TAKEN as REC (a) by the 3.1 rule ("I take my recommendations unless
+  you object"; gates.md "The decisions of section 3.2": "REC (a) stays", no W0 data). ASSUMED: the user has not
+  answered these two by name. C2 (W2) builds on them. An objection costs a fix round on C2.
+- W2 (C2) started without an explicit "go C2": the plan's order and the WIP limit P-11 (2 PRs above `main`) allow it,
+  and the user's "continue" covers the plan's next step. The user can stop it.
