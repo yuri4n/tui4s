@@ -1,0 +1,47 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38765 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project c2-negcontrol-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/c2-negcontrol/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/c2-negcontrol/)
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/c2-negcontrol/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38765 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+[1m=== HeadlessTest ===[0m
+  [1m[32m[PASS][0m[0m the quit value ends the run; awaitEnd and finished see it  [2m(338ms)[0m
+  [1m[32m[PASS][0m[0m resize: the frame of the resize lays the content out again  [2m(37ms)[0m
+  [1m[32m[PASS][0m[0m resize while a signal writes fast: the runner resizes the backend, so no frame hits a smaller buffer  [2m(564ms)[0m
+  [1m[31m[FAIL][0m[0m screen is never a torn frame: a read during a flush sees one value on every row  [2m(645ms)[0m *** FAILED ***
+
+    assert(torn._2 > 0, s"DIAG: ${torn._2} torn reads of ${torn._1}")
+    // message: DIAG: 0 torn reads of 6776
+
+  [1m[32m[PASS][0m[0m start fails fast when the UI fails, with the error  [2m(16ms)[0m
+  [1m[32m[PASS][0m[0m idle: no frame without a change  [2m(1.8s)[0m
+  [1m[32m[PASS][0m[0m awaitScreen: true before the timeout; false after it when nothing changes  [2m(328ms)[0m
+[2m---[0m HeadlessTest: [32m6 passed[0m, [31m1 failed[0m  [2m(4.2s)[0m
+FAILURES (1):
+  screen is never a torn frame: a read during a flush sees one value on every row  [FAIL]
+    assert(torn._2 > 0, s"DIAG: ${torn._2} torn reads of ${torn._1}")
+    // message: DIAG: 0 torn reads of 6776
+
+Results: [32m6 passed[0m, [31m1 failed[0m  (total: 4.2s)
+[info] kyo-test: no tests matched the filter (-z, torn)
+[error] Failed tests:
+[error] 	tui4s.HeadlessTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 27 s, completed Oct 12, 2026, 5:53:05 PM

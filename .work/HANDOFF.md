@@ -190,7 +190,11 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
    designated branch is `chore/cleanup-7p2rll`; the plan names `feat/kyoui-*` (plan 4.2 and 4.4).
 2. DONE 2026-10-12 17:20 UTC (claude): W2 = workflow wf_4ed01b5c-abd (2.62 M tokens, 3 h 03 min, 9 agents, 466 tool
    calls). C2 tip 6b72f3b (23 commits: 16 + 7 review fixes; 27 findings + 3 extras, all confirmed, 30 fixed, 4 not fixed
-   with reasons); then the merge of C1's round 2 = 5537217, check green (c2-merge-check.log); pushed; PR #11 opened against feat/kyoui-01-render
+   with reasons); then the merge of C1's round 2 = 5537217, check green (c2-merge-check.log); pushed; PR #11 opened against feat/kyoui-01-render. ROUND 2 on PR #11 (Codex, 3 findings): the torn screen read
+   fixed (2aa65a0: the backend's monitor in Canvas.flush/resize and Headless.screen/lines; Knobs.flushSeam; test);
+   AGENTS.md reworded (79ac684: a frame is a batch); 'separate frames for independent writes' and 'concurrent
+   resize callers' NOT built (replies on the threads; the threads stay open for the user). Tip 79ac684, check green
+   (c2-fix2-check.log)
    (see the chat). GATE 1 questions: the chat report of 2026-10-12 evening and DECISIONS tenth round. Was: 9 agents (I, R1-R3, K1-K3, F, V), script
    tui4s-w2-c2-regions-wf_4ed01b5c-abd.js in the session workflows dir (shape 8 + a final-runs agent V: 3 core test runs,
    one under taskset contention, the glitch suite with and without the scheduler values). Branch feat/kyoui-02-regions from

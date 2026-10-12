@@ -136,3 +136,8 @@ Eighth round (2026-10-11, gate 0, after W0; recorded by Claude from the user's a
      require a second worker (a fourth scheduler value beyond D-17 c)?
   5. D-14 (a) java.time.Duration and D-15 (a) the quit value are now built and tested (TuiOptions, Headless.start):
      confirm or object (an objection is a fix round on C2).
+- C2 round 2 (PR #11, Codex): (a) the kit's screen read holds the backend's monitor (a real torn read, shown with a
+  widened flush: 29 of 1856 torn without the monitor, 0 with it; the natural window is microseconds). (b) NOT built,
+  the user decides: separate frames for independent writes that land inside one settle (Kyo signals carry no cause,
+  so a render per message brings back split frames; AGENTS.md now says a frame is a batch), and per-request replies
+  for two fibers that call `resize` at once (the kit is single-driver by its Scaladoc).
