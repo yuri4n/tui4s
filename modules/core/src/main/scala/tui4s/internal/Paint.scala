@@ -1,6 +1,7 @@
 package tui4s.internal
 
 import jatatui.core.backend.Backend
+import jatatui.core.backend.TestBackend
 import jatatui.core.buffer.Buffer
 import jatatui.core.buffer.BufferUpdate
 import jatatui.core.layout.Rect as JRect
@@ -35,7 +36,15 @@ final class Canvas private (
         writes = 0
         w
 
+    /** A new size. A `TestBackend` (the headless kit) has no terminal that
+      * resizes it, so the canvas resizes it here: on the runner fiber, the one
+      * fiber that writes the backend (it is not thread-safe).
+      */
+    // claude 2026-10-12: changed (review R2-4): the TestBackend is resized here
     def resize(s: Size): Unit =
+        backend match
+            case tb: TestBackend => tb.resize(s.w, s.h)
+            case _               => ()
         back = Buffer.empty(JRect.of(0, 0, s.w, s.h))
         front = Buffer.empty(JRect.of(0, 0, s.w, s.h))
         backend.clear()

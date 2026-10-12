@@ -145,9 +145,9 @@ final class Runner(
             next(w).map { (msg, w1) =>
               for
                   t0          <- nanos
-                  /* claude 2026-10-12: changed (D-16, armkey): the young
-                   * regions */
-                  // shift by one step; the verify pass runs after the settle
+                  // claude 2026-10-12: changed (D-16, armkey): the young
+                  // regions shift by one step; the verify pass runs after
+                  // the settle
                   w2          <- handle(
                                    w1.copy(
                                      updates = 0,

@@ -98,14 +98,16 @@ final class Headless private (
     }
 
     /** Resizes the screen and waits for the frame of the resize. Background
-      * frames that come first are consumed.
+      * frames that come first are consumed. The runner fiber resizes the
+      * backend when it handles the message (one fiber touches the backend).
       */
+    // claude 2026-10-12: changed (review R2-4): only the message; the runner
+    // resizes the backend
     def resize(w: Int, h: Int)(using Frame): FrameStats < Async =
       seq.getAndIncrement
         .map { n =>
-          Sync
-            .defer(backend.resize(w, h))
-            .andThen(inbox.put(Msg.Resize(Size(w, h), n)))
+          inbox
+            .put(Msg.Resize(Size(w, h), n))
             .andThen {
               Loop.foreach {
                 frames.take.map(s =>
@@ -148,6 +150,29 @@ object Headless:
           h        = Headless(inbox, frames, backend, seq, run, runner)
           // it quits and waits before its scope ends (RC-7)
           _       <- Scope.ensure(h.quit.andThen(h.awaitEnd(5.seconds)))
-          _       <- Abort.run[Closed](frames.take).map(_.getOrThrow)
+          _       <- firstFrame(frames, run)
       yield h
+
+    /** Waits for the first frame. When the run ends before it (the UI or the
+      * initial mount failed), the run's result surfaces here instead of a hang
+      * until the test timeout. A join of a DONE fiber is not a wait (OS-34).
+      */
+    // claude 2026-10-12: created (review R2-8 a)
+    private def firstFrame(
+        frames: Channel[FrameStats],
+        run: Fiber[Unit, Scope],
+    )(using Frame): Unit < (Async & Scope) =
+      Loop.foreach {
+        Abort.run[Closed](frames.poll).map {
+          case Result.Success(Present(_)) => Loop.done
+          case _                          =>
+            run.done.map { ended =>
+              if ended then run.get.andThen(Loop.done)
+              else
+                  Clock
+                    .let(Clock.live)(Async.sleep(5.millis))
+                    .andThen(Loop.continue)
+            }
+        }
+      }
 end Headless
