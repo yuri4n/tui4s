@@ -24,11 +24,14 @@ Test / testFrameworks += new TestFramework("kyo.test.runner.SbtFramework")
 // BSP) would leave one more scheduler and its threads running. A forked JVM
 // exits after the tests. The two long flags stop JDK 25 warnings about
 // sun.misc.Unsafe and about the native crossterm library. -Xss16m is for
-// tasty-query on the kyo-ui jar.
+// tasty-query on the kyo-ui jar. UTF-8 output keeps the box-drawing
+// characters of a golden-screen diff readable in the sbt log.
 Test / fork := true
 Test / javaOptions ++= Seq(
   "-Xmx1g",
   "-Xss16m",
+  "-Dstdout.encoding=UTF-8",
+  "-Dstderr.encoding=UTF-8",
   "--sun-misc-unsafe-memory-access=allow",
   "--enable-native-access=ALL-UNNAMED",
 )
