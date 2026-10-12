@@ -212,7 +212,8 @@ object Paint:
               n.kids.foreach(k => paintNode(canvas, laid, env, k, inner))
       }
 
-    private def discard(a: Any): Unit = ()
+    // claude 2026-10-12: changed: the private `discard` is gone; the calls use
+    // the shared `tui4s.internal.discard` (OS-12).
 
     private def border(
         canvas: Canvas,
