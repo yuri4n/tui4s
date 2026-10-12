@@ -114,8 +114,10 @@ tui4s.stress.LeakProbe'`. A test run under CPU contention sets
   `kyo.scheduler.regulator.concurrencyCollectIntervalMs=100`. Without them the
   runner gives more split frames under load (spike S1). `TuiApp`, in a later
   pull request, sets the same values for a real app
-  (`tui4s.spi.SchedulerDefaults`).
-  <!-- claude 2026-10-12: created this item (D-17 c) -->
+  (`tui4s.spi.SchedulerDefaults`). The settle canary (SettleTest) needs a
+  second Kyo worker: on a 2-CPU JVM under load the scheduler keeps one, so
+  the canary cancels itself there (the report says `cancelled`, not passed).
+  <!-- claude 2026-10-12: created this item (D-17 c); changed: the canary on 2 CPUs -->
 - Never join the run fiber from an interruptible wait. A join makes the
   caller's interrupt wait for the run, and a run that waits for the caller is
   a deadlock. Poll `done` with a bounded wait instead (`Headless.awaitEnd`).

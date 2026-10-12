@@ -102,20 +102,57 @@ class SettleTest extends RunnerSuite:
           )
     }
 
+    // claude 2026-10-12: changed (the contention run of the review fixes): an
+    // attempt whose step started too late in the spin is repeated
     "a CPU-bound fiber delays the settle: the probe sees it, the frame counts a timeout" in {
-      val options =
+      // The canary needs the step of the write to run while the spin runs,
+      // with the whole `max` (100 ms) inside the spin. Under CPU contention
+      // the test fiber can resume late from its sleep (the spin holds a
+      // worker until the blocking monitor adds one; the timer thread is
+      // starved): in the acceptance's 2-CPU run the write landed about 430 ms
+      // into a 500 ms spin, the probe saw the busy worker for 70 ms, and the
+      // settle ended quiescent with no timeout. An attempt whose step started
+      // later than `spinEnd - 150 ms` is not a canary and is repeated (at most
+      // 3 attempts, 1 s of spin each). On a 2-CPU JVM under load the Kyo
+      // scheduler keeps ONE worker (its minimum is half the cores; a RUNNABLE
+      // spin is not a blocked worker), so nothing runs while the spin runs
+      // and no attempt can be a canary: the leaf then CANCELS itself (visible
+      // in the report as cancelled; the quiet runs and a 4-CPU machine run
+      // the canary).
+      val options                      =
         TuiOptions(settle = Settle.Quiescent(JDuration.ofMillis(100)))
+      def attempt(h: Headless, n: SignalRef[Int], i: Int)(using
+          Frame,
+      ): (FrameStats, Boolean) < Async =
+        for
+            _       <- h.drainFrames
+            spinEnd <- AtomicLong.init(0L)
+            busy    <- Fiber.initUnscoped(
+                         Sync.defer(spin(1000)).andThen(now).map(spinEnd.set),
+                       )
+            _       <- Async.sleep(20.millis)
+            _       <- n.set(i)
+            f       <- h.nextFrame
+            _       <- busy.get
+            end     <- spinEnd.get
+        yield (f, f.endNanos - f.nanos + 150_000_000L <= end)
       for
-          n    <- Signal.initRef(0)
-          h    <-
+          n <- Signal.initRef(0)
+          h <-
             Headless.start(30, 2, options)(_ => div(span(n.map(v => s"n=$v"))))
-          _    <- h.drainFrames
-          busy <- Fiber.initUnscoped(Sync.defer(spin(500)))
-          _    <- Async.sleep(20.millis)
-          _    <- n.set(1)
-          f    <- h.nextFrame
-          _    <- busy.get
+          r <- Loop(1) { i =>
+                 attempt(h, n, i).map { (f, valid) =>
+                   if valid then Loop.done(Some(f))
+                   else if i >= 3 then Loop.done(None)
+                   else Loop.continue(i + 1)
+                 }
+               }
       yield
+          if r.isEmpty then
+              cancel(
+                "the canary needs a second Kyo worker: no attempt ran its step while the spin ran (3 attempts); a 2-CPU JVM under load has one",
+              )
+          val f = r.get
           assert(f.settleTimeouts == 1, s"frame: $f")
           assert(
             f.settleNanos >= 100_000_000L,
