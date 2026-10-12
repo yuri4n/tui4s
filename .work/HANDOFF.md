@@ -139,8 +139,9 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
   the sections do not agree). Kyo phase first (C1-C4, T1, T2, P1, L1, L2, D), then the ZIO phase (after spike SZ),
   then Cats.
 - `main` = 863db67 (PR 1 squash-merged: build, CI, release automation, AGENTS.md). Nothing else is merged.
-- PRs 2, 3 and 4 are closed (old stack; their branches stay, plan 4.2). PR 5 stays open as a reference until C1 opens,
-  then the user closes it.
+- PRs 2, 3 and 4 are closed (old stack; their branches stay, plan 4.2). PR 5 stays open until the user closes it (C1 is
+  open as PR #10 since 2026-10-12). PR 7 (rulesets for main and the release tags, branch `claude/epic-bohr-eflkfz`) is
+  open and is NOT from this session: do not touch it (plan 4.4: repo settings are the user's).
 - Old-stack branches (`feat/core-*`, `feat/zio`, `feat/cats`, `docs/docus`): unchanged. `feat/zio` and `feat/cats` are
   backups of work that is not merged. `first-take` is the user's own branch: do not touch.
 - W0 is done: `design/plan/gates.md`. Gate 0 is answered: DECISIONS.md eighth round (D-17 c, D-19 yes, K29 option 2,
@@ -153,8 +154,9 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
   `spike-sbt-p7` (8e4d75f). Never push them. fe06611 is the reference for the carry commit of C1 (P-7 step 1).
 - Spike build leftovers deleted on 2026-10-12 (190 MB). The spike sources and logs stay.
 - W1 DONE (claude 2026-10-12): workflow wf_1048293e-046, 6 agents, 1.29 M tokens, 73 min. Branch feat/kyoui-01-render in
-  worktree .work/worktrees/feat-kyoui-01-render, head 66d9299 (16 commits), NOT pushed: the user must confirm the
-  branch name first. 26 tests, 0 warnings, sbt check green in CI mode, 55/55 version-order cases. All 14 review
+  worktree .work/worktrees/feat-kyoui-01-render, head 66d9299 (16 commits). PUSHED 2026-10-12 after the user's go
+  ("ok let's continue"); PR #10 `feat(core): a kyo-ui value renders to cells` against `main`, body = c1-pr-body.txt with
+  the logs' location added. This session is subscribed to the PR events (CI, reviews). Review fixes: new commits only. 26 tests, 0 warnings, sbt check green in CI mode, 55/55 version-order cases. All 14 review
   findings minor (11 fixed, 1 disclosed, 2 refuted). Logs and notes: .work/impl/c1-*.log, c1-notes.txt; the PR body:
   .work/impl/c1-pr-body.txt. Open: the implementer excluded -Ycheck-all-patmat from the tpolecat set (false "not
   exhaustive" on Kyo's opaque Maybe); the C2 API review decides whether tui4s.internal becomes private[tui4s]. The
@@ -163,7 +165,7 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
 
 ## Next steps, in order
 
-1. **W1 = C1 `feat/kyoui-01-render`** (plan 6.1; shape 6; about 1.8-2.1 M): Geometry, Props, Layout, Paint carried from
+1. DONE 2026-10-12 (PR #10 open, CI pending at the time of writing). **W1 = C1 `feat/kyoui-01-render`** (plan 6.1; shape 6; about 1.8-2.1 M): Geometry, Props, Layout, Paint carried from
    `.work/proto/kyoui-runner/src` into `modules/core` with the P-7 commit map; build changes RC-16 with sbt-tpolecat
    instead of `-Werror` (D-8 changed); kyo-test replaces munit in core; the surface guard (tasty-query); golden screen
    tests; AGENTS.md and README lines; PR template. Branch from `origin/main`. ASK before the push: the session's
@@ -179,14 +181,15 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
 5. **Tracking:** one GitHub issue per TODO (labels `upstream-kyo`, `todo`). The user creates the GitHub Project with
    the "auto-add" workflow. The wiki is for the Mac session (no credentials from the cloud).
 
-## Open items for the user (none blocking C1 work; the push of C1 is blocked by the branch question)
+## Open items for the user (none blocking)
 
 - sbt-tpolecat: confirm the mode (ASSUMED: dev mode by default; `SBT_TPOLECAT_CI` in GitHub Actions).
 - Search getkyo/kyo for duplicates of the two drafts in `design/upstream/kyo-signal-issues.md`; post them (user only);
   link them in issues #8 and #9.
 - Create the GitHub Project (auto-add workflow). Say whether the wiki is enabled (a private repo needs GitHub Pro).
-- Confirm the branch names `feat/kyoui-*` for the stack.
-- PR 5: close it when C1 opens.
+- PR 5: close it (C1 is open as PR #10). Plan 4.1 wants the close comment to link the new stack and place the
+  unresolved bot threads; the table is in plan 4.1.
+- Review PR #10, or say "go C2" to start W2 before the review (the WIP limit P-11 allows 2 PRs above `main`).
 - Publishing: deferred until the user brings it up (do not ask).
 
 ## Facts the next session must keep
