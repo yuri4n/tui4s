@@ -1,11 +1,13 @@
 # tui4s
 
-Declarative terminal user interfaces for Scala 3.
+A terminal runner for [kyo-ui](https://github.com/getkyo/kyo), in Scala 3.
 
-tui4s has a [Kyo](https://getkyo.io) core and separate integrations for
-[ZIO](https://zio.dev) and [Cats Effect](https://typelevel.org/cats-effect/).
-It renders with [jatatui](https://github.com/oyvindberg/jatatui), a Java port of
-[ratatui](https://ratatui.rs).
+<!-- claude 2026-10-12: changed these lines: tui4s runs kyo-ui values (C1) -->
+A kyo-ui value describes the screen; tui4s lays it out in terminal cells and
+paints it with [jatatui](https://github.com/oyvindberg/jatatui), a Java port of
+[ratatui](https://ratatui.rs). The core runs on [Kyo](https://getkyo.io).
+Integrations for [ZIO](https://zio.dev) and
+[Cats Effect](https://typelevel.org/cats-effect/) are planned.
 
 > **Status:** under construction. Nothing is published yet.
 
@@ -15,9 +17,9 @@ Each module is released on its own, with its own version.
 
 | Artifact                         | For                                    |
 | -------------------------------- | -------------------------------------- |
-| `io.github.yuri4n::tui4s-core`   | Kyo users, and the base of the others. |
-| `io.github.yuri4n::tui4s-zio`    | ZIO users.                             |
-| `io.github.yuri4n::tui4s-cats`   | Cats Effect users.                     |
+| `io.github.yuri4n::tui4s-core`   | Kyo users: run a kyo-ui value in the terminal. The base of the others. |
+| `io.github.yuri4n::tui4s-zio`    | ZIO users (planned).                   |
+| `io.github.yuri4n::tui4s-cats`   | Cats Effect users (planned).           |
 
 ## Requirements
 

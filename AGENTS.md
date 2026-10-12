@@ -5,20 +5,26 @@ This file is for AI agents and for humans who work on tui4s. It uses ASD-STE100
 
 ## What tui4s is
 
-tui4s is a library for declarative terminal user interfaces in Scala 3. It wraps
+<!-- claude 2026-10-12: changed this section: tui4s is a terminal runner for kyo-ui (C1) -->
+tui4s is a terminal runner for [kyo-ui](https://github.com/getkyo/kyo), the UI
+library of [Kyo](https://getkyo.io), in Scala 3. A kyo-ui value describes the
+screen. tui4s lays it out in terminal cells and paints it with
 [jatatui](https://github.com/oyvindberg/jatatui), a Java port of ratatui that
-replaces tui-scala.
+replaces tui-scala. tui4s has no UI DSL of its own: the DSL is kyo-ui.
 
-| Directory       | sbt id     | Artifact                         | Release tag     | Published |
-| --------------- | ---------- | -------------------------------- | --------------- | --------- |
-| `modules/core`  | `core`     | `io.github.yuri4n::tui4s-core`   | `core-v<semver>` | yes      |
-| `modules/zio`   | `zio`      | `io.github.yuri4n::tui4s-zio`    | `zio-v<semver>`  | yes      |
-| `modules/cats`  | `cats`     | `io.github.yuri4n::tui4s-cats`   | `cats-v<semver>` | yes      |
-| `examples`      | `examples` | none                             | none             | no       |
-| `docs`          | none       | none (Nuxt Docus site)           | none             | no       |
+| Directory       | sbt id     | Artifact                         | UI DSL                               | Release tag      | Published |
+| --------------- | ---------- | -------------------------------- | ------------------------------------ | ---------------- | --------- |
+| `modules/core`  | `core`     | `io.github.yuri4n::tui4s-core`   | kyo-ui                               | `core-v<semver>` | yes       |
+| `modules/zio`   | `zio`      | `io.github.yuri4n::tui4s-zio`    | a ZIO DSL over kyo-ui (planned)      | `zio-v<semver>`  | yes       |
+| `modules/cats`  | `cats`     | `io.github.yuri4n::tui4s-cats`   | a Cats Effect DSL over kyo-ui (planned) | `cats-v<semver>` | yes    |
+| `examples`      | `examples` | none                             | -                                    | none             | no        |
+| `docs`          | none       | none (Nuxt Docus site)           | -                                    | none             | no        |
 
-The core uses [Kyo](https://getkyo.io). The `zio` and `cats` modules let ZIO and
-Cats Effect users write tui4s apps without Kyo types in their code.
+The core uses Kyo and kyo-ui (both at `Versions.kyo`). The `zio` and `cats`
+modules will let ZIO and Cats Effect users write tui4s apps without Kyo types
+in their code. Today the core renders a static kyo-ui value to cells
+(`tui4s.internal.Layout`, `tui4s.internal.Paint`); the runner that follows
+signals, the keys and the real terminal come in the next pull requests.
 
 ## Toolchain
 
@@ -28,6 +34,13 @@ Cats Effect users write tui4s apps without Kyo types in their code.
 - Scala **3.9.0** and sbt **1.13.0**. Do not change them in only one module.
 - Run only one sbt process in this repo at a time. Two processes share
   `target/` and fight for the sbt server lock.
+- The compiler options come from sbt-tpolecat (`build.sbt`, "Compiler
+  options"). On a developer machine the warnings stay warnings (`DevMode`). In
+  CI the environment variable `SBT_TPOLECAT_CI` adds `-Werror`: a warning
+  fails the build. To get the CI behaviour in a local sbt session, run
+  `tpolecatCiMode` first, or set `SBT_TPOLECAT_CI=1`. Keep the code free of
+  warnings.
+  <!-- claude 2026-10-12: created this item (D-8: sbt-tpolecat replaces the hand-written flags) -->
 
 ## Daily commands
 
@@ -39,7 +52,7 @@ Cats Effect users write tui4s apps without Kyo types in their code.
 | `sbt check`                          | Does the sbt checks of CI: format, compile, test, compat.     |
 | `bash scripts/version-order-test.sh` | Tests the version order of the release script (CI runs it).   |
 | `sbt versions`                       | Shows the version of each module (released or snapshot).      |
-| `sbt core/test`                      | Runs the tests of one module.                                 |
+| `sbt core/test`                      | Runs the tests of one module. The core tests use kyo-test.    |
 | `sbt "examples/runMain <main>"`      | Runs an example in the real terminal (forked JVM).            |
 
 <!-- claude 2026-10-09: changed: also run the version order test before each push -->
@@ -58,6 +71,13 @@ push.
   read input, call `poll(<short timeout>)` in a loop, then call `read()`.
 - Tests must not need a real terminal. Render into a jatatui `TestBackend` or
   into a `Buffer`.
+- The strict flags do not see everything at the Java boundary (spike S6):
+  `-Wnonunit-statement` does not see a Java call in statement position;
+  `-Wvalue-discard` sees a Java result only in a `Unit` position;
+  `-Yexplicit-nulls` gives flexible types to Java results, so the compiler does
+  not force a null check. Check for null where the Java source, the Javadoc or
+  the JNI contract allows null, mainly for the crossterm records.
+  <!-- claude 2026-10-12: created this item (S6 "Proposed AGENTS.md rule for C1") -->
 
 ## Dependencies and versions
 
