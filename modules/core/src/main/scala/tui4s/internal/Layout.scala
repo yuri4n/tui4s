@@ -745,7 +745,10 @@ object Layout:
                         m.item,
                       ) && o.rect == r && o.natural == m.size && o.index == i && !force
                         .contains(m.item.path) &&
-                        o.props == m.props && tableCols == ctx.cols,
+                        // claude 2026-10-12: changed (PR #10 review: Codex,
+                        // Layout.scala:703): the OLD node's columns against
+                        // the new ones (`ctx.cols` was built from `tableCols`)
+                        o.props == m.props && o.cols == tableCols,
                     )
                     if keep then (l, d)
                     else
