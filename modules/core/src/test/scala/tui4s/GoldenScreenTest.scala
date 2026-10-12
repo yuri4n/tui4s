@@ -102,6 +102,17 @@ class GoldenScreenTest extends ScreenSuite:
           div.style(_.height(3.px))(span("a").style(_.flexGrow(1)), span("b"))
         assertScreen(ui, 3, 3, "a\n\nb")
       }
+      // claude 2026-10-12: created (PR #10 review: Codex, Layout.scala:399)
+      "flexShrink removes only the deficit; the last item loses the cell" in {
+        // three one-cell items in two cells: one cell too many, not three
+        assertScreen(
+          div.style(_.row)(span("a"), span("b"), span("c")),
+          2,
+          1,
+          "ab",
+        )
+        assertScreen(div.style(_.row)(span("abc"), span("def")), 5, 1, "abcde")
+      }
     }
 
     "gap and padding" - {

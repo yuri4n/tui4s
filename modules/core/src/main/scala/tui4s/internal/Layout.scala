@@ -412,11 +412,37 @@ object Layout:
                 val total   = weights.sum
                 if total <= 0 then base
                 else
-                    val cuts =
-                      weights.map(w => math.ceil(-free * w / total).toInt)
-                    base.zip(cuts).zip(floor).map { case ((b, c), f) =>
-                      (b - c).max(f).max(0)
+                    /* claude 2026-10-12: changed (PR #10 review: Codex,
+                     * Layout.scala:399): */
+                    // the cuts add up to the deficit, not more. Each item
+                    // loses the whole part of its share; the rest goes one
+                    // cell at a time to the items with the largest fraction
+                    // (the last item first when equal), never below the floor.
+                    val deficit = -free
+                    val exact   = weights.map(w => deficit * w / total)
+                    val whole   = exact.map(_.toInt)
+                    val room    = base.zip(whole).zip(floor).map {
+                      case ((b, c), f) => (b - c - f).max(0)
                     }
+                    val order   = exact
+                      .zip(whole)
+                      .zipWithIndex
+                      .map { case ((e, c), i) => (e - c, i) }
+                      .sortBy { case (frac, i) => (-frac, -i) }
+                      .map(_._2)
+                    val extra   = order
+                      .foldLeft(
+                        (Vector.fill(items.size)(0), deficit - whole.sum),
+                      ) { case ((acc, left), i) =>
+                        if left > 0 && room(i) > 0 then
+                            (acc.updated(i, 1), left - 1)
+                        else (acc, left)
+                      }
+                      ._1
+                    base.zip(whole.zip(extra)).zip(floor).map {
+                      case ((b, (c, x)), f) => (b - c - x).max(f).max(0)
+                    }
+                end if
             else base
           val leftover                 =
             (mainSize - sizes.sum - items.map(mMain).sum - gaps).max(0)
