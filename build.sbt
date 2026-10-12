@@ -33,13 +33,15 @@ ThisBuild / semanticdbEnabled := true
 // SBT_TPOLECAT_CI, which adds -Werror (CiMode). To get the CI behaviour in a
 // local sbt session, run `tpolecatCiMode` first.
 // claude 2026-10-12: created: the two settings below replace the hand-written
-// scalacOptions list
+// scalacOptions list; changed: the -Wconf comment (review R1-7, R2-2)
 ThisBuild / tpolecatDefaultOptionsMode := DevMode
 ThisBuild / tpolecatDevModeOptions ++= Set(
   // Reference types are not nullable. Java results get flexible types.
   ScalacOptions.privateExplicitNulls,
-  // Each inlined Kyo method that carries @nowarn adds this warning, with no
-  // source position, under -Wunused. It says nothing about our code.
+  // Under -Wunused:nowarn (or -Wunused:all, -Wall) each inlined Kyo method
+  // that carries @nowarn adds this warning, with no source position. It says
+  // nothing about our code. The sbt-tpolecat set has no -Wunused:nowarn, so
+  // the rule does nothing today; it stays for the day that check is on.
   ScalacOptions.other(
     "-Wconf:msg=@nowarn annotation does not suppress any warnings:s",
   ),
