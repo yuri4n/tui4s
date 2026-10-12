@@ -398,8 +398,16 @@ object Paint:
                 ),
               )
             case ri: RangeInput =>
-              val v   = boundValue(env, n.path)
-                .collect { case d: Double => d }
+              /* claude 2026-10-12: changed (PR #10 review: Codex,
+               * Paint.scala:393): a */
+              // constant value (`.value(50.0)`) comes from the element, as in
+              // the text and picker paths; only a bound ref comes from the
+              // scene
+              val v   = (ri.value match
+                  case Present(UI.Bound.Const(c)) => Some(c)
+                  case _                          =>
+                    boundValue(env, n.path).collect { case d: Double => d }
+              )
                 .getOrElse(0.0)
               val lo  = ri.min.getOrElse(0.0)
               val hi  = ri.max.getOrElse(100.0)

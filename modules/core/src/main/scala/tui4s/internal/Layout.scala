@@ -111,11 +111,30 @@ object Layout:
                   acc.init :+ s"$last $word"
                 case _ if acc.isEmpty && textWidth(word) <= w                 => Vector(word)
                 case _ if textWidth(word) <= w                                => acc :+ word
-                case _                                                        => acc ++ word.grouped(w).toVector
+                case _                                                        => acc ++ chunksByWidth(word, w)
           }
           if lines.isEmpty then Vector("") else lines
         }
     end wrap
+
+    /** Splits a word into pieces of at most `w` cells. The split is at a code
+      * point border: a wide character or a surrogate pair does not split.
+      */
+    // claude 2026-10-12: created (PR #10 review: Codex, Layout.scala:114)
+    private def chunksByWidth(word: String, w: Int): Vector[String] =
+        val glyphs = Vector.unfold(0) { i =>
+          if i >= word.length then None
+          else
+              val cp = word.codePointAt(i)
+              Some((String(Character.toChars(cp)), i + Character.charCount(cp)))
+        }
+        glyphs.foldLeft(Vector.empty[String]) { (acc, g) =>
+          acc.lastOption match
+              case Some(last) if textWidth(last) + textWidth(g) <= w =>
+                acc.init :+ (last + g)
+              case _                                                 => acc :+ g
+        }
+    end chunksByWidth
 
     def textLines(text: String, width: Int, wrapped: Boolean): Vector[String] =
       if wrapped then wrap(text, width) else text.split("\n", -1).toVector
@@ -207,6 +226,7 @@ object Layout:
     def measureItem(
         item: Item,
         availW: Int,
+        availH: Option[Int],
         parent: Props,
         env: Scene,
         listStyle: Option[ListStyle],
@@ -235,45 +255,60 @@ object Layout:
             Measured(
               item,
               p,
-              measureElement(e, item.path, p, availW - p.margin.h, env),
+              measureElement(
+                e,
+                item.path,
+                p,
+                availW - p.margin.h,
+                availH.map(h => (h - p.margin.v).max(0)),
+                env,
+              ),
             )
           case _          => Measured(item, Props.neutral(parent.text), Size.zero)
 
+    /** @param availH
+      *   the height of the containing block when it is definite: a percentage
+      *   height is relative to it. `None` makes a percentage height `auto`, as
+      *   in CSS.
+      */
     def measureElement(
         e: Element,
         path: Loc,
         p: Props,
         availW: Int,
+        availH: Option[Int],
         env: Scene,
     ): Size =
-        val ins           = p.insets
-        val fixedW        = p.width.flatMap(Props.cells(_, availW, env.screen.h))
-        val inner         = (fixedW.getOrElse(availW) - ins.h).max(0)
-        val content: Size = intrinsic(e).getOrElse {
+        val ins                            = p.insets
+        val fixedW                         = p.width.flatMap(Props.cells(_, availW, env.screen.h))
+        /* claude 2026-10-12: changed (PR #10 review: Codex, Layout.scala:264):
+         * a */
+        // percentage height was relative to the screen
+        def cellsH(l: Length): Option[Int] = l match
+            case Length.Pct(v) => availH.map(h => (v * h / 100).toInt)
+            case _             => Props.cells(l, 0, env.screen.h)
+        val fixedH                         = p.height.flatMap(cellsH)
+        val inner                          = (fixedW.getOrElse(availW) - ins.h).max(0)
+        val innerH                         = fixedH.map(h => (h - ins.v).max(0))
+        val content: Size                  = intrinsic(e).getOrElse {
           e match
               case _: Table => tableSize(e, path, p, inner, env)._2
               case _        =>
                 val flat     = itemsOf(e, path, env)
                 val measured = flat.items.zipWithIndex.map((it, i) =>
-                  measureItem(it, inner, p, env, p.listStyle, i),
+                  measureItem(it, inner, innerH, p, env, p.listStyle, i),
                 )
                 combine(p, measured)
         }
-        val w             = fixedW.getOrElse(content.w + ins.h)
-        val h             = p.height
-          .flatMap(Props.cells(_, env.screen.h, env.screen.h))
-          .getOrElse(content.h + ins.v)
+        val w                              = fixedW.getOrElse(content.w + ins.h)
+        val h                              = fixedH.getOrElse(content.h + ins.v)
         Size(
           clamp(
             w,
             p.minW.flatMap(Props.cells(_, availW, env.screen.h)),
             p.maxW.flatMap(Props.cells(_, availW, env.screen.h)),
           ),
-          clamp(
-            h,
-            p.minH.flatMap(Props.cells(_, env.screen.h, env.screen.h)),
-            p.maxH.flatMap(Props.cells(_, env.screen.h, env.screen.h)),
-          ),
+          clamp(h, p.minH.flatMap(cellsH), p.maxH.flatMap(cellsH)),
         )
     end measureElement
 
@@ -323,7 +358,7 @@ object Layout:
             row.path,
             env,
           ).items.zipWithIndex.map((c, i) =>
-            measureItem(c, inner, rp, env, None, i).size.w,
+            measureItem(c, inner, None, rp, env, None, i).size.w,
           )
         }
         val ncols = cells.map(_.size).maxOption.getOrElse(0)
@@ -336,15 +371,15 @@ object Layout:
     // ---- arrange: flex positions of measured items inside a content rect ----
 
     def arrange(
-        p: Props,
+        p0: Props,
         box: Rect,
-        items: Vector[Measured],
+        items0: Vector[Measured],
         cols: Vector[Int],
     ): Vector[Rect] =
-      if items.isEmpty then Vector.empty
+      if items0.isEmpty then Vector.empty
       else if cols.nonEmpty then
           // a table row: fixed column widths
-          items.zipWithIndex.map { (m, j) =>
+          items0.zipWithIndex.map { (m, j) =>
             val x = box.x + cols.take(j).sum + j
             Rect(
               x,
@@ -354,6 +389,20 @@ object Layout:
             )
           }
       else
+          /* claude 2026-10-12: changed (PR #10 review: Codex, Props.scala:303):
+           * a */
+          // reversed container (`rowReverse`, `columnReverse`) places its
+          // items in the opposite order, with the main start at the far end
+          // (so `justify: start` packs them there, as in CSS). The rects
+          // come back in the items' own order.
+          val items                    = if p0.reverse then items0.reverse else items0
+          val p                        =
+            if !p0.reverse then p0
+            else
+                p0.copy(justify = p0.justify match
+                    case Justification.start => Justification.end
+                    case Justification.end   => Justification.start
+                    case j                   => j)
           val column                   = p.dir == Dir.Column
           def mainOf(s: Size): Int     = if column then s.h else s.w
           def crossOf(s: Size): Int    = if column then s.w else s.h
@@ -393,11 +442,37 @@ object Layout:
                 val total   = weights.sum
                 if total <= 0 then base
                 else
-                    val cuts =
-                      weights.map(w => math.ceil(-free * w / total).toInt)
-                    base.zip(cuts).zip(floor).map { case ((b, c), f) =>
-                      (b - c).max(f).max(0)
+                    /* claude 2026-10-12: changed (PR #10 review: Codex,
+                     * Layout.scala:399): */
+                    // the cuts add up to the deficit, not more. Each item
+                    // loses the whole part of its share; the rest goes one
+                    // cell at a time to the items with the largest fraction
+                    // (the last item first when equal), never below the floor.
+                    val deficit = -free
+                    val exact   = weights.map(w => deficit * w / total)
+                    val whole   = exact.map(_.toInt)
+                    val room    = base.zip(whole).zip(floor).map {
+                      case ((b, c), f) => (b - c - f).max(0)
                     }
+                    val order   = exact
+                      .zip(whole)
+                      .zipWithIndex
+                      .map { case ((e, c), i) => (e - c, i) }
+                      .sortBy { case (frac, i) => (-frac, -i) }
+                      .map(_._2)
+                    val extra   = order
+                      .foldLeft(
+                        (Vector.fill(items.size)(0), deficit - whole.sum),
+                      ) { case ((acc, left), i) =>
+                        if left > 0 && room(i) > 0 then
+                            (acc.updated(i, 1), left - 1)
+                        else (acc, left)
+                      }
+                      ._1
+                    base.zip(whole.zip(extra)).zip(floor).map {
+                      case ((b, (c, x)), f) => (b - c - x).max(f).max(0)
+                    }
+                end if
             else base
           val leftover                 =
             (mainSize - sizes.sum - items.map(mMain).sum - gaps).max(0)
@@ -421,7 +496,7 @@ object Layout:
           val offsets                  = sizes.zip(items).scanLeft(start) { case (acc, (s, m)) =>
             acc + s + mMain(m) + p.gap + between
           }
-          items.zip(sizes).zip(offsets).map { case ((m, s), off) =>
+          val rects                    = items.zip(sizes).zip(offsets).map { case ((m, s), off) =>
             val mainPos       =
               off + (if column then m.props.margin.t else m.props.margin.l)
             val crossRoom     = (crossSize - mCross(m)).max(0)
@@ -445,6 +520,7 @@ object Layout:
             if column then Rect(box.x + crossPos, box.y + mainPos, crossLen, s)
             else Rect(box.x + mainPos, box.y + crossPos, s, crossLen)
           }
+          if p0.reverse then rects.reverse else rects
     end arrange
 
     // ---- layout: build the nodes of an item and its subtree ----
@@ -466,13 +542,24 @@ object Layout:
         env: Scene,
         root: UI,
     ): (Vector[Measured], Vector[Loc], Vector[Int]) =
-        val inner = node.content.w
+        val inner               = node.content.w
+        /* claude 2026-10-12: created (PR #10 review: Codex, Layout.scala:264):
+         * the height */
+        // that the kids' percentages resolve against: the content height when
+        // this node's height is definite (the screen, an explicit height, or
+        // a size that the flex parent imposed), else none
+        val availH: Option[Int] = node.kind match
+            case Kind.Screen => Some(node.content.h)
+            case _
+                if node.props.height.isDefined || node.rect.h != node.natural.h =>
+              Some(node.content.h)
+            case _           => None
         node.kind match
             case Kind.Screen       =>
               val flat = flatten(root, Loc.root, Nil, env)
               (
                 flat.items.zipWithIndex.map((it, i) =>
-                  measureItem(it, inner, node.props, env, None, i),
+                  measureItem(it, inner, availH, node.props, env, None, i),
                 ),
                 flat.regions,
                 Vector.empty,
@@ -487,7 +574,7 @@ object Layout:
               }
               (
                 rows.zipWithIndex.map((it, i) =>
-                  measureItem(it, inner, node.props, env, None, i),
+                  measureItem(it, inner, availH, node.props, env, None, i),
                 ),
                 flat.regions,
                 Vector.empty,
@@ -499,6 +586,7 @@ object Layout:
                   measureItem(
                     it,
                     inner,
+                    availH,
                     node.props,
                     env,
                     node.props.listStyle,
@@ -613,8 +701,9 @@ object Layout:
           case (Kind.Txt(a, _), b: Text) => a == b.value
           case _                         => false
 
-    // claude 2026-10-12: changed: the unused parameter `kids` is removed
-    private def naturalOf(node: Node, env: Scene): Size =
+    // claude 2026-10-12: changed: the unused parameter `kids` is removed;
+    // changed (PR #10 review: Codex, Layout.scala:264): `availH` added
+    private def naturalOf(node: Node, availH: Option[Int], env: Scene): Size =
       node.kind match
           case Kind.Screen    => node.natural
           case Kind.El(e)     =>
@@ -623,6 +712,7 @@ object Layout:
               node.path,
               node.props,
               node.availW - node.props.margin.h,
+              availH.map(h => (h - node.props.margin.v).max(0)),
               env,
             )
           case Kind.Txt(_, _) => node.natural
@@ -700,7 +790,10 @@ object Layout:
                         m.item,
                       ) && o.rect == r && o.natural == m.size && o.index == i && !force
                         .contains(m.item.path) &&
-                        o.props == m.props && tableCols == ctx.cols,
+                        // claude 2026-10-12: changed (PR #10 review: Codex,
+                        // Layout.scala:703): the OLD node's columns against
+                        // the new ones (`ctx.cols` was built from `tableCols`)
+                        o.props == m.props && o.cols == tableCols,
                     )
                     if keep then (l, d)
                     else
@@ -724,7 +817,12 @@ object Layout:
                 ),
               )
               val propsChanged       = node.props != node0.props
-              val newNatural         = naturalOf(updatedNode, env)
+              /* claude 2026-10-12: changed (PR #10 review: Codex,
+               * Layout.scala:264): the */
+              // owner's content height, as `measuredKids` gives it
+              val ownerH             =
+                node.owner.flatMap(laid3.nodes.get).map(_.content.h)
+              val newNatural         = naturalOf(updatedNode, ownerH, env)
               (node.owner, newNatural != node0.natural || propsChanged) match
                   case (Some(owner), true) =>
                     relayout(laid3, owner, Set(container), env, root)

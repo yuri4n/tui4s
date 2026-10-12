@@ -102,6 +102,32 @@ class GoldenScreenTest extends ScreenSuite:
           div.style(_.height(3.px))(span("a").style(_.flexGrow(1)), span("b"))
         assertScreen(ui, 3, 3, "a\n\nb")
       }
+      // claude 2026-10-12: created (PR #10 review: Codex, Layout.scala:399)
+      "flexShrink removes only the deficit; the last item loses the cell" in {
+        // three one-cell items in two cells: one cell too many, not three
+        assertScreen(
+          div.style(_.row)(span("a"), span("b"), span("c")),
+          2,
+          1,
+          "ab",
+        )
+        assertScreen(div.style(_.row)(span("abc"), span("def")), 5, 1, "abcde")
+      }
+      // claude 2026-10-12: created (PR #10 review: Codex, Props.scala:303)
+      "rowReverse and columnReverse place the items from the end" in {
+        assertScreen(
+          div.style(_.rowReverse)(span("a"), span("b")),
+          4,
+          1,
+          "  ba",
+        )
+        assertScreen(
+          div.style(_.columnReverse.height(3.px))(span("a"), span("b")),
+          1,
+          3,
+          "\nb\na",
+        )
+      }
     }
 
     "gap and padding" - {
@@ -151,6 +177,10 @@ class GoldenScreenTest extends ScreenSuite:
       "a long word splits" in {
         assertScreen(div("abcdefgh"), 5, 2, "abcde\nfgh")
       }
+      // claude 2026-10-12: created (PR #10 review: Codex, Layout.scala:114)
+      "a long word of wide characters splits by cells, not by characters" in {
+        assertScreen(div("漢字"), 2, 2, "漢\n字")
+      }
       "no wrap in a row" in {
         assertScreen(div.style(_.row)(span("one two")), 7, 2, "one two")
       }
@@ -177,6 +207,30 @@ class GoldenScreenTest extends ScreenSuite:
         val ui = div(Svg.svg)
         assertScreen(ui, 8, 1, "[chart]")
         assert(buffer(ui, 8, 1).cellAt(0, 0).modifier.contains(Modifier.DIM))
+      }
+    }
+
+    // claude 2026-10-12: created (PR #10 review: Codex, Layout.scala:264)
+    "percentage sizes" - {
+      "a percentage height is relative to the parent, not to the screen" in {
+        val ui = div.style(_.height(4.px))(
+          div("x").style(_.height(50.pct).bg(_.red)),
+        )
+        val b  = buffer(ui, 4, 20)
+        assert(b.cellAt(0, 1).bg == JColor.Rgb(239, 68, 68))
+        assert(b.cellAt(0, 2).bg != JColor.Rgb(239, 68, 68))
+      }
+    }
+
+    // claude 2026-10-12: created (PR #10 review: Codex, Paint.scala:393)
+    "inputs" - {
+      "a range input shows its constant value" in {
+        assertScreen(
+          div.style(_.row)(rangeInput.value(50.0)),
+          12,
+          1,
+          "─────●──────",
+        )
       }
     }
 

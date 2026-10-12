@@ -92,6 +92,9 @@ final case class Border(sides: Sides, glyphs: Glyphs, fg: Option[JColor])
 /** The resolved layout and paint properties of one element in the terminal. */
 final case class Props(
     dir: Dir,
+    /** `rowReverse` or `columnReverse`: the items go from the end. */
+    reverse: Boolean, /* claude 2026-10-12: created (PR #10 review: Codex,
+     * Props.scala:303) */
     gap: Int,
     padding: Sides,
     margin: Sides,
@@ -122,6 +125,7 @@ object Props:
     def neutral(text: TextAttrs): Props =
       Props(
         Dir.Column,
+        false, // claude 2026-10-12: created (reverse)
         0,
         Sides.zero,
         Sides.zero,
@@ -297,10 +301,18 @@ object Props:
               p.copy(margin = Sides(side(t), side(r), side(b), side(l)))
             case Prop.Gap(v)                       => p.copy(gap = side(v))
             case Prop.FlexDirectionProp(d)         =>
-              p.copy(dir = d match
-                  case FlexDirection.row | FlexDirection.rowReverse       => Dir.Row
-                  case FlexDirection.column | FlexDirection.columnReverse =>
-                    Dir.Column)
+              /* claude 2026-10-12: changed (PR #10 review: Codex,
+               * Props.scala:303): the */
+              // reverse variants keep their flag
+              d match
+                  case FlexDirection.row           =>
+                    p.copy(dir = Dir.Row, reverse = false)
+                  case FlexDirection.rowReverse    =>
+                    p.copy(dir = Dir.Row, reverse = true)
+                  case FlexDirection.column        =>
+                    p.copy(dir = Dir.Column, reverse = false)
+                  case FlexDirection.columnReverse =>
+                    p.copy(dir = Dir.Column, reverse = true)
             case Prop.Align(a)                     => p.copy(align = a)
             case Prop.AlignSelf(a)                 => p.copy(alignSelf = Some(a))
             case Prop.Justify(j)                   => p.copy(justify = j)
