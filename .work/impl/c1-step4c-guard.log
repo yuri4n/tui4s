@@ -1,0 +1,59 @@
+=== core/test with the surface guard, run 1 03:37:05
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-01-render-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-01-render/)
+[info] compiling 2 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Running 1 suite(s) with parallelism 8
+
+[1m=== GoldenScreenTest ===[0m
+    [1m[32m[PASS][0m[0m borders › rounded  [2m(238ms)[0m
+    [1m[32m[PASS][0m[0m colours and text attributes › text colour and background  [2m(17ms)[0m
+    [1m[32m[PASS][0m[0m colours and text attributes › a child inherits the text colour  [2m(226ms)[0m
+    [1m[32m[PASS][0m[0m borders › solid  [2m(233ms)[0m
+    [1m[32m[PASS][0m[0m borders › dashed, with the border colour on the glyphs  [2m(44ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › padding moves the content inside the box  [2m(11ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › gap in a row and in a column  [2m(18ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › flexGrow takes the free rows of a column  [2m(28ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › justify: center, end, spaceBetween  [2m(270ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › padding inside a border  [2m(11ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › at the spaces  [2m(8ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › flexGrow takes the free space of the row  [2m(26ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › a long word splits  [2m(9ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › no wrap in a row  [2m(8ms)[0m
+    [1m[32m[PASS][0m[0m placeholders › an image shows its alt text in brackets  [2m(7ms)[0m
+    [1m[32m[PASS][0m[0m wide characters › take two cells each  [2m(14ms)[0m
+    [1m[32m[PASS][0m[0m overflow is clipped › rows below a fixed height are not painted  [2m(31ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › a row puts its items side by side; a column stacks them  [2m(292ms)[0m
+    [1m[32m[PASS][0m[0m colours and text attributes › bold, italic, underline; h1 is bold and underlined  [2m(306ms)[0m
+    [1m[32m[PASS][0m[0m overflow is clipped › cells right of a fixed width are not painted  [2m(29ms)[0m
+    [1m[32m[PASS][0m[0m placeholders › an svg (a chart) shows [chart], dim  [2m(22ms)[0m
+    [1m[32m[PASS][0m[0m decorations › a button has brackets; list items have markers  [2m(35ms)[0m
+[2m---[0m GoldenScreenTest: [32m22 passed[0m, [31m0 failed[0m  [2m(650ms)[0m
+
+Results: [32m22 passed[0m, [31m0 failed[0m  (total: 650ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== RenderTest ===[0m
+  [1m[32m[PASS][0m[0m a text in a div fills the first row  [2m(8ms)[0m
+  [1m[32m[PASS][0m[0m the screen has the given size  [2m(3ms)[0m
+[2m---[0m RenderTest: [32m2 passed[0m, [31m0 failed[0m  [2m(16ms)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 16ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== KyoUiSurfaceTest ===[0m
+  [1m[32m[PASS][0m[0m compare reports an added, a removed and a changed line  [2m(9ms)[0m
+  [1m[32m[PASS][0m[0m the UI.Ast types and the Style.Prop cases are the checked-in list  [2m(3.2s)[0m
+[2m---[0m KyoUiSurfaceTest: [32m2 passed[0m, [31m0 failed[0m  [2m(3.2s)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 3.2s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 14 s, completed Oct 12, 2026, 3:37:25 AM
+exit=0

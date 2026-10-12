@@ -1,0 +1,25 @@
+=== core/test with the render helper and the kyo-test set-up 03:29:19
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-01-render-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-01-render/)
+[info] compiling 2 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 2 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Running 1 suite(s) with parallelism 8
+
+[1m=== RenderTest ===[0m
+  [1m[32m[PASS][0m[0m a text in a div fills the first row  [2m(184ms)[0m
+  [1m[32m[PASS][0m[0m the screen has the given size  [2m(184ms)[0m
+[2m---[0m RenderTest: [32m2 passed[0m, [31m0 failed[0m  [2m(571ms)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 571ms)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 10 s, completed Oct 12, 2026, 3:29:34 AM
+exit=0

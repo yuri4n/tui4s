@@ -1,0 +1,39 @@
+Negative control of the kyo-ui surface guard (P-6 style), Mon Oct 12 03:37:53 UTC 2026, worktree feat-kyoui-01-render
+Step 1: remove one name from src/test/resources/kyo-ui-surface.txt:
+ast.type	UI.Ast.Div	case class public extends UI,Block,Interactive
+lines now: 156 (was 157)
+Step 2: sbt core/testOnly tui4s.KyoUiSurfaceTest
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-01-render-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-01-render/)
+Running 1 suite(s) with parallelism 8
+
+[1m=== KyoUiSurfaceTest ===[0m
+  [1m[32m[PASS][0m[0m compare reports an added, a removed and a changed line  [2m(56ms)[0m
+  [1m[31m[FAIL][0m[0m the UI.Ast types and the Style.Prop cases are the checked-in list  [2m(2.5s)[0m *** FAILED ***
+
+    )
+    // message: the kyo-ui surface is not the checked-in list:
+    ADDED	ast.type	UI.Ast.Div	case class public extends UI,Block,Interactive
+
+[2m---[0m KyoUiSurfaceTest: [32m1 passed[0m, [31m1 failed[0m  [2m(2.7s)[0m
+FAILURES (1):
+  the UI.Ast types and the Style.Prop cases are the checked-in list  [FAIL]
+    )
+    // message: the kyo-ui surface is not the checked-in list:
+    ADDED	ast.type	UI.Ast.Div	case class public extends UI,Block,Interactive
+
+Results: [32m1 passed[0m, [31m1 failed[0m  (total: 2.7s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.KyoUiSurfaceTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 6 s, completed Oct 12, 2026, 3:38:05 AM
+sbt exit code: 1 (must be 1: the guard fails when one name is removed)
+Step 3: list restored from the backup (identical); lines: 157. Result: the guard fails when one name is removed (sbt exit 1, line ADDED ast.type UI.Ast.Div), and passes with the full list (c1-step4c-guard.log).

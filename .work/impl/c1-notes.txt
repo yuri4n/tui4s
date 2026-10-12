@@ -1,0 +1,84 @@
+C1 feat/kyoui-01-render: implementer notes (agent I, 2026-10-12). Plain text, ASD-STE100.
+Worktree: .work/worktrees/feat-kyoui-01-render, branch feat/kyoui-01-render from origin/main 863db67.
+
+03:00 Read: PLAN 6.0, 6.1, 0, 7.2; inventory rows RC-1/12/16/17/18/19, OS-12/13/37/38/39/47/48;
+      DECISIONS eighth round; gates.md; S6 REPORT; verify-carry.py; S3 guard (Guard.scala, run-guard.sh, out/).
+03:05 Facts found:
+      - The four C1 files import only kyo.*, kyo.Style.*, kyo.UI.Ast.* and jatatui.core.*; Scene is in Layout.scala;
+        Paint has its own private discard. No import of World, Mount, Runner, Dispatch, FrameStats.
+      - Prototype marks: Geometry 0, Props 0, Layout 1 (line 320), Paint 1 (line 117). Total 2.
+      - S6 strict-flag fix for these files: Layout.scala naturalOf, unused parameter kids (1 site, 2 lines).
+      - sbt-tpolecat 0.5.7 is on Maven Central (new layout org/typelevel/sbt-tpolecat_2.12_1.0/0.5.7), uses
+        scalac-options 0.1.11. The plugin APPENDS to scalacOptions (addOption dedupes exact tokens); default
+        mode CiMode; env SBT_TPOLECAT_CI -> CiMode; DevMode options = ScalacOptions.default; CiMode = Dev +
+        -Werror (warnError, >= 3.0.2). tpolecatScalacOptions is derived per project, so the shared place to add
+        options is ThisBuild / tpolecatDevModeOptions (Ci and Release derive from it).
+      - ScalacOptions.default for 3.9.0 (predicted): -encoding utf8 -deprecation -feature -unchecked
+        -language:... -Xkind-projector -Ycheck-all-patmat -Wvalue-discard -Wnonunit-statement
+        -Wunused:implicits,explicits,imports,locals,params,patvars,privates. Not in default: -Yexplicit-nulls,
+        the -Wconf rule. Verify with `show core/scalacOptions`.
+      - kyo-test: Test[Any], "name" in { ... }, assert(cond, msg), helpers take (using AssertScope).
+        Framework: kyo.test.runner.SbtFramework (old PR 3 set-up). kyo-test-runner_3 1.0.0-RC7 is on Central.
+      - Maven Central answers 429 at times (seen at 03:12 on a directory listing).
+03:17 step 0: sbt core/Test/compile on the empty core (new flags)
+=== format step numbers 03:25
+lines after fmt:
+   68 modules/core/src/main/scala/tui4s/internal/Geometry.scala
+  766 modules/core/src/main/scala/tui4s/internal/Layout.scala
+  457 modules/core/src/main/scala/tui4s/internal/Paint.scala
+  383 modules/core/src/main/scala/tui4s/internal/Props.scala
+ 1674 total
+diffstat carry -> format (all):
+ 4 files changed, 1196 insertions(+), 582 deletions(-)
+diffstat carry -> format (-w):
+ 4 files changed, 831 insertions(+), 217 deletions(-)
+marks: carry 6 (4 carry headers + 2 prototype marks), after format 0
+correction: lines after fmt and mark removal: Geometry 68, Props 383, Layout 766, Paint 457 = 1674 (the format commit message has the counts before the mark removal: 1685)
+03:27 step 3: core/compile on 774ca64 gave 2 warnings: E198 unused `kids` (Layout.naturalOf, as S6) and E029 on
+      Props.isFocusable (match on Maybe: Present/Absent) from tpolecat's -Ycheck-all-patmat. Decision: exclude
+      the flag (dae6b81), fix the parameter (3c10d8c). 0 warnings after.
+03:30 step 4a: Render helper + discard + ScreenSuite + RenderTest: 2 passed (kyo-test works, "0 tests" line cosmetic).
+03:34 step 4b: goldens. Findings: a root button stretches (flex align stretch) -> golden puts it in a row;
+      list markers need an explicit listStyle (kyo-ui base CSS: ul, ol { list-style: none }); wide char hidden
+      cell reads " "; the test JVM printed '?' for non-ASCII -> -Dstdout.encoding=UTF-8. 24 passed.
+03:37 step 4c: KyoUiSurface (port of the S3 Guard ast.type + Style.Prop parts, fields sorted) == S3 dump: 157 lines.
+      Negative control: Div line removed -> FAIL, sbt exit 1 (c1-guard-negative-control.log). Restored.
+03:39 steps 4e-4g: tui4s/package.scala Scaladoc; AGENTS.md + README (Bash edits were not refused); PR template.
+03:41 sbt fmt (5 new files reformatted, ef59f61); sbt check alone in CI mode: 26 passed, 0 warnings, exit 0
+      (c1-check.log); version-order-test 55/55. Tip ef59f61, 12 commits, not pushed.
+      PR body: .work/impl/c1-pr-body.txt.
+
+== K1 skeptic (2026-10-12, read only, one sbt check)
+- sbt check at ef59f61, SBT_TPOLECAT_CI=1, alone: exit 0, 0 [warn], 0 [error], 26 tests passed,
+  scalafmt checks and versionPolicyCheck green: .work/impl/c1-k1-check.log. zinc did not recompile
+  (classes and zinc/inc_compile_3.zip are from the implementer's run at 03:41; the stored options
+  hold -Werror, -Yexplicit-nulls, the -Wconf rule, no -Ycheck-all-patmat), so the compile under
+  -Werror is the implementer's c1-check.log; this run shows the tree and the options are stable.
+- R1-1..R1-7: all confirmed with commands (see the structured output). None is a blocker.
+- Checked and found correct: P-2 counts (67 main, 503+164 tests, 174 build and docs), P-7 mark count
+  (6 before: 4 carry headers + Layout.arrange + Paint.apply), P-13 "7 main and 5 test sources",
+  the four carried files are code-token identical between 83b7d38 and 774ca64 (only comments,
+  end markers, trailing commas and whitespace differ), the PR template has 14 P-sections,
+  KyoUiSurface.parse skips '#' lines (a '# claude' mark in the list is safe).
+- "ignore 3c" (user): the K29 option in DECISIONS.md; nothing in C1 depends on it.
+
+== F fixer (2026-10-12)
+Confirmed findings and what I did:
+- R1-3/R2-5: AGENTS.md "Dependencies and versions" names tasty-query with the reason; Versions.scala comment too (31e73c7).
+- R2-7: the "UI DSL" column of the AGENTS.md table is 39 wide in every row (31e73c7). The tense is kept (K2: "will" is approved STE).
+- R1-4/R2-3: package.scala Scaladoc in plain words, no PR ids (0c2093a).
+- R1-7/R2-2: the -Wconf comment in build.sbt says the rule is inert under the tpolecat set (a316c9c); PR body sentence fixed.
+- R1-6: the surface list has a `# claude 2026-10-12: created` line; parse skips `#` lines (66d9299).
+- R1-1, R1-2: PR body only (the -w delta command names the four files; 1671 at the tip vs 1674 at the format commit).
+- R2-1: run `SBT_TPOLECAT_CI=1 sbt "show core/scalacOptions"` -> c1-ci-mode-options.log, plus a negative control
+  (a throwaway file with an unused local must fail core/compile in CI mode) -> c1-ci-mode-negative-control.log.
+Not fixed: R1-5 (disclosed; P-9 forbids a rewrite), R2-4, R2-6, R2-8 (refuted by K2).
+04:11 sbt fmt after the 4 fix commits: 0 files changed (c1-fix-fmt.log).
+04:12 SBT_TPOLECAT_CI=1 show core/scalacOptions: CiMode, -Werror present, -Ycheck-all-patmat absent, Compile and Test
+      (c1-ci-mode-options.log). Negative control: Throwaway.scala with an unused local, core/compile in CI mode ->
+      E198 + "No warnings can be incurred under -Werror", exit 1; file removed, tree clean (c1-ci-mode-negative-control.log).
+04:12 SBT_TPOLECAT_CI=1 sbt check alone at 66d9299: exit 0, 0 [warn], 0 [error], 26 tests passed, versionPolicyCheck
+      green (c1-final-check.log). version-order-test 55/55 (c1-final-version-order-test.log).
+04:14 PR body rewritten (c1-pr-body.txt, 139 lines): numbers (68 main, 1671 at the tip, tests 668, build+docs 181,
+      +2585/-39), P-7 rows 6a-6d, P-8 -w command names the four files, "Review fixes" table, P-12 additions.
+      Tip 66d9299, 16 commits on origin/main, not pushed.

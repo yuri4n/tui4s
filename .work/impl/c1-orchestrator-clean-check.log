@@ -1,0 +1,47 @@
+ 04:18:09 up  1:22,  0 user,  load average: 0.57, 0.36, 0.27
+    [1m[32m[PASS][0m[0m borders › rounded  [2m(64ms)[0m
+    [1m[32m[PASS][0m[0m colours and text attributes › bold, italic, underline; h1 is bold and underlined  [2m(314ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › padding inside a border  [2m(18ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › gap in a row and in a column  [2m(26ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › flexGrow takes the free rows of a column  [2m(27ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › padding moves the content inside the box  [2m(29ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › no wrap in a row  [2m(3ms)[0m
+    [1m[32m[PASS][0m[0m overflow is clipped › cells right of a fixed width are not painted  [2m(10ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › a long word splits  [2m(8ms)[0m
+    [1m[32m[PASS][0m[0m placeholders › an image shows its alt text in brackets  [2m(4ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › at the spaces  [2m(13ms)[0m
+    [1m[32m[PASS][0m[0m overflow is clipped › rows below a fixed height are not painted  [2m(23ms)[0m
+    [1m[32m[PASS][0m[0m borders › dashed, with the border colour on the glyphs  [2m(332ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › flexGrow takes the free space of the row  [2m(41ms)[0m
+    [1m[32m[PASS][0m[0m wide characters › take two cells each  [2m(10ms)[0m
+    [1m[32m[PASS][0m[0m placeholders › an svg (a chart) shows [chart], dim  [2m(18ms)[0m
+    [1m[32m[PASS][0m[0m decorations › a button has brackets; list items have markers  [2m(33ms)[0m
+[2m---[0m GoldenScreenTest: [32m22 passed[0m, [31m0 failed[0m  [2m(725ms)[0m
+
+Results: [32m22 passed[0m, [31m0 failed[0m  (total: 725ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== RenderTest ===[0m
+  [1m[32m[PASS][0m[0m a text in a div fills the first row  [2m(7ms)[0m
+  [1m[32m[PASS][0m[0m the screen has the given size  [2m(8ms)[0m
+[2m---[0m RenderTest: [32m2 passed[0m, [31m0 failed[0m  [2m(19ms)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 19ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== KyoUiSurfaceTest ===[0m
+  [1m[32m[PASS][0m[0m compare reports an added, a removed and a changed line  [2m(19ms)[0m
+  [1m[32m[PASS][0m[0m the UI.Ast types and the Style.Prop cases are the checked-in list  [2m(3.4s)[0m
+[2m---[0m KyoUiSurfaceTest: [32m2 passed[0m, [31m0 failed[0m  [2m(3.4s)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 3.4s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 7 s, completed Oct 12, 2026, 4:18:41 AM
+[info] Not checking compatibility of module tui4s-cats:0.0.0+18-66d9299d-SNAPSHOT because versionPolicyIntention is set to 'Compatibility.None'
+[info] Not checking compatibility of module tui4s-core:0.0.0+18-66d9299d-SNAPSHOT because versionPolicyIntention is set to 'Compatibility.None'
+[info] Not checking compatibility of module tui4s-zio:0.0.0+18-66d9299d-SNAPSHOT because versionPolicyIntention is set to 'Compatibility.None'
+[info] Not checking dependencies compatibility of module tui4s-core:0.0.0+18-66d9299d-SNAPSHOT because versionPolicyIntention is set to 'Compatibility.None'
+[info] Not checking dependencies compatibility of module tui4s-zio:0.0.0+18-66d9299d-SNAPSHOT because versionPolicyIntention is set to 'Compatibility.None'
+[info] Not checking dependencies compatibility of module tui4s-cats:0.0.0+18-66d9299d-SNAPSHOT because versionPolicyIntention is set to 'Compatibility.None'
+[success] Total time: 0 s, completed Oct 12, 2026, 4:18:41 AM
+exit: 0

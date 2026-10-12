@@ -1,0 +1,267 @@
+=== core/test golden screens, first run (with a throwaway ProbeTest) 03:32:15
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-01-render-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-01-render/)
+[info] compiling 2 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/target/scala-3.9.0/test-classes ...
+[error] -- [E134] Type Error: /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/src/test/scala/tui4s/GoldenScreenTest.scala:34:35 
+[error] 34 |        val ui = div("hi").style(_.border(1.px, _.dashed, _.red))
+[error]    |                                 ^^^^^^^^
+[error]    |None of the overloaded alternatives of method border in object Style with types
+[error]    | (width: kyo.Length.Px, f: kyo.Style.Color.type => kyo.Style.Color): kyo.Style
+[error]    | (width?: kyo.Length.Px, c: kyo.Style.Color): kyo.Style
+[error]    | (width?: kyo.Length.Px, style: kyo.Style.BorderStyle, f?: kyo.Style.Color.type
+[error]    |  => kyo.Style.Color): kyo.Style
+[error]    | (width?: kyo.Length.Px, style?: kyo.Style.BorderStyle, c?: kyo.Style.Color):
+[error]    |  kyo.Style
+[error]    |match arguments (kyo.Length.Px, <?> => <?>, <?> => <?>)
+[error]    |
+[error]    |where:    c      is a reference to a value parameter
+[error]    |          c?     is a reference to a value parameter
+[error]    |          f      is a reference to a value parameter
+[error]    |          f?     is a reference to a value parameter
+[error]    |          style  is a reference to a value parameter
+[error]    |          style? is a reference to a value parameter
+[error]    |          width  is a reference to a value parameter
+[error]    |          width? is a reference to a value parameter
+[error]    |          width? is a reference to a value parameter
+[error]    |          width? is a reference to a value parameter
+[error] -- [E007] Type Mismatch Error: /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/src/test/scala/tui4s/GoldenScreenTest.scala:85:56 
+[error] 85 |        assertScreen(div.style(_.row.justify(_.center))(items*), 8, 1, "  abcd")
+[error]    |                                                        ^^^^^
+[error]    |Found:    (items : Seq[kyo.UI.Ast.SpanElement])
+[error]    |Required: Seq[kyo.UI.Ast.HtmlChildVal] | Array[? <: kyo.UI.Ast.HtmlChildVal]
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E007] Type Mismatch Error: /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/src/test/scala/tui4s/GoldenScreenTest.scala:86:53 
+[error] 86 |        assertScreen(div.style(_.row.justify(_.end))(items*), 8, 1, "    abcd")
+[error]    |                                                     ^^^^^
+[error]    |Found:    (items : Seq[kyo.UI.Ast.SpanElement])
+[error]    |Required: Seq[kyo.UI.Ast.HtmlChildVal] | Array[? <: kyo.UI.Ast.HtmlChildVal]
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E007] Type Mismatch Error: /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/src/test/scala/tui4s/GoldenScreenTest.scala:88:51 
+[error] 88 |          div.style(_.row.justify(_.spaceBetween))(items*),
+[error]    |                                                   ^^^^^
+[error]    |Found:    (items : Seq[kyo.UI.Ast.SpanElement])
+[error]    |Required: Seq[kyo.UI.Ast.HtmlChildVal] | Array[? <: kyo.UI.Ast.HtmlChildVal]
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] four errors found
+[error] (core / Test / compileIncremental) Compilation failed
+[error] Total time: 7 s, completed Oct 12, 2026, 3:32:29 AM
+exit=1
+=== run 2 03:32:46
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-01-render-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-01-render/)
+[info] compiling 2 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Running 1 suite(s) with parallelism 8
+
+[1m=== RenderTest ===[0m
+  [1m[32m[PASS][0m[0m the screen has the given size  [2m(183ms)[0m
+  [1m[32m[PASS][0m[0m a text in a div fills the first row  [2m(182ms)[0m
+[2m---[0m RenderTest: [32m2 passed[0m, [31m0 failed[0m  [2m(554ms)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 554ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== ProbeTest ===[0m
+  [1m[31m[FAIL][0m[0m probe wide  [2m(48ms)[0m *** FAILED ***
+
+    [??????][??x???] raw: Optional[?]|Optional.empty|Optional[?]|Optional.empty|Optional.empty|Optional.empty
+
+[2m---[0m ProbeTest: [32m0 passed[0m, [31m1 failed[0m  [2m(54ms)[0m
+FAILURES (1):
+  probe wide  [FAIL]
+    [??????][??x???] raw: Optional[?]|Optional.empty|Optional[?]|Optional.empty|Optional.empty|Optional.empty
+
+Results: [32m0 passed[0m, [31m1 failed[0m  (total: 54ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== GoldenScreenTest ===[0m
+    [1m[32m[PASS][0m[0m colours and text attributes ? a child inherits the text colour  [2m(4ms)[0m
+    [1m[32m[PASS][0m[0m borders ? solid  [2m(18ms)[0m
+    [1m[32m[PASS][0m[0m borders ? dashed, with the border colour on the glyphs  [2m(12ms)[0m
+    [1m[32m[PASS][0m[0m borders ? rounded  [2m(32ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding ? padding moves the content inside the box  [2m(4ms)[0m
+    [1m[32m[PASS][0m[0m colours and text attributes ? text colour and background  [2m(23ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex ? flexGrow takes the free rows of a column  [2m(22ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding ? padding inside a border  [2m(10ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding ? gap in a row and in a column  [2m(17ms)[0m
+    [1m[32m[PASS][0m[0m overflow is clipped ? cells right of a fixed width are not painted  [2m(12ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex ? justify: center, end, spaceBetween  [2m(21ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column ? at the spaces  [2m(4ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column ? no wrap in a row  [2m(4ms)[0m
+    [1m[32m[PASS][0m[0m overflow is clipped ? rows below a fixed height are not painted  [2m(24ms)[0m
+    [1m[32m[PASS][0m[0m placeholders ? an svg (a chart) shows [chart], dim  [2m(21ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex ? a row puts its items side by side; a column stacks them  [2m(30ms)[0m
+    [1m[32m[PASS][0m[0m wide characters ? take two cells each  [2m(27ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex ? flexGrow takes the free space of the row  [2m(70ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column ? a long word splits  [2m(19ms)[0m
+    [1m[32m[PASS][0m[0m placeholders ? an image shows its alt text in brackets  [2m(31ms)[0m
+    [1m[31m[FAIL][0m[0m decorations ? a button has brackets; list items have markers  [2m(25ms)[0m *** FAILED ***
+
+    )
+    // message: screen differs
+    --- expected:
+    [ + ]
+    --- actual:
+    [ +  ]
+
+    [1m[32m[PASS][0m[0m colours and text attributes ? bold, italic, underline; h1 is bold and underlined  [2m(20ms)[0m
+[2m---[0m GoldenScreenTest: [32m21 passed[0m, [31m1 failed[0m  [2m(132ms)[0m
+FAILURES (1):
+  decorations > a button has brackets; list items have markers  [FAIL]
+    )
+    // message: screen differs
+    --- expected:
+    [ + ]
+    --- actual:
+    [ +  ]
+
+Results: [32m21 passed[0m, [31m1 failed[0m  (total: 132ms)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.ProbeTest
+[error] 	tui4s.GoldenScreenTest
+[error] (core / Test / test) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 11 s, completed Oct 12, 2026, 3:33:03 AM
+exit=1
+=== run 3 (probe removed, button in a row, wide-char golden, UTF-8 test output) 03:33:46
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-01-render-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-01-render/)
+[info] compiling 3 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Running 1 suite(s) with parallelism 8
+
+[1m=== RenderTest ===[0m
+  [1m[32m[PASS][0m[0m a text in a div fills the first row  [2m(193ms)[0m
+  [1m[32m[PASS][0m[0m the screen has the given size  [2m(195ms)[0m
+[2m---[0m RenderTest: [32m2 passed[0m, [31m0 failed[0m  [2m(592ms)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 592ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== GoldenScreenTest ===[0m
+    [1m[32m[PASS][0m[0m colours and text attributes › a child inherits the text colour  [2m(20ms)[0m
+    [1m[32m[PASS][0m[0m colours and text attributes › text colour and background  [2m(12ms)[0m
+    [1m[32m[PASS][0m[0m borders › solid  [2m(67ms)[0m
+    [1m[32m[PASS][0m[0m borders › dashed, with the border colour on the glyphs  [2m(68ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › flexGrow takes the free space of the row  [2m(32ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › padding moves the content inside the box  [2m(9ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › flexGrow takes the free rows of a column  [2m(25ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › gap in a row and in a column  [2m(16ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › padding inside a border  [2m(8ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › at the spaces  [2m(4ms)[0m
+    [1m[32m[PASS][0m[0m overflow is clipped › rows below a fixed height are not painted  [2m(11ms)[0m
+    [1m[32m[PASS][0m[0m overflow is clipped › cells right of a fixed width are not painted  [2m(10ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › a long word splits  [2m(10ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › no wrap in a row  [2m(4ms)[0m
+    [1m[32m[PASS][0m[0m wide characters › take two cells each  [2m(8ms)[0m
+    [1m[32m[PASS][0m[0m borders › rounded  [2m(104ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › justify: center, end, spaceBetween  [2m(70ms)[0m
+    [1m[32m[PASS][0m[0m placeholders › an image shows its alt text in brackets  [2m(11ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › a row puts its items side by side; a column stacks them  [2m(9ms)[0m
+    [1m[32m[PASS][0m[0m colours and text attributes › bold, italic, underline; h1 is bold and underlined  [2m(71ms)[0m
+    [1m[32m[PASS][0m[0m placeholders › an svg (a chart) shows [chart], dim  [2m(29ms)[0m
+    [1m[31m[FAIL][0m[0m decorations › a button has brackets; list items have markers  [2m(47ms)[0m *** FAILED ***
+
+    )
+    // message: screen differs
+    --- expected:
+    • a
+    • b
+    --- actual:
+    a
+    b
+
+[2m---[0m GoldenScreenTest: [32m21 passed[0m, [31m1 failed[0m  [2m(179ms)[0m
+FAILURES (1):
+  decorations > a button has brackets; list items have markers  [FAIL]
+    )
+    // message: screen differs
+    --- expected:
+    • a
+    • b
+    --- actual:
+    a
+    b
+
+Results: [32m21 passed[0m, [31m1 failed[0m  (total: 179ms)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.GoldenScreenTest
+[error] (core / Test / test) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 11 s, completed Oct 12, 2026, 3:34:05 AM
+exit=1
+=== run 4 (list markers need an explicit list style) 03:34:41
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-01-render-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-01-render/)
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Running 1 suite(s) with parallelism 8
+
+[1m=== RenderTest ===[0m
+  [1m[32m[PASS][0m[0m the screen has the given size  [2m(144ms)[0m
+  [1m[32m[PASS][0m[0m a text in a div fills the first row  [2m(153ms)[0m
+[2m---[0m RenderTest: [32m2 passed[0m, [31m0 failed[0m  [2m(423ms)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 423ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== GoldenScreenTest ===[0m
+    [1m[32m[PASS][0m[0m colours and text attributes › a child inherits the text colour  [2m(23ms)[0m
+    [1m[32m[PASS][0m[0m colours and text attributes › text colour and background  [2m(28ms)[0m
+    [1m[32m[PASS][0m[0m borders › rounded  [2m(26ms)[0m
+    [1m[32m[PASS][0m[0m borders › solid  [2m(15ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › flexGrow takes the free rows of a column  [2m(10ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › flexGrow takes the free space of the row  [2m(20ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › padding inside a border  [2m(11ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › padding moves the content inside the box  [2m(11ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › gap in a row and in a column  [2m(18ms)[0m
+    [1m[32m[PASS][0m[0m overflow is clipped › rows below a fixed height are not painted  [2m(8ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › at the spaces  [2m(4ms)[0m
+    [1m[32m[PASS][0m[0m overflow is clipped › cells right of a fixed width are not painted  [2m(7ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › no wrap in a row  [2m(7ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › a long word splits  [2m(9ms)[0m
+    [1m[32m[PASS][0m[0m placeholders › an image shows its alt text in brackets  [2m(6ms)[0m
+    [1m[32m[PASS][0m[0m wide characters › take two cells each  [2m(10ms)[0m
+    [1m[32m[PASS][0m[0m colours and text attributes › bold, italic, underline; h1 is bold and underlined  [2m(84ms)[0m
+    [1m[32m[PASS][0m[0m borders › dashed, with the border colour on the glyphs  [2m(87ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › justify: center, end, spaceBetween  [2m(72ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › a row puts its items side by side; a column stacks them  [2m(15ms)[0m
+    [1m[32m[PASS][0m[0m placeholders › an svg (a chart) shows [chart], dim  [2m(24ms)[0m
+    [1m[32m[PASS][0m[0m decorations › a button has brackets; list items have markers  [2m(24ms)[0m
+[2m---[0m GoldenScreenTest: [32m22 passed[0m, [31m0 failed[0m  [2m(139ms)[0m
+
+Results: [32m22 passed[0m, [31m0 failed[0m  (total: 139ms)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 10 s, completed Oct 12, 2026, 3:34:57 AM
+exit=0

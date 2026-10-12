@@ -152,7 +152,14 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
   carried into `modules/core`, strict-flag fixes, `sbt fmt`), `spike-sbt-carry` (fe06611, the carry only),
   `spike-sbt-p7` (8e4d75f). Never push them. fe06611 is the reference for the carry commit of C1 (P-7 step 1).
 - Spike build leftovers deleted on 2026-10-12 (190 MB). The spike sources and logs stay.
-- No workflow or agent is running. (Update this line when W1 starts and ends.)
+- W1 DONE (claude 2026-10-12): workflow wf_1048293e-046, 6 agents, 1.29 M tokens, 73 min. Branch feat/kyoui-01-render in
+  worktree .work/worktrees/feat-kyoui-01-render, head 66d9299 (16 commits), NOT pushed: the user must confirm the
+  branch name first. 26 tests, 0 warnings, sbt check green in CI mode, 55/55 version-order cases. All 14 review
+  findings minor (11 fixed, 1 disclosed, 2 refuted). Logs and notes: .work/impl/c1-*.log, c1-notes.txt; the PR body:
+  .work/impl/c1-pr-body.txt. Open: the implementer excluded -Ycheck-all-patmat from the tpolecat set (false "not
+  exhaustive" on Kyo's opaque Maybe); the C2 API review decides whether tui4s.internal becomes private[tui4s]. The
+  one-PR workflow script is tui4s-w1-c1-render-wf_1048293e-046.js in the session workflows dir (shape 6; reuse it for
+  C3, C4, T2, L1). FACT: `sbt -batch` is not valid with this machine's sbt wrapper; use `sbt -Dsbt.supershell=false`.
 
 ## Next steps, in order
 

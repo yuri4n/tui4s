@@ -1,0 +1,41 @@
+=== core/compile on the format commit 774ca64 (DevMode: warnings are warnings) 03:25:54
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-01-render-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-01-render/)
+[info] compiling 4 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/target/scala-3.9.0/classes ...
+[warn] -- [E029] Pattern Match Exhaustivity Warning: /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/src/main/scala/tui4s/internal/Props.scala:213:52 
+[warn] 213 |      !isDisabled(el) && !isHidden(el) && (el.attrs.tabIndex match
+[warn]     |                                           ^^^^^^^^^^^^^^^^^
+[warn]     |                      match may not be exhaustive.
+[warn]     |
+[warn]     |                      It would fail on pattern case: _: kyo.Maybe[Int]
+[warn]     |
+[warn]     | longer explanation available when compiling with `-explain`
+[warn] -- [E198] Unused Symbol Warning: /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/src/main/scala/tui4s/internal/Layout.scala:618:8 
+[warn] 618 |        kids: Vector[Measured],
+[warn]     |        ^^^^
+[warn]     |        unused explicit parameter
+[warn] two warnings found
+[info] done compiling
+[success] Total time: 12 s, completed Oct 12, 2026, 3:26:12 AM
+exit=0
+=== core/compile after the two fixes 03:27:08
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-01-render-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-01-render/)
+[info] compiling 4 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[success] Total time: 12 s, completed Oct 12, 2026, 3:27:28 AM
+exit=0

@@ -1,0 +1,36 @@
+C1 carry verification Mon Oct 12 03:23:26 UTC 2026 (agent I). Compares the 4 prototype files with the carried files.
+Rule: a carry may change only blank, package, import and carry-mark lines (as .work/spikes/s6-flags/verify-carry.py).
+--- Geometry.scala: proto 60 lines, carried 62 lines
+diff (ignoring blank, package, import, carry-mark lines):
+  identical code lines
+full unified diff proto -> carried:
+-package tui4s.kyoui.internal
++package tui4s.internal
++// claude 2026-10-09: created (carried from .work/proto/kyoui-runner/src/tui4s/kyoui/internal/Geometry.scala; new path and package only)
+carried file == fe06611 blob: yes
+--- Props.scala: proto 258 lines, carried 260 lines
+diff (ignoring blank, package, import, carry-mark lines):
+  identical code lines
+full unified diff proto -> carried:
+-package tui4s.kyoui.internal
++package tui4s.internal
++// claude 2026-10-09: created (carried from .work/proto/kyoui-runner/src/tui4s/kyoui/internal/Props.scala; new path and package only)
+carried file == fe06611 blob: yes
+--- Layout.scala: proto 461 lines, carried 463 lines
+diff (ignoring blank, package, import, carry-mark lines):
+  identical code lines
+full unified diff proto -> carried:
+-package tui4s.kyoui.internal
++package tui4s.internal
++// claude 2026-10-09: created (carried from .work/proto/kyoui-runner/src/tui4s/kyoui/internal/Layout.scala; new path and package only)
+carried file == fe06611 blob: yes
+--- Paint.scala: proto 273 lines, carried 275 lines
+diff (ignoring blank, package, import, carry-mark lines):
+  identical code lines
+full unified diff proto -> carried:
+-package tui4s.kyoui.internal
++package tui4s.internal
++// claude 2026-10-09: created (carried from .work/proto/kyoui-runner/src/tui4s/kyoui/internal/Paint.scala; new path and package only)
+carried file == fe06611 blob: yes
+prototype marks (// claude): 2
+carried marks (// claude): 6

@@ -1,0 +1,309 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-01-render-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project
+[error] lmcoursier.internal.shaded.coursier.error.FetchError$DownloadingArtifacts: Error fetching artifacts:
+[error] https://repo1.maven.org/maven2/org/typelevel/scalac-options_2.12/0.1.11/scalac-options_2.12-0.1.11.jar: download error: Caught java.io.IOException (Server returned HTTP response code: 429 for URL: https://repo1.maven.org/maven2/org/typelevel/scalac-options_2.12/0.1.11/scalac-options_2.12-0.1.11.jar) while downloading https://repo1.maven.org/maven2/org/typelevel/scalac-options_2.12/0.1.11/scalac-options_2.12-0.1.11.jar
+[error] 
+[error] 	at lmcoursier.internal.shaded.coursier.Artifacts$.$anonfun$fetchArtifacts$9(Artifacts.scala:365)
+[error] 	at lmcoursier.internal.shaded.coursier.util.Task$.$anonfun$flatMap$extension$1(Task.scala:14)
+[error] 	at lmcoursier.internal.shaded.coursier.util.Task$.$anonfun$flatMap$extension$1$adapted(Task.scala:14)
+[error] 	at lmcoursier.internal.shaded.coursier.util.Task$.wrap(Task.scala:82)
+[error] 	at lmcoursier.internal.shaded.coursier.util.Task$.$anonfun$flatMap$2(Task.scala:14)
+[error] 	at scala.concurrent.Future.$anonfun$flatMap$1(Future.scala:307)
+[error] 	at scala.concurrent.impl.Promise.$anonfun$transformWith$1(Promise.scala:51)
+[error] 	at scala.concurrent.impl.CallbackRunnable.run(Promise.scala:74)
+[error] 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+[error] 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+[error] 	at java.base/java.lang.Thread.run(Thread.java:1474)
+[error] Caused by: lmcoursier.internal.shaded.coursier.cache.ArtifactError$DownloadError: download error: Caught java.io.IOException (Server returned HTTP response code: 429 for URL: https://repo1.maven.org/maven2/org/typelevel/scalac-options_2.12/0.1.11/scalac-options_2.12-0.1.11.jar) while downloading https://repo1.maven.org/maven2/org/typelevel/scalac-options_2.12/0.1.11/scalac-options_2.12-0.1.11.jar
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader$.$anonfun$downloading$1(Downloader.scala:808)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Retry.loop$1(Retry.scala:23)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Retry.retryOpt(Retry.scala:39)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader$.coursier$cache$internal$Downloader$$downloading(Downloader.scala:812)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader$Blocking$.remote(Downloader.scala:428)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader.$anonfun$remote$6(Downloader.scala:546)
+[error] 	at scala.concurrent.Future$.$anonfun$apply$1(Future.scala:659)
+[error] 	at scala.util.Success.$anonfun$map$1(Try.scala:255)
+[error] 	at scala.util.Success.map(Try.scala:213)
+[error] 	at scala.concurrent.Future.$anonfun$map$1(Future.scala:292)
+[error] 	at scala.concurrent.impl.Promise.$anonfun$transform$1(Promise.scala:42)
+[error] 	at scala.concurrent.impl.CallbackRunnable.run(Promise.scala:74)
+[error] 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+[error] 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+[error] 	at java.base/java.lang.Thread.run(Thread.java:1474)
+[error] Caused by: java.io.IOException: Server returned HTTP response code: 429 for URL: https://repo1.maven.org/maven2/org/typelevel/scalac-options_2.12/0.1.11/scalac-options_2.12-0.1.11.jar
+[error] 	at java.base/jdk.internal.reflect.DirectConstructorHandleAccessor.newInstance(DirectConstructorHandleAccessor.java:62)
+[error] 	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:499)
+[error] 	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:483)
+[error] 	at java.base/sun.net.www.protocol.http.HttpURLConnection.getChainedException(HttpURLConnection.java:1775)
+[error] 	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream0(HttpURLConnection.java:1324)
+[error] 	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream(HttpURLConnection.java:1305)
+[error] 	at java.base/sun.net.www.protocol.https.HttpsURLConnectionImpl.getInputStream(HttpsURLConnectionImpl.java:223)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader$Blocking$.doDownload(Downloader.scala:266)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader$Blocking$.$anonfun$remote$2(Downloader.scala:423)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.CacheLocks$.loop$1(CacheLocks.scala:94)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.CacheLocks$.withLockOr(CacheLocks.scala:117)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader$Blocking$.$anonfun$remote$1(Downloader.scala:426)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader$.$anonfun$downloading$2(Downloader.scala:776)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.CacheLocks$.withUrlLock(CacheLocks.scala:136)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader$.$anonfun$downloading$1(Downloader.scala:776)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Retry.loop$1(Retry.scala:23)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Retry.retryOpt(Retry.scala:39)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader$.coursier$cache$internal$Downloader$$downloading(Downloader.scala:812)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader$Blocking$.remote(Downloader.scala:428)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader.$anonfun$remote$6(Downloader.scala:546)
+[error] 	at scala.concurrent.Future$.$anonfun$apply$1(Future.scala:659)
+[error] 	at scala.util.Success.$anonfun$map$1(Try.scala:255)
+[error] 	at scala.util.Success.map(Try.scala:213)
+[error] 	at scala.concurrent.Future.$anonfun$map$1(Future.scala:292)
+[error] 	at scala.concurrent.impl.Promise.$anonfun$transform$1(Promise.scala:42)
+[error] 	at scala.concurrent.impl.CallbackRunnable.run(Promise.scala:74)
+[error] 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+[error] 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+[error] 	at java.base/java.lang.Thread.run(Thread.java:1474)
+[error] Caused by: java.io.IOException: Server returned HTTP response code: 429 for URL: https://repo1.maven.org/maven2/org/typelevel/scalac-options_2.12/0.1.11/scalac-options_2.12-0.1.11.jar
+[error] 	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream0(HttpURLConnection.java:1706)
+[error] 	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream(HttpURLConnection.java:1305)
+[error] 	at java.base/java.net.HttpURLConnection.getResponseCode(HttpURLConnection.java:493)
+[error] 	at java.base/sun.net.www.protocol.https.HttpsURLConnectionImpl.getResponseCode(HttpsURLConnectionImpl.java:307)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.CacheUrl$.redirectTo(CacheUrl.scala:178)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.CacheUrl$.redirect(CacheUrl.scala:193)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.CacheUrl$.urlConnectionMaybePartial(CacheUrl.scala:349)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.ConnectionBuilder.connectionMaybePartial(ConnectionBuilder.scala:50)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader$Blocking$.doDownload(Downloader.scala:232)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader$Blocking$.$anonfun$remote$2(Downloader.scala:423)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.CacheLocks$.loop$1(CacheLocks.scala:94)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.CacheLocks$.withLockOr(CacheLocks.scala:117)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader$Blocking$.$anonfun$remote$1(Downloader.scala:426)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader$.$anonfun$downloading$2(Downloader.scala:776)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.CacheLocks$.withUrlLock(CacheLocks.scala:136)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader$.$anonfun$downloading$1(Downloader.scala:776)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Retry.loop$1(Retry.scala:23)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Retry.retryOpt(Retry.scala:39)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader$.coursier$cache$internal$Downloader$$downloading(Downloader.scala:812)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader$Blocking$.remote(Downloader.scala:428)
+[error] 	at lmcoursier.internal.shaded.coursier.cache.internal.Downloader.$anonfun$remote$6(Downloader.scala:546)
+[error] 	at scala.concurrent.Future$.$anonfun$apply$1(Future.scala:659)
+[error] 	at scala.util.Success.$anonfun$map$1(Try.scala:255)
+[error] 	at scala.util.Success.map(Try.scala:213)
+[error] 	at scala.concurrent.Future.$anonfun$map$1(Future.scala:292)
+[error] 	at scala.concurrent.impl.Promise.$anonfun$transform$1(Promise.scala:42)
+[error] 	at scala.concurrent.impl.CallbackRunnable.run(Promise.scala:74)
+[error] 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+[error] 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+[error] 	at java.base/java.lang.Thread.run(Thread.java:1474)
+[error] (update) lmcoursier.internal.shaded.coursier.error.FetchError$DownloadingArtifacts: Error fetching artifacts:
+[error] https://repo1.maven.org/maven2/org/typelevel/scalac-options_2.12/0.1.11/scalac-options_2.12-0.1.11.jar: download error: Caught java.io.IOException (Server returned HTTP response code: 429 for URL: https://repo1.maven.org/maven2/org/typelevel/scalac-options_2.12/0.1.11/scalac-options_2.12-0.1.11.jar) while downloading https://repo1.maven.org/maven2/org/typelevel/scalac-options_2.12/0.1.11/scalac-options_2.12-0.1.11.jar
+[warn] Project loading failed: (r)etry, (q)uit, (l)ast, or (i)gnore? (default: r)
+exit=1
+=== try 1 03:18:06
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-01-render-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project
+[info] compiling 2 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project/target/scala-2.12/sbt-1.0/classes ...
+[info] done compiling
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-01-render/)
+[error] Expected symbol
+[error] Not a valid command: -
+[error] Expected end of input.
+[error] Expected '--'
+[error] Expected 'debug'
+[error] Expected 'info'
+[error] Expected 'warn'
+[error] Expected 'error'
+[error] Expected 'addPluginSbtFile'
+[error] -batch
+[error]  ^
+exit=1
+=== try 2 03:19:06
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-01-render-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-01-render/)
+[error] Expected symbol
+[error] Not a valid command: -
+[error] Expected end of input.
+[error] Expected '--'
+[error] Expected 'debug'
+[error] Expected 'info'
+[error] Expected 'warn'
+[error] Expected 'error'
+[error] Expected 'addPluginSbtFile'
+[error] -batch
+[error]  ^
+exit=1
+=== try 3 03:20:13
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-01-render-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-01-render/)
+[error] Expected symbol
+[error] Not a valid command: -
+[error] Expected end of input.
+[error] Expected '--'
+[error] Expected 'debug'
+[error] Expected 'info'
+[error] Expected 'warn'
+[error] Expected 'error'
+[error] Expected 'addPluginSbtFile'
+[error] -batch
+[error]  ^
+exit=1
+=== try 4 03:21:40
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-01-render-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-01-render/)
+[error] Expected symbol
+[error] Not a valid command: -
+[error] Expected end of input.
+[error] Expected '--'
+[error] Expected 'debug'
+[error] Expected 'info'
+[error] Expected 'warn'
+[error] Expected 'error'
+[error] Expected 'addPluginSbtFile'
+[error] -batch
+[error]  ^
+exit=1
+=== run without -batch 03:21:58
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-01-render-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-01-render/)
+[info] * -encoding
+[info] * utf8
+[info] * -deprecation
+[info] * -feature
+[info] * -unchecked
+[info] * -language:experimental.macros
+[info] * -language:implicitConversions
+[info] * -Xkind-projector
+[info] * -Ycheck-all-patmat
+[info] * -Wvalue-discard
+[info] * -Wnonunit-statement
+[info] * -Wunused:implicits
+[info] * -Wunused:explicits
+[info] * -Wunused:imports
+[info] * -Wunused:locals
+[info] * -Wunused:params
+[info] * -Wunused:patvars
+[info] * -Wunused:privates
+[info] * -Yexplicit-nulls
+[info] * -Wconf:msg=@nowarn annotation does not suppress any warnings:s
+[success] Total time: 0 s, completed Oct 12, 2026, 3:22:04 AM
+[info] * -encoding
+[info] * utf8
+[info] * -deprecation
+[info] * -feature
+[info] * -unchecked
+[info] * -language:experimental.macros
+[info] * -language:implicitConversions
+[info] * -Xkind-projector
+[info] * -Ycheck-all-patmat
+[info] * -Wvalue-discard
+[info] * -Wnonunit-statement
+[info] * -Wunused:implicits
+[info] * -Wunused:explicits
+[info] * -Wunused:imports
+[info] * -Wunused:locals
+[info] * -Wunused:params
+[info] * -Wunused:patvars
+[info] * -Wunused:privates
+[info] * -Yexplicit-nulls
+[info] * -Wconf:msg=@nowarn annotation does not suppress any warnings:s
+[info] * -Xsemanticdb
+[info] * -semanticdb-target
+[info] * /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/target/scala-3.9.0/test-meta
+[success] Total time: 2 s, completed Oct 12, 2026, 3:22:06 AM
+[info] DevMode
+[success] Total time: 3 s, completed Oct 12, 2026, 3:22:09 AM
+exit=0
+=== flag acceptance check with a throwaway file 03:22:25
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-01-render-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-01-render/)
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-01-render/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[success] Total time: 7 s, completed Oct 12, 2026, 3:22:38 AM
+exit=0
