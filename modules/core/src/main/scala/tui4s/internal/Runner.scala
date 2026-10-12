@@ -96,7 +96,10 @@ final class Runner(
                         Map.empty,
                       )
                       .map(remember)
-            w1   <- frame(w0, 0L, FrameCause.Initial, t0).map(remember)
+            // claude 2026-10-12: changed (D-16, armkey): the initial mount is
+            // settled and verified before the Initial frame
+            w0s  <- settle(w0).map(w => verify(w, input = false)).map(remember)
+            w1   <- frame(w0s, 0L, FrameCause.Initial, t0).map(remember)
             _    <- Loop(w1)(step)
         yield ()
       }
@@ -109,10 +112,22 @@ final class Runner(
           next(w).map { (msg, w1) =>
             for
                 t0          <- nanos
-                w2          <- handle(w1.copy(updates = 0, repaired = 0), msg)
-                                 .map(remember)
+                // claude 2026-10-12: changed (D-16, armkey): the young regions
+                // shift by one step; the verify pass runs after the settle
+                w2          <- handle(
+                                 w1.copy(
+                                   updates = 0,
+                                   repaired = 0,
+                                   youngPrev = w1.youngNow,
+                                   youngNow = Set.empty,
+                                 ),
+                                 msg,
+                               ).map(remember)
                 t1          <- nanos
-                w3          <- settle(w2).map(remember)
+                input        = msg match
+                                   case Msg.Resize(_, _) => true
+                                   case _                => false
+                w3          <- settle(w2).map(w => verify(w, input)).map(remember)
                 t2          <- nanos
                 (seq, cause) = msg match
                                    case Msg.Resize(_, s) =>
@@ -139,11 +154,30 @@ final class Runner(
               .defer(canvas.resize(size))
               .andThen(w.copy(size = size, full = true))
           case c: Msg.Content      => apply(w, c)
-          // claude 2026-10-12: created the two cases below (K29): a watcher is
-          // armed (nothing to do yet); the repair tick re-reads every region
-          case Msg.Armed(_, _)     => w
+          // claude 2026-10-12: created the two cases below (K29, D-16): a
+          // watcher armed: verify its region one time; the repair tick
+          // re-reads every region
+          case Msg.Armed(p, g)     => verifyRegion(w, p, Some(g))
           case Msg.Repair          => repairAll(w)
           case Msg.Quit            => w.copy(quit = true)
+
+    /** The verify pass (D-16, armkey; spike S2 section 4.3). After the settle
+      * it re-reads `current` of the regions mounted in this step or the step
+      * before, and in an Input step (a resize; keys come later) also of the
+      * regions whose watcher has not armed yet. A write that landed in the
+      * window of a young watcher (between the mount's read of `current` and the
+      * registration of `nextWith`) reaches this frame, not the repair tick. The
+      * regions that a repair mounts are not young: no cascade (a `Reactive`
+      * value with closures never compares equal).
+      */
+    // claude 2026-10-12: created (RC-9)
+    private def verify(w: World, input: Boolean)(using Frame): World < Sync =
+        val unarmed = if input then mount.unarmedRegions(w) else Set.empty[Loc]
+        val targets = (w.youngNow ++ w.youngPrev ++ unarmed).toSeq
+        val keep    = w.youngNow
+        Kyo
+          .foldLeft(targets)(w)((acc, p) => verifyRegion(acc, p, None))
+          .map(_.copy(youngNow = keep))
 
     /** Re-reads `current` of every region and applies a value that differs (as
       * if its watcher had posted it): the repair of a lost wakeup. A `Reactive`
@@ -250,9 +284,9 @@ final class Runner(
       msg match
           case c: Msg.Content  => apply(w, c)
           case Msg.Quit        => w.copy(quit = true)
-          // claude 2026-10-12: created the two cases below (K29): inside a
-          // settle, an arm needs nothing and a tick waits for the next one
-          case Msg.Armed(_, _) => w
+          // claude 2026-10-12: created the two cases below (K29, D-16): an arm
+          // inside a settle verifies its region; a tick waits for the next one
+          case Msg.Armed(p, g) => verifyRegion(w, p, Some(g))
           case Msg.Repair      => w
           case other           => w.copy(backlog = w.backlog :+ other)
 

@@ -59,6 +59,11 @@ final case class World(
     // claude 2026-10-12: created (K29): values that the runner found by a
     // re-read of `current` in this step (the repair tick)
     repaired: Int = 0,
+    // claude 2026-10-12: created the two fields below (D-16, armkey): the
+    // regions mounted in this step and in the step before; the verify pass
+    // re-reads them after the settle
+    youngNow: Set[Loc] = Set.empty,
+    youngPrev: Set[Loc] = Set.empty,
 ):
     def env: Scene =
       Scene(

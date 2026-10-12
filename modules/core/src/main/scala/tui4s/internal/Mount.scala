@@ -20,6 +20,25 @@ final class Mount(inbox: Channel[Msg], knobs: Knobs = Knobs.default):
         ),
       )
 
+    // claude 2026-10-12: created (D-16, armkey): the regions whose watcher has
+    // not armed yet (path -> gen). Until the arm, a write is not seen by the
+    // watcher; an Input step verifies these regions.
+    private val unarmed =
+      new java.util.concurrent.ConcurrentHashMap[Loc, java.lang.Long]()
+
+    /** The regions of `w` whose watcher has not armed yet; stale entries (an
+      * old generation) are dropped.
+      */
+    private[tui4s] def unarmedRegions(w: World): Set[Loc] =
+        import scala.jdk.CollectionConverters.*
+        unarmed.asScala.toList.flatMap { (p, g) =>
+          if w.regions.get(p).exists(_.gen == g.longValue) then Some(p)
+          else
+              discard(unarmed.remove(p, g))
+              None
+        }.toSet
+    end unarmedRegions
+
     /** Adds a fiber of this run to the gauge. */
     private[tui4s] def track(f: Fiber[Any, Nothing]): Unit =
       discard(started.add(f))
@@ -43,8 +62,11 @@ final class Mount(inbox: Channel[Msg], knobs: Knobs = Knobs.default):
     private def watch[A](signal: Signal[A], path: Loc, gen: Long)(using
         Frame,
     ): Fiber[Any, Nothing] < Sync =
-      Fiber
-        .initUnscoped(Abort.run[Closed](loop(signal, path, gen)).unit)
+      Sync
+        .defer(discard(unarmed.put(path, java.lang.Long.valueOf(gen))))
+        .andThen(
+          Fiber.initUnscoped(Abort.run[Closed](loop(signal, path, gen)).unit),
+        )
         .map(f => Sync.defer { track(f); f })
 
     // TODO(#8): go back to `signal.observe` when Kyo fixes the leak of
@@ -69,10 +91,19 @@ final class Mount(inbox: Channel[Msg], knobs: Knobs = Knobs.default):
           if n == 0 then Kyo.unit
           else signal.currentWith(cur => inbox.put(Msg.Content(path, gen, cur)))
         val delay                                = knobs.seam(n)
+        // claude 2026-10-12: changed (armkey): the arm step leaves `unarmed`
+        val arm: Unit < (Async & Abort[Closed])  =
+          if n == 0 then
+              Sync
+                .defer(
+                  discard(unarmed.remove(path, java.lang.Long.valueOf(gen))),
+                )
+                .andThen(inbox.put(Msg.Armed(path, gen)))
+          else Kyo.unit
         post
           .andThen(if delay > Duration.Zero then Async.sleep(delay)
           else Kyo.unit)
-          .andThen(if n == 0 then inbox.put(Msg.Armed(path, gen)) else Kyo.unit)
+          .andThen(arm)
           .andThen(signal.nextWith(_ => ()))
           .andThen(Loop.continue(n + 1))
       }
@@ -173,8 +204,9 @@ final class Mount(inbox: Channel[Msg], knobs: Knobs = Knobs.default):
                       w2      <- walk(
                                    cur,
                                    path :+ "~",
-                                   w1.copy(regions =
-                                     w1.regions.updated(path, region),
+                                   w1.copy(
+                                     regions = w1.regions.updated(path, region),
+                                     youngNow = w1.youngNow + path,
                                    ),
                                    reclaim,
                                  )
@@ -210,7 +242,10 @@ final class Mount(inbox: Channel[Msg], knobs: Knobs = Knobs.default):
                                  )
                       w2      <-
                         Kyo.foldLeft(items)(
-                          w1.copy(regions = w1.regions.updated(path, region)),
+                          w1.copy(
+                            regions = w1.regions.updated(path, region),
+                            youngNow = w1.youngNow + path,
+                          ),
                         ) { (acc, it) =>
                           walk(it.ui, path :+ s"#${it.key}", acc, reclaim)
                         }
@@ -231,8 +266,8 @@ final class Mount(inbox: Channel[Msg], knobs: Knobs = Knobs.default):
                         for
                             cur     <- ref.current
                             watcher <- watch(ref, path, gen)
-                        yield w1.copy(regions =
-                          w1.regions.updated(
+                        yield w1.copy(
+                          regions = w1.regions.updated(
                             path,
                             RegionState(
                               path,
@@ -243,6 +278,7 @@ final class Mount(inbox: Channel[Msg], knobs: Knobs = Knobs.default):
                               Some(watcher),
                             ),
                           ),
+                          youngNow = w1.youngNow + path,
                         )
                         end for
             withBound.map { w2 =>
