@@ -66,6 +66,8 @@ class WatcherTest extends RunnerSuite:
           canvas <- Sync.defer(Canvas(TestBackend(60, 12)))
           runner  = Runner(inbox, canvas, TuiOptions(), Absent)
           fiber  <- Fiber.initUnscoped(runner.run(app(r)))
+          // the mount is done when its 5 watchers (and the tick) are live
+          _      <- waitFor(5.seconds)(runner.liveFibers.map(_ >= 6))
           _      <- Kyo.foreachDiscard(1 to 5)(i =>
                       write(r, i).andThen(Async.sleep(20.millis)),
                     )
@@ -93,5 +95,60 @@ class WatcherTest extends RunnerSuite:
                 )
           ms <- waitFor(2.seconds)(h.liveFibers.map(_ == 0))
       yield assert(ms >= 0L, "live fibers stay after the quit")
+    }
+
+    // ---- K29: the own watcher loop and the repair tick ----
+
+    "K29: 200 writes to every region kind all reach the screen" in {
+      for
+          r  <- refs
+          h  <- Headless.start(60, 12)(_ => app(r))
+          ok <- Kyo.foreach(1 to 200)(i =>
+                  write(r, i).andThen(
+                    awaitAll(h, 2.seconds)(
+                      s"[a=$i]",
+                      s"t$i;",
+                      s"[f=$i]",
+                      s"[n=$i:t$i;]",
+                    ),
+                  ),
+                )
+      yield assert(ok.forall(identity), s"writes not seen: ${ok.count(!_)}")
+    }
+
+    "K29: a write in the window is lost by the loop and repaired by the tick within 2 ticks" in {
+      // the seam: a watcher sleeps 60 ms after each post (n > 0), so a write
+      // in that time lands between `current` and `nextWith`
+      val seam                                            = (n: Int) => if n > 0 then 60.millis else Duration.Zero
+      def lostThenRepaired(repair: Duration)(using Frame) =
+        Knobs.let(Knobs(seam = seam, repairInterval = repair)) {
+          for
+              a   <- Signal.initRef(0)
+              h   <- Headless.start(30, 2)(_ => div(span(a.map(n => s"[a=$n]"))))
+              _   <- a.set(1)
+              ok1 <- h.awaitScreen(showing("[a=1]"), 2.seconds)
+              _   <- h.drainFrames
+              _   <- a.set(2)                // in the window: the watcher sleeps
+              ok2 <- h.awaitScreen(showing("[a=2]"), 300.millis)
+              fs  <- h.drainFrames
+              _   <- Async.sleep(100.millis) // the window closes
+              _   <- a.set(3)                // after the window: the loop wakes up
+              ok3 <- h.awaitScreen(showing("[a=3]"), 2.seconds)
+          yield (ok1, ok2, fs.count(_.repaired > 0), ok3)
+        }
+      for
+          (ok1, lost, repairedFrames, ok3) <- lostThenRepaired(1.hour)
+          _                                 = assert(ok1 && ok3)
+          _                                 = assert(!lost, "the loop saw the write in the window")
+          _                                 = assert(repairedFrames == 0)
+          (ok1b, fixed, repaired, ok3b)    <- lostThenRepaired(100.millis)
+      yield
+          assert(ok1b && ok3b)
+          assert(fixed, "the tick did not repair the lost write within 2 ticks")
+          assert(
+            repaired >= 1,
+            "the repair frame counts the value in `repaired`",
+          )
+      end for
     }
 end WatcherTest

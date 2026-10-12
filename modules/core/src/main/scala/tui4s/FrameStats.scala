@@ -27,4 +27,9 @@ final case class FrameStats(
       * merged).
       */
     subtrees: Int = 0,
+    /** Values that the runner found by a re-read of a signal, not from a
+      * watcher: the verify pass and the repair tick (a lost wakeup).
+      */
+    // claude 2026-10-12: created (K29, D-16)
+    repaired: Int = 0,
 )

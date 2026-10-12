@@ -135,11 +135,12 @@ object Headless:
         ui: (Unit < Sync) => UI < (Async & Scope),
     )(using Frame): Headless < (Async & Scope) =
       for
+          knobs   <- Knobs.get
           inbox   <- Channel.initUnscoped[Msg](4096)
           frames  <- Channel.initUnscoped[FrameStats](1 << 16)
           backend <- Sync.defer(TestBackend(width, height))
           canvas  <- Sync.defer(Canvas(backend))
-          runner   = Runner(inbox, canvas, options, Present(frames))
+          runner   = Runner(inbox, canvas, options, Present(frames), knobs)
           seq     <- AtomicLong.init(1L)
           run     <- Fiber.init(ui(quitOf(inbox)).map(runner.run))
           h        = Headless(inbox, frames, backend, seq, run, runner)

@@ -21,9 +21,11 @@ final class Runner(
     canvas: Canvas,
     options: TuiOptions,
     stats: Maybe[Channel[FrameStats]],
+    knobs: Knobs = Knobs.default,
 ):
 
-    private val mount = Mount(inbox)
+    // claude 2026-10-12: changed: the mount gets the test seams
+    private val mount = Mount(inbox, knobs)
 
     private def nanos(using Frame): Long < Sync =
       Sync.defer(java.lang.System.nanoTime())
@@ -43,7 +45,38 @@ final class Runner(
       * wait for them.
       */
     private def stop(using Frame): Unit < Sync =
-      Sync.defer(last.get()).map(_.fold(Kyo.unit)(mount.unmountAll))
+      Sync
+        .defer(last.get())
+        .map(_.fold(Kyo.unit)(mount.unmountAll))
+        .andThen(
+          Sync.defer(ticker.get()).map(_.fold(Kyo.unit)(_.interrupt.unit)),
+        )
+
+    // claude 2026-10-12: created (K29): the repair tick fiber
+    private val ticker =
+      new java.util.concurrent.atomic.AtomicReference[Option[
+        Fiber[Any, Nothing],
+      ]](
+        None,
+      )
+
+    // TODO(#8): remove the repair tick when the watchers go back to
+    // `Signal.observe` (it has its own repair timer).
+    // https://github.com/yuri4n/tui4s/issues/8
+    /** The repair tick: every `knobs.repairInterval` (default 1 s, Kyo's
+      * `Signal.defaultRepairInterval`) it asks the runner to re-read `current`
+      * of every region, so that a write the watcher loop missed reaches the
+      * screen within one interval.
+      */
+    // claude 2026-10-12: created
+    private def repairTick(using Frame): Unit < Async =
+      Abort
+        .run[Closed](
+          Loop.forever(
+            Async.sleep(knobs.repairInterval).andThen(inbox.put(Msg.Repair)),
+          ),
+        )
+        .unit
 
     // claude 2026-10-12: changed (R1 option b, RC-8): `unmountAll` runs in a
     // `Sync.ensure` around the run, so an interrupted run stops its watchers
@@ -52,17 +85,19 @@ final class Runner(
     def run(root: UI)(using Frame): Unit < Async =
       Sync.ensure(stop) {
         for
-            t0 <- nanos
-            w0 <- mount
-                    .walk(
-                      root,
-                      Loc.root,
-                      World.init(root, canvas.size),
-                      Map.empty,
-                    )
-                    .map(remember)
-            w1 <- frame(w0, 0L, FrameCause.Initial, t0).map(remember)
-            _  <- Loop(w1)(step)
+            tick <- Fiber.initUnscoped(repairTick)
+            _    <- Sync.defer { mount.track(tick); ticker.set(Some(tick)) }
+            t0   <- nanos
+            w0   <- mount
+                      .walk(
+                        root,
+                        Loc.root,
+                        World.init(root, canvas.size),
+                        Map.empty,
+                      )
+                      .map(remember)
+            w1   <- frame(w0, 0L, FrameCause.Initial, t0).map(remember)
+            _    <- Loop(w1)(step)
         yield ()
       }
 
@@ -74,7 +109,8 @@ final class Runner(
           next(w).map { (msg, w1) =>
             for
                 t0          <- nanos
-                w2          <- handle(w1.copy(updates = 0), msg).map(remember)
+                w2          <- handle(w1.copy(updates = 0, repaired = 0), msg)
+                                 .map(remember)
                 t1          <- nanos
                 w3          <- settle(w2).map(remember)
                 t2          <- nanos
@@ -103,7 +139,59 @@ final class Runner(
               .defer(canvas.resize(size))
               .andThen(w.copy(size = size, full = true))
           case c: Msg.Content      => apply(w, c)
+          // claude 2026-10-12: created the two cases below (K29): a watcher is
+          // armed (nothing to do yet); the repair tick re-reads every region
+          case Msg.Armed(_, _)     => w
+          case Msg.Repair          => repairAll(w)
           case Msg.Quit            => w.copy(quit = true)
+
+    /** Re-reads `current` of every region and applies a value that differs (as
+      * if its watcher had posted it): the repair of a lost wakeup. A `Reactive`
+      * region whose UI holds closures never compares equal, so it is rendered
+      * again each time (Kyo's `observe` repair timer does the same).
+      */
+    // claude 2026-10-12: created (K29)
+    private def repairAll(w: World)(using Frame): World < Sync =
+      Kyo.foldLeft(w.regions.keys.toSeq)(w)((acc, p) =>
+        verifyRegion(acc, p, None),
+      )
+
+    /** Re-reads `current` of the region at `p` (of generation `gen`, when
+      * given) and applies a value that differs; counts it in `repaired`.
+      */
+    // claude 2026-10-12: created (K29, D-16; the S2 armkey verifyRegion)
+    private def verifyRegion(acc: World, p: Loc, gen: Option[Long])(using
+        Frame,
+    ): World < Sync =
+      acc.regions.get(p).filter(r => gen.forall(_ == r.gen)) match
+          case Some(RegionState(_, Source.One(sig), g, content, _, _))   =>
+            sig.current.map { cur =>
+              if content == Content.Single(cur) then acc
+              else
+                  apply(
+                    acc.copy(repaired = acc.repaired + 1),
+                    Msg.Content(p, g, cur),
+                  )
+            }
+          case Some(RegionState(_, Source.Bound(ref), g, content, _, _)) =>
+            ref.current.map { cur =>
+              if content == Content.Value(cur) then acc
+              else
+                  apply(
+                    acc.copy(repaired = acc.repaired + 1),
+                    Msg.Content(p, g, cur),
+                  )
+            }
+          case Some(RegionState(_, Source.Many(fe), g, _, items, _))     =>
+            fe.signal.current.map { cur =>
+              if items.map(_.value) == cur.toVector then acc
+              else
+                  apply(
+                    acc.copy(repaired = acc.repaired + 1),
+                    Msg.Content(p, g, cur),
+                  )
+            }
+          case _                                                         => acc
 
     /** A region's new value. Late messages of an unmounted watcher (old
       * generation) are dropped.
@@ -160,9 +248,13 @@ final class Runner(
 
     private def absorb(w: World, msg: Msg)(using Frame): World < Sync =
       msg match
-          case c: Msg.Content => apply(w, c)
-          case Msg.Quit       => w.copy(quit = true)
-          case other          => w.copy(backlog = w.backlog :+ other)
+          case c: Msg.Content  => apply(w, c)
+          case Msg.Quit        => w.copy(quit = true)
+          // claude 2026-10-12: created the two cases below (K29): inside a
+          // settle, an arm needs nothing and a tick waits for the next one
+          case Msg.Armed(_, _) => w
+          case Msg.Repair      => w
+          case other           => w.copy(backlog = w.backlog :+ other)
 
     /** One scheduler round trip: lets the watcher fibers that a write woke up
       * run and post their values.
@@ -325,7 +417,19 @@ final class Runner(
         val tr   = java.lang.System.nanoTime()
         Sync
           .defer {
-            if idle then (w, FrameStats(seq, cause, 0, 0, 0L, w.updates))
+            if idle then
+                (
+                  w,
+                  FrameStats(
+                    seq,
+                    cause,
+                    0,
+                    0,
+                    0L,
+                    w.updates,
+                    repaired = w.repaired,
+                  ),
+                )
             else
                 val (w1, damage)   = layoutStep(w)
                 val (rects, roots) = Paint(canvas, w1.laid, w1.env, damage)
@@ -346,6 +450,7 @@ final class Runner(
                     0L,
                     w.updates,
                     subtrees = roots,
+                    repaired = w.repaired,
                   ),
                 )
           }

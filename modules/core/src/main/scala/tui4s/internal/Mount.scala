@@ -7,7 +7,8 @@ import kyo.UI.Ast.*
   * synchronously (so the first frame needs no scheduler round trip) and starts
   * one watcher fiber that posts every later value to the runner's inbox.
   */
-final class Mount(inbox: Channel[Msg]):
+// claude 2026-10-12: changed: `knobs` (the test seams)
+final class Mount(inbox: Channel[Msg], knobs: Knobs = Knobs.default):
 
     // claude 2026-10-12: created (R1, RC-8): the fibers this run started that
     // have not ended, for the live-fiber gauge of the tests. Weak, so that the
@@ -37,19 +38,44 @@ final class Mount(inbox: Channel[Msg]):
           )
     end liveFibers
 
-    // claude 2026-10-12: changed: the watcher joins the gauge
+    // claude 2026-10-12: changed: the watcher joins the gauge and runs the own
+    // loop below, not `Signal.observe`
     private def watch[A](signal: Signal[A], path: Loc, gen: Long)(using
         Frame,
     ): Fiber[Any, Nothing] < Sync =
       Fiber
-        .initUnscoped(
-          Abort
-            .run[Closed](
-              signal.observe(v => inbox.put(Msg.Content(path, gen, v))),
-            )
-            .unit,
-        )
+        .initUnscoped(Abort.run[Closed](loop(signal, path, gen)).unit)
         .map(f => Sync.defer { track(f); f })
+
+    // TODO(#8): go back to `signal.observe` when Kyo fixes the leak of
+    // `Signal.observe` (one `Async.race` per value in a long-lived fiber keeps
+    // about 1.7 KB per change in Kyo 1.0.0-RC7).
+    // https://github.com/yuri4n/tui4s/issues/8
+    /** The watcher loop (K29). It uses only `Signal.currentWith` and
+      * `Signal.nextWith`, no race: step 0 posts `Msg.Armed` and waits for the
+      * first change (the mount read the first value already); each later step
+      * reads `current`, posts it, and waits for the next change. A write that
+      * lands between the read of `current` and the registration of `nextWith`
+      * is missed here; the verify pass and the repair tick of the runner
+      * re-read `current` and repair it. `knobs.seam` holds that window open for
+      * the tests.
+      */
+    // claude 2026-10-12: created
+    private def loop[A](signal: Signal[A], path: Loc, gen: Long)(using
+        Frame,
+    ): Unit < (Async & Abort[Closed]) =
+      Loop(0) { n =>
+        val post: Unit < (Async & Abort[Closed]) =
+          if n == 0 then Kyo.unit
+          else signal.currentWith(cur => inbox.put(Msg.Content(path, gen, cur)))
+        val delay                                = knobs.seam(n)
+        post
+          .andThen(if delay > Duration.Zero then Async.sleep(delay)
+          else Kyo.unit)
+          .andThen(if n == 0 then inbox.put(Msg.Armed(path, gen)) else Kyo.unit)
+          .andThen(signal.nextWith(_ => ()))
+          .andThen(Loop.continue(n + 1))
+      }
 
     /** The `SignalRef` an element is bound to (`.value(ref)` or
       * `.checked(ref)`), as kyo-ui's `collectSignalRef`.

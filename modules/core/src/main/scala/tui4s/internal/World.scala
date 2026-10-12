@@ -9,7 +9,12 @@ import kyo.UI.Ast.*
 enum Msg:
     case Resize(size: Size, seq: Long)
     case Content(region: Loc, gen: Long, value: Any)
+    // claude 2026-10-12: created the two cases below (K29, D-16): a watcher is
+    // armed (its `nextWith` is about to be registered); the repair tick
+    case Armed(region: Loc, gen: Long)
+    case Repair
     case Quit
+end Msg
 
 /** What drives a region. */
 enum Source:
@@ -51,6 +56,9 @@ final case class World(
     backlog: Vector[Msg],
     updates: Int,
     quit: Boolean,
+    // claude 2026-10-12: created (K29): values that the runner found by a
+    // re-read of `current` in this step (the repair tick)
+    repaired: Int = 0,
 ):
     def env: Scene =
       Scene(
