@@ -89,11 +89,17 @@ started from the main checkout): it is the user's Metals sbt server.
   NEXT: gate 0. The user answers D-17, D-19, K29, D-4 (merge method), and the 3.1 RECs; then C1 (W1).
 - 2026-10-11: GATE 0 (partly answered; DECISIONS.md eighth round). D-17 (c) + TODO on the Kyo fix of the lost
   wakeup; D-19 yes; D-4 (c) squash + rebase of the next branch; D-8 CHANGED to sbt-tpolecat (unused warnings stay
-  warnings; CI mode open); K29 PENDING (the user gave two answers; asked). The user wants upstream issues at
+  warnings; CI mode open); K29 = option (2) own loop + TODO (user 2026-10-12: "ignore 3c"). The user wants upstream issues at
   getkyo/kyo for the lost wakeup and the `observe` leak if none exist (drafts first; the user approves each post),
   and TODOs and notes on GitHub Projects and the wiki "as much as you can" (from the cloud: issues yes; Projects v2
   no tool; wiki no credentials). NEXT: the user answers K29 and the CI-mode question; then the upstream drafts, the
   GitHub issues for the TODOs, and C1 (W1) with sbt-tpolecat.
+<!-- claude 2026-10-11: added this item -->
+- 2026-10-11 later: the observe-leak reproducer `design/upstream/ObserveLeak.scala` is tested (1.7 KB per change; OOM
+  before 27 000 changes at -Xmx48m; the JVM hangs after the OOM, so run it under `timeout`). The two upstream drafts
+  are complete in `design/upstream/kyo-signal-issues.md` (NOT POSTED). TOOL LESSON: `pgrep -f <word>` or
+  `ps | grep <word>` in a Bash tool call matches the call's own command line when <word> is in it, and a kill loop
+  then kills the shell (happened twice). Find JVMs with `pgrep -x java` and read `/proc/<pid>/cmdline`.
 <!-- claude 2026-10-11: added this item -->
 - (superseded) NEXT: the user reads the side-by-side page and answers the blocking questions; then plan the rework of PRs 3-5
   on kyo-ui (runner proposal: (a) runner core, (b) terminal + app from PR 5, (c) examples/ptycheck/bench;
@@ -124,67 +130,57 @@ Partial work saved in .work/proto/kyoui-runner/ (8 files, REPORT.md with plan + 
 new session: re-run the script and tell both agents to continue from their folder and REPORT.md), then show the
 user the user-facing code side by side, then plan the rework of PRs 3-5 on kyo-ui.
 
-## State of the work
+## State of the work (rewritten 2026-10-12)
 
-All work is committed and pushed (feat/zio and feat/cats are pushed as a backup, with no PR yet). All worktrees are clean.
-No workflow or agent is running.
+<!-- claude 2026-10-12: rewrote this section and the next two. The old text described the Elm stack (PRs 2-5, feat/zio,
+feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-02. -->
 
-| PR | Branch (base) | Content | CI |
-| --- | --- | --- | --- |
-| [1](https://github.com/yuri4n/tui4s/pull/1) | chore/cleanup (main) | restructure, build, release (fully automated sonaRelease), AGENTS.md | green |
-| [2](https://github.com/yuri4n/tui4s/pull/2) | docs/docus (chore/cleanup) | Docus 5.13.0 site for Vercel, landing/install/versions/AI pages | green |
-| [3](https://github.com/yuri4n/tui4s/pull/3) | feat/core-1-model-view (chore/cleanup) | core C1+C2: model, view, painter, sync TuiTest | green |
-| [4](https://github.com/yuri4n/tui4s/pull/4) | feat/core-2-engine (feat/core-1-model-view) | core C3+C4: sources, engine, loop, live kit | green |
-| [5](https://github.com/yuri4n/tui4s/pull/5) | feat/core-3-terminal (feat/core-2-engine) | core C5-C7: terminal, TuiApp, examples, launchers, ptycheck, bench | green (incl. Linux `terminal` job) |
-| (not open) | feat/zio (feat/core-3-terminal) | Z1-Z3 implemented, 5 commits, check green; review done; FIX PENDING | - |
-| (not open) | feat/cats (feat/core-3-terminal) | K1-K3 implemented, 11 commits, check green; review NOT started | - |
-
-Worktrees (git-excluded, under `.work/worktrees/`): `core` (feat/core-3-terminal), `zio`, `cats`, `docs`.
-The main checkout is on chore/cleanup.
+- Direction (2026-10-02): tui4s is a terminal runner for kyo-ui. Plan: `design/PLAN-kyoui.md` (section 0 wins where
+  the sections do not agree). Kyo phase first (C1-C4, T1, T2, P1, L1, L2, D), then the ZIO phase (after spike SZ),
+  then Cats.
+- `main` = 863db67 (PR 1 squash-merged: build, CI, release automation, AGENTS.md). Nothing else is merged.
+- PRs 2, 3 and 4 are closed (old stack; their branches stay, plan 4.2). PR 5 stays open as a reference until C1 opens,
+  then the user closes it.
+- Old-stack branches (`feat/core-*`, `feat/zio`, `feat/cats`, `docs/docus`): unchanged. `feat/zio` and `feat/cats` are
+  backups of work that is not merged. `first-take` is the user's own branch: do not touch.
+- W0 is done: `design/plan/gates.md`. Gate 0 is answered: DECISIONS.md eighth round (D-17 c, D-19 yes, K29 option 2,
+  D-4 c, D-8 -> sbt-tpolecat). Upstream drafts: `design/upstream/` (NOT POSTED). GitHub issues: #8 (TODO: observe
+  leak), #9 (TODO: lost wakeup). Labels: `upstream-kyo`, `todo`.
+- Notes live on `wip/handoff` (never merge). Cloud worktree for the notes: `scratchpad/wt-handoff`; `.work` is
+  git-ignored, so `git add -f`.
+- Spike worktrees under `.work/worktrees/`: `spike-sbt` (local branch `spike/sbt-port`, 4cdeebd: the whole runner
+  carried into `modules/core`, strict-flag fixes, `sbt fmt`), `spike-sbt-carry` (fe06611, the carry only),
+  `spike-sbt-p7` (8e4d75f). Never push them. fe06611 is the reference for the carry commit of C1 (P-7 step 1).
+- Spike build leftovers deleted on 2026-10-12 (190 MB). The spike sources and logs stay.
+- No workflow or agent is running. (Update this line when W1 starts and ends.)
 
 ## Next steps, in order
 
-1. **Finish W4 (facades).** The workflow was stopped on purpose while the ZIO fixer had just started (it made
-   no edits). Finished agents: 2 implementers, 3 ZIO reviewers, 3 ZIO skeptics. Still to run: the ZIO fixer,
-   the Cats review (3 reviewers + 3 skeptics) and the Cats fixer: 8 agents, at most 4 at once, 1 build.
-   - Same session: `Workflow({scriptPath: "~/.claude/projects/-Users-yuri4n-Developer-projects-tui4s/5cb543b2-f521-4487-ae5b-1fedd18ac66c/workflows/scripts/tui4s-facades-wf_c92a2d58-bee.js", resumeFromRunId: "wf_c92a2d58-bee"})`
-     replays the finished agents from cache.
-   - New session (resume is same-session only): copy that script, drop the implement phase (both branches are
-     implemented and committed), feed the ZIO fixer the findings from `.work/impl/zio-review-*.md` and
-     `zio-verify-*.md`, and run the Cats review -> verify -> fix as written.
-   Pending ZIO findings (14 confirmed): live-kit settle hangs on tasks that sleep on zio-test's TestClock, and
-   the first settle runs inside an uninterruptible acquire (api-1, runtime-1, runtime-3, spec-2); dead Kyo
-   waiters leak on `done` for each `states` pull / interrupted `await` (runtime-2, spec-1); an interrupted
-   `TuiHandle.stop` kills `await` with kyo.Interrupted (runtime-4, spec-5); ZIO TuiApp has no `args` (api-2);
-   `LiveTest` import ambiguity (api-3); Console/println capture under a user's own ZIOAppDefault (api-6,
-   spec-6); default loggers stay removed when start fails (spec-3); two weak tests (spec-4). Refuted: api-4,
-   api-5.
-2. **After W4:** verify each facade myself (`sbt check` in its worktree; an expect check of the ZIO and Cats
-   examples like `examples/ptycheck`; the Cats implementer already passed a scratch expect script). Push
-   feat/zio and feat/cats; open PR 6 (zio) and PR 7 (cats), both based on feat/core-3-terminal. Check for
-   conflicts: both add `examples/<m>.sbt` (no conflict by design); commit `f84f6f8` on feat/cats renamed the
-   example start scripts after the package: check that `examples/ptycheck/checklist.exp` still finds
-   `counter`, `todo`, `dashboard`.
-3. **Shared follow-ups after both facade PRs** (small PR or in W5): add the ziocounter / ziodashboard /
-   catscounter / catsdashboard rows to examples/README.md and to examples/ptycheck/checklist.exp; move the ZIO
-   version literal to project/Versions.scala; troubleshooting entry for the `fs2.*` import clash; ZIO TestClock
-   note ("adjust one period at a time after TestClock.sleeps shows the source asleep").
-4. **W5 docs** (SPEC 8.5) on the docs/docus branch (worktree `.work/worktrees/docs`, PR 2; rebase it on the
-   latest stack first): getting started per ecosystem; concepts (state, update, view, sources, tasks, keymaps,
-   focus); testing (TuiTest, live kits); performance (frame rules, Stats, trace, scheduler flags);
-   troubleshooting (do not use `sbt run`, use a launcher or a packager; `-batch` gives a pipe; import rules;
-   NotForeign messages; the 4096 chunk trap). Include code from `examples/` so it cannot drift. `pnpm build`;
-   never deploy (Vercel deploys).
-5. **Merge order when the user approves:** 1 -> 2 and 3 -> 4 -> 5 -> 6 / 7 (GitHub retargets stacked bases when
-   a base branch is merged and deleted). Never merge or release without the user.
+1. **W1 = C1 `feat/kyoui-01-render`** (plan 6.1; shape 6; about 1.8-2.1 M): Geometry, Props, Layout, Paint carried from
+   `.work/proto/kyoui-runner/src` into `modules/core` with the P-7 commit map; build changes RC-16 with sbt-tpolecat
+   instead of `-Werror` (D-8 changed); kyo-test replaces munit in core; the surface guard (tasty-query); golden screen
+   tests; AGENTS.md and README lines; PR template. Branch from `origin/main`. ASK before the push: the session's
+   designated branch is `chore/cleanup-7p2rll`; the plan names `feat/kyoui-*` (plan 4.2 and 4.4).
+2. **C2 (W2, shape 8)** with the gate 0 outcomes: R1 option (b) (AtomicReference last world + unmountAll in
+   `Sync.ensure`), armkey (D-16), the own watcher loop with the repair tick (K29 option 2; TODO issue #8), the settle
+   conditions of D-17 (c) (public scheduler probe, tui4s scheduler values in `TuiApp` and the test JVM, re-check after
+   settle, `awaitScreen`; TODO issue #9).
+3. **Gate 1** after C2 (the user reviews the public run API). Then C3, C4, T1, T2, P1, L1, L2, D as plan 6.15, under the
+   WIP limit P-11.
+4. **Merge mechanics (D-4 c):** the user squash-merges; Claude then rebases the next branch of the stack (own branches
+   only), runs `sbt check`, pushes. Never rewrite a branch that is not Claude's.
+5. **Tracking:** one GitHub issue per TODO (labels `upstream-kyo`, `todo`). The user creates the GitHub Project with
+   the "auto-add" workflow. The wiki is for the Mac session (no credentials from the cloud).
 
-## Open items for the user (none blocking)
+## Open items for the user (none blocking C1 work; the push of C1 is blocked by the branch question)
 
-- PR 4: `settle` also waits for standing `task` sources (the spec says one-shot tasks only); a task asleep on the
-  virtual clock counts as idle. Default kept unless the user objects.
-- PR 5: look and feel in macOS Terminal / iTerm2 still needs a human (the automatic checklist passed 47/47).
-- bench/BASELINE.md: some budgets missed on a busy machine (B1, B3 frame times, B4 p99, B6 CPU); re-measure idle.
-- Publishing: secrets are set, releases are fully automated after a tag push; nothing released. Repo private.
+- sbt-tpolecat: confirm the mode (ASSUMED: dev mode by default; `SBT_TPOLECAT_CI` in GitHub Actions).
+- Search getkyo/kyo for duplicates of the two drafts in `design/upstream/kyo-signal-issues.md`; post them (user only);
+  link them in issues #8 and #9.
+- Create the GitHub Project (auto-add workflow). Say whether the wiki is enabled (a private repo needs GitHub Pro).
+- Confirm the branch names `feat/kyoui-*` for the stack.
+- PR 5: close it when C1 opens.
+- Publishing: deferred until the user brings it up (do not ask).
 
 ## Facts the next session must keep
 

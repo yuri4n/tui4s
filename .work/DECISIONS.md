@@ -80,17 +80,19 @@ Eighth round (2026-10-11, gate 0, after W0; recorded by Claude from the user's a
   TODO tied to the Kyo release that fixes the lost wakeup in `Signal.combineLatest`: when it ships, re-measure S1
   and remove the conditions that the fix makes unneeded. The TODO lives on GitHub (see "Tracking" below).
 - D-19 (pin Kyo and kyo-ui to 1.0.0-RC7 for the first release): yes.
-- K29 (`Signal.observe` leak): PENDING. The user wrote both "A but TODO if kyo fixes it" (own watcher loop, removed
-  when Kyo fixes `observe`) and "3. C" (accept and document). Claude asked which one. In both cases: an upstream
-  issue, and a TODO tied to the Kyo fix.
+- K29 (`Signal.observe` leak): option (2), the runner's own watcher loop (`currentWith`/`nextWith`, no race) plus
+  the repair tick, with a TODO: remove the own loop when Kyo fixes `observe`. (The user first wrote both "A but TODO
+  if kyo fixes it" and "3. C"; on 2026-10-12 the user said "ignore 3c".) Plus the upstream issue (claude 2026-10-12:
+  changed this item).
 - Upstream issues (user): "we need issues at kyo and kyoui if they are not there yet" for the lost wakeup and the
   leak. Both bugs are in kyo-core `Signal`, and kyo-ui is a module of getkyo/kyo, so both issues go to getkyo/kyo.
   Drafts first; the user approves each post. The standing rule stays: nothing is posted without the user.
 - D-4 (merge method of the stack): option (c): squash merges; Claude rebases the next branch of the stack after each
   merge. A history rewrite only on Claude's own branches; one CI re-run per rebase.
 - D-8 (-Werror everywhere) is CHANGED. User: "warnings of unused and stuff are warnings, use sbt-tpolecat". The scalac
-  flags come from sbt-tpolecat. Unused-code warnings stay warnings in development. OPEN: whether the CI mode of
-  sbt-tpolecat (fatal warnings in CI) is wanted, or warnings everywhere.
+  flags come from sbt-tpolecat 0.5.7. ASSUMED (claude 2026-10-12; asked, no answer): default mode = dev (warnings
+  stay warnings on a developer machine); GitHub Actions sets `SBT_TPOLECAT_CI` (fatal warnings in CI). One build
+  line flips it if the user wants warnings everywhere.
 - Tracking (user: "use GitHub Projects and the wiki as much as you can"): TODOs go to GitHub issues (and a Project);
   notes go to the wiki, as far as a session can reach them. From this cloud session: issues yes (GitHub MCP);
   Projects v2: no tool here (the user creates the Project with an auto-add workflow, and new issues land on it);
