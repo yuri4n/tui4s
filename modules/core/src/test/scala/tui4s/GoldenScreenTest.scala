@@ -222,6 +222,18 @@ class GoldenScreenTest extends ScreenSuite:
       }
     }
 
+    // claude 2026-10-12: created (PR #10 review: Codex, Paint.scala:393)
+    "inputs" - {
+      "a range input shows its constant value" in {
+        assertScreen(
+          div.style(_.row)(rangeInput.value(50.0)),
+          12,
+          1,
+          "─────●──────",
+        )
+      }
+    }
+
     "decorations" - {
       "a button has brackets; list items have markers" in {
         // in a row the button keeps its natural width; a root block stretches
