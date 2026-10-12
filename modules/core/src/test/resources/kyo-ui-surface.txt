@@ -5,6 +5,7 @@
 # Format: kind<TAB>name<TAB>detail. Lines that start with # are comments.
 # ast.type: kind, visibility and parents of a class, trait or object of kyo.UI.Ast (a class and its
 #   companion object are one line). enum.case: a case of kyo.Style.Prop with its fields.
+# claude 2026-10-12: created (the reader KyoUiSurface wrote this list from kyo-ui 1.0.0-RC7)
 ast.type	UI.Ast.Activatable	trait public extends UI,Element
 ast.type	UI.Ast.Anchor	case class public extends UI,Inline,Interactive,Focusable,Activatable,Clickable
 ast.type	UI.Ast.AsHtmlChild	trait public extends 
