@@ -228,6 +228,13 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
 
 ## Constraints (user AGENTS.md)
 
+MODEL OF SUBAGENTS (user rule, 2026-10-12): subagents and workflow agents run on Opus (`model: 'opus'` in
+agent() and Agent calls) unless the task needs Fable's deep reasoning (a design or plan panel, a gate review, the
+adversarial check of concurrency or runtime code, a root-cause hunt with no known cause). Implementers, checklist
+reviewers, carries, searches and log reading: Opus. W2 (wf_4ed01b5c-abd) was launched before the rule and runs
+all its agents on Fable; the C1 fix round and C3 onward apply it. Recorded in the repo's CLAUDE.md (local branch
+`chore/claude-rules` from main; the push waits for the user: the designated branch needs a force push) and in
+this container's ~/.claude/CLAUDE.md.
 <= 4 agents in parallel, <= 2 when building; one workflow at a time; announce runs > 10 agents; agents save
 notes early (`.work/impl/`); keep durable copies in `.work/`; never deploy docs; release only with approval;
 never type credentials into anything.
