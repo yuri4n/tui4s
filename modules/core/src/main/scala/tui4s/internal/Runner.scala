@@ -41,16 +41,39 @@ final class Runner(
     /** The fibers of this run that have not ended: a gauge for tests (R1). */
     private[tui4s] def liveFibers(using Frame): Int < Sync = mount.liveFibers
 
-    /** Stops the watchers of the last world. It interrupts them and does not
-      * wait for them.
+    /** Stops every fiber of the run: the watchers of the last world, the tick,
+      * and then every fiber of the run that still lives (the watchers that a
+      * step started inside a settle or a verify pass and had not remembered yet
+      * when the interrupt landed). It interrupts them and does not wait.
       */
+    // claude 2026-10-12: changed (review R2-1, R2-2): `stopped` is set first
+    // (the tick reads it); `interruptAll` over the gauge set closes the window
+    // between a watcher start inside a step and the next `remember`
     private def stop(using Frame): Unit < Sync =
       Sync
-        .defer(last.get())
+        .defer { stopped.set(true); last.get() }
         .map(_.fold(Kyo.unit)(mount.unmountAll))
         .andThen(
           Sync.defer(ticker.get()).map(_.fold(Kyo.unit)(_.interrupt.unit)),
         )
+        .andThen(mount.interruptAll)
+
+    // claude 2026-10-12: created (review R2-2, R2-8 b): set by `stop` (the tick
+    // ends at its next wake-up, also when `ticker` was never set) and by
+    // `quit` (the step reads it, so a quit that the full inbox dropped still
+    // ends the run)
+    private val stopped       = new java.util.concurrent.atomic.AtomicBoolean(false)
+    private val quitRequested =
+      new java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /** Asks the run to end: it posts the quit message and sets a flag that the
+      * next step reads, in case the inbox is full and drops the message.
+      */
+    // claude 2026-10-12: created (review R2-8 b)
+    def quit(using Frame): Unit < Sync =
+      Sync
+        .defer(quitRequested.set(true))
+        .andThen(Abort.run[Closed](inbox.offer(Msg.Quit)).unit)
 
     // claude 2026-10-12: created (K29): the repair tick fiber
     private val ticker =
@@ -66,15 +89,22 @@ final class Runner(
     /** The repair tick: every `knobs.repairInterval` (default 1 s, Kyo's
       * `Signal.defaultRepairInterval`) it asks the runner to re-read `current`
       * of every region, so that a write the watcher loop missed reaches the
-      * screen within one interval.
+      * screen within about one interval (a tick that arrives inside a settle is
+      * kept for the next step). The tick ends when `stopped` is set.
       */
-    // claude 2026-10-12: created
+    // claude 2026-10-12: created; changed (review R2-2): the own exit
     private def repairTick(using Frame): Unit < Async =
       Abort
         .run[Closed](
-          Loop.forever(
-            Async.sleep(knobs.repairInterval).andThen(inbox.put(Msg.Repair)),
-          ),
+          Loop.foreach {
+            Async
+              .sleep(knobs.repairInterval)
+              .andThen(Sync.defer(stopped.get()))
+              .map { stop =>
+                if stop then Loop.done
+                else inbox.put(Msg.Repair).andThen(Loop.continue)
+              }
+          },
         )
         .unit
 
@@ -107,37 +137,42 @@ final class Runner(
     private def step(
         w: World,
     )(using Frame): Loop.Outcome[World, World] < Async =
-      if w.quit then Loop.done(w)
-      else
-          next(w).map { (msg, w1) =>
-            for
-                t0          <- nanos
-                // claude 2026-10-12: changed (D-16, armkey): the young regions
-                // shift by one step; the verify pass runs after the settle
-                w2          <- handle(
-                                 w1.copy(
-                                   updates = 0,
-                                   repaired = 0,
-                                   settleTimeouts = 0,
-                                   youngPrev = w1.youngNow,
-                                   youngNow = Set.empty,
-                                 ),
-                                 msg,
-                               ).map(remember)
-                t1          <- nanos
-                input        = msg match
-                                   case Msg.Resize(_, _) => true
-                                   case _                => false
-                w3          <- settleAndVerify(w2, input).map(remember)
-                t2          <- nanos
-                (seq, cause) = msg match
-                                   case Msg.Resize(_, s) =>
-                                     (s, FrameCause.Input)
-                                   case _                => (0L, FrameCause.Background)
-                w4          <- frame(w3, seq, cause, t0, t1 - t0, t2 - t1)
-                                 .map(remember)
-            yield Loop.continue(w4)
-          }
+      // claude 2026-10-12: changed (review R2-8 b): a quit that the full inbox
+      // dropped ends the run here
+      Sync.defer(quitRequested.get()).map { q =>
+        if w.quit || q then Loop.done(w)
+        else
+            next(w).map { (msg, w1) =>
+              for
+                  t0          <- nanos
+                  /* claude 2026-10-12: changed (D-16, armkey): the young
+                   * regions */
+                  // shift by one step; the verify pass runs after the settle
+                  w2          <- handle(
+                                   w1.copy(
+                                     updates = 0,
+                                     repaired = 0,
+                                     settleTimeouts = 0,
+                                     youngPrev = w1.youngNow,
+                                     youngNow = Set.empty,
+                                   ),
+                                   msg,
+                                 ).map(remember)
+                  t1          <- nanos
+                  input        = msg match
+                                     case Msg.Resize(_, _) => true
+                                     case _                => false
+                  w3          <- settleAndVerify(w2, input).map(remember)
+                  t2          <- nanos
+                  (seq, cause) = msg match
+                                     case Msg.Resize(_, s) =>
+                                       (s, FrameCause.Input)
+                                     case _                => (0L, FrameCause.Background)
+                  w4          <- frame(w3, seq, cause, t0, t1 - t0, t2 - t1)
+                                   .map(remember)
+              yield Loop.continue(w4)
+            }
+      }
 
     private def next(w: World)(using Frame): (Msg, World) < Async =
       w.backlog.headOption match
@@ -320,9 +355,12 @@ final class Runner(
           case c: Msg.Content  => apply(w, c)
           case Msg.Quit        => w.copy(quit = true)
           // claude 2026-10-12: created the two cases below (K29, D-16): an arm
-          // inside a settle verifies its region; a tick waits for the next one
+          // inside a settle verifies its region; a tick inside a settle is kept
+          // for the next step, once (review R2-7)
           case Msg.Armed(p, g) => verifyRegion(w, p, Some(g))
-          case Msg.Repair      => w
+          case Msg.Repair      =>
+            if w.backlog.contains(Msg.Repair) then w
+            else w.copy(backlog = w.backlog :+ Msg.Repair)
           case other           => w.copy(backlog = w.backlog :+ other)
 
     /** One scheduler round trip: lets the watcher fibers that a write woke up
@@ -487,6 +525,8 @@ final class Runner(
             if idle then
                 (
                   w,
+                  // claude 2026-10-12: changed: repaired and settleTimeouts in
+                  // the frame stats (K29, D-17 c)
                   FrameStats(
                     seq,
                     cause,
@@ -510,6 +550,8 @@ final class Runner(
                 )
                 (
                   done,
+                  // claude 2026-10-12: changed: repaired and settleTimeouts in
+                  // the frame stats (K29, D-17 c)
                   FrameStats(
                     seq,
                     cause,

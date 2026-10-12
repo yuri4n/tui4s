@@ -33,7 +33,9 @@ final class Headless private (
     /** Ends the run. The same action as the quit value that `start` gave the
       * UI.
       */
-    def quit(using Frame): Unit < Sync = Headless.quitOf(inbox)
+    // claude 2026-10-12: changed (review R2-8 b): the runner's quit (a flag
+    // and the message), so a full inbox cannot drop it
+    def quit(using Frame): Unit < Sync = runner.quit
 
     /** The fibers of the run that have not ended: the R1 gauge for tests. */
     // claude 2026-10-12: created (RC-8)
@@ -142,14 +144,10 @@ object Headless:
           canvas  <- Sync.defer(Canvas(backend))
           runner   = Runner(inbox, canvas, options, Present(frames), knobs)
           seq     <- AtomicLong.init(1L)
-          run     <- Fiber.init(ui(quitOf(inbox)).map(runner.run))
+          run     <- Fiber.init(ui(runner.quit).map(runner.run))
           h        = Headless(inbox, frames, backend, seq, run, runner)
           // it quits and waits before its scope ends (RC-7)
           _       <- Scope.ensure(h.quit.andThen(h.awaitEnd(5.seconds)))
           _       <- Abort.run[Closed](frames.take).map(_.getOrThrow)
       yield h
-
-    /** The quit action of a run: it posts the quit message. */
-    private def quitOf(inbox: Channel[Msg])(using Frame): Unit < Sync =
-      Abort.run[Closed](inbox.offer(Msg.Quit)).unit
 end Headless

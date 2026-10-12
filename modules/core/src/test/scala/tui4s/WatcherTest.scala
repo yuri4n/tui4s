@@ -1,9 +1,11 @@
 package tui4s
 
 import jatatui.core.backend.TestBackend
+import java.time.Duration as JDuration
 import kyo.*
 import kyo.UI.*
 import tui4s.internal.*
+import tui4s.spi.Settle
 import tui4s.testkit.Headless
 
 /** The region watchers: R1 (no fiber outlives the run) and, later, the own
@@ -77,6 +79,43 @@ class WatcherTest extends RunnerSuite:
       yield
           assert(live0 >= 4, s"watchers before the interrupt: $live0")
           assert(ms >= 0L, "live fibers stay after the interrupt")
+    }
+
+    // claude 2026-10-12: created (review R2-1): the interrupt lands inside a
+    // settle, after a write absorbed there remounted a region
+    "R1: 0 live fibers after an interrupt INSIDE A SETTLE (a remount in flight)" in {
+      // A CPU-bound fiber keeps the probe busy, so the settle of the first
+      // write runs to its `max` (2 s). The second write is absorbed inside
+      // that settle: it remounts the nested region and starts a new watcher,
+      // which is in the step's state only (not in `last`) when the interrupt
+      // lands.
+      val options =
+        TuiOptions(settle = Settle.Quiescent(JDuration.ofSeconds(2)))
+      for
+          r      <- refs
+          inbox  <- Channel.initUnscoped[Msg](1024)
+          canvas <- Sync.defer(Canvas(TestBackend(60, 12)))
+          runner  = Runner(inbox, canvas, options, Absent)
+          fiber  <- Fiber.initUnscoped(runner.run(app(r)))
+          _      <- waitFor(5.seconds)(runner.liveFibers.map(_ >= 6))
+          _      <- Async.sleep(100.millis) // the arm steps of the start pass
+          busy   <- Fiber.initUnscoped(Sync.defer(spin(1000)))
+          _      <- Async.sleep(20.millis)
+          _      <- r.a.set(1)              // a step; its settle runs while `busy` spins
+          _      <- Async.sleep(100.millis)
+          _      <- r.a.set(2)              // absorbed inside that settle: a remount
+          _      <- Async.sleep(100.millis)
+          live0  <- runner.liveFibers
+          _      <- fiber.interrupt
+          ms     <- waitFor(2.seconds)(runner.liveFibers.map(_ == 0))
+          _      <- busy.get
+      yield
+          assert(live0 >= 6, s"fibers before the interrupt: $live0")
+          assert(
+            ms >= 0L,
+            "live fibers stay after an interrupt inside a settle (the watcher of the remount)",
+          )
+      end for
     }
 
     "R1: 0 live fibers after a quit, and after the scope of the kit ends" in {

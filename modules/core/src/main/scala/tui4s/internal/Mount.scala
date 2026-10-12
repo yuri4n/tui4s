@@ -71,7 +71,11 @@ final class Mount(inbox: Channel[Msg], knobs: Knobs = Knobs.default):
 
     // TODO(#8): go back to `signal.observe` when Kyo fixes the leak of
     // `Signal.observe` (one `Async.race` per value in a long-lived fiber keeps
-    // about 1.7 KB per change in Kyo 1.0.0-RC7).
+    // about 1.7 KB per change in Kyo 1.0.0-RC7). This loop removes only the
+    // watcher's own race: a region on `combineLatest`, `zip`, `switchMap` or
+    // `combineLatestAll` still runs one race per change inside Kyo's
+    /* `nextWith` (`Signal.awaitAny`), which this loop cannot avoid (review
+     * R2-6). */
     // https://github.com/yuri4n/tui4s/issues/8
     /** The watcher loop (K29). It uses only `Signal.currentWith` and
       * `Signal.nextWith`, no race: step 0 posts `Msg.Armed` and waits for the
@@ -324,4 +328,19 @@ final class Mount(inbox: Channel[Msg], knobs: Knobs = Knobs.default):
       Kyo.foreachDiscard(w.regions.values.toSeq)(r =>
         r.watcher.fold(Kyo.unit)(_.interrupt.unit),
       )
+
+    /** Interrupts every fiber of this run that the gauge still holds (a done
+      * fiber ignores the interrupt). The runner calls it when the run stops: a
+      * watcher that a step started inside a settle or a verify pass is in the
+      * step's state only until the next `remember`, so an interrupt that lands
+      * there would leave it parked on `nextWith` for ever. A live watcher is
+      * strongly reachable from its signal, so the weak set holds it. It does
+      * not wait.
+      */
+    // claude 2026-10-12: created (review R2-1)
+    private[tui4s] def interruptAll(using Frame): Unit < Sync =
+        import scala.jdk.CollectionConverters.*
+        Sync
+          .defer(started.synchronized(started.asScala.toList))
+          .map(fs => Kyo.foreachDiscard(fs)(_.interrupt.unit))
 end Mount

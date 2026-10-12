@@ -28,4 +28,13 @@ abstract class RunnerSuite extends Test[Any]:
 
     /** A predicate on the screen, for `awaitScreen`. */
     def showing(text: String): Screen => Boolean = _.contains(text)
+
+    /** Spins for `ms` on the calling worker thread: the scheduler probe then
+      * sees a busy worker (the settle canary, the interrupt-inside-a-settle
+      * test).
+      */
+    // claude 2026-10-12: created (moved here from SettleTest; review R2-1)
+    def spin(ms: Long): Unit =
+        val t0 = java.lang.System.nanoTime()
+        while java.lang.System.nanoTime() - t0 < ms * 1_000_000L do ()
 end RunnerSuite
