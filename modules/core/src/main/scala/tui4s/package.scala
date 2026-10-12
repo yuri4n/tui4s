@@ -3,9 +3,10 @@
   * a jatatui buffer. The UI DSL is kyo-ui: an app imports `kyo.*` and
   * `kyo.UI.*` for the elements and styles, and `tui4s.*` to run them.
   *
-  * This PR (C1) brings the layout and paint of a static value
+  * In this version tui4s lays out and paints a static value
   * (`tui4s.internal.Layout`, `tui4s.internal.Paint`). The runner that follows
-  * signals comes in C2, the keys in C3 and the real terminal in T1.
+  * signals, the keys and the real terminal are not in this version yet.
   */
-// claude 2026-10-12: created (OS-13 part): the package Scaladoc
+// claude 2026-10-12: created (OS-13 part): the package Scaladoc; changed:
+// plain words instead of the pull request ids (review R1-4, R2-3)
 package object tui4s
