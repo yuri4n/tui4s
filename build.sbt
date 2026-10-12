@@ -44,6 +44,12 @@ ThisBuild / tpolecatDevModeOptions ++= Set(
     "-Wconf:msg=@nowarn annotation does not suppress any warnings:s",
   ),
 )
+// -Ycheck-all-patmat is a compiler-testing flag ("used for testing the
+// algorithm"). It reports a match on Kyo's opaque `Maybe` (`Present`, `Absent`)
+// as not exhaustive. That is a false alarm: the two extractors cover every
+// value. The sealed types keep their exhaustivity check without this flag.
+// claude 2026-10-12: created
+ThisBuild / tpolecatExcludeOptions += ScalacOptions.privateCheckAllPatmat
 
 // Unreleased inter-project deps have dynver versions like 0.2.0+3-1a2b3c4d.
 ThisBuild / versionPolicyIgnoredInternalDependencyVersions :=
