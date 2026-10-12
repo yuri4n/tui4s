@@ -22,9 +22,14 @@ replaces tui-scala. tui4s has no UI DSL of its own: the DSL is kyo-ui.
 
 The core uses Kyo and kyo-ui (both at `Versions.kyo`). The `zio` and `cats`
 modules will let ZIO and Cats Effect users write tui4s apps without Kyo types
-in their code. Today the core renders a static kyo-ui value to cells
-(`tui4s.internal.Layout`, `tui4s.internal.Paint`); the runner that follows
-signals, the keys and the real terminal come in the next pull requests.
+in their code. Today the core renders a kyo-ui value to cells
+(`tui4s.internal.Layout`, `tui4s.internal.Paint`) and follows its signals: a
+`Signal`, a `Foreach` or a bound `SignalRef` drives a region of the screen,
+and each change gives one frame (`tui4s.internal.Runner`). The headless test
+kit `tui4s.testkit.Headless` runs an app without a terminal; a test writes the
+app's `SignalRef`s and reads `testkit.Screen`. The keys, the components and
+the real terminal come in the next pull requests.
+<!-- claude 2026-10-12: changed these lines: signals drive the screen; the headless kit (C2) -->
 
 ## Toolchain
 
@@ -70,7 +75,28 @@ push.
 - The native `read()` of crossterm blocks and an interrupt cannot stop it. To
   read input, call `poll(<short timeout>)` in a loop, then call `read()`.
 - Tests must not need a real terminal. Render into a jatatui `TestBackend` or
-  into a `Buffer`.
+  into a `Buffer`, or run the app on `tui4s.testkit.Headless`.
+- The frame contract is SOFT (decision D-17 c): one frame per event with all
+  of its consequences; 0 split frames with no load, and at most 1 per 10 000
+  under load (Kyo 1.0.0-RC7 can lose a wakeup in `Signal.combineLatest`). The
+  runner settles on the JVM-wide Kyo scheduler, so core test suites run one
+  at a time: a suite that runs the runner extends `RunnerSuite` (sequential
+  leaves), and sbt runs one test JVM at a time. A test that writes a
+  `SignalRef` and reads the screen waits with `Headless.awaitScreen`; the kit
+  itself never waits unless a method's name says so.
+  <!-- claude 2026-10-12: created this item (D-17 c, RC-19) -->
+- The test JVM sets the tui4s scheduler values (`modules/core/build.sbt`,
+  `Test / javaOptions`): `kyo.scheduler.cycleIntervalNs=10000000`,
+  `kyo.scheduler.blockingMonitorIntervalNs=20000000` and
+  `kyo.scheduler.regulator.concurrencyCollectIntervalMs=100`. Without them the
+  runner gives more split frames under load (spike S1). `TuiApp`, in a later
+  pull request, sets the same values for a real app
+  (`tui4s.spi.SchedulerDefaults`).
+  <!-- claude 2026-10-12: created this item (D-17 c) -->
+- Never join the run fiber from an interruptible wait. A join makes the
+  caller's interrupt wait for the run, and a run that waits for the caller is
+  a deadlock. Poll `done` with a bounded wait instead (`Headless.awaitEnd`).
+  <!-- claude 2026-10-12: created this item (OS-34) -->
 - The strict flags do not see everything at the Java boundary (spike S6):
   `-Wnonunit-statement` does not see a Java call in statement position;
   `-Wvalue-discard` sees a Java result only in a `Unit` position;
