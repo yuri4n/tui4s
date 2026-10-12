@@ -111,11 +111,30 @@ object Layout:
                   acc.init :+ s"$last $word"
                 case _ if acc.isEmpty && textWidth(word) <= w                 => Vector(word)
                 case _ if textWidth(word) <= w                                => acc :+ word
-                case _                                                        => acc ++ word.grouped(w).toVector
+                case _                                                        => acc ++ chunksByWidth(word, w)
           }
           if lines.isEmpty then Vector("") else lines
         }
     end wrap
+
+    /** Splits a word into pieces of at most `w` cells. The split is at a code
+      * point border: a wide character or a surrogate pair does not split.
+      */
+    // claude 2026-10-12: created (PR #10 review: Codex, Layout.scala:114)
+    private def chunksByWidth(word: String, w: Int): Vector[String] =
+        val glyphs = Vector.unfold(0) { i =>
+          if i >= word.length then None
+          else
+              val cp = word.codePointAt(i)
+              Some((String(Character.toChars(cp)), i + Character.charCount(cp)))
+        }
+        glyphs.foldLeft(Vector.empty[String]) { (acc, g) =>
+          acc.lastOption match
+              case Some(last) if textWidth(last) + textWidth(g) <= w =>
+                acc.init :+ (last + g)
+              case _                                                 => acc :+ g
+        }
+    end chunksByWidth
 
     def textLines(text: String, width: Int, wrapped: Boolean): Vector[String] =
       if wrapped then wrap(text, width) else text.split("\n", -1).toVector

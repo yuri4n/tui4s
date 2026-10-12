@@ -151,6 +151,10 @@ class GoldenScreenTest extends ScreenSuite:
       "a long word splits" in {
         assertScreen(div("abcdefgh"), 5, 2, "abcde\nfgh")
       }
+      // claude 2026-10-12: created (PR #10 review: Codex, Layout.scala:114)
+      "a long word of wide characters splits by cells, not by characters" in {
+        assertScreen(div("漢字"), 2, 2, "漢\n字")
+      }
       "no wrap in a row" in {
         assertScreen(div.style(_.row)(span("one two")), 7, 2, "one two")
       }
