@@ -165,6 +165,22 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
 
 ## Next steps, in order
 
+0. PENDING (claude 2026-10-12 14:40 UTC): a C1 fix round for the 6 Codex (review bot) P2 findings on PR #10, all in
+   the carried Layout/Props/Paint code and all REAL by reading: (F1) `wrap` splits a long word by chars, not cells
+   (Layout.scala:114); (F2) flex-shrink `ceil` over-cuts (3 one-cell items in 2 cells render blank; :399); (F3) table
+   relayout compares `tableCols == ctx.cols`, a tautology (:703); (F4) `rowReverse`/`columnReverse` lose the reverse
+   flag (Props.scala:303); (F5) a percentage height resolves against the screen, not the parent (Layout.scala:264);
+   (F6) a constant `RangeInput` value is read from the scene only (Paint.scala:393). Fixes AND regression tests are
+   APPLIED but UNCOMMITTED in the C1 worktree `.work/worktrees/feat-kyoui-01-render` (git status shows 4 M + 1 new
+   test file). The patch script is `<scratchpad>/codexfix.py` (per fix: tests | code). NOT compiled yet: W2's agents
+   own sbt (one sbt on the machine). When W2 ends: (1) negative control: a temp worktree at 66d9299 with ONLY the
+   tests (`codexfix.py <wt> all tests`), run `core/testOnly tui4s.GoldenScreenTest tui4s.RelayoutTest` -> 6 failures,
+   log `.work/impl/c1-fix-negative-control.log`; (2) in the C1 worktree: `sbt fmt`, `SBT_TPOLECAT_CI=1 sbt check`,
+   fix compile errors; (3) ONE commit per finding (test + fix; P-6), commit messages name the Codex thread; (4) push
+   `feat/kyoui-01-render`, reply one line per Codex thread and resolve; update the PR body (P-6 and P-7 rows);
+   (5) merge `feat/kyoui-01-render` into `feat/kyoui-02-regions` (plan 4.3), `sbt check` there, push. Paint.scala
+   may conflict with C2's `discard` change (different hunks, should merge clean).
+
 1. DONE 2026-10-12 (PR #10 open, CI pending at the time of writing). **W1 = C1 `feat/kyoui-01-render`** (plan 6.1; shape 6; about 1.8-2.1 M): Geometry, Props, Layout, Paint carried from
    `.work/proto/kyoui-runner/src` into `modules/core` with the P-7 commit map; build changes RC-16 with sbt-tpolecat
    instead of `-Werror` (D-8 changed); kyo-test replaces munit in core; the surface guard (tasty-query); golden screen
