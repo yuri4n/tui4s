@@ -340,24 +340,28 @@ private[tui4s] final class Runner(
     /** A region's new value. Late messages of an unmounted watcher (old
       * generation) are dropped.
       */
+    // claude 2026-10-13: changed (C4, the C2 cut back): a component region
+    // takes its content as a `Reactive` region does; the content of a hook
+    // component ends its wait (`pending`)
     private def apply(w: World, c: Msg.Content)(using Frame): World < Sync =
       w.regions.get(c.region) match
           case Some(r) if r.gen == c.gen =>
             r.source match
-                case Source.One(_)   =>
+                case Source.One(_) | Source.Comp(_, _) =>
                   val content = Content.Single(c.value.asInstanceOf[UI])
                   if r.content == content then w
                   else
                       val w1 = w.copy(
                         regions = w.regions
                           .updated(c.region, r.copy(content = content)),
+                        pending = w.pending - c.region,
                       )
                       mount.remount(
                         w1.markRegion(c.region).copy(updates = w1.updates + 1),
                         c.region,
                       )
                   end if
-                case Source.Many(fe) =>
+                case Source.Many(fe)                   =>
                   val items = mount.reconcile(
                     fe,
                     r.items,
@@ -377,7 +381,7 @@ private[tui4s] final class Runner(
                         c.region,
                       )
                   end if
-                case Source.Bound(_) =>
+                case Source.Bound(_)                   =>
                   if r.content == Content.Value(c.value) then w
                   else
                       w.copy(
@@ -387,7 +391,7 @@ private[tui4s] final class Runner(
                         ),
                         updates = w.updates + 1,
                       ).markNode(c.region)
-                case Source.Local    => w
+                case Source.Local                      => w
           case _                         => w
 
     private def absorb(w: World, msg: Msg)(using Frame): World < Sync =
@@ -414,56 +418,91 @@ private[tui4s] final class Runner(
       * scheduled task, often through one or more races (`observe`,
       * `combineLatest`). See [[tui4s.spi.Settle]] for the two strategies.
       */
+    // claude 2026-10-13: changed (C4, the C2 cut back): the bounded wait for
+    // a mounting component (the `pending` branch)
     private def settle(w: World)(using Frame): World < Async =
       nanos.map { start =>
         Loop(w, 0, start) { (w, quiet, last) =>
-          // The order is "probe, THEN drain". A loop that drains first, finds
-          // nothing, and then reads the probe can miss a watcher that posted
-          // between the drain and the probe: it is parked again when the probe
-          // runs, so the probe says "quiescent" and the frame flushes without
-          // that value (it gets its own Background frame). Seen on a 4-CPU
-          // container under CPU contention: 2-5 split frames per 500 events
-          // in the glitch test. "Done" needs the probe to say quiescent BEFORE
-          // a drain that finds nothing.
-          val idleBefore = options.settle match
-              case Settle.Quiescent(_, _) => SchedulerProbe.quiescent()
-              case Settle.Hops(_, _)      => true
-          Abort.run[Closed](inbox.drain).map {
-            case Result.Success(msgs) if msgs.nonEmpty =>
-              Kyo
-                .foldLeft(msgs)(w)(absorb)
-                .map(w1 => nanos.map(t => Loop.continue(w1, 0, t)))
-            case _                                     =>
-              nanos.map { now =>
-                options.settle match
-                    // `quiet` counts quiescent observations in a row (each
-                    // followed by an empty drain); the settle ends after
-                    // `confirm` of them, one hop apart.
-                    case Settle.Quiescent(max, confirm) =>
-                      if idleBefore && quiet + 1 >= confirm then Loop.done(w)
-                      else if now - start > max.toNanos then
-                          // claude 2026-10-12: changed (D-17 c, RR O6): the
-                          // frame counts the timeout; no print to stderr
-                          Loop.done(
-                            w.copy(settleTimeouts = w.settleTimeouts + 1),
-                          )
-                      else
-                          hop.andThen(
-                            Loop.continue(
-                              w,
-                              if idleBefore then quiet + 1 else 0,
-                              last,
-                            ),
-                          )
-                    case Settle.Hops(hops, window)      =>
-                      if quiet >= hops && now - last >= window.toNanos then
-                          Loop.done(w)
-                      else hop.andThen(Loop.continue(w, quiet + 1, last))
+          if w.pending.nonEmpty then
+              // a component mount is running its effect: its first content
+              // will come, wait for it (bounded)
+              Abort
+                .run[Timeout | Closed](
+                  Async.timeout(pendingWait)(inbox.take),
+                )
+                .map {
+                  case Result.Success(m) =>
+                    absorb(w, m)
+                      .map(w1 => nanos.map(t => Loop.continue(w1, 0, t)))
+                  case _                 =>
+                    nanos.map(t =>
+                      Loop.continue(w.copy(pending = Set.empty), 0, t),
+                    )
+                }
+          else
+              // The order is "probe, THEN drain". A loop that drains first,
+              // finds nothing, and then reads the probe can miss a watcher
+              // that posted between the drain and the probe: it is parked
+              // again when the probe runs, so the probe says "quiescent" and
+              // the frame flushes without that value (it gets its own
+              // Background frame). Seen on a 4-CPU container under CPU
+              // contention: 2-5 split frames per 500 events in the glitch
+              // test. "Done" needs the probe to say quiescent BEFORE a drain
+              // that finds nothing.
+              val idleBefore = options.settle match
+                  case Settle.Quiescent(_, _) => SchedulerProbe.quiescent()
+                  case Settle.Hops(_, _)      => true
+              Abort.run[Closed](inbox.drain).map {
+                case Result.Success(msgs) if msgs.nonEmpty =>
+                  Kyo
+                    .foldLeft(msgs)(w)(absorb)
+                    .map(w1 => nanos.map(t => Loop.continue(w1, 0, t)))
+                case _                                     =>
+                  nanos.map { now =>
+                    options.settle match
+                        // `quiet` counts quiescent observations in a row
+                        // (each followed by an empty drain); the settle ends
+                        // after `confirm` of them, one hop apart.
+                        case Settle.Quiescent(max, confirm) =>
+                          if idleBefore && quiet + 1 >= confirm then
+                              Loop.done(w)
+                          else if now - start > max.toNanos then
+                              // claude 2026-10-12: changed (D-17 c, RR O6):
+                              // the frame counts the timeout; no print to
+                              // stderr
+                              Loop.done(
+                                w.copy(settleTimeouts = w.settleTimeouts + 1),
+                              )
+                          else
+                              hop.andThen(
+                                Loop.continue(
+                                  w,
+                                  if idleBefore then quiet + 1 else 0,
+                                  last,
+                                ),
+                              )
+                        case Settle.Hops(hops, window)      =>
+                          if quiet >= hops && now - last >= window.toNanos then
+                              Loop.done(w)
+                          else hop.andThen(Loop.continue(w, quiet + 1, last))
+                  }
               }
-          }
+          end if
         }
       }
     end settle
+
+    /** `TuiOptions.pendingTimeout` as a Kyo duration: a negative one is zero,
+      * and one too long for a count of nanoseconds is infinite.
+      */
+    // claude 2026-10-13: created (C4, D-14 a: the option is a
+    // java.time.Duration)
+    private val pendingWait: Duration =
+        val d = options.pendingTimeout
+        if d.isNegative then Duration.Zero
+        else if d.compareTo(java.time.Duration.ofNanos(Long.MaxValue)) >= 0 then
+            Duration.Infinity
+        else Duration.fromJava(d)
 
     // ---- layout, paint, flush ----
 

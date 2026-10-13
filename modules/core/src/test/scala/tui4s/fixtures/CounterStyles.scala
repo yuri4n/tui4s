@@ -81,11 +81,7 @@ object CounterComponents:
       )
 end CounterComponents
 
-object CounterHooksMain extends KyoApp:
-    run(Tui.run(CounterHooks.app))
-
-object CounterHooksDynamicMain extends KyoApp:
-    run(Tui.run(CounterHooks.dynamic))
-
-object CounterComponentsMain extends KyoApp:
-    run(Tui.run(CounterComponents.app))
+// claude 2026-10-13: changed (C4): the three mains of the prototype
+// (CounterHooksMain, CounterHooksDynamicMain, CounterComponentsMain) are cut:
+// the runnable CounterStyles example with its mains and its PTY row comes in
+// T2 (feat/kyoui-06-app-examples). This file is a test fixture.

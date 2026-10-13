@@ -52,6 +52,13 @@ import tui4s.spi.Settle
   *   Kyo logger where the run starts (Kyo's default is warn; set
   *   `-Dkyo.Log.defaultLevel=info`, or bind a logger with `Log.let`, to get
   *   info and debug lines).
+  * @param pendingTimeout
+  *   how long a frame waits for a mounting component's first content. A hook
+  *   component ([[tui4s.Hooks.component]]) runs its body when it mounts, and
+  *   the frame of that event waits for the UI that the body gives, at most this
+  *   long. When the body takes longer, the frame comes without it (the
+  *   component's place is empty), and its content comes in a later frame. A
+  *   negative value counts as zero.
   */
 // claude 2026-10-12: changed: Kyo-free (java.time.Duration, D-14 a), CanEqual,
 // Scaladoc (RC-3)
@@ -60,6 +67,8 @@ import tui4s.spi.Settle
 // captureOutput, logFile (the PR 5 option set: pollMillis as a Duration; no
 // fps, mouse, focusEvents, viewport, theme or trace)
 // claude 2026-10-13: changed (T1, review R2-1): pollInterval below 1 ms is 1 ms
+// claude 2026-10-13: changed (C4, the C2 cut back): pendingTimeout (D-14 a: a
+// java.time.Duration; the prototype's default, 2 s)
 final case class TuiOptions(
     autoFocus: Boolean = true,
     settle: Settle = Settle.Quiescent(Duration.ofMillis(100)),
@@ -69,4 +78,5 @@ final case class TuiOptions(
     inboxCapacity: Int = 1024,
     captureOutput: Boolean = true,
     logFile: Option[java.nio.file.Path] = None,
+    pendingTimeout: Duration = Duration.ofMillis(2000),
 ) derives CanEqual
