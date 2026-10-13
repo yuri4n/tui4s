@@ -430,19 +430,30 @@ private[tui4s] final class Runner(
           if w.pending.nonEmpty then
               // a component mount is running its effect: its first content
               // will come, wait for it (bounded)
-              Abort
-                .run[Timeout | Closed](
-                  Async.timeout(pendingWait)(inbox.take),
-                )
-                .map {
-                  case Result.Success(m) =>
-                    absorb(w, m)
-                      .map(w1 => nanos.map(t => Loop.continue(w1, 0, t)))
-                  case _                 =>
-                    nanos.map(t =>
-                      Loop.continue(w.copy(pending = Set.empty), 0, t),
-                    )
-                }
+              // claude 2026-10-13: changed (C4, P-6): the bound is in total,
+              // from the start of the settle: each message that arrives
+              // meanwhile no longer starts the wait again (with steady
+              // traffic, the settle of a slow component did not end)
+              nanos.map { now =>
+                val left = pendingNanos - (now - start)
+                if left <= 0L then
+                    Loop.continue(w.copy(pending = Set.empty), 0, now)
+                else
+                    Abort
+                      .run[Timeout | Closed](
+                        Async.timeout(Duration.fromNanos(left))(inbox.take),
+                      )
+                      .map {
+                        case Result.Success(m) =>
+                          absorb(w, m)
+                            .map(w1 => nanos.map(t => Loop.continue(w1, 0, t)))
+                        case _                 =>
+                          nanos.map(t =>
+                            Loop.continue(w.copy(pending = Set.empty), 0, t),
+                          )
+                      }
+                end if
+              }
           else
               // The order is "probe, THEN drain". A loop that drains first,
               // finds nothing, and then reads the probe can miss a watcher
@@ -496,17 +507,18 @@ private[tui4s] final class Runner(
       }
     end settle
 
-    /** `TuiOptions.pendingTimeout` as a Kyo duration: a negative one is zero,
-      * and one too long for a count of nanoseconds is infinite.
+    /** `TuiOptions.pendingTimeout` in nanoseconds: a negative one is zero, and
+      * one too long for a count of nanoseconds is `Long.MaxValue`.
       */
     // claude 2026-10-13: created (C4, D-14 a: the option is a
     // java.time.Duration)
-    private val pendingWait: Duration =
+    // claude 2026-10-13: changed (C4, P-6): nanoseconds, for the total bound
+    private val pendingNanos: Long =
         val d = options.pendingTimeout
-        if d.isNegative then Duration.Zero
+        if d.isNegative then 0L
         else if d.compareTo(java.time.Duration.ofNanos(Long.MaxValue)) >= 0 then
-            Duration.Infinity
-        else Duration.fromJava(d)
+            Long.MaxValue
+        else d.toNanos
 
     // ---- layout, paint, flush ----
 

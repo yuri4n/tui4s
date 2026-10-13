@@ -12,6 +12,7 @@ import tui4s.internal.Msg
 import tui4s.internal.Runner
 import tui4s.spi.Settle
 import tui4s.testkit.Headless
+import tui4s.testkit.Screen
 
 /** The components (C4): R1 for the fibers that a component mount or a hook
   * starts; the state key of a `Component`.
@@ -331,14 +332,18 @@ class ComponentTest extends ComponentSuite:
     // ---- the pending frame (TuiOptions.pendingTimeout) ----
 
     /** A hook component behind a key: `s` shows it, and its body takes `delay`
-      * before it gives its UI.
+      * before it gives its UI. The root has the key handler (with no focusable
+      * element, a key goes to the root); `extra` is its first child.
       */
-    def slowApp(delay: Duration)(using Frame): UI < Sync =
+    def slowApp(delay: Duration, extra: UI = UI.empty)(using
+        Frame,
+    ): UI < Sync =
       Signal.initRef(false).map { shown =>
         div.onKeyDown {
           case KeyboardEvent(Keyboard.Char('s'), _, _) => shown.set(true)
           case _                                       => ()
         }(
+          extra,
           span("[top]"),
           when(shown)(component(Async.sleep(delay).andThen(span("[slow]")))),
           span("[bottom]"),
@@ -394,5 +399,50 @@ class ComponentTest extends ComponentSuite:
       yield
           assert(s1.contains("[slow]"), s1.text)
           assert(ms(f) >= 250L, s"the frame came after ${ms(f)} ms")
+    }
+
+    /** The value of `[tick=<n>]` on the screen, or -1. */
+    def tickOn(s: Screen): Int =
+      """\[tick=(\d+)\]""".r
+        .findFirstMatchIn(s.text)
+        .flatMap(m => Option(m.group(1)).flatMap(_.toIntOption))
+        .getOrElse(-1)
+
+    "pending frame: the wait is bounded in total, also when other messages arrive while it waits (a region that changes every 50 ms keeps changing on the screen)" in {
+      // pendingTimeout 200 ms; the body takes 3 s; a top-level interval
+      // changes another region every 50 ms. While a settle waits for the
+      // component, no frame comes, so the tick on the screen stops. The
+      // allowance: after the key and 400 ms (the wait and one settle), the
+      // tick on the screen moves on by 5 (250 ms of ticks) within 1.5 s, long
+      // before the content (3 s).
+      val options = TuiOptions(pendingTimeout = JDuration.ofMillis(200))
+      for
+          h   <- Headless.start(40, 5, options)(_ =>
+                   for
+                       n  <- useSignal(0)
+                       _  <- useInterval(50.millis)(n.updateAndGet(_ + 1))
+                       ui <- slowApp(3.seconds, span(n.map(v => s"[tick=$v]")))
+                   yield ui,
+                 )
+          ok0 <- h.awaitScreen(s => tickOn(s) >= 3, 2.seconds)
+          f   <- h.char('s')
+          _   <- Async.sleep(400.millis)
+          s1  <- h.screen
+          ok1 <- h.awaitScreen(s => tickOn(s) >= tickOn(s1) + 5, 1500.millis)
+          s2  <- h.screen
+          ok2 <- h.awaitScreen(showing("[slow]"), 5.seconds)
+      yield
+          assert(ok0, "the interval did not tick")
+          assert(f.updates > 0, s"the key did not reach its handler: $f")
+          assert(
+            ms(f) < 1500L,
+            s"the wait started again with each message: the frame of the key came after ${ms(f)} ms",
+          )
+          assert(
+            ok1 && !s2.contains("[slow]"),
+            s"no frame while the settle waited for the component: the tick stayed at ${tickOn(s1)} (${tickOn(s2)})",
+          )
+          assert(ok2, "the content did not come in a later frame")
+      end for
     }
 end ComponentTest

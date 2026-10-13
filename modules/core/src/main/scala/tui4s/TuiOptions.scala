@@ -56,9 +56,10 @@ import tui4s.spi.Settle
   *   how long a frame waits for a mounting component's first content. A hook
   *   component ([[tui4s.Hooks.component]]) runs its body when it mounts, and
   *   the frame of that event waits for the UI that the body gives, at most this
-  *   long. When the body takes longer, the frame comes without it (the
-  *   component's place is empty), and its content comes in a later frame. A
-  *   negative value counts as zero.
+  *   long in all, from the start of the frame's settle (other values that
+  *   arrive meanwhile do not make the wait longer). When the body takes longer,
+  *   the frame comes without it (the component's place is empty), and its
+  *   content comes in a later frame. A negative value counts as zero.
   */
 // claude 2026-10-12: changed: Kyo-free (java.time.Duration, D-14 a), CanEqual,
 // Scaladoc (RC-3)
@@ -68,7 +69,8 @@ import tui4s.spi.Settle
 // fps, mouse, focusEvents, viewport, theme or trace)
 // claude 2026-10-13: changed (T1, review R2-1): pollInterval below 1 ms is 1 ms
 // claude 2026-10-13: changed (C4, the C2 cut back): pendingTimeout (D-14 a: a
-// java.time.Duration; the prototype's default, 2 s)
+// java.time.Duration; the prototype's default, 2 s); changed (C4, P-6): the
+// bound is in total
 final case class TuiOptions(
     autoFocus: Boolean = true,
     settle: Settle = Settle.Quiescent(Duration.ofMillis(100)),
