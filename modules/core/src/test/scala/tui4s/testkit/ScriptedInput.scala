@@ -8,6 +8,7 @@ import tui.crossterm.KeyEvent
 import tui.crossterm.KeyEventKind
 import tui.crossterm.KeyEventState
 import tui.crossterm.KeyModifiers
+import tui4s.internal.EventMapping
 import tui4s.internal.InputPort
 
 /** Scripted crossterm input for the tests of the input thread and of a run on a
@@ -49,8 +50,9 @@ end ScriptedInput
 // claude 2026-10-13: changed (T1): crossterm events; `key` builds one
 private[tui4s] object ScriptedInput:
     /** Input that sends `events` first; a `Char` is the key a terminal sends
-      * for it ('\n' and '\r' are Enter, '\t' is Tab).
+      * for it ([[typed]]).
       */
+    // claude 2026-10-13: changed (T1, review R1-1): the Scaladoc names typed
     def apply(events: (CEvent | Char)*): ScriptedInput =
       new ScriptedInput(events.map {
         case c: Char   => typed(c)
@@ -69,9 +71,11 @@ private[tui4s] object ScriptedInput:
     ): CEvent =
       CEvent.Key(KeyEvent(code, KeyModifiers(mods), kind, KeyEventState(state)))
 
-    /** The key event of a terminal for the character `c`. */
-    def typed(c: Char): CEvent =
-      if c == '\n' || c == '\r' then key(KeyCode.Enter())
-      else if c == '\t' then key(KeyCode.Tab())
-      else key(KeyCode.Char(c))
+    /** The key event of a terminal for the character `c`: '\n' and '\r' are
+      * Enter, '\t' is Tab, and an upper-case character has Shift, as crossterm
+      * gives it ([[tui4s.internal.EventMapping.typed]]).
+      */
+    // claude 2026-10-13: changed (T1, review R1-1): EventMapping.typed, the one
+    // place for the event of a typed character
+    def typed(c: Char): CEvent = CEvent.Key(EventMapping.typed(c))
 end ScriptedInput

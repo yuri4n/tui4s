@@ -8,6 +8,7 @@ import tui.crossterm.Event as CEvent
 import tui.crossterm.KeyCode
 import tui.crossterm.KeyEvent
 import tui.crossterm.KeyEventKind
+import tui.crossterm.KeyEventState
 import tui.crossterm.KeyModifiers
 
 /** crossterm events to runner messages: a key is a kyo-ui
@@ -140,6 +141,31 @@ private[tui4s] object EventMapping:
             end match
         end if
     end key
+
+    /** The crossterm key event of a terminal for the typed character `c`, as
+      * crossterm's parser of the terminal's bytes gives it: an upper-case
+      * character has SHIFT (`A` and `É` have it; `a`, `é`, `+` and `!` have
+      * none: measured with jatatui 0.31.0 in a pseudo-terminal), a line break
+      * (`\r`, and `\n` in the text of a test) is Enter, and a tab is Tab. The
+      * headless kit types with it (`Headless.char` and `typeText`, through
+      * [[key]]), so a headless test and a real terminal give the same event.
+      */
+    // claude 2026-10-13: created (T1, review R1-1): one place for the event of
+    // a typed character
+    def typed(c: Char): KeyEvent =
+        val code: KeyCode =
+          if c == '\n' || c == '\r' then KeyCode.Enter()
+          else if c == '\t' then KeyCode.Tab()
+          else KeyCode.Char(c)
+        val bits          =
+          if Character.isUpperCase(c) then KeyModifiers.SHIFT else 0
+        KeyEvent(
+          code,
+          KeyModifiers(bits),
+          KeyEventKind.Press,
+          KeyEventState(0),
+        )
+    end typed
 
     /** kyo-ui's function key `n` (F1 to F12); kyo-ui has no F13 and above. */
     // claude 2026-10-13: created (T1)

@@ -158,13 +158,17 @@ final class Headless private (
 
     /** Types the character `c` as one key and waits for its frame: a space is
       * `Keyboard.Space`, a line break (`\n` or `\r`) is `Keyboard.Enter`, a tab
-      * is `Keyboard.Tab`, any other character is `Keyboard.Char(c)`. `c` is a
-      * character of the Basic Multilingual Plane: half of a surrogate pair is
-      * not a key, and `char` fails with an `IllegalArgumentException` (a
-      * panic). Type a character outside it (an emoji) with `typeText`.
+      * is `Keyboard.Tab`, any other character is `Keyboard.Char(c)`. The event
+      * is the one that a real terminal gives: an upper-case character has
+      * `shift` (crossterm gives `A` with Shift), any other has no modifiers.
+      * `c` is a character of the Basic Multilingual Plane: half of a surrogate
+      * pair is not a key, and `char` fails with an `IllegalArgumentException`
+      * (a panic). Type a character outside it (an emoji) with `typeText`.
       */
     // claude 2026-10-13: created (C3; the prototype's char, with the line
     // break and the tab); changed (review R2-8): half of a surrogate pair fails
+    // claude 2026-10-13: changed (T1, review R1-1): shift for an upper-case
+    // character, as the terminal sends it
     def char(c: Char)(using Frame): FrameStats < Async =
       if Character.isSurrogate(c) then
           Abort.panic(
@@ -174,11 +178,13 @@ final class Headless private (
           )
       else press(Headless.keyOf(c.toInt))
 
-    /** Types `s`, one key per character (as [[char]]), and waits for the frame
-      * of each key. A line break `\r\n` is one Enter. A character outside the
-      * Basic Multilingual Plane (an emoji) is one key `Keyboard.Unknown(<the
-      * character>)`, as kyo-ui's `Keyboard.fromString` gives it.
+    /** Types `s`, one key per character (as [[char]]: an upper-case character
+      * has `shift`), and waits for the frame of each key. A line break `\r\n`
+      * is one Enter. A character outside the Basic Multilingual Plane (an
+      * emoji) is one key `Keyboard.Unknown(<the character>)`, as kyo-ui's
+      * `Keyboard.fromString` gives it.
       */
+    // claude 2026-10-13: changed (T1, review R1-1): the Scaladoc names shift
     // claude 2026-10-13: created (C3; the prototype's typeText returns Seq,
     // not kyo.Chunk)
     def typeText(s: String)(using Frame): Seq[FrameStats] < Async =
@@ -325,16 +331,25 @@ object Headless:
           _       <- firstFrame(frames, run)
       yield h
 
-    /** The key that types the code point `cp` (see `char` and `typeText`). */
+    /** The key that types the code point `cp` (see `char` and `typeText`): the
+      * event that the input thread gives for the key of a terminal
+      * ([[EventMapping.typed]], then [[EventMapping.key]]), so an upper-case
+      * character has `shift`. A character outside the Basic Multilingual Plane
+      * is `Keyboard.Unknown(<the character>)`, and half of a surrogate pair (in
+      * a broken string) is `Keyboard.Char` with no modifiers.
+      */
     // claude 2026-10-13: created (C3)
+    // claude 2026-10-13: changed (T1, review R1-1): the event of a terminal,
+    // through EventMapping (it gave no modifiers to an upper-case character)
     private def keyOf(cp: Int): KeyboardEvent =
-        val k =
-          if cp == ' '.toInt then Keyboard.Space
-          else if cp == '\n'.toInt || cp == '\r'.toInt then Keyboard.Enter
-          else if cp == '\t'.toInt then Keyboard.Tab
-          else if Character.isBmpCodePoint(cp) then Keyboard.Char(cp.toChar)
-          else Keyboard.Unknown(String(Character.toChars(cp)))
-        KeyboardEvent(k, Modifiers.none, Absent)
+        def plain(k: Keyboard) = KeyboardEvent(k, Modifiers.none, Absent)
+        if !Character.isBmpCodePoint(cp) then
+            plain(Keyboard.Unknown(String(Character.toChars(cp))))
+        else
+            val c = cp.toChar
+            EventMapping.key(EventMapping.typed(c)) match
+                case null              => plain(Keyboard.Char(c))
+                case ev: KeyboardEvent => ev
     end keyOf
 
     /** The keys that type `s`: one per code point; `\r\n` is one Enter. */
