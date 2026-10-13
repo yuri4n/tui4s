@@ -5,32 +5,16 @@ import kyo.UI.*
 // claude 2026-10-13: changed (T2, adapt): tui4s.Tui (the prototype had
 // tui4s.kyoui.Tui)
 import tui4s.Tui
+import tui4s.TuiApp
 
-/** The Counter in plain kyo-ui: only kyo-ui's API, plus `Tui.quit` for the quit
-  * key.
+/** Two independent counters side by side, in plain kyo-ui: a counter is a
+  * function that allocates its own state when it runs, so each call is a new
+  * counter. Tab moves between the four buttons, Enter and Space press them, `q`
+  * quits (`Tui.quit`).
   */
-object Counter:
-
-    val app: UI < Sync =
-      for count <- Signal.initRef(0)
-      yield div.onKeyDown {
-        case KeyboardEvent(Keyboard.Char('+'), _, _) =>
-          count.updateAndGet(_ + 1)
-        case KeyboardEvent(Keyboard.Char('-'), _, _) =>
-          count.updateAndGet(_ - 1)
-        case KeyboardEvent(Keyboard.Char('q'), _, _) => Tui.quit
-        case _                                       => ()
-      }(
-        h1("Counter"),
-        span("Count: ", count.map(_.toString)).id("count"),
-        div.style(_.row.gap(1.px))(
-          button("+").onClick(count.updateAndGet(_ + 1)),
-          button("-").onClick(count.updateAndGet(_ - 1)),
-        ),
-        p("+ / - change it, Tab moves, Enter presses, q quits").style(
-          _.color(Style.Color.gray),
-        ),
-      )
+// claude 2026-10-13: changed (T2, RC-33): the two counters of the prototype's
+// apps/Counter.scala; its single Counter is examples.counter
+object TwoCounters:
 
     /** One counter as a function: its state is allocated when the function
       * runs.
@@ -47,7 +31,9 @@ object Counter:
       )
 
     /** Two independent counters side by side. */
-    val twoCounters: UI < Sync =
+    // claude 2026-10-13: changed (T2): a def named ui (the prototype's val
+    // twoCounters)
+    def ui: UI < Sync =
       for
           left  <- counter("Left")
           right <- counter("Right")
@@ -61,8 +47,15 @@ object Counter:
           _.color(Style.Color.gray),
         ),
       )
-end Counter
+end TwoCounters
 
-// claude 2026-10-13: changed (T2, adapt): the KyoApp mains of the prototype
-// (CounterMain, TwoCountersMain) are cut; the example gets a TuiApp main in
-// its own commit (one main per package).
+/** Runs the two counters in the real terminal. Start it with its start script,
+  * not with `sbt run` (sbt also reads the keyboard):
+  * {{{
+  * sbt examples/launchers
+  * examples/target/bin/twocounters
+  * }}}
+  */
+// claude 2026-10-13: created (T2, RC-33)
+object TwoCountersApp extends TuiApp:
+    def ui: UI < (Async & Scope) = TwoCounters.ui
