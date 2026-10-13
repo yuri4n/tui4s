@@ -1,0 +1,14 @@
+T1 round 2 (PR #14, Codex review of 0893800, one P1 thread: TerminalIO.scala:138, comment id 4262683285)
+claude 2026-10-13: created. The fix and its test are WRITTEN, uncommitted, in .work/worktrees/feat-kyoui-04-terminal
+(TerminalIO.scala: leave.step and the enter undo loop catch every error but a VirtualMachineError; FakeCrossterm:
+failAt = "leave-link" throws an UnsatisfiedLinkError at the leave commands; TerminalIOTest: the leaf "a LinkageError in
+a release step does not stop the others either"). They wait for sbt (W4 owns it). Steps when sbt is free:
+ 1. negative control: save the TerminalIO.scala diff as a patch, 'git checkout -- modules/core/src/main/scala/tui4s/internal/TerminalIO.scala',
+    run 'sbt -Dsbt.supershell=false "core/testOnly tui4s.TerminalIOTest"' -> the new leaf FAILS (the UnsatisfiedLinkError
+    escapes leave, or raw-mode-off is missing); log .work/impl/t1-r2-negative-control.log; re-apply the patch.
+ 2. run the suite again -> green (log t1-r2-tests.log); sbt fmt; SBT_TPOLECAT_CI=1 sbt clean check alone (t1-r2-check.log);
+    bash scripts/version-order-test.sh; the PTY kit once (JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64 examples/ptycheck/run.sh; t1-r2-pty.log).
+ 3. one commit "fix(terminal): a LinkageError in a release step does not stop the restore (PR #14 review: Codex)"; push
+    feat/kyoui-04-terminal; reply on the thread with the commit; resolve; the PR body: a Round 2 line in P-3, the P-7 row,
+    the Review fixes/Negative controls rows.
+ 4. merge-up into feat/kyoui-05-components (C4; plan 4.3) and sbt check there, then push C4 (after W4 ends).

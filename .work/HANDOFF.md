@@ -179,6 +179,12 @@ started from the main checkout): it is the user's Metals sbt server.
   21:48 UTC. AFTER W4: push, PR against feat/kyoui-04-terminal, subscribe, notes; then W6 = T2
   (feat/kyoui-06-app-examples: TuiApp, SchedulerDefaults, all examples, all PTY rows; plan 6.6; shape 6).
 
+<!-- claude 2026-10-13: added this item (T1 round 2 queued) -->
+- 2026-10-13 18:50 UTC: Codex on PR #14: one P1 (TerminalIO.scala:138): the release steps catch only NonFatal, so a
+  LinkageError of a native call at leave would skip disableRawMode (raw mode left). CONFIRMED by reading; the same
+  gap the T1 fixer closed in the input thread (R2-4). The fix and the test are written, UNCOMMITTED, in the T1 worktree;
+  they wait for sbt (W4 owns it). The steps: .work/impl/t1-round2-brief.txt. Then merge-up into C4.
+
 ## 2026-10-02: DIRECTION CHANGE
 
 The user reviewed the core and said it is not a functional wrapper of jatatui and that the internals are not
