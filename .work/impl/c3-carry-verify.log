@@ -1,0 +1,14 @@
+== 13:38 carry check of the working tree (the carry commit) ==
+OK   whole file modules/core/src/main/scala/tui4s/internal/Dispatch.scala == fe06611:modules/core/src/main/scala/tui4s/internal/Dispatch.scala (244 lines)
+prototype /home/user/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Dispatch.scala: 242 lines; carried: 244 lines
+allowed  -package tui4s.kyoui.internal
+allowed  +package tui4s.internal
+allowed  +
+allowed  +// claude 2026-10-09: created (carried from .work/proto/kyoui-runner/src/tui4s/kyoui/internal/Dispatch.scala; new path and package only)
+allowed  -/** The quit action of the running app, for [[tui4s.kyoui.Tui.quit]]. A `Local`, so it also reaches fibers forked by a
+allowed  +/** The quit action of the running app, for [[tui4s.Tui.quit]]. A `Local`, so it also reaches fibers forked by a
+code lines (no package, no carry header): prototype 241, carried 242
+RESULT OK
+exit 0
+marks (grep -c "claude 20"): 2
+244 modules/core/src/main/scala/tui4s/internal/Dispatch.scala

@@ -1,0 +1,385 @@
+== 13:46 NEGATIVE CONTROL: Headless.start WITHOUT runner.scoped around the UI construction (temporary edit, not committed) ==
+diff --git a/modules/core/src/main/scala/tui4s/internal/Runner.scala b/modules/core/src/main/scala/tui4s/internal/Runner.scala
+index 00ecf8f..1a0f937 100644
+--- a/modules/core/src/main/scala/tui4s/internal/Runner.scala
++++ b/modules/core/src/main/scala/tui4s/internal/Runner.scala
+@@ -82,6 +82,12 @@ final class Runner(
+     // runner's quit
+     private val dispatch = Dispatch(quit)
+ 
++    /** Runs `v` with the quit of this run in scope, for [[tui4s.Tui.quit]]: the
++      * construction of the UI, and the fibers that it starts.
++      */
++    // claude 2026-10-13: created (C3, RC-2 part; the prototype's scoped)
++    def scoped[A, S](v: => A < S)(using Frame): A < S = Tui4sQuit.let(quit)(v)
++
+     // claude 2026-10-12: created (K29): the repair tick fiber
+     private val ticker =
+       new java.util.concurrent.atomic.AtomicReference[Option[
+@@ -119,8 +125,9 @@ final class Runner(
+     // `Sync.ensure` around the run, so an interrupted run stops its watchers
+     // too. It does not wait for them: a run-owned Scope (option a) waits for a
+     // CPU-bound watcher and breaks the end order (spike S2, gates.md G2).
++    // claude 2026-10-13: changed (C3): the run has the quit Local in scope
+     def run(root: UI)(using Frame): Unit < Async =
+-      Sync.ensure(stop) {
++      scoped(Sync.ensure(stop) {
+         for
+             tick <- Fiber.initUnscoped(repairTick)
+             _    <- Sync.defer { mount.track(tick); ticker.set(Some(tick)) }
+@@ -139,7 +146,7 @@ final class Runner(
+             w1   <- frame(w0s, 0L, FrameCause.Initial, t0).map(remember)
+             _    <- Loop(w1)(step)
+         yield ()
+-      }
++      })
+ 
+     private def step(
+         w: World,
+diff --git a/modules/core/src/main/scala/tui4s/testkit/Headless.scala b/modules/core/src/main/scala/tui4s/testkit/Headless.scala
+index bfaef37..fff4900 100644
+--- a/modules/core/src/main/scala/tui4s/testkit/Headless.scala
++++ b/modules/core/src/main/scala/tui4s/testkit/Headless.scala
+@@ -209,9 +209,12 @@ end Headless
+ object Headless:
+     /** Starts a headless run of `ui` on a `width` x `height` screen and returns
+       * after its first frame. `ui` gets the quit value: running it ends the run
+-      * (D-15). The run ends with the enclosing `Scope` (quit, then a wait for
+-      * the run fiber).
++      * (D-15). [[tui4s.Tui.quit]] does the same inside the construction of
++      * `ui`, inside a handler, and inside a fiber that they start. The run ends
++      * with the enclosing `Scope` (quit, then a wait for the run fiber).
+       */
++    // claude 2026-10-13: changed (C3, RC-2 part): Tui.quit works inside the UI
++    // construction (runner.scoped)
+     def start(width: Int, height: Int, options: TuiOptions = TuiOptions())(
+         ui: (Unit < Sync) => UI < (Async & Scope),
+     )(using Frame): Headless < (Async & Scope) =
+diff --git a/modules/core/src/test/scala/tui4s/AppsTest.scala b/modules/core/src/test/scala/tui4s/AppsTest.scala
+index c391dab..d2220b2 100644
+--- a/modules/core/src/test/scala/tui4s/AppsTest.scala
++++ b/modules/core/src/test/scala/tui4s/AppsTest.scala
+@@ -15,31 +15,35 @@ import tui4s.testkit.Headless
+ // back (the leaves "... by keys")
+ class AppsTest extends RunnerSuite:
+ 
+-    // claude 2026-10-13: created (C3; the prototype's counter test)
+-    "counter by keys: + + - with keys, Tab and Enter on the buttons, nothing happens for an unknown key" in {
++    // claude 2026-10-13: created (C3; the prototype's counter test); changed:
++    // q quits (Tui.quit)
++    "counter by keys: + + - with keys, Tab and Enter on the buttons, nothing happens for an unknown key, q quits" in {
+       for
+-          h  <- Headless.start(100, 30)(_ => apps.Counter.app)
+-          s0 <- h.screen
+-          _   = assert(s0.contains("Count: 0"), s0.text)
+-          _  <- h.char('+')
+-          _  <- h.char('+')
+-          _  <- h.char('-')
+-          s1 <- h.screen
+-          _   = assert(s1.contains("Count: 1"), s1.text)
+-          _  <- h.key(Keyboard.Enter) // the first button (+) has the focus
+-          s2 <- h.screen
+-          _   = assert(s2.contains("Count: 2"), s2.text)
+-          _  <- h.key(Keyboard.Tab)   // to (-)
+-          _  <- h.key(Keyboard.Space)
+-          _  <- h.key(Keyboard.Space)
+-          s3 <- h.screen
+-          _   = assert(s3.contains("Count: 0"), s3.text)
+-          z  <- h.char('z')
+-      yield assert(
+-        z.cause == FrameCause.Input && (z.repainted, z.flushed, z.updates) ==
+-          (0, 0, 0),
+-        s"the frame of an unknown key: $z",
+-      )
++          h   <- Headless.start(100, 30)(_ => apps.Counter.app)
++          s0  <- h.screen
++          _    = assert(s0.contains("Count: 0"), s0.text)
++          _   <- h.char('+')
++          _   <- h.char('+')
++          _   <- h.char('-')
++          s1  <- h.screen
++          _    = assert(s1.contains("Count: 1"), s1.text)
++          _   <- h.key(Keyboard.Enter) // the first button (+) has the focus
++          s2  <- h.screen
++          _    = assert(s2.contains("Count: 2"), s2.text)
++          _   <- h.key(Keyboard.Tab)   // to (-)
++          _   <- h.key(Keyboard.Space)
++          _   <- h.key(Keyboard.Space)
++          s3  <- h.screen
++          _    = assert(s3.contains("Count: 0"), s3.text)
++          z   <- h.char('z')
++          _    = assert(
++                   z.cause == FrameCause.Input &&
++                     (z.repainted, z.flushed, z.updates) == (0, 0, 0),
++                   s"the frame of an unknown key: $z",
++                 )
++          _   <- h.char('q')
++          fin <- h.awaitEnd(10.seconds)
++      yield assert(fin, "q quits")
+     }
+ 
+     // claude 2026-10-13: created (C3; the prototype's two-counters test)
+@@ -59,56 +63,58 @@ class AppsTest extends RunnerSuite:
+       )
+     }
+ 
+-    // claude 2026-10-13: created (C3; the prototype's todo test; its quit key
+-    // comes with Tui.quit)
+-    "todo by keys: type + Enter adds, Tab to the list, arrows + Space toggle, d deletes, Ctrl-S saves" in {
++    // claude 2026-10-13: created (C3; the prototype's todo test); changed: Esc
++    // quits (Tui.quit)
++    "todo by keys: type + Enter adds, Tab to the list, arrows + Space toggle, d deletes, Ctrl-S saves, Esc quits" in {
+       val file = java.nio.file.Files.createTempFile("todo", ".txt")
+       java.nio.file.Files
+         .writeString(file, "[ ] buy milk\n[x] walk dog\n[ ] write report\n")
+       for
+-          h  <- Headless.start(100, 30)(_ => apps.Todo.app(file.toString))
+-          s0 <- h.screen
+-          _   = assert(
+-                  s0.contains("2 open / 3") && s0.contains("[x] walk dog"),
+-                  s0.text,
+-                )
+-          _  <- h.typeText("call mom")
+-          s1 <- h.screen
+-          _   = assert(s1.contains("New: call mom"), s1.text)
+-          _  <- h.key(Keyboard.Enter)
+-          s2 <- h.screen
+-          _   = assert(
+-                  s2.contains("[ ] call mom") && s2.contains("3 open / 4"),
+-                  s2.text,
+-                )
+-          t  <- h.key(Keyboard.Tab)
+-          _   = assert(t.focus == "list", s"focus after Tab: ${t.focus}")
+-          _  <- h.key(Keyboard.ArrowDown)
+-          _  <- h.key(Keyboard.Space)
+-          s3 <- h.screen
+-          _   = assert(
+-                  s3.contains("[ ] walk dog") && s3.contains("4 open / 4"),
+-                  s3.text,
+-                )
+-          y   = s3.rows.indexWhere(_.contains("walk dog"))
+-          _   = assert(
+-                  s3.styleAt(2, y).bg == Some("#6366f1"),
+-                  "the selected row has the indigo background",
+-                )
+-          _  <- h.char('d')
+-          s4 <- h.screen
+-          _   = assert(
+-                  !s4.contains("walk dog") && s4.contains("3 open / 3"),
+-                  s4.text,
+-                )
+-          _  <- h.key(Keyboard.Char('s'), ctrl = true)
+-          s5 <- h.screen
+-      yield
+-          assert(s5.contains("saved 3 items"), s5.text)
+-          assert(
+-            java.nio.file.Files.readString(file) ==
+-              "[ ] buy milk\n[ ] write report\n[ ] call mom\n",
+-          )
++          h   <- Headless.start(100, 30)(_ => apps.Todo.app(file.toString))
++          s0  <- h.screen
++          _    = assert(
++                   s0.contains("2 open / 3") && s0.contains("[x] walk dog"),
++                   s0.text,
++                 )
++          _   <- h.typeText("call mom")
++          s1  <- h.screen
++          _    = assert(s1.contains("New: call mom"), s1.text)
++          _   <- h.key(Keyboard.Enter)
++          s2  <- h.screen
++          _    = assert(
++                   s2.contains("[ ] call mom") && s2.contains("3 open / 4"),
++                   s2.text,
++                 )
++          t   <- h.key(Keyboard.Tab)
++          _    = assert(t.focus == "list", s"focus after Tab: ${t.focus}")
++          _   <- h.key(Keyboard.ArrowDown)
++          _   <- h.key(Keyboard.Space)
++          s3  <- h.screen
++          _    = assert(
++                   s3.contains("[ ] walk dog") && s3.contains("4 open / 4"),
++                   s3.text,
++                 )
++          y    = s3.rows.indexWhere(_.contains("walk dog"))
++          _    = assert(
++                   s3.styleAt(2, y).bg == Some("#6366f1"),
++                   "the selected row has the indigo background",
++                 )
++          _   <- h.char('d')
++          s4  <- h.screen
++          _    = assert(
++                   !s4.contains("walk dog") && s4.contains("3 open / 3"),
++                   s4.text,
++                 )
++          _   <- h.key(Keyboard.Char('s'), ctrl = true)
++          s5  <- h.screen
++          _    = assert(s5.contains("saved 3 items"), s5.text)
++          _    = assert(
++                   java.nio.file.Files.readString(file) ==
++                     "[ ] buy milk\n[ ] write report\n[ ] call mom\n",
++                 )
++          _   <- h.key(Keyboard.Escape)
++          fin <- h.awaitEnd(10.seconds)
++      yield assert(fin, "Esc quits")
+       end for
+     }
+ 
+diff --git a/modules/core/src/test/scala/tui4s/fixtures/Counter.scala b/modules/core/src/test/scala/tui4s/fixtures/Counter.scala
+index cf8d564..f5235d7 100644
+--- a/modules/core/src/test/scala/tui4s/fixtures/Counter.scala
++++ b/modules/core/src/test/scala/tui4s/fixtures/Counter.scala
+@@ -2,14 +2,16 @@ package tui4s.fixtures
+ 
+ import kyo.*
+ import kyo.UI.*
++import tui4s.Tui
+ 
+-/** The Counter in plain kyo-ui: only kyo-ui's API. `+` and `-` change the count
+-  * (a key handler on the root), Tab moves between the buttons, Enter and Space
+-  * press them. A test can also write the count.
++/** The Counter in plain kyo-ui: only kyo-ui's API, plus `Tui.quit` for the quit
++  * key. `+` and `-` change the count (a key handler on the root), Tab moves
++  * between the buttons, Enter and Space press them, `q` quits. A test can also
++  * write the count.
+   */
+ // claude 2026-10-12: changed the Scaladoc (review R1-5, R3-7): no key handler
+ // and no `Tui.quit` after the cut
+-// claude 2026-10-13: changed the Scaladoc (C3): the keys are back
++// claude 2026-10-13: changed the Scaladoc (C3): the keys are back, `q` quits
+ object Counter:
+ 
+     // claude 2026-10-12: created (RC-19): the view over a count that the caller
+@@ -22,6 +24,8 @@ object Counter:
+           count.updateAndGet(_ + 1)
+         case KeyboardEvent(Keyboard.Char('-'), _, _) =>
+           count.updateAndGet(_ - 1)
++        // claude 2026-10-13: created (C3): the quit key (Tui.quit)
++        case KeyboardEvent(Keyboard.Char('q'), _, _) => Tui.quit
+         case _                                       => ()
+       }(
+         h1("Counter"),
+@@ -55,8 +59,12 @@ object Counter:
+       Signal.initRef(0).map(count => counterView(label, count))
+ 
+     // claude 2026-10-12: created (RC-19): the view of two counters
++    // claude 2026-10-13: changed (C3): the quit key of the prototype is back
+     def twoCountersView(left: UI, right: UI): UI =
+-      div(
++      div.onKeyDown {
++        case KeyboardEvent(Keyboard.Char('q'), _, _) => Tui.quit
++        case _                                       => ()
++      }(
+         h1("Two counters"),
+         div.style(_.row.gap(2.px))(left, right),
+         p("Tab moves between the four buttons, Enter presses, q quits").style(
+diff --git a/modules/core/src/test/scala/tui4s/fixtures/Dashboard.scala b/modules/core/src/test/scala/tui4s/fixtures/Dashboard.scala
+index 5914dbb..5069c2c 100644
+--- a/modules/core/src/test/scala/tui4s/fixtures/Dashboard.scala
++++ b/modules/core/src/test/scala/tui4s/fixtures/Dashboard.scala
+@@ -2,15 +2,16 @@ package tui4s.fixtures
+ 
+ import kyo.*
+ import kyo.UI.*
++import tui4s.Tui
+ 
+ /** The Dashboard in plain kyo-ui: one tab per series, a gauge and a sparkline
+   * fed by a 250 ms sampler, a log pane fed by a stream. ArrowLeft and
+-  * ArrowRight change the tab, `p` pauses the sampler (the logs go on). A test
+-  * can also write `tab` and `paused`.
++  * ArrowRight change the tab, `p` pauses the sampler (the logs go on), `q`
++  * quits. A test can also write `tab` and `paused`.
+   */
+ // claude 2026-10-12: changed the Scaladoc (review R1-5, R3-7): no key handler
+ // after the cut
+-// claude 2026-10-13: changed the Scaladoc (C3): the keys are back
++// claude 2026-10-13: changed the Scaladoc (C3): the keys are back, `q` quits
+ object Dashboard:
+ 
+     val series = Seq("CPU", "Memory", "Network")
+@@ -111,6 +112,8 @@ object Dashboard:
+           s.tab.updateAndGet(t => (t + 1) % series.size)
+         case KeyboardEvent(Keyboard.Char('p'), _, _)  =>
+           s.paused.updateAndGet(!_)
++        // claude 2026-10-13: created (C3): the quit key (Tui.quit)
++        case KeyboardEvent(Keyboard.Char('q'), _, _)  => Tui.quit
+         case _                                        => ()
+       }(
+         div
+diff --git a/modules/core/src/test/scala/tui4s/fixtures/Todo.scala b/modules/core/src/test/scala/tui4s/fixtures/Todo.scala
+index 46feb64..59a7b59 100644
+--- a/modules/core/src/test/scala/tui4s/fixtures/Todo.scala
++++ b/modules/core/src/test/scala/tui4s/fixtures/Todo.scala
+@@ -5,13 +5,15 @@ import java.nio.file.Files
+ import java.nio.file.Paths
+ import kyo.*
+ import kyo.UI.*
++import tui4s.Tui
+ 
+ /** The Todo app in plain kyo-ui. Components are plain functions of signals and
+   * actions. Keys: type a text and press Enter to add it; Tab moves between the
+   * input and the list; in the list, the arrows (or `k` and `j`) move, Space
+-  * toggles, `d` deletes; Ctrl-S saves.
++  * toggles, `d` deletes; Ctrl-S saves; Escape quits (`Tui.quit`).
+   */
+-// claude 2026-10-13: changed the Scaladoc (C3): the keys are back
++// claude 2026-10-13: changed the Scaladoc (C3): the keys are back, Escape
++// quits
+ object Todo:
+ 
+     final case class Item(id: Int, text: String, done: Boolean) derives CanEqual
+@@ -202,6 +204,8 @@ object Todo:
+         main.onKeyDown {
+           case KeyboardEvent(Keyboard.Char('s'), mods, _) if mods.ctrl =>
+             saveAll(s)
++          // claude 2026-10-13: created (C3): the quit key (Tui.quit)
++          case KeyboardEvent(Keyboard.Escape, _, _)                    => Tui.quit
+           case _                                                       => ()
+         }(
+           header(count),
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-03-input-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-03-input/)
+[info] compiling 19 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 26 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+[1m=== QuitTest ===[0m
+  [1m[32m[PASS][0m[0m a key handler calls Tui.quit: the run ends  [2m(341ms)[0m
+  [1m[32m[PASS][0m[0m a fiber that a handler forks calls Tui.quit after a delay: the run ends  [2m(136ms)[0m
+  [1m[31m[FAIL][0m[0m the construction of the UI forks a fiber that calls Tui.quit after a delay: the run ends  [2m(10.0s)[0m *** FAILED ***
+
+    yield assert(fin, "the run did not end")
+    // message: the run did not end
+
+  [1m[32m[PASS][0m[0m Tui.quit outside a run does nothing  [2m(224ms)[0m
+[2m---[0m QuitTest: [32m3 passed[0m, [31m1 failed[0m  [2m(11.1s)[0m
+FAILURES (1):
+  the construction of the UI forks a fiber that calls Tui.quit after a delay: the run ends  [FAIL]
+    yield assert(fin, "the run did not end")
+    // message: the run did not end
+
+Results: [32m3 passed[0m, [31m1 failed[0m  (total: 11.1s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.QuitTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 66 s (0:01:06.0), completed Oct 13, 2026, 1:47:50 PM
+sbt exit 1

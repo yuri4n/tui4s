@@ -1,0 +1,76 @@
+C3 feat/kyoui-03-input: implementer notes (agent I, 2026-10-13). Plain text, ASD-STE100.
+Worktree: .work/worktrees/feat-kyoui-03-input, branch feat/kyoui-03-input from feat/kyoui-02-regions 79ac684.
+
+13:38 Read: PLAN 6.0, 6.3, 0 (0.3 seam), 4.1 (thread TuiTest.scala:166); DECISIONS tenth round (the eleventh round is
+      not in DECISIONS.md: the task text gives it: gate 1 CLOSED, seal tui4s.internal in C3, CI load flag, tick and
+      canary accepted, frame = batch); c2-pr-body-final.md (cuts, API review); c2-notes; c1-notes; AGENTS.md (C2).
+      Sources: fe06611 Dispatch.scala (244 lines = 242 of the proto + carry header + 1 blank; package and one Scaladoc
+      link changed); proto Runner key path, Tui.scala (Tui.quit, Headless key methods), apps (Counter, Todo, Dashboard,
+      Widgets), test/Apps.test.scala; 81baa12 (formatted fixtures and Headless with the key parts);
+      origin/feat/core-1-model-view TextField.scala + TextFieldTest.scala; kyo-ui RC7 UI.scala (Keyboard, Modifiers,
+      KeyboardEvent, MouseEvent, Attrs private[kyo], TextInput trait, Textarea is a ConstrainedInput = TextInput,
+      Form.onSubmit/onSubmitEvt, Select, Opt); jatatui Buffer.setStringn (BreakIterator graphemes, Wcwidth.width per
+      grapheme), Span.width = Wcwidth.width (sum of code point widths); S3 Guard.scala (rule hashes).
+      Facts:
+      - kyo-ui RC7 has Textarea; it is a TextInput (ConstrainedInput), so Dispatch.editText edits it (single line) and
+        its bound write goes through the same seam.
+      - kyo-ui has no paste event; a paste on a non-text target does nothing (as in a browser).
+      - kyo-ui Keyboard.fromString: a key string of length 1 is Char, a longer one is Unknown(s). So a character
+        outside the BMP (an emoji) is Unknown("<emoji>") in kyo-ui, not two Char keys.
+      - Attrs is private[kyo] (the type); its fields are public members read through el.attrs (RR N9 a).
+      - onClick(action) stores Sync.defer(action): an untyped `val h = { n += 1 }` runs at construction only (the trap).
+      - Commit trailer: the system reminder of this session says "Co-Authored-By: Claude Opus 5.5"; the computed task
+        says "Claude Fable 5.1". The session's attribution wins (the task text is script output); I use Opus 5.5.
+13:38 step 1 carry commit d43f914: Dispatch.scala = fe06611 blob (244 lines, 2 marks); c3-carry-verify.log RESULT OK
+      (only the package line, the carry header + blank, and the Tui.quit Scaladoc link differ from the prototype).
+13:40 step 2 format commit 768bff8: marks 2 -> 0 (carry header; the prototype mark "removed the unused import
+      kyo.UI.Modifiers"); sbt fmt reformatted 1 file; 244 -> 384 lines (+287/-147; -w +210/-70) (c3-step2-fmt.log).
+13:41 step 3: SBT_TPOLECAT_CI=1 sbt core/compile at 768bff8 (Dispatch compiles alone: it uses only C2 types):
+      exit 0, 0 [warn], 0 [error] (c3-step3-warnings.log). Strict-flag fixes: 0 changed lines, no commit (as C2).
+      Plan for 4a/4b: the fixtures' quit keys ('q', Esc) call Tui.quit, which is 4b; so 4a restores every key
+      handler except the quit keys, and 4b adds Tui.quit with the quit keys and their AppsTest asserts.
+13:5x step 4a commit 70a6632: key path, kit key methods, fixtures (no quit keys), AppsTest +5 leaves, DispatchTest 1 leaf; AppsTest 12 passed, DispatchTest 1 passed; [glitch-keys] splits=0 of 500 (c3-step4a-test.log). CI-mode compile 0 warnings (c3-step4a-compile.log).
+14:0x step 4b commit 077919a: Tui.quit, runner.scoped, quit keys; QuitTest 4 passed; negative control (no scoped in start): construction leaf FAILS (c3-quit-negative-control.log).
+13:52 step 4c commit 6fe5fbf: write seam (Dispatch.writeBound, Knobs.onBoundWrite); WriteSeamTest 2 passed ([seam] writes=6); negative controls A (bypass in toggle: 4 writes, FAIL) and B (onInput before write: FAIL) in c3-seam-negative-control.log.
+13:58 step 4d commit 5b5265c: TextEdit + Paint by graphemes/cells; TextEditTest 10 passed (c3-step4d-grapheme-2.log); negative control on 6fe5fbf code: 8 of 10 FAIL (ASCII and readOnly pass) (c3-grapheme-negative-control.log, 2 runs: the first with a precomposed é literal (7 FAIL), the second with the final test text). Note: the commit message says 7; the final run shows 8 (the narrow-field leaf was added after the first run).
+14:0x step 4e commit a8a8f5c: paste; PasteTest 4, TextEditTest 11, WriteSeamTest 2 (7 writes) passed (c3-step4e-paste-final.log); negative control (kit ignores paste=false): 2 leaves FAIL (c3-paste-negative-control.log). Lesson: a temp edit restored with git checkout lost the uncommitted 4e edits of Headless.scala; I reapplied them. Use a backup copy for temp edits of uncommitted files.
+14:05 step 4f commit 253f0ff: DispatchTest 7, SeamTest 3 (R2 key variant) passed; negative control (input=false for keys): RED (updates 0, value at 2013 ms), GREEN (34 ms) (c3-r2-key-negative-control.log).
+14:07 step 4g commit 22fdb22: LiftTrapTest 2 passed (no warning in CI mode); AGENTS.md 2 rules (Bash edit, not refused); c3-private-kyo-check.log (0 real hits; compiler rejects withAttrs).
+14:12 step 4h commit 6b9424d: seal (42 edits, 10 files; 5 already private), PublicApiTest 2 passed; negative controls A (Runner public) and B (Headless.internalRunner) FAIL (c3-seal-negative-control.log). The compiler accepts a public method that returns a private[tui4s] type.
+14:14 step 4i commit fe3d937: TUI4S_LOAD forwarding (Scala 2 syntax in build.sbt: the first try with if-then failed to load), ci.yml env, AGENTS.md; c3-load-flag.log OK.
+14:18 step 4j commit 5c111b4: guard C3 part (+84 lines; 247 data lines); rule/js/pin identical to S3 (c3-step4j-guard.log); negative controls (removed line -> ADDED; changed hash -> CHANGED) (c3-guard-negative-control.log).
+14:20 step 4k commit ba5b6f6: docs (AGENTS.md, README, package Scaladoc; Bash edits, not refused).
+14:27 commit 0d36055: the torn-frame leaf (C2 test) flaked in the first clean check: C2 code 3/5 FAIL, C3 1/5 (c3-torn-compare.log); 1000 writes: 5/5 pass; negative control (no monitor): 452 torn of 40625 (c3-torn-fix.log).
+14:31 docs fixes 0f49fb3 (verify Scaladoc: paste), a97f555 (Headless Scaladoc: paste).
+14:33 FINAL at a97f555: SBT_TPOLECAT_CI=1 sbt clean check alone: exit 0, 0 [warn], 0 [error], 103 passed, 0 failed,
+      3 ignored (c3-check.log). greps: System.err/println 0, jatatui.widgets 0, reflection 0, package kyo 0
+      (c3-greps.log). version-order-test 55/55 (c3-version-order-test.log). Sizes: main from 768bff8 +617/-110
+      (-w +612/-105), 16 files; tests +1846/-26; whole PR 36 files +2893/-117. PR body: c3-pr-body.txt.
+      Not done here: the 3 final runs (one under contention) are for the next agent. Tree clean; no JVM left.
+
+K2 skeptic (2026-10-13 14:44-14:57, reviewer R2's findings): SBT_TPOLECAT_CI=1 sbt check at a97f555 (warm target): exit 0,
+      0 [warn], 0 [error], 103 passed, 0 failed, 3 ignored (c3-k2-check.log). No single-suite run was needed. Two
+      scala-cli probes (no sbt): c3-k2-probe-abort.log (Kyo RC7 Abort.run[Throwable]: a thrown exception in a handler is
+      Result.Failure, Abort.panic is Result.Panic, the next step runs: `safe` holds; R2-1 is a test gap only) and
+      c3-k2-probe-scroll.log (Paint scroll loop: 187 ms at 5000 graphemes, width 30; a linear walk: 0 ms; same
+      result on 2000 random fields: R2-2 confirmed). R2-4 refuted as a C3 defect: the PR body P-12 list defers
+      onFocusEvt/onBlurEvt (c3-pr-body.txt line 95); fixFocus is C2 code (blame 81baa12, dc3cfb5); DispatchTest
+      line 128 documents the silent initial focus. R2-3, R2-5, R2-6, R2-7, R2-8 confirmed by reading (minor).
+
+F fixer (2026-10-13 15:00): start at a97f555. Confirmed to fix: R2-1 (major, test), R1-3, R1-5/R2-6, R1-6, R1-7, R1-8/R2-7, R2-2, R2-3, R2-5, R2-8, R1-4 (body). Refuted, not fixed: R1-2, R1-9, R2-4. R1-1: needs a C2 fix round (another branch): not mine; question for the user.
+15:06 F: commits 8b4d92b (R2-3, R2-5), 2408cfa (R2-1 test), c0f28ae (R2-2 Paint.scrollStart); negative controls c3-fix-dispatch-negative-control.log, c3-fix-paint-negative-control.log.
+15:11 F: commits 9703528 (R1-8, R2-7, R2-8 Headless end mark, char), 655bdbf (R1-5, R2-6 textarea in WriteSeamTest), 082af4e (R1-3 QuitTest 1 s), e987442 (R1-6, R1-7 docs, AGENTS kit rule). Negative controls: c3-fix-headless-negative-control.log, c3-fix-seam-textarea-negative-control.log. Next: full CI-mode check alone.
+15:15 F: FINAL at e987442: SBT_TPOLECAT_CI=1 sbt clean check alone: exit 0, 0 [warn], 0 [error], 109 passed, 0 failed, 3 ignored (c3-fix-check.log, with a command header); version-order-test 55/55 (c3-fix-version-order-test.log); greps 0 hits (c3-fix-greps.log). PR body updated: c3-pr-body.txt (the implementer body kept as c3-pr-body-impl.txt). Not fixed: R1-1 (C2 branch; question for the user), R1-2, R1-9, R2-4 (refuted). R2-3 note: no kit run reaches a disabled key target with ancestors (fixFocus; the fallback target is the root), so its leaf drives Dispatch directly. Tree clean; no JVM left. Not done: the 3 final runs (next agent); the push of the c3 logs to wip/handoff (orchestrator).
+
+== V final-runs agent (2026-10-13): the acceptance runs of plan 6.0 and 6.3 on feat/kyoui-03-input at e987442
+15:16 Start. HEAD e987442, tree clean, JDK 25.0.4.1, no JVM on the machine (pgrep -x java: none), 4 CPUs, 15 GB.
+      Plan: 3 core/test runs in a row (run 2 under contention: taskset -c 0,1 + 2 pinned busy loops killed by PID;
+      no load flag, so the glitch assertions stay 0 also under contention; logs c3-final-run-1.log,
+      c3-final-run-contention.log, c3-final-run-3.log), the glitch suite with TUI4S_LOAD=1 (c3-final-load-flag.log),
+      the greps, the final CI-mode clean check and the version-order test. No code change.
+15:18 Run 1 (quiet): exit 0, 104 s, 109 passed, 0 failed, 3 ignored, 0 cancelled; [glitch] splits=0 of 500; [glitch-keys] splits=0 of 500 (load flag: false) (c3-final-run-1.log).
+15:19 Run 2 (CONTENTION: taskset -c 0,1, busy loops PIDs 32318 32319 pinned to CPUs 0,1 (mask 3), killed by PID after the run; ps shows both gone): exit 0, 63 s, 108 passed, 0 failed, 3 ignored, 1 cancelled (the SettleTest canary cancels itself with one Kyo worker, as in C2); [glitch] splits=0 of 500; [glitch-keys] splits=0 of 500 (region values 4: 499, 5: 1: an intermediate combineLatest value, which the leaf allows) (load flag: false) (c3-final-run-contention.log).
+15:20 Run 3 (quiet): exit 0, 35 s, 109 passed, 0 failed, 3 ignored; [glitch] splits=0 of 500; [glitch-keys] splits=0 of 500 (load flag: false) (c3-final-run-3.log). 3 of 3 green.
+15:20 Load-flag run (TUI4S_LOAD=1, show core/Test/javaOptions + core/testOnly tui4s.AppsTest): exit 0, 18 s, 12 passed; the shown options are 10 and contain -Dtui4s.load=1; [glitch] splits=0 of 500 (load flag: true); [glitch-keys] splits=0 of 500 (load flag: true) (c3-final-load-flag.log). Greps (c3-final-greps.log): System.err/println (and System.out) in core main 0; jatatui.widgets in core 0; getDeclaredField/setAccessible in core main 0; package kyo 0; private[kyo] in core main 0; check 4: the same 14 hits as at 253f0ff, none a private[kyo] member.
+15:22 Final check (SBT_TPOLECAT_CI=1 sbt clean check, alone): exit 0, 111 s, 0 [warn], 0 [error], 109 passed, 0 failed, 3 ignored; scalafmt checks and versionPolicyCheck green (Compatibility.None for the 3 modules) (c3-final-check.log). version-order-test: 55 of 55 (c3-final-version-order-test.log). ALL GREEN. Tree clean at e987442, no JVM left. Next: the PR body.
+15:23 PR body updated (c3-pr-body.txt, 290 lines; the fixer's body kept as c3-pr-body-fix.txt): P-3 the base and the final check, P-12 without the 'final runs: the next agent' item, P-13 the final check log, the table of the 3 runs (run 2 under contention) and the load-flag run, Problems + the canary/5-values item, the section Acceptance (plan 6.0 and 6.3 items, the grep output, the private[kyo] check), the logs list. No .md write needed; no refusal. Tree clean at e987442; no JVM left. Done.

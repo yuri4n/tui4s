@@ -1,0 +1,288 @@
+== V run 2 (CPU CONTENTION, the model of the CI runner): taskset -c 0,1 sbt -Dsbt.supershell=false core/test
+date: 2026-10-13 15:18:30 UTC
+commit: e987442ae8d102b9b8728d767ad629b8c5e9b2f2
+pgrep -x java before: none
+TUI4S_LOAD: unset (no load flag: the glitch assertions stay strict 0)
+busy loops pinned to CPUs 0,1: PIDs 32318 32319
+affinity of the busy loops: pid 32318's current affinity mask: 3 / pid 32319's current affinity mask: 3
+
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-03-input-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-03-input/)
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 4
+
+[1m=== DispatchTest ===[0m
+  [1m[32m[PASS][0m[0m Ctrl-C ends the run (TuiOptions.ctrlCQuits); with ctrlCQuits = false it is a key for the handlers  [2m(669ms)[0m
+  [1m[32m[PASS][0m[0m Tab moves in document order (a positive tabIndex first) and wraps; Shift-Tab goes back  [2m(184ms)[0m
+  [1m[32m[PASS][0m[0m a focus group: ArrowLeft and ArrowRight move inside the group and wrap; outside a group they do nothing  [2m(157ms)[0m
+  [1m[32m[PASS][0m[0m a focus trap: Tab and Shift-Tab wrap among the focusables inside it  [2m(110ms)[0m
+  [1m[32m[PASS][0m[0m stopPropagation(true) on a handler stops the parent's onKeyDown; without it both run (child first)  [2m(100ms)[0m
+  [1m[32m[PASS][0m[0m onBlur of the old element and onFocus of the new one run on a Tab  [2m(55ms)[0m
+  [1m[32m[PASS][0m[0m a disabled element: Tab skips it; as the key target its onKeyDown and its click do not run  [2m(54ms)[0m
+  [1m[32m[PASS][0m[0m a disabled key target: its stopPropagation does not stop the bubbling, as its handler does not run (kyo-ui's rule)  [2m(13ms)[0m
+  [1m[32m[PASS][0m[0m a handler that fails or panics is logged (Kyo's Log) and the event goes on; a failing onInput keeps the bound write  [2m(336ms)[0m
+[2m---[0m DispatchTest: [32m9 passed[0m, [31m0 failed[0m  [2m(2.4s)[0m
+
+Results: [32m9 passed[0m, [31m0 failed[0m  (total: 2.4s)
+Running 1 suite(s) with parallelism 4
+
+[1m=== HeadlessTest ===[0m
+  [1m[32m[PASS][0m[0m the quit value ends the run; awaitEnd and finished see it  [2m(77ms)[0m
+  [1m[32m[PASS][0m[0m resize: the frame of the resize lays the content out again  [2m(57ms)[0m
+  [1m[32m[PASS][0m[0m resize while a signal writes fast: the runner resizes the backend, so no frame hits a smaller buffer  [2m(386ms)[0m
+  [1m[32m[PASS][0m[0m screen is never a torn frame: a read during a flush sees one value on every row  [2m(2.4s)[0m
+  [1m[32m[PASS][0m[0m start fails fast when the UI fails, with the error  [2m(24ms)[0m
+  [1m[32m[PASS][0m[0m idle: no frame without a change  [2m(1.8s)[0m
+  [1m[32m[PASS][0m[0m awaitScreen: true before the timeout; false after it when nothing changes  [2m(336ms)[0m
+  [1m[32m[PASS][0m[0m after the run has ended, a key, a paste, a resize and nextFrame fail at once; the key that ended it still gets its frame  [2m(48ms)[0m
+  [1m[32m[PASS][0m[0m char: half of a surrogate pair fails and types nothing; typeText types the emoji as one key  [2m(42ms)[0m
+[2m---[0m HeadlessTest: [32m9 passed[0m, [31m0 failed[0m  [2m(5.2s)[0m
+
+Results: [32m9 passed[0m, [31m0 failed[0m  (total: 5.2s)
+Running 1 suite(s) with parallelism 4
+
+[1m=== ScreenTest ===[0m
+  [1m[32m[PASS][0m[0m a wide character takes two cells and one place in its row  [2m(51ms)[0m
+  [1m[32m[PASS][0m[0m assertScreen throws an AssertionError with the diff  [2m(6ms)[0m
+  [1m[32m[PASS][0m[0m styles: a bold coloured cell, and unset colours read as unset  [2m(94ms)[0m
+  [1m[32m[PASS][0m[0m diffScreen: None when equal, rows otherwise  [2m(37ms)[0m
+  [1m[32m[PASS][0m[0m text, rows, toString, region, cursor  [2m(4ms)[0m
+[2m---[0m ScreenTest: [32m5 passed[0m, [31m0 failed[0m  [2m(119ms)[0m
+
+Results: [32m5 passed[0m, [31m0 failed[0m  (total: 119ms)
+Running 1 suite(s) with parallelism 4
+
+[1m=== LeakProbe ===[0m
+  [90m[IGNORED][0m R1 leak: interrupted runs, then quit runs; the heap per run  set -Dtui4s.stress=<rounds> in the test JVM
+[2m---[0m LeakProbe: [32m0 passed[0m, [31m0 failed[0m, [90m1 ignored[0m  [2m(17ms)[0m
+
+Results: [32m0 passed[0m, [31m0 failed[0m, [90m1 ignored[0m  (total: 17ms)
+Running 1 suite(s) with parallelism 4
+
+[1m=== GoldenScreenTest ===[0m
+    [1m[32m[PASS][0m[0m borders › solid  [2m(41ms)[0m
+    [1m[32m[PASS][0m[0m colours and text attributes › a child inherits the text colour  [2m(5ms)[0m
+    [1m[32m[PASS][0m[0m colours and text attributes › bold, italic, underline; h1 is bold and underlined  [2m(15ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › a row puts its items side by side; a column stacks them  [2m(5ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › justify: center, end, spaceBetween  [2m(7ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › flexGrow takes the free space of the row  [2m(17ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › flexGrow takes the free rows of a column  [2m(7ms)[0m
+    [1m[32m[PASS][0m[0m colours and text attributes › text colour and background  [2m(95ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › flexShrink removes only the deficit; the last item loses the cell  [2m(32ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › gap in a row and in a column  [2m(6ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › padding moves the content inside the box  [2m(5ms)[0m
+    [1m[32m[PASS][0m[0m gap and padding › padding inside a border  [2m(4ms)[0m
+    [1m[32m[PASS][0m[0m overflow is clipped › rows below a fixed height are not painted  [2m(4ms)[0m
+    [1m[32m[PASS][0m[0m overflow is clipped › cells right of a fixed width are not painted  [2m(9ms)[0m
+    [1m[32m[PASS][0m[0m borders › rounded  [2m(10ms)[0m
+    [1m[32m[PASS][0m[0m row and column flex › rowReverse and columnReverse place the items from the end  [2m(59ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › a long word of wide characters splits by cells, not by characters  [2m(2ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › no wrap in a row  [2m(4ms)[0m
+    [1m[32m[PASS][0m[0m wide characters › take two cells each  [2m(4ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › at the spaces  [2m(29ms)[0m
+    [1m[32m[PASS][0m[0m placeholders › an image shows its alt text in brackets  [2m(18ms)[0m
+    [1m[32m[PASS][0m[0m text wraps in a column › a long word splits  [2m(48ms)[0m
+    [1m[32m[PASS][0m[0m placeholders › an svg (a chart) shows [chart], dim  [2m(30ms)[0m
+    [1m[32m[PASS][0m[0m percentage sizes › a percentage height is relative to the parent, not to the screen  [2m(39ms)[0m
+    [1m[32m[PASS][0m[0m decorations › a button has brackets; list items have markers  [2m(23ms)[0m
+    [1m[32m[PASS][0m[0m inputs › a range input shows its constant value  [2m(33ms)[0m
+    [1m[32m[PASS][0m[0m borders › dashed, with the border colour on the glyphs  [2m(5ms)[0m
+[2m---[0m GoldenScreenTest: [32m27 passed[0m, [31m0 failed[0m  [2m(302ms)[0m
+
+Results: [32m27 passed[0m, [31m0 failed[0m  (total: 302ms)
+Running 1 suite(s) with parallelism 4
+
+[1m=== NameClashTest ===[0m
+  [1m[32m[PASS][0m[0m kyo.*, kyo.UI.*, kyo.test.*, tui4s.*, tui4s.spi.* and tui4s.testkit.* together  [2m(28ms)[0m
+[2m---[0m NameClashTest: [32m1 passed[0m, [31m0 failed[0m  [2m(30ms)[0m
+
+Results: [32m1 passed[0m, [31m0 failed[0m  (total: 30ms)
+Running 1 suite(s) with parallelism 4
+
+[1m=== TextEditTest ===[0m
+  [1m[32m[PASS][0m[0m ASCII: insert, move, delete  [2m(101ms)[0m
+  [1m[32m[PASS][0m[0m a combining mark belongs to its letter  [2m(40ms)[0m
+  [1m[32m[PASS][0m[0m an emoji with a skin tone, a ZWJ family and a flag are one grapheme each  [2m(53ms)[0m
+  [1m[32m[PASS][0m[0m CJK: the cursor cell after two wide characters is x + 4  [2m(24ms)[0m
+  [1m[32m[PASS][0m[0m a narrow field scrolls by cells: the cursor stays inside it  [2m(33ms)[0m
+  [1m[32m[PASS][0m[0m the scroll of a field (Paint.scrollStart) is the first start that fits, found in one walk back from the caret  [2m(261ms)[0m
+  [1m[32m[PASS][0m[0m Ctrl-A and Ctrl-E move to the start and the end  [2m(27ms)[0m
+  [1m[32m[PASS][0m[0m Ctrl-U deletes before the cursor, Ctrl-K after it  [2m(43ms)[0m
+  [1m[32m[PASS][0m[0m Ctrl-W deletes the word before the cursor  [2m(88ms)[0m
+  [1m[32m[PASS][0m[0m a key that changes nothing keeps the text and the caret, and its frame paints nothing  [2m(41ms)[0m
+  [1m[32m[PASS][0m[0m a paste inserts at the caret as one edit; line breaks and tabs become spaces, control characters are dropped  [2m(68ms)[0m
+  [1m[32m[PASS][0m[0m readOnly keeps the text; the caret still moves  [2m(24ms)[0m
+  [1m[32m[PASS][0m[0m Enter commits the text with onChange; on a readOnly input it runs no onChange (kyo-ui's rule)  [2m(32ms)[0m
+[2m---[0m TextEditTest: [32m13 passed[0m, [31m0 failed[0m  [2m(848ms)[0m
+
+Results: [32m13 passed[0m, [31m0 failed[0m  (total: 848ms)
+Running 1 suite(s) with parallelism 4
+
+[1m=== AppsTest ===[0m
+  [1m[32m[PASS][0m[0m counter by keys: + + - with keys, Tab and Enter on the buttons, nothing happens for an unknown key, q quits  [2m(115ms)[0m
+  [1m[32m[PASS][0m[0m two counters by keys are independent; Tab order is document order  [2m(81ms)[0m
+  [1m[32m[PASS][0m[0m todo by keys: type + Enter adds, Tab to the list, arrows + Space toggle, d deletes, Ctrl-S saves, Esc quits  [2m(264ms)[0m
+  [1m[32m[PASS][0m[0m dashboard by keys: ArrowRight changes the tab, p pauses the sampler  [2m(166ms)[0m
+  [1m[32m[PASS][0m[0m counter: writes to the count reach the screen; the kit's quit ends the run  [2m(35ms)[0m
+  [1m[32m[PASS][0m[0m two counters are independent  [2m(40ms)[0m
+  [1m[32m[PASS][0m[0m todo: load, add, select, toggle, delete, save, status  [2m(102ms)[0m
+  [1m[32m[PASS][0m[0m overflow: a list taller than the screen keeps the header and the input; the list is clipped  [2m(43ms)[0m
+  [1m[32m[PASS][0m[0m dashboard: a sampler tick updates the gauge and the sparkline in one frame; tabs; pause  [2m(231ms)[0m
+  [1m[32m[PASS][0m[0m idle: no frame at all when nothing changes  [2m(1.8s)[0m
+[glitch] splits=0 of 500 (events by frame count: 1 frames: 500; events with a settle timeout: 0; not seen in 2 s: 0; load flag: false)
+  [1m[32m[PASS][0m[0m glitch-free: one event (one write to one ref) updates all 4 dependent regions in one frame (500 events)  [2m(2.8s)[0m
+[glitch-keys] splits=0 of 500 (key frames by region values: 4: 499, 5: 1; frames with a settle timeout: 0; load flag: false)
+  [1m[32m[PASS][0m[0m glitch-free by keys: one key whose handler writes two refs updates all 4 dependent regions in its frame (500 keys)  [2m(1.2s)[0m
+[2m---[0m AppsTest: [32m12 passed[0m, [31m0 failed[0m  [2m(7.0s)[0m
+
+Results: [32m12 passed[0m, [31m0 failed[0m  (total: 7.0s)
+Running 1 suite(s) with parallelism 4
+
+[1m=== WatcherTest ===[0m
+  [1m[32m[PASS][0m[0m R1: 0 live fibers after an INTERRUPTED run  [2m(166ms)[0m
+  [1m[32m[PASS][0m[0m R1: 0 live fibers after an interrupt INSIDE A SETTLE (a remount in flight)  [2m(1.3s)[0m
+  [1m[32m[PASS][0m[0m R1: 0 live fibers after a quit, and after the scope of the kit ends  [2m(26ms)[0m
+  [1m[32m[PASS][0m[0m K29: 200 writes to every region kind all reach the screen  [2m(1.0s)[0m
+  [1m[32m[PASS][0m[0m K29: a write in the window is lost by the loop and repaired by the tick within 2 ticks  [2m(661ms)[0m
+[2m---[0m WatcherTest: [32m5 passed[0m, [31m0 failed[0m  [2m(3.2s)[0m
+
+Results: [32m5 passed[0m, [31m0 failed[0m  (total: 3.2s)
+Running 1 suite(s) with parallelism 4
+
+[1m=== PublicApiTest ===[0m
+  [1m[32m[PASS][0m[0m every top-level definition of tui4s.internal is private[tui4s]  [2m(2.6s)[0m
+  [1m[32m[PASS][0m[0m no public signature of tui4s, tui4s.spi or tui4s.testkit names a type of tui4s.internal  [2m(7.1s)[0m
+[2m---[0m PublicApiTest: [32m2 passed[0m, [31m0 failed[0m  [2m(7.1s)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 7.1s)
+Running 1 suite(s) with parallelism 4
+
+[1m=== StrictEqualityTest ===[0m
+  [1m[32m[PASS][0m[0m FrameStats, FrameCause, TuiOptions, Settle, Screen and CellStyle compare with ==  [2m(8ms)[0m
+[2m---[0m StrictEqualityTest: [32m1 passed[0m, [31m0 failed[0m  [2m(12ms)[0m
+
+Results: [32m1 passed[0m, [31m0 failed[0m  (total: 12ms)
+Running 1 suite(s) with parallelism 4
+
+[1m=== ObserveLeakProbe ===[0m
+  [90m[IGNORED][0m K29: bytes per write with Signal.observe, with the runner loop, with a bare loop  set -Dtui4s.stress=<rounds> in the test JVM
+[2m---[0m ObserveLeakProbe: [32m0 passed[0m, [31m0 failed[0m, [90m1 ignored[0m  [2m(2ms)[0m
+
+Results: [32m0 passed[0m, [31m0 failed[0m, [90m1 ignored[0m  (total: 2ms)
+Running 1 suite(s) with parallelism 4
+
+[1m=== QuitTest ===[0m
+  [1m[32m[PASS][0m[0m a key handler calls Tui.quit: the run ends  [2m(79ms)[0m
+  [1m[32m[PASS][0m[0m a fiber that a handler forks calls Tui.quit after a delay: the run ends  [2m(1.0s)[0m
+  [1m[32m[PASS][0m[0m the construction of the UI forks a fiber that calls Tui.quit after a delay: the run ends  [2m(215ms)[0m
+  [1m[32m[PASS][0m[0m Tui.quit outside a run does nothing  [2m(230ms)[0m
+[2m---[0m QuitTest: [32m4 passed[0m, [31m0 failed[0m  [2m(1.5s)[0m
+
+Results: [32m4 passed[0m, [31m0 failed[0m  (total: 1.5s)
+Running 1 suite(s) with parallelism 4
+
+[1m=== SeamTest ===[0m
+  [1m[32m[PASS][0m[0m R2: an EXTERNAL write in the arm window is on the screen when the window ends (the verify pass; the repair tick is off)  [2m(541ms)[0m
+  [1m[32m[PASS][0m[0m R2 cascade: one write in the window gives at most 2 frames in 900 ms  [2m(969ms)[0m
+[r2-key] in the key's frame: true (updates 1, 14 ms after the start); on the screen at all: true after 16 ms
+  [1m[32m[PASS][0m[0m R2 key variant: a key whose handler writes a ref in the arm window reaches THAT key's frame (a key is an Input step: the verify pass re-reads the unarmed regions)  [2m(34ms)[0m
+[2m---[0m SeamTest: [32m3 passed[0m, [31m0 failed[0m  [2m(1.5s)[0m
+
+Results: [32m3 passed[0m, [31m0 failed[0m  (total: 1.5s)
+Running 1 suite(s) with parallelism 4
+
+[1m=== LiftTrapTest ===[0m
+  [1m[32m[PASS][0m[0m an untyped handler val (a plain side effect) runs once at construction and never on the key; a typed one runs on each key  [2m(45ms)[0m
+  [1m[32m[PASS][0m[0m the same trap in a key handler function: an untyped match runs nothing; with `: Any < Async` it runs  [2m(19ms)[0m
+[2m---[0m LiftTrapTest: [32m2 passed[0m, [31m0 failed[0m  [2m(66ms)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 66ms)
+Running 1 suite(s) with parallelism 4
+
+[1m=== RenderTest ===[0m
+  [1m[32m[PASS][0m[0m a text in a div fills the first row  [2m(3ms)[0m
+  [1m[32m[PASS][0m[0m the screen has the given size  [2m(6ms)[0m
+[2m---[0m RenderTest: [32m2 passed[0m, [31m0 failed[0m  [2m(12ms)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 12ms)
+Running 1 suite(s) with parallelism 4
+
+[1m=== TuiOptionsTest ===[0m
+  [1m[32m[PASS][0m[0m the defaults: autoFocus, Quiescent(100 ms, confirm = 2)  [2m(4ms)[0m
+  [1m[32m[PASS][0m[0m a java.time.Duration builds every Settle; the cases compare with ==  [2m(0ms)[0m
+[2m---[0m TuiOptionsTest: [32m2 passed[0m, [31m0 failed[0m  [2m(11ms)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 11ms)
+Running 1 suite(s) with parallelism 4
+
+[1m=== PasteTest ===[0m
+  [1m[32m[PASS][0m[0m paste = true: a two-line paste into a form's input is one edit ('one two'), one frame, one onInput, and no submit  [2m(26ms)[0m
+  [1m[32m[PASS][0m[0m paste = false: the same text is single keys; the line break is an Enter and submits the form once  [2m(26ms)[0m
+  [1m[32m[PASS][0m[0m the Todo form: a bracketed paste stays in the draft; without it the first line is added and the second line lands in the empty draft  [2m(82ms)[0m
+  [1m[32m[PASS][0m[0m a paste on an element that is not a text input does nothing  [2m(19ms)[0m
+[2m---[0m PasteTest: [32m4 passed[0m, [31m0 failed[0m  [2m(161ms)[0m
+
+Results: [32m4 passed[0m, [31m0 failed[0m  (total: 161ms)
+Running 1 suite(s) with parallelism 4
+
+[1m=== KyoUiSurfaceTest ===[0m
+  [1m[32m[PASS][0m[0m compare reports an added, a removed and a changed line  [2m(3ms)[0m
+  [1m[32m[PASS][0m[0m the kyo-ui surface that the runner reads and copies is the checked-in list  [2m(3.2s)[0m
+[2m---[0m KyoUiSurfaceTest: [32m2 passed[0m, [31m0 failed[0m  [2m(3.2s)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 3.2s)
+Running 1 suite(s) with parallelism 4
+
+[1m=== SettleTest ===[0m
+  [1m[32m[PASS][0m[0m the pull check: a bound and a Foreach write lost by the loop reach the frame of the NEXT event (the tick is off)  [2m(882ms)[0m
+  [1m[32m[PASS][0m[0m a quiet run: 50 frames, no settle timeout, no repair  [2m(285ms)[0m
+  [33m[CANCELLED][0m a CPU-bound fiber delays the settle: the probe sees it, the frame counts a timeout  [2m(3.3s)[0m  the canary needs a second Kyo worker: no attempt ran its step while the spin ran (3 attempts); a 2-CPU JVM under load has one
+[2m---[0m SettleTest: [32m2 passed[0m, [31m0 failed[0m, [33m1 cancelled[0m  [2m(4.5s)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m, [33m1 cancelled[0m  (total: 4.5s)
+Running 1 suite(s) with parallelism 4
+
+[1m=== SplitProbe ===[0m
+  [90m[IGNORED][0m first write after the start, and steady writes  set -Dtui4s.stress=<rounds> in the test JVM
+[2m---[0m SplitProbe: [32m0 passed[0m, [31m0 failed[0m, [90m1 ignored[0m  [2m(4ms)[0m
+
+Results: [32m0 passed[0m, [31m0 failed[0m, [90m1 ignored[0m  (total: 4ms)
+Running 1 suite(s) with parallelism 4
+
+[1m=== WriteSeamTest ===[0m
+[seam] writes=8 values=Vector(h, hi, hi!, true, true, b, c, t) paths=Vector(0.0, 0.1, 0.2, 0.3, 0.4) refs=(hi!,true,true,c,t) onInput=Vector((h,h), (hi,hi), (hi!,hi!))
+  [1m[32m[PASS][0m[0m every bound write (text input: keys and a paste; checkbox, radio, select, textarea) goes through the seam; the ref is written BEFORE onInput  [2m(154ms)[0m
+[seam default] refs=(hi!,true,true,c,t) onInput=Vector((h,h), (hi,hi), (hi!,hi!))
+  [1m[32m[PASS][0m[0m with the default hook (it does nothing) the seam still writes the refs  [2m(68ms)[0m
+[2m---[0m WriteSeamTest: [32m2 passed[0m, [31m0 failed[0m  [2m(232ms)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 232ms)
+Running 1 suite(s) with parallelism 4
+
+[1m=== RelayoutTest ===[0m
+  [1m[32m[PASS][0m[0m a retained table row follows the new column widths  [2m(37ms)[0m
+[2m---[0m RelayoutTest: [32m1 passed[0m, [31m0 failed[0m  [2m(44ms)[0m
+
+Results: [32m1 passed[0m, [31m0 failed[0m  (total: 44ms)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 45 s, completed Oct 13, 2026, 3:19:33 PM
+
+busy loops still running before the kill: 32318 R    bash;32319 R    bash;
+kill 32318 32319 done; after kill: (empty = gone)
+== exit 0, wall 63 s

@@ -1,0 +1,230 @@
+After the merge, keys reach a kyo-ui UI: `tui4s.internal.Dispatch` routes each key as kyo-ui does in a browser (the `onKeyDown` handlers bubble from the focused element, `stopPropagation` stops them; Tab and Shift-Tab move the focus, also inside a focus trap; the arrows move it inside a focus group; Enter and Space press a button, toggle a checkbox or a radio and cycle a select; Enter in a form submits it), a text input edits by grapheme clusters (`tui4s.internal.TextEdit`), a bracketed paste is one edit and never a submit, Ctrl-C and the public `tui4s.Tui.quit` end the run, and every bound write of the dispatcher goes through one runner function (the write seam of plan 0.3). The headless kit sends keys (`Headless.press`, `key`, `char`, `typeText`, `paste`). Gate 1 lands: `tui4s.internal` is sealed (`private[tui4s]`), CI sets the load flag of the glitch tests. The review fixes (7 commits after a97f555) make two kyo-ui rules of the dispatcher exact, test the contract "a handler that fails is logged and the event goes on", make the scroll of a text field linear, and stop a wait of the kit after the end of the run (the table "Review fixes"). Base: PR #11 (C2, `feat/kyoui-02-regions`, 79ac684).
+
+## P-1 One purpose
+
+Keys reach the UI, headless: focus, handlers, grapheme editing, paste, `Tui.quit`. No components and no terminal yet (P-12).
+
+## P-2 Size
+
+Hand-written main lines, from the format commit 768bff8 to the tip e987442 (`git diff --numstat 768bff8 e987442 -- modules/core/src/main`): **729 added, 118 deleted** (`-w`: +722/-111), 16 files. New files: `internal/TextEdit.scala` 188, `tui4s/Tui.scala` 19. The delta inside the carried `Dispatch.scala` is +105/-33. The other files: `testkit/Headless.scala` +189/-13, `internal/Paint.scala` +59/-13, `internal/Runner.scala` +55/-15, `internal/World.scala` +25/-6, `internal/Layout.scala` +20/-12, `TuiOptions.scala` +14/-0, `internal/Geometry.scala` +14/-11, `internal/Props.scala` +14/-8, `internal/Knobs.scala` +7/-0, `package.scala` +7/-3, `internal/Mount.scala` +6/-1, `FrameStats.scala` +4/-2, `internal/SchedulerProbe.scala` +3/-1 (the seal is 44 one-word edits plus one mark per file; it is most of the Geometry, Layout, Props, Mount and SchedulerProbe lines). The carried file: `Dispatch.scala` 244 lines at the carry commit, 384 after the format commit, 456 at the tip. Build and CI: 17 lines (`modules/core/build.sbt` +13, `ci.yml` +4). Docs: AGENTS.md +68/-17, README +4/-3. Tests: +2139/-27 in 16 files (fixtures +114/-16; 7 new suites; the surface list +91). Whole PR: 36 files, +3308/-132. The review fixes alone (`git diff --numstat a97f555 e987442`): main +132/-28 in 5 files (`Headless.scala` +87/-12, `Paint.scala` +29/-7, `Dispatch.scala` +12/-6, `FrameStats.scala` +4/-3), tests +321/-29 in 5 files, AGENTS.md +16/-12. Limit: about 1500 (estimate: about 630). The core main is 4555 lines at the tip.
+
+## P-3 Working base
+
+Base: `feat/kyoui-02-regions` at 79ac684 (PR #11, CI green; its base PR #10 `feat/kyoui-01-render` f525808). This PR adds 23 commits: 16 of the implementation (d43f914 to a97f555) and 7 review fixes (8b4d92b to e987442). The check at the tip e987442, alone on the machine (4 CPUs, JDK 25.0.4.1; `pgrep -x java` empty before the run): `SBT_TPOLECAT_CI=1 sbt -Dsbt.supershell=false clean check`: exit 0, 0 `[warn]`, 0 `[error]`, 109 passed, 0 failed, 3 ignored (the stress probes), scalafmt checks and `versionPolicyCheck` green (`.work/impl/c3-fix-check.log`; its header records the command, the date, the commit and the `pgrep` result). `bash scripts/version-order-test.sh`: 55 of 55 (`.work/impl/c3-fix-version-order-test.log`). Before the review fixes: the implementer's check at a97f555 (`c3-check.log`, 103 passed) and the skeptic K2's CI-mode check at a97f555 (`c3-k2-check.log`, 103 passed, 0 warnings). The 3 final runs of `sbt core/test` (one under CPU contention) are for the next agent (plan 6.0).
+
+## P-4 Final shape first
+
+Public types and members that this PR adds, in their final shape (the full list is in "API review"):
+
+- `tui4s.Tui` (new object) with `quit(using Frame): Unit < Sync`. T1 adds `run`.
+- `tui4s.TuiOptions`: two fields at the end, `ctrlCQuits: Boolean = true` and `paste: Boolean = true`, with Scaladoc. C2's fields are unchanged.
+- `tui4s.testkit.Headless`: `press(ev: KeyboardEvent): FrameStats < Async`, `key(k: Keyboard, ctrl: Boolean = false, shift: Boolean = false, alt: Boolean = false): FrameStats < Async`, `char(c: Char): FrameStats < Async`, `typeText(s: String): Seq[FrameStats] < Async`, `paste(text: String): Seq[FrameStats] < Async`. `Seq`, not `kyo.Chunk`.
+
+The review fixes change no signature: after the end of the run a method of the kit that waits for a frame fails at once, and `char` fails on half of a surrogate pair (both in the Scaladoc).
+
+## P-5 Never port the replaced
+
+No file of this PR is replaced by a later PR of the stack. The UTF-16 editing of the prototype (`Dispatch.scala:121-132`) is replaced by the grapheme editing in this PR (commit 5b5265c), so it never lands on `main`. `internal/Keys.scala` (the crossterm mapping) is not carried: T1's `EventMapping` replaces it. The old `TextField` type and its `Event`/`Key` types are not ported: only the algorithms move into `internal.TextEdit`, driven by kyo-ui's `KeyboardEvent`. `Tui4sQuit` stays in `internal/Dispatch.scala` (it is internal; `Tui.quit` reads it), so the carry delta stays small.
+
+## P-6 Fix with the code
+
+Known defects fixed here, each with its test and a negative control (the test fails before the fix or without the code):
+
+| Defect | Commit | Test | Negative control (`.work/impl/`) |
+| --- | --- | --- | --- |
+| The prototype edits a text input by UTF-16 chars: Backspace splits an emoji or a combining mark, the cursor lands on the wrong cell after a wide character, a typed control character goes in, Ctrl-A/E/U/K/W do nothing | 5b5265c | TextEditTest (10 leaves at that commit, 11 with the paste) | the test file on the code of 6fe5fbf: 8 of 10 leaves FAIL (ASCII and readOnly pass) (`c3-grapheme-negative-control.log`; its first run used a precomposed é literal and showed 7 of 9; the final run has the escaped literals) |
+| The kit of the old PR 3 accepted a bracketed paste with paste mode off (review thread `TuiTest.scala:166`) | a8a8f5c | PasteTest (paste = false: single keys, the form submits) | a kit that posts a bracketed paste with paste = false: 2 leaves FAIL (`c3-paste-negative-control.log`) |
+| A write of a key handler in the arm window of a watcher must reach THAT key's frame (R2, key variant) | 70a6632 (a key is an Input step) | SeamTest "R2 key variant" (253f0ff) | `input = false` for keys: the key's frame has 0 updates, the value comes at the arm, 2013 ms after the start; green: 34 ms (`c3-r2-key-negative-control.log`) |
+| The C2 leaf "screen is never a torn frame" is flaky: its liveness check ("more than 3 distinct values") is on the edge, because the busy reader makes each settle run to its max | 0d36055 (test only: 1000 writes) | HeadlessTest | on this machine the C2 code fails 3 of 5 runs, the C3 tip before the fix 1 of 5 (`c3-torn-compare.log`); after: 5 of 5; the leaf still finds torn reads without the monitor: 452 of 40625 (`c3-torn-fix.log`). Review R1-1: the flake is in C2, so the fix belongs on PR #11 and a merge-up; the user decides ("Questions for the user") |
+
+The reviews found more defects; each fix has its test and a negative control (the table "Review fixes"). The other negative controls (they show that a test can fail, not a fixed defect): the write seam, `Tui.quit` in the UI construction, the seal, the surface guard, the no-`private[kyo]` rule; see "Negative controls" below.
+
+## P-7 Commit map
+
+| # | Commit | What |
+| --- | --- | --- |
+| 1 | d43f914 carry | The blob of fe06611:`modules/core/src/main/scala/tui4s/internal/Dispatch.scala` (spike S6). `.work/impl/c3-carry-verify.log`: byte-identical to the blob; line-identical to the prototype except the package line, the carry header and one Scaladoc link (`c3-carry-verify.py`). 244 lines, 2 marks. It brings `Tui4sQuit`. |
+| 2 | 768bff8 format | `sbt fmt` only (1 file), plus the marks removed: **2 before** (the carry header; the prototype mark "removed the unused import kyo.UI.Modifiers"), **0 after**. 244 lines become 384 (+287/-147; `-w` +210/-70). |
+| 3 | (none) | Strict-flag fixes: **0 changed lines**. `Dispatch.scala` uses only C2 types, so it compiles alone: `SBT_TPOLECAT_CI=1 sbt core/compile` at 768bff8: 0 warnings, 0 errors (`c3-step3-warnings.log`). |
+| 4a | 70a6632 keys | The reverse of the C2 cut eb6e2b9, adapted: `Msg.Key`; the Dispatch field, Ctrl-C (`TuiOptions.ctrlCQuits`), `dispatch.onKey`, a key is an Input step and an Input frame; `Headless.press`/`key`/`char`/`typeText` (one shared `send` with `resize`); the fixtures' key handlers (without the quit keys); AppsTest +5 key-driven leaves; DispatchTest (Ctrl-C). |
+| 4b | 077919a quit | `tui4s.Tui.quit`; `Runner.scoped` around the run and, in `Headless.start`, around the UI construction; the fixtures' quit keys and their asserts; QuitTest 4 leaves. |
+| 4c | 6fe5fbf seam | `Dispatch.writeBound` (plan 0.3) for the three bound writes; `Knobs.onBoundWrite`; WriteSeamTest 2 leaves. |
+| 4d | 5b5265c graphemes | `internal.TextEdit`; `editText` on it, `commitText`; `World.carets` is a grapheme index; Paint places the cursor by cell widths; TextEditTest 10 leaves. |
+| 4e | a8a8f5c paste | `Msg.Paste`, `Dispatch.onPaste`, `TuiOptions.paste`, `Headless.paste`; PasteTest 4 leaves; TextEditTest +1; WriteSeamTest counts the paste. |
+| 4f | 253f0ff focus | DispatchTest +6 leaves (Tab order, focus group, focus trap, stopPropagation, onFocus/onBlur, disabled); SeamTest +1 (the R2 key variant). |
+| 4g | 22fdb22 lift trap | LiftTrapTest 2 leaves; AGENTS.md: type handler values `: Any < Async`; no `private[kyo]` call (`c3-private-kyo-check.log`). |
+| 4h | 6b9424d seal | `private[tui4s]` on every top-level definition of `tui4s.internal`; PublicApiTest 2 leaves; AGENTS.md "Compatibility". |
+| 4i | fe3d937 load flag | `TUI4S_LOAD` in `modules/core/build.sbt` and `ci.yml`; AGENTS.md. |
+| 4j | 5c111b4 guard | The surface guard, C3 part (+84 lines). |
+| 4k | ba5b6f6 docs | AGENTS.md "What tui4s is" and the frame contract; README; the package Scaladoc. |
+| 5 | 0d36055 test | The torn-frame leaf (C2) with 1000 writes (P-6 row 4). |
+| 6 | 0f49fb3, a97f555 docs | Two Scaladoc-only fixes (the verify pass and `Headless` name the paste). |
+| 7a | 8b4d92b fix | Review R2-3, R2-5: a disabled key target never stops the bubbling; Enter on a read-only input runs no `onChange` (kyo-ui's rules). DispatchTest +1, TextEditTest +1. |
+| 7b | 2408cfa test | Review R2-1: a handler that fails or panics is logged and the event goes on. DispatchTest +1 (a test log backend keeps the lines). |
+| 7c | c0f28ae perf | Review R2-2: `Paint.scrollStart`, one walk back from the caret. TextEditTest +1. |
+| 7d | 9703528 fix | Review R1-8, R2-7, R2-8: the end mark of `Headless` (a wait for a frame fails after the end of the run); `char` rejects half a surrogate pair. HeadlessTest +2. |
+| 7e | 655bdbf test | Review R1-5, R2-6: WriteSeamTest drives a textarea (8 writes on 5 paths); the default-hook leaf has no count that cannot fail. |
+| 7f | 082af4e test | Review R1-3: the QuitTest fork quits after 1 s. |
+| 7g | e987442 docs | Review R1-6, R1-7 and P-10 of 7d: `FrameCause` names the paste; AGENTS.md rewrapped; the kit after the end of the run. |
+
+Order: the fixtures' quit keys call `Tui.quit`, and the tests of `Tui.quit` need keys, so 4a restores every key handler except the quit keys, and 4b brings `Tui.quit` with the quit keys. Every build commit was fmt-clean before it was made (also each review fix: `sbt fmt` ran before each commit).
+
+## P-8 Delta guide
+
+The carried file comes from the prototype through the S6 carry fe06611 (on the local branch `spike/sbt-port`; the worktree `.work/worktrees/spike-sbt-carry`). The carry commit d43f914 holds the blob; the format commit 768bff8 is the formatted, mark-free state; the hand-written delta is the diff from 768bff8.
+
+| New file | Source | Delta command |
+| --- | --- | --- |
+| `modules/core/src/main/scala/tui4s/internal/Dispatch.scala` | `fe06611:modules/core/src/main/scala/tui4s/internal/Dispatch.scala` (= the prototype `.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Dispatch.scala` with its new package) | `git diff 768bff8 e987442 -- modules/core/src/main/scala/tui4s/internal/Dispatch.scala` (+105/-33); the carry: `git diff fe06611 d43f914 -- modules/core/src/main/scala/tui4s/internal/Dispatch.scala` (empty); whole: `git diff fe06611 e987442 -- modules/core/src/main/scala/tui4s/internal/Dispatch.scala` (+367/-155) |
+| `modules/core/src/main/scala/tui4s/internal/TextEdit.scala` | the algorithms of `origin/feat/core-1-model-view:modules/core/src/main/scala/tui4s/TextField.scala` (boundaries, graphemes, insert, remove, wordStart, singleLine) | `git diff origin/feat/core-1-model-view:modules/core/src/main/scala/tui4s/TextField.scala e987442:modules/core/src/main/scala/tui4s/internal/TextEdit.scala` (+137/-105: the events are kyo-ui's `KeyboardEvent`; the value type `TextField` is gone) |
+| `modules/core/src/test/scala/tui4s/TextEditTest.scala` | the cases of `origin/feat/core-1-model-view:modules/core/src/test/scala/tui4s/TextFieldTest.scala` | `git diff origin/feat/core-1-model-view:modules/core/src/test/scala/tui4s/TextFieldTest.scala e987442:modules/core/src/test/scala/tui4s/TextEditTest.scala` (+353/-99: on a headless bound input; CJK, the narrow field, readOnly, Enter on a readOnly input and the scroll leaf are new) |
+| `modules/core/src/main/scala/tui4s/Tui.scala` | `fe06611:modules/core/src/main/scala/tui4s/Tui.scala` (`def quit`, the only member that C3 takes; `run` is T1) | `git show fe06611:modules/core/src/main/scala/tui4s/Tui.scala \| grep -n -B1 'def quit'`; the file: `git show e987442:modules/core/src/main/scala/tui4s/Tui.scala` |
+| The key path of `Runner`, `World`, `Headless`, `TuiOptions` (the C2 cuts) | `fe06611:` the same paths (Runner lines 21-30, 52-54, 68-76; World line 10; Headless lines 7-9, 46-64, 100; Tui.scala lines 15-16) | `git diff 79ac684 e987442 -- modules/core/src/main/scala/tui4s/internal/Runner.scala modules/core/src/main/scala/tui4s/internal/World.scala modules/core/src/main/scala/tui4s/testkit/Headless.scala modules/core/src/main/scala/tui4s/TuiOptions.scala` |
+| The fixtures' key handlers | `81baa12:modules/core/src/test/scala/tui4s/fixtures/{Counter,Todo,Dashboard}.scala` (the formatted carry, before the C2 cut) | `git diff 81baa12 e987442 -- modules/core/src/test/scala/tui4s/fixtures/` |
+| The key-driven AppsTest leaves | `.work/proto/kyoui-runner/test/Apps.test.scala` (munit) | read side by side: the five leaves "... by keys" |
+| The rule and js items of `KyoUiSurface` | `.work/spikes/s3-drift/guard/Guard.scala` (`walk`, `fingerprint`, `codeItems` rule part, `jsItems`; on `wip/handoff`) | `git diff 79ac684 e987442 -- modules/core/src/test/scala/tui4s/KyoUiSurface.scala`; the 25 rule, js and pin rows equal the rows of the S3 list `.work/spikes/s3-drift/guard/out/kyo-ui-surface.txt` in their first three columns (`c3-step4j-guard.log`); the S3 rows have a fourth column, and the S3 list has 32 such rows: its whole-clientJs hash, the K1 pins and the K5 scheduler pins are not carried |
+| The review fixes | the reviews R1, R2 of a97f555 | `git diff a97f555 e987442` (10 files; the table "Review fixes") |
+
+## P-9 No rewrite
+
+No amend, no rebase, no force push. The review fixes are 7 new commits (8b4d92b to e987442). Two miscounts stay in commit messages (P-9): 5b5265c says "7 of the leaves fail" (the final negative-control run, 8 of 10, is in P-6); 6b9424d says "42" edits of the seal (the right count is 44, of 49 top-level definitions; "API review").
+
+## P-10 Docs true at each merge
+
+AGENTS.md "What tui4s is": the dispatch (bubbling and `stopPropagation`; Tab, Shift-Tab, the focus trap and group; Enter and Space; the form submit; the grapheme editing; the bracketed paste; Ctrl-C and `Tui.quit`) and the kit's key methods: true, `Dispatch`, `TextEdit`, `Tui` and the `Headless` methods are in this PR and tested (DispatchTest, TextEditTest, PasteTest, QuitTest, AppsTest); "the components and the real terminal come in the next pull requests": C4 and T1. "Rules for code": the frame contract says a key is one event whose Input frame holds its consequences (the glitch-by-keys leaf: 0 splits in 500 keys) and that a key step re-reads the unarmed regions (the R2 key variant); the glitch tests and the CI load flag `TUI4S_LOAD` (true: `ci.yml` sets it, `modules/core/build.sbt` forwards it, `c3-load-flag.log`); type Kyo handler values `: Any < Async` (LiftTrapTest shows the trap); the runner calls no `private[kyo]` member (`c3-private-kyo-check.log`). "Daily commands": `TUI4S_LOAD=1 sbt ...`. "Compatibility": the seal and that `private[tui4s]` is bytecode-public (PublicApiTest; MiMa reads bytecode). README: the status line (keys; the terminal is next): true. The package Scaladoc: keys and `Tui.quit`. The review fixes: AGENTS.md says that after the run has ended a kit method that waits for a frame fails at once, and the key that ended the run still gets its frame (true: 9703528, HeadlessTest); the frame-contract paragraph is rewrapped at 80 columns (the words do not change); the `FrameCause` Scaladoc names the paste; the Scaladocs of `Headless`, `nextFrame` and `char` say what they do after the end of the run and with half of a surrogate pair.
+
+## P-11 WIP limit
+
+Gate 1 (after C2, the public run API) is CLOSED by the user (2026-10-13): `origin/wip/handoff:.work/DECISIONS.md`, "Eleventh round" (commit 4439d01). That round accepts PRs #10 and #11 as they stand, takes Claude's gate-1 answers (the seal in C3, the CI load flag, the repair tick and the canary accepted, frame = batch), sets the order C3 -> T1 -> C4 -> T2 (branches `feat/kyoui-04-terminal` for T1 and `feat/kyoui-05-components` for C4), and lifts the WIP limit P-11 until the terminal PR is open. C1 (PR #10) and C2 (PR #11) are open and not merged, so C3 is the third PR above `main`; the gate-1 review is the newest review, and C3 is the first PR above it.
+
+## P-12 Not in this PR
+
+- The crossterm key mapping (`EventMapping`, which replaces the prototype's `Keys.scala`), `Tui.run`, the input fiber, the terminal, the bracketed paste mode of the terminal (`TuiOptions.paste` is in its final shape; the kit follows it now), the exit code 0 after Ctrl-C (D-24 a), `TuiOptions.logFile`, `Viewport`: T1 (`feat/kyoui-04-terminal`).
+- Components and hooks (`Mount.post`, `Source.Comp`, `World.comps`/`pending`, `TuiOptions.pendingTimeout`, the fixture `CounterStyles`): C4 (`feat/kyoui-05-components`).
+- The mains of the fixtures (`CounterMain`, `TwoCountersMain`: T1; `TodoMain`, `DashboardMain`: T2).
+- Mouse, `onKeyUp`, `onFocusEvt`/`onBlurEvt` and `Form.onSubmitEvt` (the prototype runs only the plain `onFocus`, `onBlur` and `onSubmit`), multi-line `Textarea` (a textarea edits as one line; Enter in it inside a form submits, as in the prototype), the `Select` drop-down, pickers, `href`, `focusRestore`, terminal focus events: deferred (D-30; plan 7.2 RC-14); the log line per unsupported attribute: L2.
+- A word jump (Ctrl-Left/Right, Alt-B/F) in a text input: not in the old `TextField` and not asked.
+- An automatic focus move (the initial `autoFocus`; the move when the focused element leaves the screen or becomes disabled) runs no `onFocus` or `onBlur`: C2 behaviour, documented by the DispatchTest leaf "onBlur ... onFocus ... on a Tab" (review R2-4, refuted as a C3 defect by K2). `onFocusEvt`/`onBlurEvt`: deferred, see above.
+- The C2 fix of the flaky torn-frame leaf (review R1-1): a fix round on PR #11 and a merge-up, if the user says so ("Questions for the user"); until then the fix stays in this PR (0d36055).
+- The three final runs in a row (one under CPU contention): the next agent.
+
+## P-13 Zero warnings
+
+**0 warnings.** `SBT_TPOLECAT_CI=1 sbt -Dsbt.supershell=false clean check` (`-Werror` on) at the tip e987442, alone: exit 0, 0 `[warn]`, 0 `[error]`; 109 passed, 0 failed, 3 ignored: DispatchTest 9, HeadlessTest 9, ScreenTest 5, GoldenScreenTest 27, NameClashTest 1, TextEditTest 13, AppsTest 12, WatcherTest 5, PublicApiTest 2, StrictEqualityTest 1, QuitTest 4, SeamTest 3, LiftTrapTest 2, RenderTest 2, TuiOptionsTest 2, PasteTest 4, KyoUiSurfaceTest 2, SettleTest 3, WriteSeamTest 2, RelayoutTest 1; LeakProbe, ObserveLeakProbe, SplitProbe ignored (`.work/impl/c3-fix-check.log`). The glitch lines of that run: `[glitch] splits=0 of 500 (events by frame count: 1 frames: 500; events with a settle timeout: 0; not seen in 2 s: 0; load flag: false)` and `[glitch-keys] splits=0 of 500 (key frames by region values: 4: 500; frames with a settle timeout: 0; load flag: false)`.
+
+The greps at the tip (`.work/impl/c3-fix-greps.log`):
+
+```
+$ grep -rn 'System.err\|println\|System.out' modules/core/src/main
+(no output: 0 hits)
+$ grep -rn 'jatatui.widgets' modules/core
+(no output: 0 hits)
+$ grep -rn 'getDeclaredField\|setAccessible' modules/core/src/main
+(no output: 0 hits)
+$ grep -rn '^package kyo' modules examples
+(no output: 0 hits)
+$ grep -rn 'TODO' modules/core/src/main
+4 hits, each TODO(#8) or TODO(#9), all from C2 (no new TODO)
+```
+
+Marks: every new file and every changed fragment has a `claude 2026-10-13` mark; the carried `Dispatch.scala` lost its 2 marks in the format commit, and its changed fragments have new marks (13 at the tip); the seal has one mark per file; the review fixes add 12 marks in main and one per new test leaf.
+
+## P-14 New sbt projects
+
+None. No `version`, no `publishTo`. `project/Versions.scala` and the root `build.sbt` are unchanged; `modules/core/build.sbt` gets the load-flag setting.
+
+## Restored (the C2 cuts that C3 adds back; c2-pr-body-final.md "Cuts")
+
+- `internal/World.scala`: `Msg.Key(ev, seq)` (fe06611 line 10), as it was; new beside it: `Msg.Paste(text, seq)`.
+- `internal/Runner.scala`: `import kyo.UI.Keyboard`; the dispatch field (`Dispatch(quitAction)` becomes `Dispatch(quit, knobs)`: the C2 `quit` (a flag the step reads plus the message, review R2-8 b) replaces the prototype's offer-only `quitAction`, and the knobs carry the seam hook); `scoped` (`Tui4sQuit.let(quit)`); the `Tui4sQuit.let` wrapper of `run` (now `scoped(Sync.ensure(stop) {...})`); `case Msg.Key(_, s) => (s, FrameCause.Input)`; `isCtrlC`; the two `Msg.Key` cases of `handle`. Adapted to C2: a key is an Input step for the armkey verify pass (`input = true`, as a resize).
+- `testkit/Headless.scala`: the imports `Keyboard`, `KeyboardEvent`, `Modifiers`; `press` (now on a `send` that `resize` shares); `key` (plus `alt`); `char` (a line break is Enter, a tab is Tab); `typeText` (returns `Seq`; one key per code point; a character outside the BMP is `Keyboard.Unknown`); `runner.scoped(...)` around the run fiber (the C2 quit value stays).
+- `tui4s/TuiOptions.scala`: `ctrlCQuits` (fe06611 `Tui.scala` lines 15-16), at the end of the fields, with Scaladoc.
+- `fixtures/Counter.scala`: `import tui4s.Tui`; the `onKeyDown` of `app` (+, -, q), now on `view` (C2 split `app` into `view(count)`); the `onKeyDown` of `twoCounters` (q), now on `twoCountersView`. `fixtures/Todo.scala`: `import tui4s.Tui`; the `onKey` parameter of `list` and `.onKeyDown(onKey)`; `atCursor`, `toggle`, `delete`, `move`, `listKeys`, `saveAll` (now functions of `State`, which gets the field `file`); the `main.onKeyDown` (Ctrl-S, Escape). `fixtures/Dashboard.scala`: `import tui4s.Tui`; the `onKeyDown` of `view` (arrows, p, q).
+- AppsTest: the key-driven leaves of `test/Apps.test.scala` (counter by keys with q, two counters by keys, todo by keys with Ctrl-S and Esc, dashboard by keys, the 500-key glitch variant); C2's SignalRef leaves stay.
+- Not restored here: `Mount.post`, `Source.Comp`, the component branch, `pendingTimeout` (C4); `logFile`, the mains (T1, T2).
+
+## API review (RC-36, at the tip e987442)
+
+PUBLIC, package `tui4s`, added: `object Tui { def quit(using Frame): Unit < Sync }`; `TuiOptions` gets `ctrlCQuits: Boolean = true` and `paste: Boolean = true` (at the end; `derives CanEqual` stays). The `FrameCause` Scaladoc names the keys and the paste. Unchanged: `FrameStats`, `FrameCause` cases, the package object.
+
+PUBLIC, package `tui4s.spi`: no change.
+
+PUBLIC, package `tui4s.testkit`, added to `Headless`: `press(ev: kyo.UI.KeyboardEvent): FrameStats < Async`; `key(k: kyo.UI.Keyboard, ctrl: Boolean = false, shift: Boolean = false, alt: Boolean = false): FrameStats < Async`; `char(c: Char): FrameStats < Async`; `typeText(s: String): Seq[FrameStats] < Async`; `paste(text: String): Seq[FrameStats] < Async`. `paste` returns `Seq`, not the last frame: one frame with bracketed paste, one per key without it, and none for an empty text without it (a "last frame" would not exist). Kyo types in the new signatures: `kyo.UI.KeyboardEvent`, `kyo.UI.Keyboard` (kyo-ui is the DSL of the app), `<`, `Async`, `Frame`. No jatatui type, no internal type. `Screen`, `CellStyle`, `diffScreen`, `assertScreen`: no change. Behaviour of the kit that the review fixes add (no signature changes): after the run has ended, `press`, `key`, `char`, `typeText`, `paste`, `resize` and `nextFrame` fail at once with an `IllegalStateException` (a panic) when no frame for them is left; the key that ended the run still gets its frame; `drainFrames` never returns the end mark; `char` fails with an `IllegalArgumentException` on half of a surrogate pair.
+
+`private[tui4s]` SEAMS, new (bytecode-public; MiMa sees them): `internal.Dispatch.writeBound[A](path: Loc, ref: SignalRef[A], value: A): Unit < Sync` (the write seam, plan 0.3; it is a member of a `private[tui4s]` class); `internal.Knobs.onBoundWrite: (Loc, Any) => Unit < Sync` (the test hook, default does nothing; a `Knobs` field, not a `TuiOptions` field); `internal.Runner.scoped[A, S](v: => A < S): A < S`; `internal.Tui4sQuit` (`let`, `apply`); `internal.TextEdit` (`key`, `paste`, `count`, `boundaries`, `graphemes`, `singleLine`); `internal.Msg.Key`, `Msg.Paste`; `Dispatch.onKey`, `onPaste`, `chain`, `setFocus`; `internal.Paint.scrollStart(widths: IndexedSeq[Int], caret: Int, cursorW: Int, width: Int): (Int, Int)` (review R2-2; TextEditTest calls it). `Headless`'s end mark (`endMark`, `ended`) is `private` to its companion object. From C2, unchanged: `Headless.liveFibers`, `Runner.liveFibers`, `Mount.track`/`liveFibers`/`unarmedRegions`/`interruptAll`, `Knobs` (`seam`, `repairInterval`, `flushSeam`, `let`, `get`), `Screen.of`, `CellStyle.of`, `internal.discard`, `internal.Render`.
+
+THE SEAL of `tui4s.internal` (gate 1 item 1): every top-level definition of the package is `private[tui4s]`: 49 (44 edits in this PR, 6b9424d (its message says 42): `Dispatch`, `Tui4sQuit`; `Loc` and its object and the three extension methods `isUnder`, `isAtOrUnder`, `showLoc`; `Rect`, `Size`, `Sides` and their objects; `Content`, `Scene`, `Kind`, `Node`, `Laid`, `Damage`, `Item`, `Flat`, `Layout`; `Mount`; `Canvas`, `Paint`; `Dir`, `TextAttrs`, `Glyphs`, `Border`, `Props`; `Runner`; `SchedulerProbe`; `Msg`, `Source`, `ItemState`, `RegionState`, `World`; already sealed: `Knobs` and its object, `Render`, `TextEdit`, `discard`). The check of leaked internal types: (1) the compile shows NONE, and it cannot: Scala 3 accepts a public method of `Headless` that returns the `private[tui4s]` `Runner` (the negative control of PublicApiTest); (2) PublicApiTest reads the TASTy of the core and finds no public signature of `tui4s`, `tui4s.spi` or `tui4s.testkit` that names a type of `tui4s.internal`, and no public top-level definition in `tui4s.internal`; (3) I read the public API (the list above): none. At the bytecode level (`javap -public`), internal types appear only in compiler artifacts: the anonymous classes that Kyo's inlining makes in `Headless` (`Headless$$anon$N extends kyo.kernel.internal.Pending$DeferWith<...Knobs|Msg|Canvas|Runner...>`), the lifted `Headless$.$_$_$run$N` methods, and the private constructor of `Headless` (Scala emits it public; it takes `Channel[Msg]` and `Runner`, as in C2). These are not Scala API; MiMa sees them as before. `compat.sbt`: no change (`Compatibility.None`).
+
+## Negative controls (all logs in `.work/impl/`)
+
+| Test | Control | Result | Log |
+| --- | --- | --- | --- |
+| WriteSeamTest leaf 2 (the default hook) | not a control (review R1-5): with the default hook the refs change to (hi!, true, true, c, t); the leaf has no count now | passed | `c3-fix-tests.log` (`[seam default]`) |
+| WriteSeamTest (the count) | `toggle` writes the ref directly | FAIL: 4 writes (h, hi, b, c) | `c3-seam-negative-control.log` |
+| WriteSeamTest (the textarea, review R1-5, R2-6) | `commitText` writes the ref of a `Textarea` directly | leaf 1 FAILS: 7 writes, the "t" is missing; leaf 2 passes | `c3-fix-seam-textarea-negative-control.log` |
+| WriteSeamTest (A3 order) | `onInput` before the write | FAIL: onInput sees ("h", ""), ("hi", "h") | `c3-seam-negative-control.log` |
+| SeamTest "R2 key variant" | `input = false` for keys | FAIL: 0 updates in the key's frame, the value at 2013 ms; green 34 ms | `c3-r2-key-negative-control.log` |
+| TextEditTest (graphemes) | the test on the UTF-16 code of 6fe5fbf | 8 of 10 FAIL | `c3-grapheme-negative-control.log` |
+| KyoUiSurfaceTest (guard, C3 part) | a NEW line removed; a NEW hash changed | FAIL with `ADDED attrs.field UI.Ast.Attrs.onKeyDown ...`; FAIL with `CHANGED rule internal.ReactiveUI.dispatchToElement ...` | `c3-guard-negative-control.log` |
+| LiftTrapTest (canary) | none needed: the leaf asserts the trap itself (an untyped handler ran once, at construction); the CI-mode compile gives no warning | 2 passed | `c3-step4g-lift-trap.log` |
+| QuitTest | no `runner.scoped` around the UI construction | the construction leaf FAILS (the run does not end in 10 s) | `c3-quit-negative-control.log` |
+| PasteTest | the kit posts a bracketed paste with paste = false | 2 leaves FAIL | `c3-paste-negative-control.log` |
+| PublicApiTest (the seal) | `Runner` without `private[tui4s]`; a public `Headless.internalRunner: Runner` | leaf 1 FAILS; leaf 2 FAILS | `c3-seal-negative-control.log` |
+| No `private[kyo]` call | a throwaway call of `Element.withAttrs` | does not compile (E173) | `c3-private-kyo-check.log` |
+| HeadlessTest torn frame (C2 test, 1000 writes) | `Headless.screen` without the monitor | FAIL: 452 torn reads of 40625 | `c3-torn-fix.log` |
+| The load flag | `TUI4S_LOAD` unset or 0 | no `-Dtui4s.load=1` (9 options); with 1: present (10) | `c3-load-flag.log` |
+| DispatchTest, TextEditTest (review R2-3, R2-5) | the `Dispatch.scala` of a97f555 | the disabled-target leaf FAILS (the parent handler does not run); the readOnly Enter leaf FAILS (onChange runs on the read-only input) | `c3-fix-dispatch-negative-control.log` (control A) |
+| DispatchTest (review R2-1) | `safe` swallows a failure without `Log.error` | FAIL: logged: Vector() | `c3-fix-dispatch-negative-control.log` (control B) |
+| TextEditTest scroll leaf (review R2-2) | `scrollStart` with `<` for `<=` | the scroll leaf FAILS (2077 of 5000 fields differ); the narrow-field leaf FAILS | `c3-fix-paint-negative-control.log` |
+| HeadlessTest (review R1-8, R2-7, R2-8) | the `Headless.scala` of c0f28ae | the after-end leaf FAILS (five `kyo.Timeout` failures after 5 s each: the old waits never end); the surrogate leaf FAILS (`char` puts half a pair into the text) | `c3-fix-headless-negative-control.log` |
+
+## Problems and decisions in this PR
+
+- Step 3 is empty: `Dispatch.scala` compiles under the CI flags with 0 warnings (the S6 fix commit did not touch it either).
+- The quit keys of the fixtures need `Tui.quit`, and the tests of `Tui.quit` need keys: 4a restores the key handlers without the quit keys; 4b adds `Tui.quit` with them (P-7).
+- A character outside the BMP: kyo-ui's `Keyboard.Char` holds one UTF-16 `Char`, and kyo-ui's own `Keyboard.fromString` makes such a key `Keyboard.Unknown("<the character>")`. `TextEdit` inserts the text of an `Unknown` key when it is printable and not ASCII (the DOM names of the other keys are ASCII words); `typeText` sends such a character that way. T1's crossterm mapping should do the same.
+- `Headless.char` maps a line break to Enter and a tab to Tab (the prototype sent `Keyboard.Char('\n')`), so `typeText` and the `paste = false` path type as a keyboard does.
+- The cell width of a grapheme is jatatui's (`Span.width`: the sum of the code-point widths, also what `Buffer.setStringn` uses), so the cursor lands right after what jatatui drew; for an emoji with a modifier this is wider than a terminal shows (jatatui's limit).
+- The surface guard also hashes the kyo-ui rules (the `rule` and `js` items of the S3 guard), which C2 left for C3; the 25 rule, js and pin rows equal the S3 rows in their first three columns, which checks the port (the S3 rows have a fourth column; the S3 whole-clientJs hash, the K1 pins and the K5 scheduler pins are not carried: 32 S3 rows, 25 here).
+- The C2 torn-frame leaf was flaky (P-6 row 4): fixed in the test with more writes; no runner change.
+- The commit trailer is "Co-Authored-By: Claude Opus 5.5": the attribution of this session; C1 and C2 have "Claude Fable 5.1".
+- In 5b5265c the message says 7 failing leaves; the final control has 8 of 10 (P-9). In 6b9424d the message says 42 seal edits; the count is 44 (P-9).
+- Review R2-3 (a disabled key target): the runner never leaves the focus on a disabled element (each layout step moves it away, `fixFocus`), and the fallback target with no focus is the root element, which has no element ancestors. So no run of the kit reaches this case today; the fix keeps kyo-ui's rule for a later fallback, and its leaf builds the world for `Dispatch` directly.
+- Review R1-8, R2-7 (a wait after the end of the run): the wait stays a blocking `take` on the frame channel, and the end of the run fiber (`Fiber.onComplete`) puts an end mark after the last frame. A poll loop with a sleep would keep the scheduler busy, so each settle would run to its max (the lesson of the torn-frame leaf); a race of the `take` with the end of the run interrupts the `take`, and an interrupted `take` can lose a frame that it already got. The mark goes back into the channel when a wait takes it, so each later wait fails too. With more than 65 536 frames not taken, the mark cannot be put (the channel is full) and a wait after the end waits as before.
+- Review R2-1 (a handler that fails): the leaf reads Kyo's `Log` through a test log backend (`ErrorRecorder` in DispatchTest), so the test asserts the five lines and nothing goes to the console.
+
+## Review fixes (R1 and R2 of a97f555; the skeptics K1 and K2)
+
+| Finding | Verdict | Fix, or why not |
+| --- | --- | --- |
+| R1-1 (major) the flaky torn-frame leaf is a C2 test; its fix (0d36055) belongs on PR #11 and a merge-up | confirmed (K1; "breaks P-3" and "no conflict" overstated) | Not fixed here: the fixer works only on this branch, and the eleventh round accepted PR #11 "as it stands". The user decides ("Questions for the user"). If yes: the same hunk as a fix commit on `feat/kyoui-02-regions` (with a C2 wording of its mark), then `git merge feat/kyoui-02-regions` here (a small conflict on the mark line) and a new `sbt check`. |
+| R1-2 (major) the logs do not show CI mode | refuted (K1: tpolecat CI mode adds only fatal warnings, so a clean compile with 0 `[warn]` shows 0 warnings in both modes) | No fix. The fixer's check log has the command header anyway (`c3-fix-check.log`). |
+| R1-3 the QuitTest fork quits at the settle max | confirmed | 082af4e: 1 s. |
+| R1-4 body errors: the seal counts, the eleventh round, the logs not on `wip/handoff`, "byte-identical" | confirmed | This body: 44 and 49 (P-2, P-9, "API review"); P-11 cites `origin/wip/handoff:.work/DECISIONS.md` "Eleventh round"; "Logs" says that the orchestrator pushes them; P-8 and "Problems" say "the first three columns". |
+| R1-5 the default-hook count cannot fail; no textarea | confirmed | 655bdbf: the textarea (8 writes on 5 paths), the count removed from leaf 2; "Negative controls" names the real control of the count. |
+| R1-6 `FrameCause` Scaladoc omits the paste | confirmed | e987442. |
+| R1-7 AGENTS.md line of 111 characters | confirmed | e987442: rewrapped at 80 columns. |
+| R1-8 the key methods hang after the run ends | confirmed | 9703528 (the end mark; HeadlessTest), e987442 (AGENTS.md). |
+| R1-9 the focus tests come after the focus code (P-7) | refuted (K1: 70a6632 tests Tab, bubbling and the submit; the rest is carry code; `--first-parent`) | No fix. |
+| R2-1 (major) no test of "a handler that fails is logged and the event goes on" | confirmed (K2: `safe` works, a test gap) | 2408cfa: DispatchTest leaf (throw, panic, a failing `onInput`; the frames, the run, the text, the five log lines). |
+| R2-2 the scroll of a text field is quadratic | confirmed (K2 measured 187 ms at 5000 graphemes) | c0f28ae: `Paint.scrollStart`; TextEditTest compares it with the old search on 5000 random fields and checks 200 000 graphemes. |
+| R2-3 a disabled target's `stopPropagation` stops the bubbling | confirmed (K2) | 8b4d92b: `!skip` in the stop condition; a DispatchTest leaf on `Dispatch` directly (no kit run reaches the case: "Problems"). |
+| R2-4 `onFocusEvt`/`onBlurEvt`; the silent `fixFocus` move | refuted (K2: deferred in P-12; `fixFocus` is C2 code that DispatchTest documents) | No fix; P-12 names the automatic focus move. |
+| R2-5 Enter on a read-only input runs `onChange` | confirmed | 8b4d92b: the guard; a TextEditTest leaf. |
+| R2-6 no textarea in the seam test | confirmed | 655bdbf (as R1-5). |
+| R2-7 a key after the end of the run waits for ever | confirmed | 9703528 (as R1-8). |
+| R2-8 `char` with half of a surrogate pair | confirmed | 9703528: `char` fails with an `IllegalArgumentException`; the Scaladoc; a HeadlessTest leaf. |
+
+Each fix ran its suites once before the full check (`c3-fix-dispatch.log`, `c3-fix-paint.log`, `c3-fix-headless.log`, `c3-fix-tests.log`), and each behaviour fix has a negative control ("Negative controls").
+
+## Questions for the user
+
+- Review R1-1: the torn-frame leaf of C2 (HeadlessTest "screen is never a torn frame", from 2aa65a0) fails 3 of 5 runs on this machine with the C2 code. Do you want a fix round on PR #11 (the same one-hunk change as 0d36055, then a merge-up into this branch), or does the fix stay only in this PR? The eleventh round accepted PR #11 "as it stands", so this needs your answer.
+
+## Logs (`.work/impl/`; the orchestrator pushes them to `wip/handoff` before the PR opens, plan 4.4)
+
+`c3-notes.txt`, `c3-carry-verify.py`, `c3-carry-verify.log`, `c3-step2-fmt.log`, `c3-step3-warnings.log`, `c3-step4a-compile.log`, `c3-step4a-test.log`, `c3-step4b-quit.log`, `c3-quit-negative-control.log`, `c3-step4c-seam.log`, `c3-seam-negative-control.log`, `c3-grapheme-negative-control.log`, `c3-step4d-grapheme.log`, `c3-step4d-grapheme-2.log`, `c3-step4e-paste.log`, `c3-step4e-paste-final.log`, `c3-paste-negative-control.log`, `c3-step4f-focus.log`, `c3-r2-key-negative-control.log`, `c3-step4g-lift-trap.log`, `c3-private-kyo-check.log`, `c3-step4h-seal-compile.log`, `c3-step4h-seal.log`, `c3-seal-negative-control.log`, `c3-load-flag.log`, `c3-step4j-guard-first.log`, `c3-step4j-guard.log`, `c3-guard-negative-control.log`, `c3-torn-rerun.log`, `c3-torn-compare.log`, `c3-torn-fix.log`, `c3-check.log`, `c3-greps.log`, `c3-version-order-test.log`. Skeptic K2: `c3-k2-check.log`, `c3-k2-probe-abort.log`, `c3-k2-probe-scroll.log`. Review fixes: `c3-fix-compile-1.log`, `c3-fix-compile-2.log`, `c3-fix-dispatch.log`, `c3-fix-dispatch-negative-control.log`, `c3-fix-paint.log`, `c3-fix-paint-negative-control.log`, `c3-fix-headless.log`, `c3-fix-headless-negative-control.log`, `c3-fix-tests.log`, `c3-fix-seam-textarea-negative-control.log`, `c3-fix-fmt-1.log` to `c3-fix-fmt-6.log`, `c3-fix-check.log`, `c3-fix-greps.log`, `c3-fix-version-order-test.log`; the body of the implementer: `c3-pr-body-impl.txt`.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+https://claude.ai/code/session_013i7PNgzYKkSSTk4McEPUvn

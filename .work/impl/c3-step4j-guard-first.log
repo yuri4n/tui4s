@@ -1,0 +1,137 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-03-input-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-03-input/)
+[info] compiling 2 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+[1m=== KyoUiSurfaceTest ===[0m
+  [1m[32m[PASS][0m[0m compare reports an added, a removed and a changed line  [2m(53ms)[0m
+  [1m[31m[FAIL][0m[0m the kyo-ui surface that the runner reads and copies is the checked-in list  [2m(2.2s)[0m *** FAILED ***
+
+    )
+    // message: the kyo-ui surface is not the checked-in list:
+    ADDED	attrs.field	UI.Ast.Attrs.focusAuto	Maybe[Boolean]
+    ADDED	attrs.field	UI.Ast.Attrs.focusGroup	Maybe[String]
+    ADDED	attrs.field	UI.Ast.Attrs.focusTrap	Maybe[Boolean]
+    ADDED	attrs.field	UI.Ast.Attrs.identifier	Maybe[String]
+    ADDED	attrs.field	UI.Ast.Attrs.onBlur	Maybe[<[Any,Async]]
+    ADDED	attrs.field	UI.Ast.Attrs.onClick	Maybe[<[Any,Async]]
+    ADDED	attrs.field	UI.Ast.Attrs.onClickEvt	Maybe[Function1[MouseEvent,<[Any,Async]]]
+    ADDED	attrs.field	UI.Ast.Attrs.onClickSelf	Maybe[<[Any,Async]]
+    ADDED	attrs.field	UI.Ast.Attrs.onClickSelfEvt	Maybe[Function1[MouseEvent,<[Any,Async]]]
+    ADDED	attrs.field	UI.Ast.Attrs.onFocus	Maybe[<[Any,Async]]
+    ADDED	attrs.field	UI.Ast.Attrs.onKeyDown	Maybe[Function1[KeyboardEvent,<[Any,Async]]]
+    ADDED	attrs.field	UI.Ast.Attrs.stopPropagation	Maybe[Boolean]
+    ADDED	attrs.field	UI.Ast.Attrs.tabIndex	Maybe[Int]
+    ADDED	event.fields	UI.KeyboardEvent	(key:Keyboard,modifiers:Modifiers,targetId:Maybe[String])
+    ADDED	event.fields	UI.Modifiers	(alt:Boolean,ctrl:Boolean,meta:Boolean,shift:Boolean)
+    ADDED	event.fields	UI.MouseEvent	(modifiers:Modifiers,targetId:Maybe[String])
+    ADDED	js	click rules	3f22778d5acefe81 lines=33
+    ADDED	js	focusAuto seeding	dfc94f5a7d154bbb lines=18
+    ADDED	js	keydown rules	fdb7564d279c9eda lines=145
+    ADDED	js	sweepFocusAuto (restore)	7c18a01ce0afb86a lines=15
+    ADDED	keyboard.case	UI.Keyboard.ArrowDown	-
+    ADDED	keyboard.case	UI.Keyboard.ArrowLeft	-
+    ADDED	keyboard.case	UI.Keyboard.ArrowRight	-
+    ADDED	keyboard.case	UI.Keyboard.ArrowUp	-
+    ADDED	keyboard.case	UI.Keyboard.Backspace	-
+    ADDED	keyboard.case	UI.Keyboard.Char	(c:Char)
+    ADDED	keyboard.case	UI.Keyboard.Delete	-
+    ADDED	keyboard.case	UI.Keyboard.End	-
+    ADDED	keyboard.case	UI.Keyboard.Enter	-
+    ADDED	keyboard.case	UI.Keyboard.Escape	-
+    ADDED	keyboard.case	UI.Keyboard.F1	-
+    ADDED	keyboard.case	UI.Keyboard.F10	-
+    ADDED	keyboard.case	UI.Keyboard.F11	-
+    ADDED	keyboard.case	UI.Keyboard.F12	-
+    ADDED	keyboard.case	UI.Keyboard.F2	-
+    ADDED	keyboard.case	UI.Keyboard.F3	-
+    ADDED	keyboard.case	UI.Keyboard.F4	-
+    ADDED	keyboard.case	UI.Keyboard.F5	-
+    ADDED	keyboard.case	UI.Keyboard.F6	-
+    ADDED	keyboard.case	UI.Keyboard.F7	-
+    ADDED	keyboard.case	UI.Keyboard.F8	-
+    ADDED	keyboard.case	UI.Keyboard.F9	-
+    ADDED	keyboard.case	UI.Keyboard.Home	-
+    ADDED	keyboard.case	UI.Keyboard.Insert	-
+    ADDED	keyboard.case	UI.Keyboard.PageDown	-
+    ADDED	keyboard.case	UI.Keyboard.PageUp	-
+    ADDED	keyboard.case	UI.Keyboard.Space	-
+    ADDED	keyboard.case	UI.Keyboard.Tab	-
+    ADDED	keyboard.case	UI.Keyboard.Unknown	(raw:String)
+    ADDED	pin	K2 UI.Ast.Foreach.applyTyped	private[kyo]
+    ADDED	rule	internal.ReactiveUI.collectSignalRef	b4879d3afb526f87 n=97
+    ADDED	rule	internal.ReactiveUI.cycleSelectOption	86dc9c43e6801388 n=169
+    ADDED	rule	internal.ReactiveUI.dispatch	f227f4345d0a9579 n=259
+    ADDED	rule	internal.ReactiveUI.dispatchToElement	0aa05f3066e0c92a n=1548
+    ADDED	rule	internal.ReactiveUI.findAllFocusableIds	9750df2cd3d156d6 n=125
+    ADDED	rule	internal.ReactiveUI.isDisabled	8c6a24d95d432631 n=21
+    ADDED	rule	internal.ReactiveUI.isHidden	e36354c0af8453f2 n=11
+    ADDED	rule	internal.ReactiveUI.isReadOnly	0c43a034c2ac7eac n=21
+    ADDED	rule	internal.ReactiveUI.isTargetButton	ce87840d4069f8f1 n=26
+    ADDED	rule	internal.ReactiveUI.isTargetDisabled	964cf2708da357ed n=23
+    ADDED	rule	internal.ReactiveUI.isTargetSelect	3967e2fe285e6475 n=26
+    ADDED	rule	internal.ReactiveUI.keepBubbling	cef2faadd2f4c2b9 n=17
+    ADDED	rule	internal.ReactiveUI.normalize	1f7a0015f5d31fd2 n=26
+    ADDED	rule	internal.ReactiveUI.normalizeAt	1337668f57b40f28 n=402
+    ADDED	rule	internal.ReactiveUI.readChecked	46a4a1b6d7283951 n=43
+    ADDED	rule	internal.ReactiveUI.subscribe	c4c6dc83d4dc01b1 n=206
+    ADDED	rule	internal.ReactiveUI.subscribeScoped	9a187465e3a1224e n=253
+    ADDED	rule	internal.ReactiveUI.targetSatisfies	661d76b892f3b214 n=313
+    ADDED	rule	internal.ReactiveUI.toggleChecked	76ae3ecf00b9c8fe n=54
+    ADDED	rule	internal.ReactiveUI.walkStatic	2f05d6d68b69b92d n=557
+    ADDED	ui.member	UI.Ast.BooleanInput.checked	public Maybe[Bound[Boolean]]
+    ADDED	ui.member	UI.Ast.BooleanInput.onChange	public Maybe[Function1[Boolean,<[Any,Async]]]
+    ADDED	ui.member	UI.Ast.Element.attrs	public Attrs
+    ADDED	ui.member	UI.Ast.Element.children	public Chunk[UI]
+    ADDED	ui.member	UI.Ast.Form.onSubmit	public Maybe[<[Any,Async]]
+    ADDED	ui.member	UI.Ast.HasDisabled.disabled	public Maybe[Boolean]
+    ADDED	ui.member	UI.Ast.Opt.value	public Maybe[String]
+    ADDED	ui.member	UI.Ast.Select.children	public Chunk[UI]
+    ADDED	ui.member	UI.Ast.Select.onChange	public Maybe[Function1[String,<[Any,Async]]]
+    ADDED	ui.member	UI.Ast.Select.value	public Maybe[Bound[String]]
+    ADDED	ui.member	UI.Ast.TextInput.onChange	public Maybe[Function1[String,<[Any,Async]]]
+    ADDED	ui.member	UI.Ast.TextInput.onInput	public Maybe[Function1[String,<[Any,Async]]]
+    ADDED	ui.member	UI.Ast.TextInput.readOnly	public Maybe[Boolean]
+    ADDED	ui.member	UI.Ast.TextInput.value	public Maybe[Bound[String]]
+
+[2m---[0m KyoUiSurfaceTest: [32m1 passed[0m, [31m1 failed[0m  [2m(2.5s)[0m
+FAILURES (1):
+  the kyo-ui surface that the runner reads and copies is the checked-in list  [FAIL]
+    )
+    // message: the kyo-ui surface is not the checked-in list:
+    ADDED	attrs.field	UI.Ast.Attrs.focusAuto	Maybe[Boolean]
+    ADDED	attrs.field	UI.Ast.Attrs.focusGroup	Maybe[String]
+    ADDED	attrs.field	UI.Ast.Attrs.focusTrap	Maybe[Boolean]
+    ADDED	attrs.field	UI.Ast.Attrs.identifier	Maybe[String]
+    ADDED	attrs.field	UI.Ast.Attrs.onBlur	Maybe[<[Any,Async]]
+    ADDED	attrs.field	UI.Ast.Attrs.onClick	Maybe[<[Any,Async]]
+    ADDED	attrs.field	UI.Ast.Attrs.onClickEvt	Maybe[Function1[MouseEvent,<[Any,Async]]]
+    ADDED	attrs.field	UI.Ast.Attrs.onClickSelf	Maybe[<[Any,Async]]
+    ADDED	attrs.field	UI.Ast.Attrs.onClickSelfEvt	Maybe[Function1[MouseEvent,<[Any,Async]]]
+    ADDED	attrs.field	UI.Ast.Attrs.onFocus	Maybe[<[Any,Async]]
+    (truncated)
+
+Results: [32m1 passed[0m, [31m1 failed[0m  (total: 2.5s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.KyoUiSurfaceTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 14 s, completed Oct 13, 2026, 2:16:02 PM

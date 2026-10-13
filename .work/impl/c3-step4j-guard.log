@@ -1,0 +1,13 @@
+== 14:17 the rule and js lines of the C3 guard against the S3 guard list (.work/spikes/s3-drift/guard/out/kyo-ui-surface.txt, shape hash, RC7) ==
+  25 /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/c3rules.txt
+  25 /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/s3rules.txt
+  50 total
+IDENTICAL: 20 rule lines, 4 js fragment lines and the K2 pin are the same as the S3 guard's
+== 14:16 the guard with the full list (247 data lines: 163 of C1+C2, 84 of C3) ==
+  [PASS] compare reports an added, a removed and a changed line  (54ms)
+  [PASS] the kyo-ui surface that the runner reads and copies is the checked-in list  (2.7s)
+--- KyoUiSurfaceTest: 2 passed, 0 failed  (3.0s)
+Results: 2 passed, 0 failed  (total: 3.0s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+sbt exit 0
+

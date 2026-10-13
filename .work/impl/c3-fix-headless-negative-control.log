@@ -1,0 +1,156 @@
+F negative control of the HeadlessTest leaves of the reviews R1-8, R2-7, R2-8; 2026-10-13 15:08:36; control: the Headless.scala of c0f28ae (no end mark, char takes half a surrogate pair) with the new HeadlessTest; expect both new leaves to FAIL (the after-end leaf by 5 s timeouts, not a hang, as each wait has Async.timeout); command: sbt -Dsbt.supershell=false 'core/testOnly tui4s.HeadlessTest'
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-03-input-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-03-input/)
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+[1m=== HeadlessTest ===[0m
+  [1m[32m[PASS][0m[0m the quit value ends the run; awaitEnd and finished see it  [2m(251ms)[0m
+  [1m[32m[PASS][0m[0m resize: the frame of the resize lays the content out again  [2m(35ms)[0m
+  [1m[32m[PASS][0m[0m resize while a signal writes fast: the runner resizes the backend, so no frame hits a smaller buffer  [2m(383ms)[0m
+  [1m[32m[PASS][0m[0m screen is never a torn frame: a read during a flush sees one value on every row  [2m(1.5s)[0m
+  [1m[32m[PASS][0m[0m start fails fast when the UI fails, with the error  [2m(20ms)[0m
+  [1m[32m[PASS][0m[0m idle: no frame without a change  [2m(1.8s)[0m
+  [1m[32m[PASS][0m[0m awaitScreen: true before the timeout; false after it when nothing changes  [2m(324ms)[0m
+  [1m[31m[FAIL][0m[0m after the run has ended, a key, a paste, a resize and nextFrame fail at once; the key that ended it still gets its frame  [2m(25.0s)[0m *** FAILED ***
+
+    assert(all.forall(runEnded), s"results: $all")
+    // message: results: List(Failure(kyo.Timeout: 
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m   [0m [2m│[0m [32m// HeadlessTest.scala:234:39 tui4s.HeadlessTest $anonfun[0m
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m233[0m [2m│[0m t0  <- now
+    [2m234[0m [2m│[0m k   <- within5s(h.char('x'))📍
+    [2m235[0m [2m│[0m p   <- within5s(h.paste("p"))
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m   [0m [2m│[0m [32m[1m[31m⚠️ KyoException[0m[0m[0m
+    [2m   [0m [2m│[0m [32m[0m
+    [2m   [0m [2m│[0m [32mComputation has timed out after 5.seconds[0m
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    ), Failure(kyo.Timeout: 
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m   [0m [2m│[0m [32m// HeadlessTest.scala:235:40 tui4s.HeadlessTest $anonfun[0m
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m234[0m [2m│[0m k   <- within5s(h.char('x'))
+    [2m235[0m [2m│[0m p   <- within5s(h.paste("p"))📍
+    [2m236[0m [2m│[0m z   <- within5s(h.resize(10, 3))
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m   [0m [2m│[0m [32m[1m[31m⚠️ KyoException[0m[0m[0m
+    [2m   [0m [2m│[0m [32m[0m
+    [2m   [0m [2m│[0m [32mComputation has timed out after 5.seconds[0m
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    ), Failure(kyo.Timeout: 
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m   [0m [2m│[0m [32m// HeadlessTest.scala:236:43 tui4s.HeadlessTest $anonfun[0m
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m235[0m [2m│[0m p   <- within5s(h.paste("p"))
+    [2m236[0m [2m│[0m z   <- within5s(h.resize(10, 3))📍
+    [2m237[0m [2m│[0m n   <- within5s(h.nextFrame)
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m   [0m [2m│[0m [32m[1m[31m⚠️ KyoException[0m[0m[0m
+    [2m   [0m [2m│[0m [32m[0m
+    [2m   [0m [2m│[0m [32mComputation has timed out after 5.seconds[0m
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    ), Failure(kyo.Timeout: 
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m   [0m [2m│[0m [32m// HeadlessTest.scala:237:39 tui4s.HeadlessTest $anonfun[0m
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m236[0m [2m│[0m z   <- within5s(h.resize(10, 3))
+    [2m237[0m [2m│[0m n   <- within5s(h.nextFrame)📍
+    [2m238[0m [2m│[0m k2  <- within5s(h.key(Keyboard.Enter))
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m   [0m [2m│[0m [32m[1m[31m⚠️ KyoException[0m[0m[0m
+    [2m   [0m [2m│[0m [32m[0m
+    [2m   [0m [2m│[0m [32mComputation has timed out after 5.seconds[0m
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    ), Failure(kyo.Timeout: 
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m   [0m [2m│[0m [32m// HeadlessTest.scala:238:49 tui4s.HeadlessTest $anonfun[0m
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m237[0m [2m│[0m n   <- within5s(h.nextFrame)
+    [2m238[0m [2m│[0m k2  <- within5s(h.key(Keyboard.Enter))📍
+    [2m239[0m [2m│[0m t1  <- now
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m   [0m [2m│[0m [32m[1m[31m⚠️ KyoException[0m[0m[0m
+    [2m   [0m [2m│[0m [32m[0m
+    [2m   [0m [2m│[0m [32mComputation has timed out after 5.seconds[0m
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    ))
+
+  [1m[31m[FAIL][0m[0m char: half of a surrogate pair fails and types nothing; typeText types the emoji as one key  [2m(73ms)[0m *** FAILED ***
+
+    assert(half && t0 == "", s"char: $r; text: $t0")
+    // message: char: FrameStats(1,Input,22,2,15349061,0,11132475,856611,3343013,0.0,6469076303039,1,0,0); text: ?
+
+[2m---[0m HeadlessTest: [32m7 passed[0m, [31m2 failed[0m  [2m(29.9s)[0m
+FAILURES (2):
+  after the run has ended, a key, a paste, a resize and nextFrame fail at once; the key that ended it still gets its frame  [FAIL]
+    assert(all.forall(runEnded), s"results: $all")
+    // message: results: List(Failure(kyo.Timeout: 
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m   [0m [2m│[0m [32m// HeadlessTest.scala:234:39 tui4s.HeadlessTest $anonfun[0m
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m233[0m [2m│[0m t0  <- now
+    [2m234[0m [2m│[0m k   <- within5s(h.char('x'))📍
+    [2m235[0m [2m│[0m p   <- within5s(h.paste("p"))
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m   [0m [2m│[0m [32m[1m[31m⚠️ KyoException[0m[0m[0m
+    [2m   [0m [2m│[0m [32m[0m
+    [2m   [0m [2m│[0m [32mComputation has timed out after 5.seconds[0m
+    (truncated)
+  char: half of a surrogate pair fails and types nothing; typeText types the emoji as one key  [FAIL]
+    assert(half && t0 == "", s"char: $r; text: $t0")
+    // message: char: FrameStats(1,Input,22,2,15349061,0,11132475,856611,3343013,0.0,6469076303039,1,0,0); text: ?
+
+Results: [32m7 passed[0m, [31m2 failed[0m  (total: 29.9s)
+Internal error when running tests: sbt.ForkMain$Run$RunAborted: java.net.SocketException: Broken pipe
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.HeadlessTest
+[error] Error during tests:
+[error] 	Forked test harness failed: java.nio.charset.MalformedInputException: Input length = 1
+[error] 	at java.base/java.nio.charset.CoderResult.throwException(CoderResult.java:279)
+[error] 	at java.base/sun.nio.cs.StreamEncoder.implWrite(StreamEncoder.java:294)
+[error] 	at java.base/sun.nio.cs.StreamEncoder.implWrite(StreamEncoder.java:267)
+[error] 	at java.base/sun.nio.cs.StreamEncoder.write(StreamEncoder.java:122)
+[error] 	at java.base/sun.nio.cs.StreamEncoder.write(StreamEncoder.java:132)
+[error] 	at java.base/java.io.Writer.write(Writer.java:248)
+[error] 	at scala.xml.XML$.write(XML.scala:130)
+[error] 	at scala.xml.XML$.$anonfun$save$2(XML.scala:105)
+[error] 	at scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.java:23)
+[error] 	at scala.util.control.Exception$Catch.apply(Exception.scala:228)
+[error] 	at scala.xml.XML$.save(XML.scala:105)
+[error] 	at sbt.JUnitXmlTestsListener.writeSuite(JUnitXmlTestsListener.scala:265)
+[error] 	at sbt.JUnitXmlTestsListener.endGroup(JUnitXmlTestsListener.scala:243)
+[error] 	at sbt.React.$anonfun$react$8(ForkTests.scala:221)
+[error] 	at sbt.React.$anonfun$react$8$adapted(ForkTests.scala:221)
+[error] 	at scala.collection.Iterator.foreach(Iterator.scala:943)
+[error] 	at scala.collection.Iterator.foreach$(Iterator.scala:943)
+[error] 	at scala.collection.AbstractIterator.foreach(Iterator.scala:1431)
+[error] 	at scala.collection.IterableLike.foreach(IterableLike.scala:74)
+[error] 	at scala.collection.IterableLike.foreach$(IterableLike.scala:73)
+[error] 	at scala.collection.AbstractIterable.foreach(Iterable.scala:56)
+[error] 	at sbt.React.react(ForkTests.scala:221)
+[error] 	at sbt.ForkTests$Acceptor$1$.run(ForkTests.scala:133)
+[error] 	at java.base/java.lang.Thread.run(Thread.java:1474)
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 44 s, completed Oct 13, 2026, 3:09:27 PM
+exit=1

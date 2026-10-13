@@ -1,0 +1,203 @@
+== 13:52 NEGATIVE CONTROL (grapheme editing): TextEditTest on top of 6fe5fbf (the commit before the grapheme editing: UTF-16 editing in Dispatch.editText, UTF-16 caret in Paint). The test file is not committed yet. ==
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-03-input-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-03-input/)
+[info] compiling 19 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 28 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+=== TextEditTest ===
+  [PASS] ASCII: insert, move, delete  (471ms)
+  [FAIL] a combining mark belongs to its letter  (67ms) *** FAILED ***
+
+    _  = assert(c == ("ab" + eAcute, 3), s"$c")
+    // message: (abé,4)
+
+  [FAIL] an emoji with a skin tone, a ZWJ family and a flag are one grapheme each  (29ms) *** FAILED ***
+
+    _  = assert(a == (thumb + family + flag, cells(thumb + family + flag)), s"$a")
+    // message: (👍🏽👨‍👩‍👧🇫🇷,16)
+
+  [FAIL] CJK: the cursor cell after two wide characters is x + 4  (31ms) *** FAILED ***
+
+    _  = assert(a == ("日本", 4), s"$a")
+    // message: (日本,2)
+
+  [FAIL] Ctrl-A and Ctrl-E move to the start and the end  (34ms) *** FAILED ***
+
+    _  = assert(a == ("hello", 0), s"$a")
+    // message: (hello,5)
+
+  [FAIL] Ctrl-U deletes before the cursor, Ctrl-K after it  (39ms) *** FAILED ***
+
+    _  = assert(u == ("ld", 0), s"$u")
+    // message: (hello world,9)
+
+  [FAIL] Ctrl-W deletes the word before the cursor  (28ms) *** FAILED ***
+
+    )
+    // message: ((hello big world,15),(hello big world,15))
+
+  [FAIL] a key that changes nothing keeps the text and the caret, and its frame paints nothing  (48ms) *** FAILED ***
+
+    _   = assert(a == ("abc", 3), s"$a")
+    // message: (abc,4)
+
+  [PASS] readOnly keeps the text; the caret still moves  (32ms)
+--- TextEditTest: 2 passed, 7 failed  (1.2s)
+FAILURES (7):
+  a combining mark belongs to its letter  [FAIL]
+    _  = assert(c == ("ab" + eAcute, 3), s"$c")
+    // message: (abé,4)
+  an emoji with a skin tone, a ZWJ family and a flag are one grapheme each  [FAIL]
+    _  = assert(a == (thumb + family + flag, cells(thumb + family + flag)), s"$a")
+    // message: (👍🏽👨‍👩‍👧🇫🇷,16)
+  CJK: the cursor cell after two wide characters is x + 4  [FAIL]
+    _  = assert(a == ("日本", 4), s"$a")
+    // message: (日本,2)
+  Ctrl-A and Ctrl-E move to the start and the end  [FAIL]
+    _  = assert(a == ("hello", 0), s"$a")
+    // message: (hello,5)
+  Ctrl-U deletes before the cursor, Ctrl-K after it  [FAIL]
+    _  = assert(u == ("ld", 0), s"$u")
+    // message: (hello world,9)
+  Ctrl-W deletes the word before the cursor  [FAIL]
+    )
+    // message: ((hello big world,15),(hello big world,15))
+  a key that changes nothing keeps the text and the caret, and its frame paints nothing  [FAIL]
+    _   = assert(a == ("abc", 3), s"$a")
+    // message: (abc,4)
+
+Results: 2 passed, 7 failed  (total: 1.2s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.TextEditTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 61 s (0:01:01.0), completed Oct 13, 2026, 1:53:49 PM
+sbt exit 1
+
+== 13:57 NEGATIVE CONTROL, final test text: TextEditTest of 5b5265c on the main code of 6fe5fbf (the commit before the grapheme editing). Temporary: Dispatch, Paint, Layout, World restored from 6fe5fbf, TextEdit.scala moved away; restored after the run. ==
+ M modules/core/src/main/scala/tui4s/internal/Dispatch.scala
+ M modules/core/src/main/scala/tui4s/internal/Layout.scala
+ M modules/core/src/main/scala/tui4s/internal/Paint.scala
+ D modules/core/src/main/scala/tui4s/internal/TextEdit.scala
+ M modules/core/src/main/scala/tui4s/internal/World.scala
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-03-input-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-03-input/)
+[info] compiling 4 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+=== TextEditTest ===
+  [PASS] ASCII: insert, move, delete  (501ms)
+  [FAIL] a combining mark belongs to its letter  (52ms) *** FAILED ***
+
+    _  = assert(a == ("a" + eAcute + "b", 3), s"$a")
+    // message: (aéb,4)
+
+  [FAIL] an emoji with a skin tone, a ZWJ family and a flag are one grapheme each  (27ms) *** FAILED ***
+
+    )
+    // message: (👍🏽👨‍👩‍👧🇫🇷,16)
+
+  [FAIL] CJK: the cursor cell after two wide characters is x + 4  (23ms) *** FAILED ***
+
+    _  = assert(a == ("\u65E5\u672C", 4), s"$a")
+    // message: (日本,2)
+
+  [FAIL] a narrow field scrolls by cells: the cursor stays inside it  (37ms) *** FAILED ***
+
+    yield assert(wide == ("\u8A9E\u30C6", 4), s"$wide")
+    // message: (日本,4)
+
+  [FAIL] Ctrl-A and Ctrl-E move to the start and the end  (18ms) *** FAILED ***
+
+    _  = assert(a == ("hello", 0), s"$a")
+    // message: (hello,5)
+
+  [FAIL] Ctrl-U deletes before the cursor, Ctrl-K after it  (25ms) *** FAILED ***
+
+    _  = assert(u == ("ld", 0), s"$u")
+    // message: (hello world,9)
+
+  [FAIL] Ctrl-W deletes the word before the cursor  (20ms) *** FAILED ***
+
+    )
+    // message: ((hello big world,15),(hello big world,15))
+
+  [FAIL] a key that changes nothing keeps the text and the caret, and its frame paints nothing  (31ms) *** FAILED ***
+
+    _    = assert(a == ("abc", 3), s"$a")
+    // message: (abc,4)
+
+  [PASS] readOnly keeps the text; the caret still moves  (33ms)
+--- TextEditTest: 2 passed, 8 failed  (1.1s)
+FAILURES (8):
+  a combining mark belongs to its letter  [FAIL]
+    _  = assert(a == ("a" + eAcute + "b", 3), s"$a")
+    // message: (aéb,4)
+  an emoji with a skin tone, a ZWJ family and a flag are one grapheme each  [FAIL]
+    )
+    // message: (👍🏽👨‍👩‍👧🇫🇷,16)
+  CJK: the cursor cell after two wide characters is x + 4  [FAIL]
+    _  = assert(a == ("\u65E5\u672C", 4), s"$a")
+    // message: (日本,2)
+  a narrow field scrolls by cells: the cursor stays inside it  [FAIL]
+    yield assert(wide == ("\u8A9E\u30C6", 4), s"$wide")
+    // message: (日本,4)
+  Ctrl-A and Ctrl-E move to the start and the end  [FAIL]
+    _  = assert(a == ("hello", 0), s"$a")
+    // message: (hello,5)
+  Ctrl-U deletes before the cursor, Ctrl-K after it  [FAIL]
+    _  = assert(u == ("ld", 0), s"$u")
+    // message: (hello world,9)
+  Ctrl-W deletes the word before the cursor  [FAIL]
+    )
+    // message: ((hello big world,15),(hello big world,15))
+  a key that changes nothing keeps the text and the caret, and its frame paints nothing  [FAIL]
+    _    = assert(a == ("abc", 3), s"$a")
+    // message: (abc,4)
+
+Results: 2 passed, 8 failed  (total: 1.1s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.TextEditTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 19 s, completed Oct 13, 2026, 1:57:54 PM
+sbt exit 1
+== restored: git status (empty = clean) ==

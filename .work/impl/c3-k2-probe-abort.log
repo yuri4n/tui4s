@@ -1,0 +1,31 @@
+K2 probe 2026-10-13: Kyo 1.0.0-RC7 Abort.run[Throwable] on a thrown exception / a panic (source: /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/probe/AbortProbe.scala, scala-cli run --jvm system)
+---- source ----
+//> using scala 3.9.0
+//> using dep io.getkyo::kyo-core:1.0.0-RC7
+import kyo.*
+
+object AbortProbe extends KyoApp:
+  def safe(label: String, v: => Any < Async)(using Frame): String < Async =
+    Abort.run[Throwable](v).map {
+      case Result.Success(_) => s"$label: success"
+      case Result.Failure(e) => s"$label: failure ${e.getClass.getSimpleName}"
+      case Result.Panic(e)   => s"$label: panic ${e.getClass.getSimpleName}"
+    }
+  run {
+    for
+      a <- safe("throw in Sync.defer", Sync.defer(throw new IllegalStateException("boom")))
+      b <- safe("Abort.panic", Abort.panic(new IllegalStateException("panic")))
+      c <- safe("plain value", Sync.defer(42))
+      d <- safe("throw in a mapped step", Sync.defer(1).map(_ => throw new RuntimeException("later")))
+      e <- Abort.run[Throwable](Sync.defer(throw new IllegalStateException("after")))
+           .map(_ => "the step after a caught throw runs")
+    yield
+      Console.printLine(a).andThen(Console.printLine(b)).andThen(Console.printLine(c))
+        .andThen(Console.printLine(d)).andThen(Console.printLine(e))
+  }
+---- output ----
+throw in Sync.defer: failure IllegalStateException
+Abort.panic: panic IllegalStateException
+plain value: success
+throw in a mapped step: failure RuntimeException
+the step after a caught throw runs

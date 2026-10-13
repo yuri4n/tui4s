@@ -1,0 +1,9 @@
+  [PASS] screen is never a torn frame: a read during a flush sees one value on every row  (581ms)
+--- HeadlessTest: 7 passed, 0 failed  (3.8s)
+  [PASS] screen is never a torn frame: a read during a flush sees one value on every row  (625ms)
+--- HeadlessTest: 7 passed, 0 failed  (3.8s)
+  [FAIL] screen is never a torn frame: a read during a flush sees one value on every row  (618ms) *** FAILED ***
+    // message: only 3 distinct values: the screen did not change
+--- HeadlessTest: 6 passed, 1 failed  (3.7s)
+  screen is never a torn frame: a read during a flush sees one value on every row  [FAIL]
+    // message: only 3 distinct values: the screen did not change

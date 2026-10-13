@@ -115,6 +115,16 @@ started from the main checkout): it is the user's Metals sbt server.
   PR 5 closed with the plan 4.1 comment. W3 (C3) runs with Opus agents (Fable only for the runtime reviewer R2 and
   its skeptic K2); script tui4s-w3-c3-input-*.js in the session workflows dir.
 
+<!-- claude 2026-10-13: added this item (W3 done) -->
+- 2026-10-13 15:50 UTC: W3 DONE: workflow wf_1719fd7f-36b (7 agents, Opus except R2/K2 on Fable, 2.21 M tokens,
+  1 h 50 min). C3 tip f29b9ff (23 commits + the merge-up of C2's 0646343); 109 tests, 0 warnings, 3 final runs green
+  (one under contention), the CI load flag works. PR #13 `feat(core): keys reach the UI` against
+  feat/kyoui-02-regions; this session watches it. PR #11 got the test-only commit 0646343 (the flaky torn-frame leaf;
+  DECISIONS twelfth round). Logs: .work/impl/c3-*.log, c3-notes.txt, c3-pr-body.txt. Script:
+  tui4s-w3-c3-input-wf_1719fd7f-36b.js in the session workflows dir (reuse for C4 with the C4 content).
+  NEXT: W5 = T1 feat/kyoui-04-terminal (worktree .work/worktrees/feat-kyoui-04-terminal from f29b9ff; shape 8 + V;
+  the script draft is scratchpad/tui4s-w5-t1-terminal.draft.js), then W4 = C4 feat/kyoui-05-components on T1.
+
 ## 2026-10-02: DIRECTION CHANGE
 
 The user reviewed the core and said it is not a functional wrapper of jatatui and that the internals are not
@@ -214,8 +224,8 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
    `Sync.ensure`), armkey (D-16), the own watcher loop with the repair tick (K29 option 2; TODO issue #8), the settle
    conditions of D-17 (c) (public scheduler probe, tui4s scheduler values in `TuiApp` and the test JVM, re-check after
    settle, `awaitScreen`; TODO issue #9).
-3. DONE 2026-10-13: gate 1 closed (DECISIONS eleventh round). **W3 = C3 `feat/kyoui-03-input`** (plan 6.3 + the write
-   seam 0.3 + the seal of tui4s.internal + the CI load flag), then **W5 = T1 `feat/kyoui-04-terminal`** (plan 6.5; the
+3. DONE 2026-10-13: gate 1 closed (DECISIONS eleventh round); W3 = C3 `feat/kyoui-03-input` DONE (PR #13, tip
+   f29b9ff). Then **W5 = T1 `feat/kyoui-04-terminal`** (plan 6.5; the
    first usable version), then **W4 = C4 `feat/kyoui-05-components`** (plan 6.4), then T2, P1, L1, L2, D. The WIP limit
    P-11 is lifted until T1 is open (the user wants a usable version first).
 4. **Merge mechanics (D-4 c):** the user squash-merges; Claude then rebases the next branch of the stack (own branches

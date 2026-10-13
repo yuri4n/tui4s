@@ -1,0 +1,47 @@
+== 14:16 the guard with the full list (247 data lines: 163 of C1+C2, 84 of C3) ==
+  [PASS] compare reports an added, a removed and a changed line  (54ms)
+  [PASS] the kyo-ui surface that the runner reads and copies is the checked-in list  (2.7s)
+--- KyoUiSurfaceTest: 2 passed, 0 failed  (3.0s)
+Results: 2 passed, 0 failed  (total: 3.0s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+sbt exit 0
+
+== 14:16 NEGATIVE CONTROL 1: the NEW line 'attrs.field UI.Ast.Attrs.onKeyDown' removed from the list ==
+193d192
+< attrs.field	UI.Ast.Attrs.onKeyDown	Maybe[Function1[KeyboardEvent,<[Any,Async]]]
+  [PASS] compare reports an added, a removed and a changed line  (55ms)
+  [FAIL] the kyo-ui surface that the runner reads and copies is the checked-in list  (2.4s) *** FAILED ***
+    ADDED	attrs.field	UI.Ast.Attrs.onKeyDown	Maybe[Function1[KeyboardEvent,<[Any,Async]]]
+--- KyoUiSurfaceTest: 1 passed, 1 failed  (2.7s)
+FAILURES (1):
+  the kyo-ui surface that the runner reads and copies is the checked-in list  [FAIL]
+    ADDED	attrs.field	UI.Ast.Attrs.onKeyDown	Maybe[Function1[KeyboardEvent,<[Any,Async]]]
+Results: 1 passed, 1 failed  (total: 2.7s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.KyoUiSurfaceTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 6 s, completed Oct 13, 2026, 2:16:41 PM
+sbt exit 1
+
+== 14:16 NEGATIVE CONTROL 2: the hash of the NEW line 'rule internal.ReactiveUI.dispatchToElement' changed in the list (a changed dispatch rule of kyo-ui) ==
+236c236
+< rule	internal.ReactiveUI.dispatchToElement	0aa05f3066e0c92a n=1548
+---
+> rule	internal.ReactiveUI.dispatchToElement	0000000000000000 n=1548
+  [PASS] compare reports an added, a removed and a changed line  (50ms)
+  [FAIL] the kyo-ui surface that the runner reads and copies is the checked-in list  (2.2s) *** FAILED ***
+    CHANGED	rule	internal.ReactiveUI.dispatchToElement	0aa05f3066e0c92a n=1548	was: 0000000000000000 n=1548
+--- KyoUiSurfaceTest: 1 passed, 1 failed  (2.5s)
+FAILURES (1):
+  the kyo-ui surface that the runner reads and copies is the checked-in list  [FAIL]
+    CHANGED	rule	internal.ReactiveUI.dispatchToElement	0aa05f3066e0c92a n=1548	was: 0000000000000000 n=1548
+Results: 1 passed, 1 failed  (total: 2.5s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.KyoUiSurfaceTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 6 s, completed Oct 13, 2026, 2:16:55 PM
+sbt exit 1
+== restored: ==
+the list is the full list again

@@ -1,0 +1,96 @@
+F negative control of the scrollStart leaf (review R2-2); 2026-10-13 15:05:59; control: scrollStart with '<' for '<=' (the cursor may not touch the right edge); expect the scrollStart leaf (and the narrow-field leaf) to FAIL; command: sbt -Dsbt.supershell=false 'core/testOnly tui4s.TextEditTest'
++    /** The horizontal scroll of a text field `width` cells wide whose
++      * graphemes have the cell widths `widths`: the first grapheme it shows,
++      * and the cells from that grapheme to the caret. The first grapheme is the
++      * smallest index, not after the caret, for which the cells from it to the
++      * caret plus the cell of the cursor (`cursorW`) fit in the field; it is
++      * the caret when nothing before the caret fits. One walk back from the
++      * caret: linear in the graphemes.
++      */
++    // claude 2026-10-13: created (review R2-2: the old search summed the cells
++    // again for each start, quadratic in the graphemes before the caret)
++    def scrollStart(
++        widths: IndexedSeq[Int],
++        caret: Int,
++        cursorW: Int,
++        width: Int,
++    ): (Int, Int) =
++        @annotation.tailrec
++        def back(i: Int, used: Int): (Int, Int) =
++          if i > 0 && used + widths(i - 1) + cursorW < width then
++              back(i - 1, used + widths(i - 1))
++          else (i, used)
++        back(caret, 0)
++    end scrollStart
++              // claude 2026-10-13: changed (review R2-2): `scrollStart`, one
++              // walk back from the caret
+-              val first     = Iterator
+-                .iterate(0)(_ + 1)
+-                .find(i =>
+-                  i >= caret || widths.slice(i, caret).sum + cursorW <= r.w,
+-                )
+-                .getOrElse(caret)
++              val (first, before) = scrollStart(widths, caret, cursorW, r.w)
+-                  val cx = r.x + widths.slice(first, caret).sum
++                  val cx = r.x + before
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-03-input-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-03-input/)
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+[1m=== TextEditTest ===[0m
+  [1m[32m[PASS][0m[0m ASCII: insert, move, delete  [2m(365ms)[0m
+  [1m[32m[PASS][0m[0m a combining mark belongs to its letter  [2m(46ms)[0m
+  [1m[32m[PASS][0m[0m an emoji with a skin tone, a ZWJ family and a flag are one grapheme each  [2m(60ms)[0m
+  [1m[32m[PASS][0m[0m CJK: the cursor cell after two wide characters is x + 4  [2m(24ms)[0m
+  [1m[31m[FAIL][0m[0m a narrow field scrolls by cells: the cursor stays inside it  [2m(39ms)[0m *** FAILED ***
+
+    _      = assert(ascii == ("fghij", 5, "abcdef", 0), s"$ascii")
+    // message: (ghij,4,abcdef,0)
+
+  [1m[31m[FAIL][0m[0m the scroll of a field (Paint.scrollStart) is the first start that fits, found in one walk back from the caret  [2m(115ms)[0m *** FAILED ***
+
+    assert(wrong.isEmpty, s"${wrong.size} fields differ, first: ${wrong.headOption}")
+    // message: 2077 fields differ, first: Some((Vector(1, 2, 1, 1, 2, 1, 2, 1, 2, 1, 0, 1),8,2,6))
+
+  [1m[32m[PASS][0m[0m Ctrl-A and Ctrl-E move to the start and the end  [2m(23ms)[0m
+  [1m[32m[PASS][0m[0m Ctrl-U deletes before the cursor, Ctrl-K after it  [2m(47ms)[0m
+  [1m[32m[PASS][0m[0m Ctrl-W deletes the word before the cursor  [2m(53ms)[0m
+  [1m[32m[PASS][0m[0m a key that changes nothing keeps the text and the caret, and its frame paints nothing  [2m(49ms)[0m
+  [1m[32m[PASS][0m[0m a paste inserts at the caret as one edit; line breaks and tabs become spaces, control characters are dropped  [2m(71ms)[0m
+  [1m[32m[PASS][0m[0m readOnly keeps the text; the caret still moves  [2m(24ms)[0m
+  [1m[32m[PASS][0m[0m Enter commits the text with onChange; on a readOnly input it runs no onChange (kyo-ui's rule)  [2m(39ms)[0m
+[2m---[0m TextEditTest: [32m11 passed[0m, [31m2 failed[0m  [2m(1.2s)[0m
+FAILURES (2):
+  a narrow field scrolls by cells: the cursor stays inside it  [FAIL]
+    _      = assert(ascii == ("fghij", 5, "abcdef", 0), s"$ascii")
+    // message: (ghij,4,abcdef,0)
+  the scroll of a field (Paint.scrollStart) is the first start that fits, found in one walk back from the caret  [FAIL]
+    assert(wrong.isEmpty, s"${wrong.size} fields differ, first: ${wrong.headOption}")
+    // message: 2077 fields differ, first: Some((Vector(1, 2, 1, 1, 2, 1, 2, 1, 2, 1, 0, 1),8,2,6))
+
+Results: [32m11 passed[0m, [31m2 failed[0m  (total: 1.2s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.TextEditTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 13 s, completed Oct 13, 2026, 3:06:21 PM
+exit=1

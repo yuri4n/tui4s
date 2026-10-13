@@ -1,0 +1,43 @@
+K2 probe 2026-10-13: the horizontal scroll of Paint.scala lines 478-483 (Iterator.iterate + widths.slice(i, caret).sum) against a linear backward walk (source: /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/probe2/ScrollProbe.scala, scala-cli run --jvm system)
+---- source ----
+//> using scala 3.9.0
+object ScrollProbe:
+  def current(widths: Vector[Int], caret: Int, cursorW: Int, w: Int): Int =
+    Iterator.iterate(0)(_ + 1)
+      .find(i => i >= caret || widths.slice(i, caret).sum + cursorW <= w)
+      .getOrElse(caret)
+  def linear(widths: Vector[Int], caret: Int, cursorW: Int, w: Int): Int =
+    var i = caret; var used = cursorW
+    while i > 0 && used + widths(i - 1) <= w do { i -= 1; used += widths(i) }
+    i
+  def time[A](f: => A): (A, Long) =
+    val t0 = System.nanoTime(); val a = f; (a, (System.nanoTime() - t0) / 1000000)
+  def main(args: Array[String]): Unit =
+    for n <- Seq(200, 1000, 5000) do
+      val widths = Vector.fill(n)(1)
+      val caret = n
+      // warm up
+      (1 to 3).foreach(_ => current(widths, caret, 1, 30))
+      val (a, ta) = time(current(widths, caret, 1, 30))
+      val (b, tb) = time(linear(widths, caret, 1, 30))
+      println(s"n=$n width=30: current first=$a in $ta ms; linear first=$b in $tb ms; same=${a == b}")
+    // mixed widths check of equivalence
+    val rnd = new scala.util.Random(7)
+    val ok = (1 to 2000).forall { _ =>
+      val n = rnd.nextInt(60); val ws = Vector.fill(n)(1 + rnd.nextInt(2)); val c = rnd.nextInt(n + 1)
+      val cw = if c < n then ws(c) else 1
+      current(ws, c, cw, 1 + rnd.nextInt(12)) == linear(ws, c, cw, 1 + rnd.nextInt(12))
+    }
+    println(s"equivalence on random inputs (same w for both? no: different w: expect false sometimes) -> skip")
+    val ok2 = (1 to 2000).forall { _ =>
+      val n = rnd.nextInt(60); val ws = Vector.fill(n)(1 + rnd.nextInt(2)); val c = rnd.nextInt(n + 1)
+      val cw = if c < n then ws(c) else 1; val w = 1 + rnd.nextInt(12)
+      current(ws, c, cw, w) == linear(ws, c, cw, w)
+    }
+    println(s"equivalence of the two scroll computations on 2000 random fields: $ok2")
+---- output ----
+n=200 width=30: current first=171 in 1 ms; linear first=171 in 0 ms; same=true
+n=1000 width=30: current first=971 in 5 ms; linear first=971 in 0 ms; same=true
+n=5000 width=30: current first=4971 in 187 ms; linear first=4971 in 0 ms; same=true
+equivalence on random inputs (same w for both? no: different w: expect false sometimes) -> skip
+equivalence of the two scroll computations on 2000 random fields: true

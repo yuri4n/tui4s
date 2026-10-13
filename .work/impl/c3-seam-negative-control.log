@@ -1,0 +1,238 @@
+== 13:50 C3 write seam: negative controls (plan 0.3). Leaf 2 of WriteSeamTest is the control that the task asks: with the default hook the count is 0 and the refs change (see c3-step4c-seam.log: '[seam default] hook writes=0 refs=(hi,true,true,c)'). Below: two more controls with temporary edits of Dispatch.scala (not committed).
+
+== control A: toggle (checkbox, radio) writes the ref directly, not through writeBound ==
+diff --git a/modules/core/src/main/scala/tui4s/internal/Dispatch.scala b/modules/core/src/main/scala/tui4s/internal/Dispatch.scala
+index 2e8151d..034c47b 100644
+--- a/modules/core/src/main/scala/tui4s/internal/Dispatch.scala
++++ b/modules/core/src/main/scala/tui4s/internal/Dispatch.scala
+@@ -21,8 +21,28 @@ import kyo.UI.Ast.*
+   *
+   * Handlers run on the runner fiber, one event at a time. A handler that fails
+   * is logged and the event goes on.
++  *
++  * Every write of a bound `SignalRef` goes through one function, [[writeBound]]
++  * (plan 0.3).
+   */
+-final class Dispatch(quit: Unit < Sync):
++// claude 2026-10-13: changed (C3, plan 0.3): the knobs (the hook of the write
++// seam)
++final class Dispatch(quit: Unit < Sync, knobs: Knobs = Knobs.default):
++
++    /** The write seam (plan 0.3): the one place where the dispatcher writes a
++      * bound `SignalRef` (the text of a text input or a textarea, the checked
++      * flag of a checkbox or a radio, the value of a select). It calls the test
++      * hook `knobs.onBoundWrite`, then writes the Kyo ref. Not public API. The
++      * runner writes the ref BEFORE it runs `onInput` or `onChange`, so a
++      * handler that reads the ref sees the new value. A later version can send
++      * the write to another primary (a ZIO or Cats Effect ref) or keep the
++      * runner's own text for the focused field here.
++      */
++    // claude 2026-10-13: created (C3, plan 0.3)
++    private[tui4s] def writeBound[A](path: Loc, ref: SignalRef[A], value: A)(
++        using Frame,
++    ): Unit < Sync =
++      knobs.onBoundWrite(path, value).andThen(ref.set(value))
+ 
+     private def safe(label: String, v: => Any < Async)(using
+         Frame,
+@@ -227,8 +247,9 @@ final class Dispatch(quit: Unit < Sync):
+                   )
+             val w2                 =
+               w1.copy(regions = w1.regions.updated(p, stored)).markNode(p)
++            // claude 2026-10-13: changed (C3, plan 0.3): the write seam
+             val write: Unit < Sync = ti.value match
+-                case Present(UI.Bound.Ref(ref)) => ref.set(next)
++                case Present(UI.Bound.Ref(ref)) => writeBound(p, ref, next)
+                 case _                          => Kyo.unit
+             write
+               .andThen(safe("onInput", runWith(ti.onInput, next)))
+@@ -250,6 +271,7 @@ final class Dispatch(quit: Unit < Sync):
+         val next               = bi match
+             case _: Radio => true
+             case _        => !now
++        // claude 2026-10-13: changed (C3, plan 0.3): the write seam
+         val write: Unit < Sync = bi.checked match
+             case Present(UI.Bound.Ref(ref)) => ref.set(next)
+             case _                          => Kyo.unit
+@@ -287,8 +309,9 @@ final class Dispatch(quit: Unit < Sync):
+             val next               = values(
+               (i + (if forward then 1 else -1) + values.size) % values.size,
+             )
++            // claude 2026-10-13: changed (C3, plan 0.3): the write seam
+             val write: Unit < Sync = s.value match
+-                case Present(UI.Bound.Ref(ref)) => ref.set(next)
++                case Present(UI.Bound.Ref(ref)) => writeBound(p, ref, next)
+                 case _                          => Kyo.unit
+             val stored             = w.regions.get(p) match
+                 case Some(r) => r.copy(content = Content.Value(next))
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-03-input-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-03-input/)
+[info] compiling 19 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 27 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+=== WriteSeamTest ===
+[seam] writes=4 values=Vector(h, hi, b, c) paths=Vector(0.0, 0.3) refs=(hi,true,true,c) onInput=Vector((h,h), (hi,hi))
+  [FAIL] every bound write (text input, checkbox, radio, select) goes through the seam; the ref is written BEFORE onInput  (598ms) *** FAILED ***
+
+    assert(seen.size == 6, line)
+    // message: [seam] writes=4 values=Vector(h, hi, b, c) paths=Vector(0.0, 0.3) refs=(hi,true,true,c) onInput=Vector((h,h), (hi,hi))
+
+[seam default] hook writes=0 refs=(hi,true,true,c) onInput=Vector((h,h), (hi,hi))
+  [PASS] with the default hook (it does nothing) the seam still writes the refs; the hook count is 0  (91ms)
+--- WriteSeamTest: 1 passed, 1 failed  (1.1s)
+FAILURES (1):
+  every bound write (text input, checkbox, radio, select) goes through the seam; the ref is written BEFORE onInput  [FAIL]
+    assert(seen.size == 6, line)
+    // message: [seam] writes=4 values=Vector(h, hi, b, c) paths=Vector(0.0, 0.3) refs=(hi,true,true,c) onInput=Vector((h,h), (hi,hi))
+
+Results: 1 passed, 1 failed  (total: 1.1s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.WriteSeamTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 57 s, completed Oct 13, 2026, 1:51:38 PM
+sbt exit 1
+
+== control B: editText runs onInput BEFORE the write (the A3 order reversed) ==
+diff --git a/modules/core/src/main/scala/tui4s/internal/Dispatch.scala b/modules/core/src/main/scala/tui4s/internal/Dispatch.scala
+index 2e8151d..47add9b 100644
+--- a/modules/core/src/main/scala/tui4s/internal/Dispatch.scala
++++ b/modules/core/src/main/scala/tui4s/internal/Dispatch.scala
+@@ -21,8 +21,28 @@ import kyo.UI.Ast.*
+   *
+   * Handlers run on the runner fiber, one event at a time. A handler that fails
+   * is logged and the event goes on.
++  *
++  * Every write of a bound `SignalRef` goes through one function, [[writeBound]]
++  * (plan 0.3).
+   */
+-final class Dispatch(quit: Unit < Sync):
++// claude 2026-10-13: changed (C3, plan 0.3): the knobs (the hook of the write
++// seam)
++final class Dispatch(quit: Unit < Sync, knobs: Knobs = Knobs.default):
++
++    /** The write seam (plan 0.3): the one place where the dispatcher writes a
++      * bound `SignalRef` (the text of a text input or a textarea, the checked
++      * flag of a checkbox or a radio, the value of a select). It calls the test
++      * hook `knobs.onBoundWrite`, then writes the Kyo ref. Not public API. The
++      * runner writes the ref BEFORE it runs `onInput` or `onChange`, so a
++      * handler that reads the ref sees the new value. A later version can send
++      * the write to another primary (a ZIO or Cats Effect ref) or keep the
++      * runner's own text for the focused field here.
++      */
++    // claude 2026-10-13: created (C3, plan 0.3)
++    private[tui4s] def writeBound[A](path: Loc, ref: SignalRef[A], value: A)(
++        using Frame,
++    ): Unit < Sync =
++      knobs.onBoundWrite(path, value).andThen(ref.set(value))
+ 
+     private def safe(label: String, v: => Any < Async)(using
+         Frame,
+@@ -227,11 +247,12 @@ final class Dispatch(quit: Unit < Sync):
+                   )
+             val w2                 =
+               w1.copy(regions = w1.regions.updated(p, stored)).markNode(p)
++            // claude 2026-10-13: changed (C3, plan 0.3): the write seam
+             val write: Unit < Sync = ti.value match
+-                case Present(UI.Bound.Ref(ref)) => ref.set(next)
++                case Present(UI.Bound.Ref(ref)) => writeBound(p, ref, next)
+                 case _                          => Kyo.unit
+-            write
+-              .andThen(safe("onInput", runWith(ti.onInput, next)))
++            safe("onInput", runWith(ti.onInput, next))
++              .andThen(write)
+               .andThen(w2)
+         end if
+     end editText
+@@ -250,8 +271,9 @@ final class Dispatch(quit: Unit < Sync):
+         val next               = bi match
+             case _: Radio => true
+             case _        => !now
++        // claude 2026-10-13: changed (C3, plan 0.3): the write seam
+         val write: Unit < Sync = bi.checked match
+-            case Present(UI.Bound.Ref(ref)) => ref.set(next)
++            case Present(UI.Bound.Ref(ref)) => writeBound(p, ref, next)
+             case _                          => Kyo.unit
+         val stored             = w.regions.get(p) match
+             case Some(r) => r.copy(content = Content.Value(next))
+@@ -287,8 +309,9 @@ final class Dispatch(quit: Unit < Sync):
+             val next               = values(
+               (i + (if forward then 1 else -1) + values.size) % values.size,
+             )
++            // claude 2026-10-13: changed (C3, plan 0.3): the write seam
+             val write: Unit < Sync = s.value match
+-                case Present(UI.Bound.Ref(ref)) => ref.set(next)
++                case Present(UI.Bound.Ref(ref)) => writeBound(p, ref, next)
+                 case _                          => Kyo.unit
+             val stored             = w.regions.get(p) match
+                 case Some(r) => r.copy(content = Content.Value(next))
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-03-input-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-03-input/)
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+=== WriteSeamTest ===
+[seam] writes=6 values=Vector(h, hi, true, true, b, c) paths=Vector(0.0, 0.1, 0.2, 0.3) refs=(hi,true,true,c) onInput=Vector((h,), (hi,h))
+  [FAIL] every bound write (text input, checkbox, radio, select) goes through the seam; the ref is written BEFORE onInput  (454ms) *** FAILED ***
+
+    )
+    // message: [seam] writes=6 values=Vector(h, hi, true, true, b, c) paths=Vector(0.0, 0.1, 0.2, 0.3) refs=(hi,true,true,c) onInput=Vector((h,), (hi,h))
+
+[seam default] hook writes=0 refs=(hi,true,true,c) onInput=Vector((h,), (hi,h))
+  [PASS] with the default hook (it does nothing) the seam still writes the refs; the hook count is 0  (66ms)
+--- WriteSeamTest: 1 passed, 1 failed  (895ms)
+FAILURES (1):
+  every bound write (text input, checkbox, radio, select) goes through the seam; the ref is written BEFORE onInput  [FAIL]
+    )
+    // message: [seam] writes=6 values=Vector(h, hi, true, true, b, c) paths=Vector(0.0, 0.1, 0.2, 0.3) refs=(hi,true,true,c) onInput=Vector((h,), (hi,h))
+
+Results: 1 passed, 1 failed  (total: 895ms)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.WriteSeamTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 14 s, completed Oct 13, 2026, 1:52:00 PM
+sbt exit 1
+== restored: git status ==
+ M modules/core/src/main/scala/tui4s/internal/Dispatch.scala
+ M modules/core/src/main/scala/tui4s/internal/Knobs.scala
+ M modules/core/src/main/scala/tui4s/internal/Runner.scala
+?? modules/core/src/test/scala/tui4s/WriteSeamTest.scala

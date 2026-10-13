@@ -1,0 +1,137 @@
+== 14:01 NEGATIVE CONTROL (the lesson of the old review thread TuiTest.scala:166): Headless.paste posts a bracketed paste even with TuiOptions.paste = false (temporary edit, not committed) ==
+diff --git a/modules/core/src/main/scala/tui4s/testkit/Headless.scala b/modules/core/src/main/scala/tui4s/testkit/Headless.scala
+index 20b47dc..2198208 100644
+--- a/modules/core/src/main/scala/tui4s/testkit/Headless.scala
++++ b/modules/core/src/main/scala/tui4s/testkit/Headless.scala
+@@ -44,6 +44,8 @@ final class Headless private (
+     seq: AtomicLong,
+     run: Fiber[Unit, Scope],
+     runner: Runner,
++    // claude 2026-10-13: created (C3): `paste` reads options.paste
++    options: TuiOptions,
+ ):
+     /** Ends the run. The same action as the quit value that `start` gave the
+       * UI.
+@@ -165,6 +167,20 @@ final class Headless private (
+     def typeText(s: String)(using Frame): Seq[FrameStats] < Async =
+       Kyo.foreach(Headless.keysOf(s))(press).map(_.toSeq)
+ 
++    /** Pastes `text` as a terminal sends it, and returns the frame of each
++      * event. With `TuiOptions.paste` (the default: bracketed paste) the paste
++      * is ONE event: one edit of the focused text input, one frame; a line
++      * break in it is a space, so it never submits a form. Without it, the text
++      * arrives as single keys, as `typeText` sends them: a line break is an
++      * Enter (it can submit a form) and a tab is a Tab (it moves the focus).
++      */
++    // claude 2026-10-13: created (C3, RC-14 part; the lesson of the review
++    // thread TuiTest.scala:166 of the old PR 3: the kit acts as a real
++    // terminal)
++    def paste(text: String)(using Frame): Seq[FrameStats] < Async =
++      if true || options.paste then send(n => Msg.Paste(text, n)).map(Seq(_))
++      else typeText(text)
++
+     /** Resizes the screen and waits for the frame of the resize. Background
+       * frames that come first are consumed. The runner fiber resizes the
+       * backend when it handles the message (one fiber touches the backend).
+@@ -230,7 +246,7 @@ object Headless:
+           runner   = Runner(inbox, canvas, options, Present(frames), knobs)
+           seq     <- AtomicLong.init(1L)
+           run     <- Fiber.init(runner.scoped(ui(runner.quit).map(runner.run)))
+-          h        = Headless(inbox, frames, backend, seq, run, runner)
++          h        = Headless(inbox, frames, backend, seq, run, runner, options)
+           // it quits and waits before its scope ends (RC-7)
+           _       <- Scope.ensure(h.quit.andThen(h.awaitEnd(5.seconds)))
+           _       <- firstFrame(frames, run)
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-03-input-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-03-input/)
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+=== PasteTest ===
+  [PASS] paste = true: a two-line paste into a form's input is one edit ('one two'), one frame, one onInput, and no submit  (310ms)
+  [FAIL] paste = false: the same text is single keys; the line break is an Enter and submits the form once  (61ms) *** FAILED ***
+
+    )
+    // message: text=one two frames=1 submits=0 onInput=1
+
+  [FAIL] the Todo form: a bracketed paste stays in the draft; without it the first line is added and the second line lands in the empty draft  (166ms) *** FAILED ***
+
+    )
+    // message: (one two,Chunk.Single(buy milk),Todo  1 open / 1
+    New: one two
+    ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+    │[ ] buy milk                                                                                      │
+    │                                                                                                  │
+    └──────────────────────────────────────────────────────────────────────────────────────────────────┘
+    loaded 1 items from /tmp/todo12499206138536183814.txt
+    Tab: input/list  ↑↓: move  Space: toggle  d: delete  Ctrl-S: save  Esc: quit
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    )
+
+  [PASS] a paste on an element that is not a text input does nothing  (20ms)
+--- PasteTest: 2 passed, 2 failed  (889ms)
+FAILURES (2):
+  paste = false: the same text is single keys; the line break is an Enter and submits the form once  [FAIL]
+    )
+    // message: text=one two frames=1 submits=0 onInput=1
+  the Todo form: a bracketed paste stays in the draft; without it the first line is added and the second line lands in the empty draft  [FAIL]
+    )
+    // message: (one two,Chunk.Single(buy milk),Todo  1 open / 1
+    New: one two
+    ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+    │[ ] buy milk                                                                                      │
+    │                                                                                                  │
+    └──────────────────────────────────────────────────────────────────────────────────────────────────┘
+    loaded 1 items from /tmp/todo12499206138536183814.txt
+    Tab: input/list  ↑↓: move  Space: toggle  d: delete  Ctrl-S: save  Esc: quit
+    
+    
+    
+    (truncated)
+
+Results: 2 passed, 2 failed  (total: 889ms)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.PasteTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 13 s, completed Oct 13, 2026, 2:01:47 PM
+sbt exit 1
+== restored ==

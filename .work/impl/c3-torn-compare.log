@@ -1,0 +1,61 @@
+== 14:20 HeadlessTest 'screen is never a torn frame' (a C2 test): 5 runs on the C2 code (modules/core/src of 79ac684, a temporary restore in the PR worktree), then 5 runs on the C3 tip ba5b6f6 ==
+M  modules/core/src/main/scala/tui4s/FrameStats.scala
+ D modules/core/src/main/scala/tui4s/Tui.scala
+M  modules/core/src/main/scala/tui4s/TuiOptions.scala
+ D modules/core/src/main/scala/tui4s/internal/Dispatch.scala
+M  modules/core/src/main/scala/tui4s/internal/Geometry.scala
+M  modules/core/src/main/scala/tui4s/internal/Knobs.scala
+M  modules/core/src/main/scala/tui4s/internal/Layout.scala
+M  modules/core/src/main/scala/tui4s/internal/Mount.scala
+M  modules/core/src/main/scala/tui4s/internal/Paint.scala
+M  modules/core/src/main/scala/tui4s/internal/Props.scala
+M  modules/core/src/main/scala/tui4s/internal/Runner.scala
+M  modules/core/src/main/scala/tui4s/internal/SchedulerProbe.scala
+ D modules/core/src/main/scala/tui4s/internal/TextEdit.scala
+M  modules/core/src/main/scala/tui4s/internal/World.scala
+M  modules/core/src/main/scala/tui4s/package.scala
+M  modules/core/src/main/scala/tui4s/testkit/Headless.scala
+M  modules/core/src/test/resources/kyo-ui-surface.txt
+M  modules/core/src/test/scala/tui4s/AppsTest.scala
+ D modules/core/src/test/scala/tui4s/DispatchTest.scala
+M  modules/core/src/test/scala/tui4s/KyoUiSurface.scala
+M  modules/core/src/test/scala/tui4s/KyoUiSurfaceTest.scala
+ D modules/core/src/test/scala/tui4s/LiftTrapTest.scala
+ D modules/core/src/test/scala/tui4s/PasteTest.scala
+ D modules/core/src/test/scala/tui4s/PublicApiTest.scala
+ D modules/core/src/test/scala/tui4s/QuitTest.scala
+M  modules/core/src/test/scala/tui4s/SeamTest.scala
+ D modules/core/src/test/scala/tui4s/TextEditTest.scala
+ D modules/core/src/test/scala/tui4s/WriteSeamTest.scala
+M  modules/core/src/test/scala/tui4s/fixtures/Counter.scala
+M  modules/core/src/test/scala/tui4s/fixtures/Dashboard.scala
+M  modules/core/src/test/scala/tui4s/fixtures/Todo.scala
+C2 run 1:   [FAIL] screen is never a torn frame: a read during a flush sees one value on every row  (587ms) *** FAILED ***
+C2 run 1:     // message: only 3 distinct values: the screen did not change
+C2 run 1: --- HeadlessTest: 6 passed, 1 failed  (3.8s)
+C2 run 1:     // message: only 3 distinct values: the screen did not change
+C2 run 2:   [FAIL] screen is never a torn frame: a read during a flush sees one value on every row  (572ms) *** FAILED ***
+C2 run 2:     // message: only 3 distinct values: the screen did not change
+C2 run 2: --- HeadlessTest: 6 passed, 1 failed  (3.7s)
+C2 run 2:     // message: only 3 distinct values: the screen did not change
+C2 run 3:   [PASS] screen is never a torn frame: a read during a flush sees one value on every row  (563ms)
+C2 run 3: --- HeadlessTest: 7 passed, 0 failed  (3.7s)
+C2 run 4:   [PASS] screen is never a torn frame: a read during a flush sees one value on every row  (509ms)
+C2 run 4: --- HeadlessTest: 7 passed, 0 failed  (3.7s)
+C2 run 5:   [FAIL] screen is never a torn frame: a read during a flush sees one value on every row  (575ms) *** FAILED ***
+C2 run 5:     // message: only 3 distinct values: the screen did not change
+C2 run 5: --- HeadlessTest: 6 passed, 1 failed  (3.7s)
+C2 run 5:     // message: only 3 distinct values: the screen did not change
+== restored the C3 tip: git status (empty = clean) ==
+C3 run 1:   [FAIL] screen is never a torn frame: a read during a flush sees one value on every row  (604ms) *** FAILED ***
+C3 run 1:     // message: only 3 distinct values: the screen did not change
+C3 run 1: --- HeadlessTest: 6 passed, 1 failed  (3.7s)
+C3 run 1:     // message: only 3 distinct values: the screen did not change
+C3 run 2:   [PASS] screen is never a torn frame: a read during a flush sees one value on every row  (528ms)
+C3 run 2: --- HeadlessTest: 7 passed, 0 failed  (3.6s)
+C3 run 3:   [PASS] screen is never a torn frame: a read during a flush sees one value on every row  (561ms)
+C3 run 3: --- HeadlessTest: 7 passed, 0 failed  (3.7s)
+C3 run 4:   [PASS] screen is never a torn frame: a read during a flush sees one value on every row  (534ms)
+C3 run 4: --- HeadlessTest: 7 passed, 0 failed  (3.7s)
+C3 run 5:   [PASS] screen is never a torn frame: a read during a flush sees one value on every row  (542ms)
+C3 run 5: --- HeadlessTest: 7 passed, 0 failed  (3.7s)

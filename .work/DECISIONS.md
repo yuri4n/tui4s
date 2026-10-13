@@ -174,3 +174,21 @@ Eighth round (2026-10-11, gate 0, after W0; recorded by Claude from the user's a
 - Model of the agents from W3 on: Opus for the implementer, the plan and API reviewer, the skeptic of that review, the
   fixer and the final-runs agent; Fable for the runtime reviewer and its skeptic (the adversarial check of handler and
   fiber code). The user repeated the rule on 2026-10-13 ("use opus subagents when fable is overkill").
+
+## Twelfth round (2026-10-13, after W3; claude)
+
+<!-- claude 2026-10-13: created this section -->
+
+- W3 (C3) review R1-1: the C2 leaf `HeadlessTest` "screen is never a torn frame" is flaky (3 failures in 5 runs of the
+  C2 code on this machine; the busy reader makes each settle run to its max). Decision (Claude, under "go for your
+  solution"): the test-only fix (1000 writes instead of 300) goes on PR #11 as a new commit 0646343 (plan 4.3: a fix on
+  the lower branch, then a merge-up), and `feat/kyoui-02-regions` is merged into C3 (f29b9ff; check green,
+  `c3-merge-check.log`). No code change on C2.
+- The commit trailers of the W3 agents say "Co-Authored-By: Claude Opus 5.5": the agents ran on Opus and their harness
+  gave that attribution. Accurate and kept (P-9: no rewrite). The PR body says it.
+- Gate 1 items in C3 as decided: the seal (6b9424d, with a tasty-query `PublicApiTest`, because Scala 3 does not
+  reject a public member whose signature names a `private[tui4s]` type), the CI load flag (fe3d937; `TUI4S_LOAD=1`
+  in ci.yml, forwarded to the forked test JVM).
+- Found in C3, deferred: a textarea is a `TextInput` in kyo-ui RC7 and edits as one line (multi-line editing waits);
+  a character outside the BMP cannot be a kyo-ui `Keyboard.Char` (one UTF-16 char): `TextEdit` inserts printable
+  `Keyboard.Unknown` text, and T1's crossterm mapping must do the same.

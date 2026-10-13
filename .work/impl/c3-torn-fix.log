@@ -1,0 +1,22 @@
+== 14:25 the torn-frame leaf with 1000 writes: 5 runs of HeadlessTest ==
+run 1:   [PASS] screen is never a torn frame: a read during a flush sees one value on every row  (1.5s)
+run 1: --- HeadlessTest: 7 passed, 0 failed  (4.6s)
+run 2:   [PASS] screen is never a torn frame: a read during a flush sees one value on every row  (1.6s)
+run 2: --- HeadlessTest: 7 passed, 0 failed  (4.7s)
+run 3:   [PASS] screen is never a torn frame: a read during a flush sees one value on every row  (1.5s)
+run 3: --- HeadlessTest: 7 passed, 0 failed  (4.7s)
+run 4:   [PASS] screen is never a torn frame: a read during a flush sees one value on every row  (1.5s)
+run 4: --- HeadlessTest: 7 passed, 0 failed  (4.6s)
+run 5:   [PASS] screen is never a torn frame: a read during a flush sees one value on every row  (1.5s)
+run 5: --- HeadlessTest: 7 passed, 0 failed  (4.7s)
+== 14:26 the leaf still catches a torn read: Headless.screen WITHOUT the backend's monitor (temporary edit, as the C2 negative control c2-fix2-negative-control.log) ==
+111c111
+<       Sync.defer(backend.synchronized(Screen.of(backend)))
+---
+>       Sync.defer(Screen.of(backend))
+  [FAIL] screen is never a torn frame: a read during a flush sees one value on every row  (1.6s) *** FAILED ***
+    // message: 452 torn reads of 40625 (78 distinct values seen)
+--- HeadlessTest: 6 passed, 1 failed  (4.7s)
+    // message: 452 torn reads of 40625 (78 distinct values seen)
+== restored ==
+ M modules/core/src/test/scala/tui4s/HeadlessTest.scala

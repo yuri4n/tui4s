@@ -1,0 +1,47 @@
+F: review R1-5, R2-6 (WriteSeamTest: textarea; no vacuous count), R1-3 (QuitTest: 1 s delay); 2026-10-13 15:10:12; HEAD 9703528 + uncommitted test changes; command: sbt -Dsbt.supershell=false 'core/testOnly tui4s.WriteSeamTest tui4s.QuitTest'
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-03-input-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-03-input/)
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 3 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+[1m=== WriteSeamTest ===[0m
+[seam] writes=8 values=Vector(h, hi, hi!, true, true, b, c, t) paths=Vector(0.0, 0.1, 0.2, 0.3, 0.4) refs=(hi!,true,true,c,t) onInput=Vector((h,h), (hi,hi), (hi!,hi!))
+  [1m[32m[PASS][0m[0m every bound write (text input: keys and a paste; checkbox, radio, select, textarea) goes through the seam; the ref is written BEFORE onInput  [2m(477ms)[0m
+[seam default] refs=(hi!,true,true,c,t) onInput=Vector((h,h), (hi,hi), (hi!,hi!))
+  [1m[32m[PASS][0m[0m with the default hook (it does nothing) the seam still writes the refs  [2m(70ms)[0m
+[2m---[0m WriteSeamTest: [32m2 passed[0m, [31m0 failed[0m  [2m(914ms)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 914ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== QuitTest ===[0m
+  [1m[32m[PASS][0m[0m a key handler calls Tui.quit: the run ends  [2m(19ms)[0m
+  [1m[32m[PASS][0m[0m a fiber that a handler forks calls Tui.quit after a delay: the run ends  [2m(1.0s)[0m
+  [1m[32m[PASS][0m[0m the construction of the UI forks a fiber that calls Tui.quit after a delay: the run ends  [2m(209ms)[0m
+  [1m[32m[PASS][0m[0m Tui.quit outside a run does nothing  [2m(221ms)[0m
+[2m---[0m QuitTest: [32m4 passed[0m, [31m0 failed[0m  [2m(1.4s)[0m
+
+Results: [32m4 passed[0m, [31m0 failed[0m  (total: 1.4s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 27 s, completed Oct 13, 2026, 3:10:45 PM
+exit=0

@@ -1,0 +1,59 @@
+== 14:12 the load flag (gate 1 item 2): TUI4S_LOAD=1 sbt 'show core/Test/javaOptions' (the first try of this log had a Scala 3 if-then in build.sbt, which sbt 1.13 does not parse; fixed to Scala 2 syntax) ==
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-03-input-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-03-input/)
+[info] * -Xmx1g
+[info] * -Xss16m
+[info] * -Dstdout.encoding=UTF-8
+[info] * -Dstderr.encoding=UTF-8
+[info] * --sun-misc-unsafe-memory-access=allow
+[info] * --enable-native-access=ALL-UNNAMED
+[info] * -Dkyo.scheduler.cycleIntervalNs=10000000
+[info] * -Dkyo.scheduler.blockingMonitorIntervalNs=20000000
+[info] * -Dkyo.scheduler.regulator.concurrencyCollectIntervalMs=100
+[info] * -Dtui4s.load=1
+[success] Total time: 0 s, completed Oct 13, 2026, 2:12:49 PM
+== 14:12 without the variable: env -u TUI4S_LOAD sbt 'show core/Test/javaOptions' ==
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-03-input-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-03-input/)
+[info] * -Xmx1g
+[info] * -Xss16m
+[info] * -Dstdout.encoding=UTF-8
+[info] * -Dstderr.encoding=UTF-8
+[info] * --sun-misc-unsafe-memory-access=allow
+[info] * --enable-native-access=ALL-UNNAMED
+[info] * -Dkyo.scheduler.cycleIntervalNs=10000000
+[info] * -Dkyo.scheduler.blockingMonitorIntervalNs=20000000
+[info] * -Dkyo.scheduler.regulator.concurrencyCollectIntervalMs=100
+[success] Total time: 0 s, completed Oct 13, 2026, 2:12:57 PM
+== 14:12 TUI4S_LOAD=0 (not 1: no flag): ==
+[info] * -Xmx1g
+[info] * -Xss16m
+[info] * -Dstdout.encoding=UTF-8
+[info] * -Dstderr.encoding=UTF-8
+[info] * --sun-misc-unsafe-memory-access=allow
+[info] * --enable-native-access=ALL-UNNAMED
+[info] * -Dkyo.scheduler.cycleIntervalNs=10000000
+[info] * -Dkyo.scheduler.blockingMonitorIntervalNs=20000000
+[info] * -Dkyo.scheduler.regulator.concurrencyCollectIntervalMs=100
+== 14:13 the forked test JVM reads it: TUI4S_LOAD=1 sbt 'core/testOnly tui4s.AppsTest' (the [glitch] lines print the flag) ==
+[glitch] splits=0 of 500 (events by frame count: 1 frames: 500; events with a settle timeout: 0; not seen in 2 s: 0; load flag: true)
+  [PASS] glitch-free: one event (one write to one ref) updates all 4 dependent regions in one frame (500 events)  (2.9s)
+[glitch-keys] splits=0 of 500 (key frames by region values: 4: 500; frames with a settle timeout: 0; load flag: true)
+  [PASS] glitch-free by keys: one key whose handler writes two refs updates all 4 dependent regions in its frame (500 keys)  (553ms)
+--- AppsTest: 12 passed, 0 failed  (7.3s)
+Results: 12 passed, 0 failed  (total: 7.3s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped

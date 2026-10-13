@@ -1,0 +1,67 @@
+== 14:05 RR N9: the runner calls no private[kyo] member (C3). Tree: 253f0ff + the uncommitted LiftTrapTest ==
+-- 1. no source of the repo is in package kyo (a file in package kyo would get private[kyo] access):
+(exit 1 ; 1 = 0 hits)
+-- 2. no private[kyo] in core main sources:
+(exit 1 ; 1 = 0 hits)
+-- 3. no reflection in core main sources:
+(exit 1 ; 1 = 0 hits)
+-- 4. the private[kyo] members of kyo-ui RC7 (sources of the RC7 jar, .work/scratch/kyo-src/kyo-ui):
+kyo-ui/kyo/UI.scala:42:    private[kyo] def frame: Frame
+kyo-ui/kyo/UI.scala:643:            private[kyo] def frame: Frame
+kyo-ui/kyo/UI.scala:646:            private[kyo] def withAttrs(a: Attrs): Self
+kyo-ui/kyo/UI.scala:735:            private[kyo] def jsProp(name: String, value: String): Self =
+kyo-ui/kyo/UI.scala:964:        final class HtmlChildVal private[kyo] (private[kyo] val value: UI) extends AnyVal
+kyo-ui/kyo/UI.scala:1135:        final private[kyo] case class Attrs(
+kyo-ui/kyo/UI.scala:1218:            private[kyo] def applyTyped[B](k: [T] => (Signal[Chunk[T]], Maybe[T => String], (Int, T) => UI) => B): B =
+kyo-ui/kyo/UI.scala:1227:        private[kyo] case class KeyedChild[C <: UI](key: String, child: UI)(using val frame: Frame) extends UI
+kyo-ui/kyo/UI.scala:1584:        final private[kyo] case class TextInputAttrs(
+kyo-ui/kyo/Style.scala:35:final case class Style private[kyo] (props: Chunk[Style.Prop]) derives CanEqual:
+kyo-ui/kyo/Style.scala:850:        final case class Hex private[kyo] (value: String)                      extends Color
+kyo-ui/kyo/Style.scala:851:        final case class Rgb private[kyo] (r: Int, g: Int, b: Int)             extends Color
+kyo-ui/kyo/Style.scala:852:        final case class Rgba private[kyo] (r: Int, g: Int, b: Int, a: Double) extends Color
+kyo-ui/kyo/Style.scala:854:        final case class Var private[kyo] (name: String)                       extends Color
+   their names in core main sources (a member selection or a type name):
+modules/core/src/main/scala/tui4s/testkit/Screen.scala:16:  * `styleAt(x, y) == CellStyle(bold = true)` holds for a bold cell with no
+modules/core/src/main/scala/tui4s/testkit/Screen.scala:20:final case class CellStyle(
+modules/core/src/main/scala/tui4s/testkit/Screen.scala:33:    val plain: CellStyle = CellStyle()
+modules/core/src/main/scala/tui4s/testkit/Screen.scala:43:        CellStyle(
+modules/core/src/main/scala/tui4s/internal/Props.scala:166:        case r: kyo.Style.Color.Rgb      => Some(JColor.Rgb(r.r, r.g, r.b))
+modules/core/src/main/scala/tui4s/internal/Props.scala:168:          if r.a < 0.5 then None else Some(JColor.Rgb(r.r, r.g, r.b))
+modules/core/src/main/scala/tui4s/internal/Props.scala:178:                JColor.Rgb(
+modules/core/src/main/scala/tui4s/internal/Props.scala:186:                JColor.Rgb(
+modules/core/src/main/scala/tui4s/internal/Props.scala:259:        val withStyle     = applyStyle(base, el.attrs.uiStyle)
+modules/core/src/main/scala/tui4s/internal/Props.scala:261:          case (p, Prop.FocusProp(s)) if focused           => applyStyle(p, s)
+modules/core/src/main/scala/tui4s/internal/Props.scala:262:          case (p, Prop.DisabledProp(s)) if isDisabled(el) => applyStyle(p, s)
+modules/core/src/main/scala/tui4s/internal/Props.scala:293:    def applyStyle(p: Props, s: kyo.Style): Props =
+modules/core/src/main/scala/tui4s/internal/Mount.scala:222:             * render (kyo-ui's `applyTyped` is private). */
+modules/core/src/main/scala/tui4s/internal/Paint.scala:95:          cell.setStyle(style)
+(exit 0 ; 1 = 0 hits)
+   (el.attrs is the PUBLIC member Element.attrs; its type Attrs is private[kyo] and is never named: RR N9 a. Foreach is cast to Foreach[Any, UI] because applyTyped is private[kyo]: RR N9 b, Mount.walk.)
+-- 5. the compiler enforces it: a throwaway file in package tui4s.internal calls the private[kyo] Element.withAttrs:
+package tui4s.internal
+
+import kyo.*
+import kyo.UI.Ast.*
+
+object Throwaway:
+    def f(e: Element): Element = e.withAttrs(e.attrs)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+[error] -- [E173] Reference Error: /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/src/main/scala/tui4s/internal/Throwaway.scala:7:35 
+[error] 7 |    def f(e: Element): Element = e.withAttrs(e.attrs)
+[error]   |                                 ^^^^^^^^^^^
+[error]   |method withAttrs cannot be accessed as a member of (e : kyo.UI.Ast.Element) from object Throwaway.
+[error]   |  private[kyo] method withAttrs can only be accessed from package kyo.
+[error] one error found
+[error] (core / Compile / compileIncremental) Compilation failed
+[error] Total time: 4 s, completed Oct 13, 2026, 2:05:50 PM
+   throwaway file removed:
+?? modules/core/src/test/scala/tui4s/LiftTrapTest.scala
+-- the hits of check 4, read one by one: none is a private[kyo] member.
+   Screen.scala:16, 20, 33, 43: `CellStyle(` (tui4s's own type) matches the pattern `Style\(`.
+   Props.scala:166, 168: `case r: kyo.Style.Color.Rgb` is a type test and `r.r`, `r.g`, `r.b`, `r.a` are public case
+     class fields; only the CONSTRUCTOR of Rgb/Rgba is private[kyo], and the runner never calls it.
+   Props.scala:178, 186: `JColor.Rgb(` is jatatui's colour. Props.scala:259: `el.attrs.uiStyle` reads the public member
+     Element.attrs (RR N9 a). Props.scala:261, 262, 293: `Prop.FocusProp(s)`, `Prop.DisabledProp(s)` are public enum
+     cases; `kyo.Style` is a type name. Mount.scala:222 is a comment. Paint.scala:95 is jatatui's Cell.setStyle.
+RESULT: the core main sources call no private[kyo] member of kyo-ui; no source is in package kyo; no reflection. The
+compiler rejects a direct call (check 5), so the real risks are a `package kyo` file and reflection (checks 1 and 3).

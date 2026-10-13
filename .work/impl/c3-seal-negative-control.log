@@ -1,0 +1,85 @@
+== 14:09 NEGATIVE CONTROL A (the seal): Runner without private[tui4s] (temporary edit) ==
+24c24
+< private[tui4s] final class Runner(
+---
+> final class Runner(
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 2 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+=== PublicApiTest ===
+  [FAIL] every top-level definition of tui4s.internal is private[tui4s]  (2.6s) *** FAILED ***
+
+    assert(open.isEmpty, "public in tui4s.internal:\n" + open.mkString("\n"))
+    // message: public in tui4s.internal:
+    tui4s.internal.Runner (Public)
+
+  [PASS] no public signature of tui4s, tui4s.spi or tui4s.testkit names a type of tui4s.internal  (2.8s)
+--- PublicApiTest: 1 passed, 1 failed  (3.2s)
+FAILURES (1):
+  every top-level definition of tui4s.internal is private[tui4s]  [FAIL]
+    assert(open.isEmpty, "public in tui4s.internal:\n" + open.mkString("\n"))
+    // message: public in tui4s.internal:
+    tui4s.internal.Runner (Public)
+
+Results: 1 passed, 1 failed  (total: 3.2s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.PublicApiTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 29 s, completed Oct 13, 2026, 2:10:24 PM
+sbt exit 1
+
+== 14:10 NEGATIVE CONTROL B (a leak): a public Headless.internalRunner: Runner (temporary edit) ==
+63a64,65
+>     def internalRunner: Runner = runner
+> 
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+
+[info] compiling 2 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 15 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-03-input/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+=== PublicApiTest ===
+  [PASS] every top-level definition of tui4s.internal is private[tui4s]  (3.5s)
+  [FAIL] no public signature of tui4s, tui4s.spi or tui4s.testkit names a type of tui4s.internal  (3.8s) *** FAILED ***
+
+    )
+    // message: public signatures that name an internal type:
+    tui4s.testkit.Headless.internalRunner names tui4s.internal.Runner
+
+--- PublicApiTest: 1 passed, 1 failed  (4.2s)
+FAILURES (1):
+  no public signature of tui4s, tui4s.spi or tui4s.testkit names a type of tui4s.internal  [FAIL]
+    )
+    // message: public signatures that name an internal type:
+    tui4s.testkit.Headless.internalRunner names tui4s.internal.Runner
+
+Results: 1 passed, 1 failed  (total: 4.2s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.PublicApiTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 59 s, completed Oct 13, 2026, 2:11:31 PM
+sbt exit 1
+== restored: ==
+ M modules/core/src/main/scala/tui4s/internal/Dispatch.scala
+ M modules/core/src/main/scala/tui4s/internal/Geometry.scala
+ M modules/core/src/main/scala/tui4s/internal/Layout.scala
+ M modules/core/src/main/scala/tui4s/internal/Mount.scala
+ M modules/core/src/main/scala/tui4s/internal/Paint.scala
+ M modules/core/src/main/scala/tui4s/internal/Props.scala
+ M modules/core/src/main/scala/tui4s/internal/Runner.scala
+ M modules/core/src/main/scala/tui4s/internal/SchedulerProbe.scala
+ M modules/core/src/main/scala/tui4s/internal/World.scala
+?? modules/core/src/test/scala/tui4s/PublicApiTest.scala

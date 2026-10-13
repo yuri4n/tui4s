@@ -1,0 +1,30 @@
+F: greps at e987442, 2026-10-13 15:13:59
+$ grep -rn 'System.err\|println\|System.out' modules/core/src/main
+(hits: 0)
+$ grep -rn 'jatatui.widgets' modules/core
+(hits: 0)
+$ grep -rn 'getDeclaredField\|setAccessible' modules/core/src/main
+(hits: 0)
+$ grep -rn '^package kyo' modules examples
+(hits: 0)
+$ grep -rn 'TODO' modules/core/src/main (each must name #8 or #9)
+modules/core/src/main/scala/tui4s/internal/Runner.scala:101:    // TODO(#8): remove the repair tick when the watchers go back to
+modules/core/src/main/scala/tui4s/internal/Runner.scala:248:          // TODO(#9): drop the re-check when Kyo closes the lost-wakeup window
+modules/core/src/main/scala/tui4s/internal/Runner.scala:275:        // TODO(#9): drop the pull check when Kyo closes the lost-wakeup window
+modules/core/src/main/scala/tui4s/internal/Mount.scala:77:    // TODO(#8): go back to `signal.observe` when Kyo fixes the leak of
+$ git diff a97f555 HEAD -- modules/core/src/main | grep -c '^+.*claude 2026-10-13'
+12
+$ git diff --numstat a97f555 HEAD
+16	12	AGENTS.md
+4	3	modules/core/src/main/scala/tui4s/FrameStats.scala
+12	6	modules/core/src/main/scala/tui4s/internal/Dispatch.scala
+29	7	modules/core/src/main/scala/tui4s/internal/Paint.scala
+87	12	modules/core/src/main/scala/tui4s/testkit/Headless.scala
+143	2	modules/core/src/test/scala/tui4s/DispatchTest.scala
+70	1	modules/core/src/test/scala/tui4s/HeadlessTest.scala
+4	1	modules/core/src/test/scala/tui4s/QuitTest.scala
+68	0	modules/core/src/test/scala/tui4s/TextEditTest.scala
+36	25	modules/core/src/test/scala/tui4s/WriteSeamTest.scala
+$ git diff --numstat 768bff8 HEAD -- modules/core/src/main | totals
++729 -118 in 16 files
+-w: +722 -111

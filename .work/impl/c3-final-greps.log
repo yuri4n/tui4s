@@ -1,0 +1,71 @@
+V: greps at e987442ae8d102b9b8728d767ad629b8c5e9b2f2, 2026-10-13 15:20:48 UTC, in /home/user/tui4s/.work/worktrees/feat-kyoui-03-input
+
+$ grep -rn 'System.err\|println' modules/core/src/main
+(exit 1; hits: 0)
+$ grep -rn 'System.err\|println\|System.out' modules/core/src/main
+(exit 1; hits: 0)
+$ grep -rn 'jatatui.widgets' modules/core
+(exit 1; hits: 0)
+$ grep -rn 'getDeclaredField\|setAccessible' modules/core/src/main
+(exit 1; hits: 0)
+
+-- the private[kyo] check (RR N9; the PR body, c3-private-kyo-check.log checks 1 to 4; check 5, the throwaway compile, changes code and is not repeated here)
+$ grep -rn '^package kyo' modules examples
+(exit 1; hits: 0)
+$ grep -rn 'private\[kyo\]' modules/core/src/main
+(exit 1; hits: 0)
+$ grep -rn 'getDeclaredField\|getDeclaredMethod\|setAccessible\|java.lang.reflect' modules/core/src/main
+(exit 1; hits: 0)
+-- 4. the private[kyo] members of kyo-ui RC7 (sources of the RC7 jar, .work/scratch/kyo-src/kyo-ui):
+$ grep -rn 'private\[kyo\]' /home/user/tui4s/.work/scratch/kyo-src/kyo-ui/kyo/UI.scala /home/user/tui4s/.work/scratch/kyo-src/kyo-ui/kyo/Style.scala | sed 's#/home/user/tui4s/.work/scratch/kyo-src/##'
+kyo-ui/kyo/UI.scala:42:    private[kyo] def frame: Frame
+kyo-ui/kyo/UI.scala:643:            private[kyo] def frame: Frame
+kyo-ui/kyo/UI.scala:646:            private[kyo] def withAttrs(a: Attrs): Self
+kyo-ui/kyo/UI.scala:735:            private[kyo] def jsProp(name: String, value: String): Self =
+kyo-ui/kyo/UI.scala:964:        final class HtmlChildVal private[kyo] (private[kyo] val value: UI) extends AnyVal
+kyo-ui/kyo/UI.scala:1135:        final private[kyo] case class Attrs(
+kyo-ui/kyo/UI.scala:1218:            private[kyo] def applyTyped[B](k: [T] => (Signal[Chunk[T]], Maybe[T => String], (Int, T) => UI) => B): B =
+kyo-ui/kyo/UI.scala:1227:        private[kyo] case class KeyedChild[C <: UI](key: String, child: UI)(using val frame: Frame) extends UI
+kyo-ui/kyo/UI.scala:1584:        final private[kyo] case class TextInputAttrs(
+kyo-ui/kyo/Style.scala:35:final case class Style private[kyo] (props: Chunk[Style.Prop]) derives CanEqual:
+kyo-ui/kyo/Style.scala:850:        final case class Hex private[kyo] (value: String)                      extends Color
+kyo-ui/kyo/Style.scala:851:        final case class Rgb private[kyo] (r: Int, g: Int, b: Int)             extends Color
+kyo-ui/kyo/Style.scala:852:        final case class Rgba private[kyo] (r: Int, g: Int, b: Int, a: Double) extends Color
+kyo-ui/kyo/Style.scala:854:        final case class Var private[kyo] (name: String)                       extends Color
+(exit 0; hits: 14)
+   their names in core main sources (a member selection or a type name):
+$ grep -rnE '\.frame\b|withAttrs|jsProp|HtmlChildVal|TextInputAttrs|\bAttrs\b|applyTyped|KeyedChild|Style\(|Hex\(|Rgba?\(|Var\(' modules/core/src/main
+modules/core/src/main/scala/tui4s/testkit/Screen.scala:16:  * `styleAt(x, y) == CellStyle(bold = true)` holds for a bold cell with no
+modules/core/src/main/scala/tui4s/testkit/Screen.scala:20:final case class CellStyle(
+modules/core/src/main/scala/tui4s/testkit/Screen.scala:33:    val plain: CellStyle = CellStyle()
+modules/core/src/main/scala/tui4s/testkit/Screen.scala:43:        CellStyle(
+modules/core/src/main/scala/tui4s/internal/Props.scala:172:        case r: kyo.Style.Color.Rgb      => Some(JColor.Rgb(r.r, r.g, r.b))
+modules/core/src/main/scala/tui4s/internal/Props.scala:174:          if r.a < 0.5 then None else Some(JColor.Rgb(r.r, r.g, r.b))
+modules/core/src/main/scala/tui4s/internal/Props.scala:184:                JColor.Rgb(
+modules/core/src/main/scala/tui4s/internal/Props.scala:192:                JColor.Rgb(
+modules/core/src/main/scala/tui4s/internal/Props.scala:265:        val withStyle     = applyStyle(base, el.attrs.uiStyle)
+modules/core/src/main/scala/tui4s/internal/Props.scala:267:          case (p, Prop.FocusProp(s)) if focused           => applyStyle(p, s)
+modules/core/src/main/scala/tui4s/internal/Props.scala:268:          case (p, Prop.DisabledProp(s)) if isDisabled(el) => applyStyle(p, s)
+modules/core/src/main/scala/tui4s/internal/Props.scala:299:    def applyStyle(p: Props, s: kyo.Style): Props =
+modules/core/src/main/scala/tui4s/internal/Mount.scala:227:             * render (kyo-ui's `applyTyped` is private). */
+modules/core/src/main/scala/tui4s/internal/Paint.scala:97:          cell.setStyle(style)
+(exit 0; hits: 14)
+-- the hits of check 4, read one by one (the same 14 hits as in c3-private-kyo-check.log at 253f0ff; only the line
+   numbers moved, by the seal marks): none is a private[kyo] member.
+   Screen.scala:16, 20, 33, 43: `CellStyle(` (tui4s's own type) matches the pattern `Style\(`.
+   Props.scala:172, 174: `case r: kyo.Style.Color.Rgb` is a type test; `r.r`, `r.g`, `r.b`, `r.a` are public case
+     class fields; only the CONSTRUCTOR of Rgb/Rgba is private[kyo], and the runner never calls it.
+   Props.scala:184, 192: `JColor.Rgb(` is jatatui's colour. Props.scala:265: `el.attrs.uiStyle` reads the public
+     member Element.attrs (RR N9 a). Props.scala:267, 268, 299: `Prop.FocusProp(s)`, `Prop.DisabledProp(s)` are public
+     enum cases; `kyo.Style` is a type name. Mount.scala:227 is a comment. Paint.scala:97 is jatatui's Cell.setStyle.
+   Dispatch.scala, TextEdit.scala, Tui.scala, Headless.scala (the C3 files): 0 hits.
+RESULT: the core main sources call no private[kyo] member of kyo-ui; no source is in package kyo; no reflection.
+
+$ grep -rn 'TODO' modules/core/src/main (each must name #8 or #9)
+modules/core/src/main/scala/tui4s/internal/Runner.scala:101:    // TODO(#8): remove the repair tick when the watchers go back to
+modules/core/src/main/scala/tui4s/internal/Runner.scala:248:          // TODO(#9): drop the re-check when Kyo closes the lost-wakeup window
+modules/core/src/main/scala/tui4s/internal/Runner.scala:275:        // TODO(#9): drop the pull check when Kyo closes the lost-wakeup window
+modules/core/src/main/scala/tui4s/internal/Mount.scala:77:    // TODO(#8): go back to `signal.observe` when Kyo fixes the leak of
+(exit 0)
+$ git status --short (after all runs)
+(lines: 0)
