@@ -1,0 +1,77 @@
+diff --git a/modules/core/src/test/scala/tui4s/HeadlessTest.scala b/modules/core/src/test/scala/tui4s/HeadlessTest.scala
+index 3c84daa..f03a961 100644
+--- a/modules/core/src/test/scala/tui4s/HeadlessTest.scala
++++ b/modules/core/src/test/scala/tui4s/HeadlessTest.scala
+@@ -2,8 +2,11 @@ package tui4s
+ 
+ import kyo.*
+ import kyo.UI.*
++import tui4s.internal.EventMapping
+ import tui4s.internal.Knobs
++import tui4s.internal.Msg
+ import tui4s.testkit.Headless
++import tui4s.testkit.ScriptedInput
+ 
+ /** The headless kit: the quit value, resize, idle, awaitScreen (RC-7, D-15);
+   * the waits after the end of the run, `char` and half of a surrogate pair.
+@@ -267,4 +270,35 @@ class HeadlessTest extends RunnerSuite:
+           assert(fs.size == 1 && t1 == emoji, s"keys: ${fs.size}; text: $t1")
+       end for
+     }
++
++    // claude 2026-10-13: created (T1, review R1-1): the kit types a character
++    // as the terminal sends it; crossterm's parser gives an upper-case
++    // character Shift (probe: .work/impl/t1-fix-r1-1-probe.log)
++    "char and typeText send the event of the terminal: an upper-case letter has shift, as EventMapping gives it" in {
++      val typed = (32 to 126).map(_.toChar).mkString + "\u00e9\u00c9"
++      for
++          log <- AtomicRef.init(Vector.empty[(Keyboard, Modifiers)])
++          h   <- Headless.start(20, 3)(_ =>
++                   div.onKeyDown { (e: KeyboardEvent) =>
++                     log.updateAndGet(_ :+ (e.key, e.modifiers)).unit
++                   }("x"),
++                 )
++          _   <- h.typeText(typed)
++          _   <- h.char('Q')
++          got <- log.get
++      yield
++          val chars = typed :+ 'Q'
++          val want  = chars.map { c =>
++            EventMapping(ScriptedInput.typed(c), 1L) match
++                case Msg.Key(ev, _) => (ev.key, ev.modifiers)
++                case other          =>
++                  (Keyboard.Unknown(s"not a key: $other"), Modifiers.none)
++          }
++          val wrong = chars.zip(want).zip(got).collect {
++            case ((c, w), g) if w != g => s"'$c': kit $g, terminal $w"
++          }
++          assert(got.size == want.size, s"${got.size} events, ${want.size} keys")
++          assert(wrong.isEmpty, wrong.mkString("\n"))
++      end for
++    }
+ end HeadlessTest
+diff --git a/modules/core/src/test/scala/tui4s/testkit/ScriptedInput.scala b/modules/core/src/test/scala/tui4s/testkit/ScriptedInput.scala
+index 836d676..cf5116f 100644
+--- a/modules/core/src/test/scala/tui4s/testkit/ScriptedInput.scala
++++ b/modules/core/src/test/scala/tui4s/testkit/ScriptedInput.scala
+@@ -69,9 +69,18 @@ private[tui4s] object ScriptedInput:
+     ): CEvent =
+       CEvent.Key(KeyEvent(code, KeyModifiers(mods), kind, KeyEventState(state)))
+ 
+-    /** The key event of a terminal for the character `c`. */
++    /** The key event of a terminal for the character `c`. crossterm's parser
++      * of the terminal's bytes gives an upper-case character Shift (`A` is
++      * `Char('A')` with SHIFT).
++      */
++    // claude 2026-10-13: changed (T1, review R1-1): Shift for an upper-case
++    // character, as crossterm 0.29 gives it (.work/impl/t1-fix-r1-1-probe.log)
+     def typed(c: Char): CEvent =
+       if c == '\n' || c == '\r' then key(KeyCode.Enter())
+       else if c == '\t' then key(KeyCode.Tab())
+-      else key(KeyCode.Char(c))
++      else
++          key(
++            KeyCode.Char(c),
++            if Character.isUpperCase(c) then KeyModifiers.SHIFT else 0,
++          )
+ end ScriptedInput

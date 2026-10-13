@@ -150,6 +150,16 @@ started from the main checkout): it is the user's Metals sbt server.
   the run (Workflow resumeFromRunId wf_f2ccf226-44b: the 7 cached, F and V live). AFTER W5: merge feat/kyoui-03-input
   (a6c4598) into T1, sbt check, push T1, open its PR against feat/kyoui-03-input, then W4 = C4 on T1.
 
+<!-- claude 2026-10-13: added this item (W5b) -->
+- 2026-10-13 18:14 UTC: the container RESTARTED at 18:09 (uptime 1 min at the resume); the Workflow tool then refused
+  the saved script path and the in-memory resume cache was gone. The 7 W5 results were extracted from the journal
+  into .work/impl/t1-w5-cache.json (156 KB). W5b = workflow wf_066520fc-8e5 (2 agents, Opus): the fixer merges
+  feat/kyoui-03-input (a6c4598, C3 round 2) into T1 first (plan 4.3), then fixes the confirmed findings (R1-1 major:
+  the kit's upper-case letter must carry shift as EventMapping gives it), then V does the 3 test runs and 3 PTY runs.
+  The fixer's partial edit before the budget cut is saved as .work/impl/t1-fixer-partial.patch (the worktree was
+  restored to b7ac3ec). LESSON: a container restart kills the workflow resume cache; the journal on disk is the
+  recovery path (extract the 'result' lines, hand a JSON file to a continuation script).
+
 ## 2026-10-02: DIRECTION CHANGE
 
 The user reviewed the core and said it is not a functional wrapper of jatatui and that the internals are not
