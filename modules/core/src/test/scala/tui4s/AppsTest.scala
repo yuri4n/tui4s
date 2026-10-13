@@ -140,9 +140,10 @@ class AppsTest extends RunnerSuite:
       }
     }
 
-    /* claude 2026-10-13: created (C4; the prototype's hooks test,
-     * Apps.test.scala */
-    // lines 62-81)
+    // claude 2026-10-13: created (C4; the prototype's hooks test,
+    // Apps.test.scala lines 62-81)
+    // claude 2026-10-13: changed (C4, review R1-6): the mark is one comment
+    // again (the format step had cut it in two)
     "hooks: top-level sequencing and runner-mounted components (state dropped when hidden)" in {
       for
           h  <- Headless.start(100, 30)(_ => apps.CounterHooks.app)

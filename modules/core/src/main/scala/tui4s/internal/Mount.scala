@@ -316,7 +316,7 @@ private[tui4s] final class Mount(
             }
           case _                  => w
 
-    /** Mounts a component node at `path` (C4).
+    /** Mounts a component node at `path`.
       *
       * A [[tui4s.Component]] (`ComponentSpec.Instance`): its state is the
       * `SignalRef` of `w.comps` under its path and its state key
@@ -345,6 +345,7 @@ private[tui4s] final class Mount(
     // claude 2026-10-13: changed (C4, review R2-5): a body that fails
     // claude 2026-10-13: changed (C4, review R2-4): `w.comps` is keyed by the
     // path and the state key
+    // claude 2026-10-13: changed (C4, review R1-5): no PR name in the Scaladoc
     private def mountComponent(
         spec: ComponentSpec,
         path: Loc,

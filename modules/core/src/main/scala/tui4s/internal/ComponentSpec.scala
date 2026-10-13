@@ -16,7 +16,11 @@ private[tui4s] object ComponentSpec:
     final case class Hook(identity: String, body: () => UI < (Async & Scope))
         extends ComponentSpec
 
-    /** A [[Component]] instance. Its state is keyed by position and class. */
+    /** A [[Component]] instance. Its state is keyed by its position and its
+      * state key (`Component.stateKey`, by default the class).
+      */
+    // claude 2026-10-13: changed (C4, review R1-5): the state key, not the
+    // class
     final case class Instance(component: Component) extends ComponentSpec
 
     // claude 2026-10-13: changed (C4): one comment again (the format step

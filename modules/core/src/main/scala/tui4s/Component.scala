@@ -56,17 +56,23 @@ abstract class Component:
 
     /** The key of this component's state at its position. The runner keeps the
       * state of a component under its position and this key: a component at the
-      * same position with the same key gets the same state, and a component
-      * with another key starts from `initial`. The default is the name of the
-      * class. So a component of another class at the same position does not get
-      * this state, and two instances of one class at one position share it (a
-      * parent that renders again builds new instances, and they keep the
-      * state). Override it when one class shows different things at one
-      * position, for example one state per user:
-      * `override protected def stateKey = s"user:$id"`.
+      * same position with the same key gets the same state (the mount goes on:
+      * `onMount` does not run again), and a component with another key starts
+      * from `initial`. The default is the name of the class. So a component of
+      * another class at the same position does not get this state, and two
+      * instances of one class at one position share it (a parent that renders
+      * again builds new instances, and they keep the state). Override it when
+      * one class shows different things at one position, for example one state
+      * per user:
+      * `override protected def stateKey = getClass.getName + ":" + id`. A
+      * custom key replaces the class name: keep the class name in it, or make
+      * sure that the classes that give one key at one position have the same
+      * `State` type (they then share the state and the mount).
       */
     // claude 2026-10-13: created (C4, FC-17, plan 0.2): the overridable state
     // key
+    // claude 2026-10-13: changed (C4, review R2-6, K1-X1): the Scaladoc: a
+    // custom key replaces the class name (the example keeps it)
     protected def stateKey: String = getClass.getName
 
     /** The kyo-ui node of this component. In another kyo-ui runner (DOM,
