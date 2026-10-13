@@ -106,8 +106,12 @@ object KyoUiSurface:
       "onClickSelfEvt",
       "onKeyDown",
       "onFocus",
+      "onFocusEvt",
       "onBlur",
+      "onBlurEvt",
     )
+    // claude 2026-10-13: changed (PR #13 review: Codex, Dispatch.scala:401,
+    // :204): the event forms of onFocus, onBlur and Form.onSubmit
 
     /** The members of the elements that `Dispatch` reads, by owner. */
     // claude 2026-10-13: created (C3)
@@ -118,7 +122,7 @@ object KyoUiSurface:
       "kyo.UI.Ast.BooleanInput" -> Set("checked", "onChange"),
       "kyo.UI.Ast.Select"       -> Set("value", "onChange", "children"),
       "kyo.UI.Ast.Opt"          -> Set("value"),
-      "kyo.UI.Ast.Form"         -> Set("onSubmit"),
+      "kyo.UI.Ast.Form"         -> Set("onSubmit", "onSubmitEvt"),
     )
 
     /** One surface line. The key is `(kind, name)`; `detail` is what may

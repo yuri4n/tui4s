@@ -276,6 +276,128 @@ class DispatchTest extends RunnerSuite:
           )
       end for
     }
+    // claude 2026-10-13: created the three leaves below (PR #13 review: Codex,
+    // Dispatch.scala:401, :204, :180): the event forms of the handlers and the
+    // click rule for a keyboard activation
+    "a focus move runs both forms of onBlur and onFocus, blur first (kyo-ui's Focus and Blur rules)" in {
+      for
+          log <- AtomicRef.init(Vector.empty[String])
+          h   <- Headless.start(30, 3)(_ =>
+                   div.style(_.row)(
+                     button("a")
+                       .id("a")
+                       .onFocus(log.updateAndGet(_ :+ "focus a"))
+                       .onFocus((e: MouseEvent) =>
+                         log.updateAndGet(
+                           _ :+ s"focusEvt a ${e.targetId.getOrElse("-")}",
+                         ),
+                       )
+                       .onBlur(log.updateAndGet(_ :+ "blur a"))
+                       .onBlur((e: MouseEvent) =>
+                         log.updateAndGet(
+                           _ :+ s"blurEvt a ${e.targetId.getOrElse("-")}",
+                         ),
+                       ),
+                     button("b")
+                       .id("b")
+                       .onFocus(log.updateAndGet(_ :+ "focus b"))
+                       .onFocus((e: MouseEvent) =>
+                         log.updateAndGet(
+                           _ :+ s"focusEvt b ${e.targetId.getOrElse("-")}",
+                         ),
+                       ),
+                   ),
+                 )
+          _   <- h.key(Keyboard.Tab)
+          l   <- log.get
+      yield assert(
+        l == Vector("blur a", "blurEvt a a", "focus b", "focusEvt b b"),
+        s"after Tab: $l",
+      )
+    }
+
+    "a submit runs both forms of onSubmit once: Enter or Space on a button (the click rule), Enter on an anchor and in a text input; Space on an anchor does not submit" in {
+      def run(key: Keyboard, child: UI)(using
+          Frame,
+      ): Vector[String] < (Async & Scope) =
+        for
+            log <- AtomicRef.init(Vector.empty[String])
+            h   <- Headless.start(40, 4)(_ =>
+                     form
+                       .onSubmit(log.updateAndGet(_ :+ "submit"))
+                       .onSubmit((_: MouseEvent) =>
+                         log.updateAndGet(_ :+ "submitEvt"),
+                       )(child),
+                   )
+            _   <- h.key(key)
+            l   <- log.get
+        yield l
+      for
+          draft    <- Signal.initRef("")
+          btnEnter <- run(Keyboard.Enter, button("go"))
+          btnSpace <- run(Keyboard.Space, button("go"))
+          anchor   <- run(Keyboard.Enter, a("go"))
+          text     <- run(Keyboard.Enter, input.value(draft))
+          anchorSp <- run(Keyboard.Space, a("go"))
+      yield
+          val both = Vector("submit", "submitEvt")
+          assert(
+            btnEnter == both && btnSpace == both && anchor == both && text == both && anchorSp.isEmpty,
+            s"button Enter: $btnEnter; button Space: $btnSpace; anchor Enter: $anchor; text Enter: $text; anchor Space: $anchorSp",
+          )
+      end for
+    }
+
+    "Enter on a button is a click that bubbles: the self forms on the target, then onClick and its event form on each ancestor, until stopPropagation" in {
+      def run(stopAt: String)(using Frame): Vector[String] < (Async & Scope) =
+        for
+            log <- AtomicRef.init(Vector.empty[String])
+            h   <- Headless.start(30, 3)(_ =>
+                     div
+                       .onClick(log.updateAndGet(_ :+ "outer"))
+                       .onClick((_: MouseEvent) =>
+                         log.updateAndGet(_ :+ "outerEvt"),
+                       )(
+                         div
+                           .onClick(log.updateAndGet(_ :+ "inner"))
+                           .onClickSelf(log.updateAndGet(_ :+ "inner self"))
+                           .stopPropagation(stopAt == "inner")(
+                             button("b")
+                               .onClickSelf(log.updateAndGet(_ :+ "self"))
+                               .onClickSelf((_: MouseEvent) =>
+                                 log.updateAndGet(_ :+ "selfEvt"),
+                               )
+                               .onClick((_: MouseEvent) =>
+                                 log.updateAndGet(_ :+ "evt"),
+                               )
+                               .onClick(log.updateAndGet(_ :+ "click"))
+                               .stopPropagation(stopAt == "button"),
+                           ),
+                       ),
+                   )
+            _   <- h.key(Keyboard.Enter)
+            l   <- log.get
+        yield l
+      for
+          all      <- run(stopAt = "none")
+          atInner  <- run(stopAt = "inner")
+          atButton <- run(stopAt = "button")
+      yield assert(
+        all == Vector(
+          "self",
+          "selfEvt",
+          "evt",
+          "click",
+          "inner",
+          "outerEvt",
+          "outer",
+        )
+          && atInner == Vector("self", "selfEvt", "evt", "click", "inner")
+          && atButton == Vector("self", "selfEvt", "evt", "click"),
+        s"no stop: $all; stop at the inner div: $atInner; stop at the button: $atButton",
+      )
+      end for
+    }
 end DispatchTest
 
 /** A Kyo log backend that keeps the lines at level error (with the message of

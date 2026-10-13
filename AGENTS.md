@@ -29,8 +29,11 @@ and each change gives one frame (`tui4s.internal.Runner`). Keys reach the UI
 (`tui4s.internal.Dispatch`): `onKeyDown` handlers bubble from the focused
 element up to the root (`stopPropagation` stops them); Tab and Shift-Tab move
 the focus, also inside a focus trap, and the arrows move it inside a focus
-group; Enter and Space press a button, toggle a checkbox or a radio and cycle
-a select; Enter in a form submits it; a text input edits by grapheme clusters
+group; Enter and Space press a button (a click that bubbles to the ancestors'
+`onClick` and submits the button's form, as in a browser), toggle a checkbox
+or a radio and cycle a select; Enter in a form submits it; a handler in its
+event form (`onClick(e => ...)`, `onFocus(e => ...)`, `onSubmit(e => ...)`)
+runs as its action form does; a text input edits by grapheme clusters
 (Ctrl-A, E, U, K, W too); a bracketed paste is one edit; Ctrl-C and
 `tui4s.Tui.quit` end the run. `tui4s.Tui.run` runs a UI in the real
 terminal: it enters raw mode and the alternate screen (`internal.TerminalIO`,
@@ -44,6 +47,7 @@ backend, and the release restores the terminal in every way that a run ends
 request.
 <!-- claude 2026-10-12: changed these lines: signals drive the screen; the headless kit (C2) -->
 <!-- claude 2026-10-13: changed these lines: keys reach the UI; the key methods of the kit (C3) -->
+<!-- claude 2026-10-13: changed the button and the event-form sentences (PR #13 review: Codex, Dispatch.scala:180, :204, :401) -->
 <!-- claude 2026-10-13: changed these lines: Tui.run in the real terminal (T1) -->
 
 ## Toolchain

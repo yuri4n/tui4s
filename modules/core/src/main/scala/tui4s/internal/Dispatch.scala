@@ -5,6 +5,7 @@ package tui4s.internal
 import kyo.*
 import kyo.UI.Keyboard
 import kyo.UI.KeyboardEvent
+import kyo.UI.Modifiers
 import kyo.UI.MouseEvent
 import kyo.UI.Ast.*
 
@@ -18,8 +19,15 @@ import kyo.UI.Ast.*
   *      the focus (inside a `focusTrap` if any), ArrowLeft / ArrowRight move it
   *      inside a `focusGroup`, a text input edits its value (the bound
   *      `SignalRef` is written BEFORE `onInput`), Enter / Space activate a
-  *      button or link (`onClick`), toggle a checkbox or radio (`onChange`),
-  *      cycle a select; Enter inside a `form` runs `onSubmit`.
+  *      button or link (a click that bubbles: kyo-ui's Click rule, see
+  *      [[activateClick]]), toggle a checkbox or radio (`onChange`), cycle a
+  *      select; Enter inside a `form` runs `onSubmit`.
+  *
+  * A handler that kyo-ui offers in two forms (an action, or a function of the
+  * event: `onClick`, `onClickSelf`, `onFocus`, `onBlur`, `onSubmit`) runs in
+  * both forms, the action first, as kyo-ui's Click, Focus and Blur rules do.
+  * The event is a `MouseEvent` with the key's modifiers (a focus move: none)
+  * and the target's `id`.
   *
   * Handlers run on the runner fiber, one event at a time. A handler that fails
   * is logged and the event goes on.
@@ -171,13 +179,18 @@ private[tui4s] final class Dispatch(
             el match
                 case Some(e) if focused && !Props.isDisabled(e) =>
                   val form                  = ch.collectFirst { case (_, f: Form) => f }
+                  // claude 2026-10-13: changed (PR #13 review: Codex,
+                  // Dispatch.scala:180, :204): a button's Enter submits
+                  // through its click (the Click rule), not here too
                   val submit                = form.filter(_ =>
-                    isKey(ev, Keyboard.Enter) && !e.isInstanceOf[Select],
+                    isKey(ev, Keyboard.Enter) && !e.isInstanceOf[Select] &&
+                      !e.isInstanceOf[Button],
                   )
                   val action: World < Async = e match
                       case ti: TextInput                        => editText(w, target, ti, ev)
                       case b: (Button | Anchor) if activate(ev) =>
-                        click(b, ev).andThen(w)
+                        activateClick(ch, target, b.isInstanceOf[Button], ev)
+                          .andThen(w)
                       case bi: BooleanInput if activate(ev)     =>
                         toggle(w, target, bi)
                       case s: Select
@@ -200,23 +213,73 @@ private[tui4s] final class Dispatch(
                       case _                                    => w
                   action.map(w1 =>
                     submit.fold(Kyo.lift(w1))(f =>
-                      safe("onSubmit", run(f.onSubmit)).andThen(w1),
+                      submitForm(f, MouseEvent(ev.targetId, ev.modifiers))
+                        .andThen(w1),
                     ),
                   )
                 case _                                          => w
         end if
     end defaults
 
-    private def click(e: Element, ev: KeyboardEvent)(using
+    /** A keyboard activation (Enter or Space) of a button or an anchor is a
+      * click: it runs kyo-ui's Click rule over the chain, innermost first. On
+      * the target: `onClickSelf` and its event form. On each element: the event
+      * form of `onClick`, then `onClick`. A click of a Button that reaches a
+      * Form submits it (`submits`; kyo-ui: "Only Button clicks submit forms",
+      * so an Anchor's Enter submits through the key rule instead). The bubbling
+      * stops after an element that declared a click handler (the self forms
+      * count on the target only) and has `stopPropagation`. kyo-ui's keydown
+      * rule runs only the target's `onClick`, but in a browser the Enter or
+      * Space on a button IS a click, and a terminal has no other click.
+      */
+    // claude 2026-10-13: changed (PR #13 review: Codex, Dispatch.scala:180):
+    // the click bubbles, as kyo-ui's Click rule does; it replaces `click`
+    private def activateClick(
+        ch: List[(Loc, Element)],
+        target: Loc,
+        submits: Boolean,
+        ev: KeyboardEvent,
+    )(using Frame): Unit < Async =
+        val mouse                                        = MouseEvent(ev.targetId, ev.modifiers)
+        def go(rest: List[(Loc, Element)]): Unit < Async =
+          rest match
+              case Nil            => Kyo.unit
+              case (p, e) :: tail =>
+                val a        = e.attrs
+                val isTarget = p == target
+                val self     =
+                  if isTarget then
+                      safe("onClickSelf", run(a.onClickSelf)).andThen(
+                        safe("onClickSelf", runWith(a.onClickSelfEvt, mouse)),
+                      )
+                  else Kyo.unit
+                val submit   = e match
+                    case f: Form if submits && !isTarget => submitForm(f, mouse)
+                    case _                               => Kyo.unit
+                val declared = a.onClick.nonEmpty || a.onClickEvt.nonEmpty ||
+                  (isTarget && (a.onClickSelf.nonEmpty || a.onClickSelfEvt.nonEmpty))
+                self
+                  .andThen(safe("onClick", runWith(a.onClickEvt, mouse)))
+                  .andThen(safe("onClick", run(a.onClick)))
+                  .andThen(submit)
+                  .andThen(
+                    if declared && a.stopPropagation.getOrElse(false) then
+                        Kyo.unit
+                    else go(tail),
+                  )
+        go(ch)
+    end activateClick
+
+    /** A submit of the form `f`: `onSubmit`, then its event form. kyo-ui's
+      * Click rule runs both; its keydown rule runs only the action, but in a
+      * browser an Enter in a form is a submit event, which has both.
+      */
+    // claude 2026-10-13: created (PR #13 review: Codex, Dispatch.scala:204)
+    private def submitForm(f: Form, mouse: MouseEvent)(using
         Frame,
     ): Unit < Async =
-        val mouse = MouseEvent(ev.targetId, ev.modifiers)
-        val a     = e.attrs
-        safe("onClickSelf", run(a.onClickSelf))
-          .andThen(safe("onClickSelf", runWith(a.onClickSelfEvt, mouse)))
-          .andThen(safe("onClick", runWith(a.onClickEvt, mouse)))
-          .andThen(safe("onClick", run(a.onClick)))
-    end click
+      safe("onSubmit", run(f.onSubmit))
+        .andThen(safe("onSubmit", runWith(f.onSubmitEvt, mouse)))
 
     // ---- text inputs ----
 
@@ -393,12 +456,23 @@ private[tui4s] final class Dispatch(
             p.flatMap(w.laid.nodes.get).map(_.kind).collect { case Kind.El(e) =>
               e
             }
+          // claude 2026-10-13: changed (PR #13 review: Codex,
+          // Dispatch.scala:401): both forms of onBlur and onFocus, as kyo-ui's
+          // Focus and Blur rules; the event has no modifiers (a focus move)
+          def mouseOf(e: Element): MouseEvent     =
+            MouseEvent(e.attrs.identifier, Modifiers.none)
           val blur                                = if runHandlers then
-              el(old).fold(Kyo.unit)(e => safe("onBlur", run(e.attrs.onBlur)))
+              el(old).fold(Kyo.unit)(e =>
+                safe("onBlur", run(e.attrs.onBlur)).andThen(
+                  safe("onBlur", runWith(e.attrs.onBlurEvt, mouseOf(e))),
+                ),
+              )
           else Kyo.unit
           val focus                               = if runHandlers then
               el(next).fold(Kyo.unit)(e =>
-                safe("onFocus", run(e.attrs.onFocus)),
+                safe("onFocus", run(e.attrs.onFocus)).andThen(
+                  safe("onFocus", runWith(e.attrs.onFocusEvt, mouseOf(e))),
+                ),
               )
           else Kyo.unit
           val w1                                  = w.copy(focus = next)
