@@ -66,6 +66,16 @@ sealed.
 <!-- claude 2026-10-13: changed the button and the event-form sentences (PR #13 review: Codex, Dispatch.scala:180, :204, :401) -->
 <!-- claude 2026-10-13: changed these lines: Tui.run in the real terminal (T1) -->
 <!-- claude 2026-10-13: changed these lines: the two component styles, the state key, `when`, the pending frame (C4) -->
+`tui4s.TuiApp` is the main class of an app (`object App extends TuiApp` with
+`def ui`, and `options`, `args`, `onExit`): its constructor sets the tui4s
+scheduler values (`tui4s.spi.SchedulerDefaults`) and installs the output
+capture before the app's own code, and its `main` runs `ui` with `Tui.run`.
+The exit code is 0 after a quit (also the key Ctrl-C) and 1 after a failure
+(printed after the restore); on `kill -TERM`, `kill -INT` or a `System.exit`,
+a shutdown hook interrupts the run and waits at most 2 s for the restore, and
+the JVM exits with its own code (143, 130). The examples (`examples/`) are
+`TuiApp`s, one per package, each with a munit suite on `Headless`.
+<!-- claude 2026-10-13: created these lines (T2, RC-24, OS-47 part): TuiApp and the examples -->
 
 ## Toolchain
 
@@ -95,7 +105,7 @@ sealed.
 | `sbt versions`                       | Shows the version of each module (released or snapshot).      |
 | `sbt core/test`                      | Runs the tests of one module. The core tests use kyo-test.    |
 | `sbt examples/launchers`             | Writes a start script per example: `examples/target/bin/<package>`. |
-| `examples/target/bin/counter`        | Runs the Counter example in the real terminal (its own JVM).  |
+| `examples/target/bin/<app>`          | Runs an example in the real terminal (its own JVM): `counter`, `counterkyo`, `twocounters`, `counterstyles`, `todo`, `dashboard`, `printing`. |
 | `examples/ptycheck/run.sh`           | Runs the real-terminal checklist in a pseudo-terminal (CI job `terminal`). |
 
 <!-- claude 2026-10-13: changed (T1): the launchers and the PTY kit replace `sbt "examples/runMain <main>"` -->
@@ -103,9 +113,11 @@ sealed.
 <!-- claude 2026-10-09: changed: also run the version order test before each push -->
 Run `sbt fmt`, `sbt check` and `bash scripts/version-order-test.sh` before each
 push. After a change to the terminal code (`TerminalIO`, `Crossterm`,
-`Session`, `EventMapping`, `OutputCapture`, `Tui.run`, the examples), also run
-`examples/ptycheck/run.sh` (it needs `expect` and `python3`).
+`Session`, `EventMapping`, `OutputCapture`, `Tui.run`, `TuiApp`, the
+examples), also run `examples/ptycheck/run.sh` (it needs `expect`, `python3`
+and JDK 25 in `JAVA_HOME`, or `java` on `PATH` when `JAVA_HOME` is not set).
 <!-- claude 2026-10-13: changed (T1): run the PTY kit after a terminal change -->
+<!-- claude 2026-10-13: changed (T2): TuiApp; the JDK of the kit -->
 
 Never start a terminal UI with `sbt run` or `sbt runMain`: sbt also reads the
 keyboard, so keys are lost, and the forked JVM gets no terminal on stdin (the
@@ -132,12 +144,15 @@ tests then allow 1 split frame).
   corrupts the screen. Send logs to a file. `Tui.run` binds its own Kyo
   logger (`internal.TuiLog`, to `TuiOptions.logFile` or to memory) and
   captures `System.out` and `System.err` (`internal.OutputCapture`); what it
-  kept is printed after the restore. The core main sources have no
+  kept is printed after the restore. A `TuiApp` installs the capture in its
+  constructor, before the first use of `scala.Console`, so Scala's `println`
+  is captured too. The core main sources have no
   `System.err` and no `println` except the log sink, the output forwarders
   and the prints after the restore, each with a `// tui4s: allowed` comment:
   `grep -rnE 'System\.err|System\.out|println' modules/core/src/main` shows
   only comment lines and lines with that marker.
   <!-- claude 2026-10-13: changed (T1): the run's logger, the capture, the marker rule -->
+  <!-- claude 2026-10-13: changed (T2): TuiApp installs the capture -->
 - Do not put `com.olvind.tui` (tui-scala) on the classpath. Its `crossterm`
   jar has the same `tui.crossterm` package as the jatatui `crossterm` jar.
 - Do all drawing on one fiber. jatatui buffers, cells and widget states are
@@ -238,13 +253,24 @@ tests then allow 1 split frame).
   `kyo.scheduler.regulator.concurrencyCollectIntervalMs=100`. Without them the
   runner gives more split frames under load (spike S1). The start scripts of
   the examples give a real app the same values as JVM flags
-  (`examples / run / javaOptions` in `build.sbt`); `TuiApp`, in a later pull
-  request, sets them in code (`tui4s.spi.SchedulerDefaults`).
+  (`examples / run / javaOptions` in `build.sbt`); `TuiApp` sets them in code
+  (`tui4s.spi.SchedulerDefaults.applyIfUnset`, first in its constructor: Kyo
+  reads them once, when its scheduler starts). An app with a main of its own
+  gives them as JVM flags.
   <!-- claude 2026-10-13: changed (T1, D-17 c): the start scripts -->
+  <!-- claude 2026-10-13: changed (T2, RC-25): TuiApp sets them in code -->
   The settle canary (SettleTest) needs a
   second Kyo worker: on a 2-CPU JVM under load the scheduler keeps one, so
   the canary cancels itself there (the report says `cancelled`, not passed).
   <!-- claude 2026-10-12: created this item (D-17 c); changed: the canary on 2 CPUs -->
+- When the JVM stops a `TuiApp` (SIGTERM, SIGINT, `System.exit`), its shutdown
+  hook `tui4s-stop` interrupts the run and waits at most 2 s until the
+  terminal is restored; the restore hook of the session can end the run first
+  (a closed inbox is a quit). In both cases `main` prints nothing and `onExit`
+  does not run (`internal.Hooks.shuttingDown`), so no output races with the
+  exit of the JVM. `TuiAppTest` models the hooks with `FakeHooks`; the PTY kit
+  checks the real signals.
+  <!-- claude 2026-10-13: created this item (T2, RC-24, D-24 a) -->
 - Never join the run fiber from an interruptible wait. A join makes the
   caller's interrupt wait for the run, and a run that waits for the caller is
   a deadlock. Poll `done` with a bounded wait instead (`Headless.awaitEnd`).

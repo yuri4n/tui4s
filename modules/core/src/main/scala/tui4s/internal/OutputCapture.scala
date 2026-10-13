@@ -15,9 +15,9 @@ import java.nio.charset.Charset
   * `scala.Console.out`, which keeps the stream that `System.out` was when
   * `scala.Console` first loaded, so the installation also loads
   * `scala.Console`. A main that calls [[install]] before its code uses
-  * `scala.Console` gets `println` always captured (`TuiApp` will do this in its
-  * constructor, in a later version); with `Tui.run` alone it is captured when
-  * nothing used `scala.Console` before the first run.
+  * `scala.Console` gets `println` always captured (`TuiApp` does this in its
+  * constructor); with `Tui.run` alone it is captured when nothing used
+  * `scala.Console` before the first run.
   */
 // claude 2026-10-13: changed (T1): a 'tui4s: allowed' marker at each use of
 // System.out and System.err: the forwarders replace and restore them, by
@@ -25,6 +25,7 @@ import java.nio.charset.Charset
 // request T1)
 // claude 2026-10-13: changed (T1, review R1-3): the Scaladoc names install,
 // not TuiApp (it comes later), and no SPEC section
+// claude 2026-10-13: changed (T2): TuiApp calls install
 private[tui4s] object OutputCapture:
     private var originalOut: PrintStream | Null = null
     private var originalErr: PrintStream | Null = null
