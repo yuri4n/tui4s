@@ -113,13 +113,13 @@ final class FakeCrossterm(
         if failAt == "draw" then FailingDraw(backendT) else backendT
 end FakeCrossterm
 
-/** `underlying`, whose draw fails with an `IOException` (a terminal that went
-  * away).
+/** A backend that forwards every call to `underlying`; a test overrides the
+  * calls that it wants to change.
   */
 // claude 2026-10-13: created (T1)
-final class FailingDraw(underlying: TestBackend) extends Backend:
+open class Delegating(underlying: TestBackend) extends Backend:
     def draw(content: java.lang.Iterable[BufferUpdate]): Unit    =
-      throw java.io.IOException("broken pipe")
+      underlying.draw(content)
     def hideCursor(): Unit                                       = underlying.hideCursor()
     def showCursor(): Unit                                       = underlying.showCursor()
     def getCursorPosition(): Position                            = underlying.getCursorPosition()
@@ -135,7 +135,15 @@ final class FailingDraw(underlying: TestBackend) extends Backend:
       underlying.scrollRegionUp(start, end, lines)
     def scrollRegionDown(start: Int, end: Int, lines: Int): Unit =
       underlying.scrollRegionDown(start, end, lines)
-end FailingDraw
+end Delegating
+
+/** `underlying`, whose draw fails with an `IOException` (a terminal that went
+  * away).
+  */
+// claude 2026-10-13: created (T1)
+final class FailingDraw(underlying: TestBackend) extends Delegating(underlying):
+    override def draw(content: java.lang.Iterable[BufferUpdate]): Unit =
+      throw java.io.IOException("broken pipe")
 
 /** Shutdown hooks that are recorded, not registered with the JVM. */
 final class FakeHooks(log: ConcurrentLinkedQueue[String]) extends Hooks:

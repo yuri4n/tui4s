@@ -72,19 +72,24 @@ private[tui4s] final class Session private (
         val t = thread
         if t == null then null else t.failure
 
-    /** The release: stop the input thread and close the inbox (a put that waits
-      * for room ends, so the thread is released, and the runner ends at its
-      * next take), join the thread, then leave the terminal modes. Synchronous,
-      * idempotent, never throws; every step runs even if an earlier one failed.
-      * An interrupt of the calling thread does not cut the release short: the
-      * interrupt flag is set again after the last step. A second caller (the
-      * shutdown hook and the run's own release) waits until the first one is
-      * done.
+    /** The release: close the canvas (it waits for a draw in progress, and the
+      * runner draws nothing after it), stop the input thread and close the
+      * inbox (a put that waits for room ends, so the thread is released, and
+      * the runner ends at its next take), join the thread, then leave the
+      * terminal modes. Synchronous, idempotent, never throws; every step runs
+      * even if an earlier one failed. An interrupt of the calling thread does
+      * not cut the release short: the interrupt flag is set again after the
+      * last step. A second caller (the shutdown hook and the run's own release)
+      * waits until the first one is done.
       */
     // claude 2026-10-13: changed (T1): the inbox of the runner; the join waits
     // for two poll intervals
     def close()(using AllowUnsafe, Frame): Unit = synchronized {
       if closed.compareAndSet(false, true) then
+          // claude 2026-10-13: created (T1, the bot fix of the review thread
+          // CountingBackend.scala:33): a release during a draw (the shutdown
+          // hook) waits for it, and no frame comes after the restore
+          safely(canvas.close())
           if thread != null then safely(thread.requestStop())
           safely(Session.closeInbox(inbox))
           if thread != null then

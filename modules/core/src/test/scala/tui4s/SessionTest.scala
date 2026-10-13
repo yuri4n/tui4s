@@ -187,4 +187,71 @@ class SessionTest extends Test[Any]:
           }
       }
     }
+    // claude 2026-10-13: created (T1, the bot fix of the review thread
+    // CountingBackend.scala:33 of PR 5): the shutdown hook can release while
+    // the runner draws a frame
+    "the release waits for a draw in progress, and a draw after the release writes nothing"
+      .timeout(30.seconds) in {
+      val log                  = java.util.concurrent.ConcurrentLinkedQueue[String]()
+      val started              = java.util.concurrent.CountDownLatch(1)
+      val go                   = java.util.concurrent.CountDownLatch(1)
+      def add(s: String): Unit =
+          val _ = log.add(s)
+      // A draw that waits until the test lets it end.
+      val slow                 = new Delegating(jatatui.core.backend.TestBackend(10, 2)):
+          override def draw(
+              content: java.lang.Iterable[jatatui.core.buffer.BufferUpdate],
+          ): Unit =
+              add("draw-start")
+              started.countDown()
+              val _ = go.await(10, java.util.concurrent.TimeUnit.SECONDS)
+              super.draw(content)
+              add("draw-end")
+          end draw
+      val control              = new tui4s.internal.TerminalControl:
+          def enter(opts: TuiOptions): jatatui.core.backend.Backend = slow
+          def leave(opts: TuiOptions): Unit                         = add("leave")
+      val screen               = tui4s.internal.Rect(0, 0, 10, 2)
+      val style                = jatatui.core.style.Style.empty()
+      inbox(16).map { box =>
+        Session.open(TuiOptions(), control, None, box).map {
+          case Left(e)        => assert(false, s"open failed: $e")
+          case Right(session) =>
+            Sync
+              .defer {
+                import AllowUnsafe.embrace.danger
+                val drawer = Thread { () =>
+                  session.canvas.put(0, 0, "x", style, screen)
+                  discard(session.canvas.flush(Vector(screen)))
+                }
+                drawer.start()
+                val _      = started.await(10, java.util.concurrent.TimeUnit.SECONDS)
+                // The release from another thread, as the shutdown hook does,
+                // while the frame is drawn.
+                val closer = Thread(() => session.close())
+                closer.start()
+                Thread.sleep(300)
+                go.countDown()
+                drawer.join(10000)
+                closer.join(10000)
+                // A frame after the release.
+                session.canvas.put(1, 0, "y", style, screen)
+                discard(session.canvas.flush(Vector(screen)))
+                scala.jdk.CollectionConverters
+                  .IteratorHasAsScala(log.iterator())
+                  .asScala
+                  .toVector
+              }
+              .map(events =>
+                assert(
+                  events == Seq("draw-start", "draw-end", "leave"),
+                  events.mkString(", "),
+                ),
+              )
+        }
+      }
+    }
+
+    private def discard(a: Any): Unit =
+        val _ = a
 end SessionTest

@@ -32,7 +32,23 @@ private[tui4s] final class Canvas private (
 ):
     private var writes = 0
 
+    // claude 2026-10-13: created (T1, the bot fix of the review thread
+    // CountingBackend.scala:33 of PR 5): set by `close`, read and written only
+    // under the backend's monitor
+    private var closed = false
+
     def size: Size = Size(back.area.width, back.area.height)
+
+    /** Stops all output, for the release of the terminal: after it, `flush` and
+      * `resize` do not touch the backend. It takes the backend's monitor, which
+      * a flush holds while it draws: so it waits for a draw in progress, and
+      * the release (also from the JVM shutdown hook, on another thread)
+      * restores the terminal only after the last frame has ended. Idempotent.
+      */
+    // claude 2026-10-13: created (T1, the bot fix of the review thread
+    // CountingBackend.scala:33: the close() guard of PR 5 CountingBackend, and
+    // the wait for a draw in progress)
+    def close(): Unit = backend.synchronized { closed = true }
 
     /** Cell writes since the last call (the "cells repainted" measure). */
     def takeWrites(): Int =
@@ -48,15 +64,18 @@ private[tui4s] final class Canvas private (
     /* claude 2026-10-12: changed (review R2-4): the TestBackend is resized
      * here; */
     // changed (PR #11 review: Codex, Headless.scala:88): under the monitor
+    // claude 2026-10-13: changed (T1, bot fix CountingBackend.scala:33): no
+    // backend call after `close`
     def resize(s: Size): Unit =
       backend.synchronized {
-        backend match
-            case tb: TestBackend => tb.resize(s.w, s.h)
-            case _               => ()
+        if !closed then
+            backend match
+                case tb: TestBackend => tb.resize(s.w, s.h)
+                case _               => ()
         back = Buffer.empty(JRect.of(0, 0, s.w, s.h))
         front = Buffer.empty(JRect.of(0, 0, s.w, s.h))
         // claude 2026-10-13: changed (T1): a failed write is TerminalIO
-        Canvas.terminalIO(backend.clear())
+        if !closed then Canvas.terminalIO(backend.clear())
       }
 
     private def inside(x: Int, y: Int): Boolean =
@@ -140,26 +159,32 @@ private[tui4s] final class Canvas private (
              * Headless.scala:88): the */
             // backend's monitor makes the flush one step for a reader of a
             // `TestBackend` (the headless kit reads under the same monitor), so
-            // a screen is never a torn frame. The terminal backend has no
-            // other holder of the monitor. With the test seam, the draw goes
-            // one row at a time with a spin between the rows.
+            // a screen is never a torn frame. On the terminal backend, the
+            // other holder of the monitor is `close` (the release). With the
+            // test seam, the draw goes one row at a time with a spin between
+            // the rows.
             backend.synchronized {
               // claude 2026-10-13: changed (T1): a write to the terminal that
-              // fails is TuiError.TerminalIO (the run fails with it)
-              Canvas.terminalIO {
-                if flushSeamNanos <= 0L then backend.draw(updates.asJava)
-                else
-                    updates.grouped(back.area.width.max(1)).foreach { chunk =>
-                      backend.draw(chunk.asJava)
-                      val t0 = java.lang.System.nanoTime()
-                      while java.lang.System.nanoTime() - t0 < flushSeamNanos
-                      do
-                          (
-                      )
-                    }
-                end if
-                backend.flush()
-              }
+              // fails is TuiError.TerminalIO (the run fails with it); after
+              // `close` (the release) nothing is drawn (bot fix
+              // CountingBackend.scala:33)
+              if !closed then
+                  Canvas.terminalIO {
+                    if flushSeamNanos <= 0L then backend.draw(updates.asJava)
+                    else
+                        updates.grouped(back.area.width.max(1)).foreach {
+                          chunk =>
+                            backend.draw(chunk.asJava)
+                            val t0 = java.lang.System.nanoTime()
+                            while java.lang.System
+                                  .nanoTime() - t0 < flushSeamNanos
+                            do
+                                (
+                            )
+                        }
+                    end if
+                    backend.flush()
+                  }
             }
         end if
         updates.size
