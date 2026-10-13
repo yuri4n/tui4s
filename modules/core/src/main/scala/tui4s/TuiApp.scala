@@ -1,51 +1,97 @@
 package tui4s
 
-// `_root_`: see Source.scala (package tui4s and its exported dsl).
-import _root_.java.io.PrintStream
-import _root_.java.util.concurrent.CountDownLatch
-import _root_.java.util.concurrent.TimeUnit
-import _root_.kyo.*
-import _root_.scala.annotation.unused
-import _root_.tui4s.internal.Crossterm
-import _root_.tui4s.internal.Hooks
-import _root_.tui4s.internal.NativeCrossterm
-import _root_.tui4s.internal.OutputCapture
-import _root_.tui4s.internal.TuiRun
-import _root_.tui4s.internal.discard
-import _root_.tui4s.spi.SchedulerDefaults
+import java.io.PrintStream
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kyo.*
+import tui4s.internal.Crossterm
+import tui4s.internal.Hooks
+import tui4s.internal.NativeCrossterm
+import tui4s.internal.OutputCapture
+import tui4s.internal.discard
+import tui4s.spi.SchedulerDefaults
 
-/** A main class for a Kyo app: `object CounterApp extends TuiApp[Int]`. Its
-  * `main` runs the app in the real terminal with [[Tui.run]].
+/** The main class of a tui4s app: `object CounterApp extends TuiApp`. Its
+  * `main` runs [[ui]] in the real terminal with [[Tui.run]] and [[options]],
+  * then [[onExit]], and gives an exit code that says how the run ended.
   *
-  * The constructor runs before the app's own fields, and it prepares the JVM:
-  * it sets the Kyo scheduler settings of [[spi.SchedulerDefaults]] that the
-  * user did not set (less idle CPU; `-Dtui4s.schedulerDefaults=false` turns
-  * this off), and it installs the streams that capture `System.out` and
-  * `System.err` while the UI is up (see [[TuiOptions.captureOutput]]).
+  * {{{
+  * object CounterApp extends TuiApp:
+  *     def ui: UI < (Async & Scope) =
+  *       for count <- Hooks.useSignal(0)
+  *       yield div.onKeyDown {
+  *         case KeyboardEvent(Keyboard.Char('q'), _, _) => Tui.quit
+  *         case _                                       => ()
+  *       }(span("Count: ", count.map(_.toString)))
+  * }}}
   *
-  * Start the JVM with `--enable-native-access=ALL-UNNAMED`.
+  * The constructor runs before the fields of the app, and it prepares the JVM:
+  * it sets the Kyo scheduler values of [[spi.SchedulerDefaults]] that the user
+  * did not set (Kyo reads them once, when its scheduler starts; with them the
+  * runner gives fewer split frames under load and uses less CPU when the app is
+  * idle; `-Dtui4s.schedulerDefaults=false` turns this off), and it installs the
+  * streams that capture `System.out`, `System.err` and Scala's `println` while
+  * the UI is up (see [[TuiOptions.captureOutput]]). A main of its own (a
+  * `KyoApp` that calls `Tui.run`) gives the scheduler values as JVM flags.
   *
-  * @tparam S
-  *   the state of the app
+  * The exit code:
+  *   - 0: the run ended with a quit ([[Tui.quit]], or the key Ctrl-C with
+  *     `TuiOptions.ctrlCQuits`; in raw mode Ctrl-C is a key, not a signal) and
+  *     [[onExit]] did not fail.
+  *   - 1: the run or `onExit` failed. The error is printed to the real stderr
+  *     after the terminal is restored: the message of a [[TuiError]] and its
+  *     cause (when stdin is not a terminal: "stdin/stdout is not a terminal",
+  *     before the terminal changes), "interrupted" for an interrupt, the stack
+  *     trace of any other error.
+  *   - 143 (`kill -TERM`), 130 (`kill -INT`), or the code of a `System.exit`
+  *     while the UI is up: the JVM stops the app. A shutdown hook interrupts
+  *     the run and waits at most 2 s until the terminal is restored; then the
+  *     JVM exits with its own code (128 + the signal). `main` prints nothing
+  *     then, and `onExit` does not run.
+  *
+  * Start the JVM with `--enable-native-access=ALL-UNNAMED` (the terminal
+  * library crossterm is native).
   */
-abstract class TuiApp[S] extends App[S]:
+// claude 2026-10-13: changed (T2, RC-24): a main class for a kyo-ui app (PR 5
+// had `TuiApp[S] extends App[S]` of the old model): `ui`, `options`, `args`,
+// `onExit` without a state, the run through `Tui.runWith`; the Scaladoc
+abstract class TuiApp:
     SchedulerDefaults.applyIfUnset()
     OutputCapture.install()
 
     @volatile private var arguments: Seq[String] = Nil
 
-    /** Runs the app in the terminal until it quits, then [[onExit]] with the
-      * last state. On a failure it prints the error to stderr after the
-      * terminal is restored and exits with code 1; when stdin is not a terminal
-      * it prints "stdin/stdout is not a terminal". SIGTERM and Ctrl-C from
-      * outside (`kill -INT`) stop the app and restore the terminal; the JVM
-      * then exits with 143 or 130 (128 + the signal), as other JVM programs do.
+    /** The UI of the app. [[Tui.quit]] ends the run: an app whose UI is a
+      * function of the quit value (as [[Tui.run]] gives it) passes `Tui.quit`
+      * to it. It runs once, when the run starts; [[args]] is set then. A
+      * `Scope.ensure` inside it runs at the end of the run, before the terminal
+      * is restored.
       */
+    // claude 2026-10-13: created (T2, RC-24)
+    def ui: UI < (Async & Scope)
+
+    /** The options of the run (the default: `TuiOptions()`). Read once, when
+      * the run starts; [[args]] is set then.
+      */
+    // claude 2026-10-13: created (T2, RC-24)
+    def options: TuiOptions = TuiOptions()
+
+    /** Runs the app in the terminal until it quits, then [[onExit]], and exits
+      * with the code that the class Scaladoc gives (it returns for code 0).
+      */
+    // claude 2026-10-13: changed (T2, RC-24): the Scaladoc (the class has the
+    // exit codes)
     final def main(args: Array[String]): Unit =
         val code = runMain(args, NativeCrossterm(), Hooks.runtime)
         if code != 0 then java.lang.System.exit(code)
 
-    /** [[main]] without the exit: returns the exit code. */
+    /** [[main]] without the exit: returns the exit code (1 when the JVM stops
+      * the app; the JVM then exits with its own code). The test seam: the
+      * terminal of `crossterm`, the shutdown hooks `hooks`, the stderr `err`.
+      */
+    // claude 2026-10-13: changed (T2, RC-24): the run through Tui.runWith (its
+    // `restored` seam counts the latch down); no onExit and no print when the
+    // JVM shuts down (a restore hook that ran first ends the run as a quit)
     private[tui4s] final def runMain(
         args: Array[String],
         crossterm: Crossterm,
@@ -55,23 +101,32 @@ abstract class TuiApp[S] extends App[S]:
         SchedulerDefaults.applyIfUnset()
         arguments = args.toSeq
         val restored = CountDownLatch(1)
-        val run      = TuiRun
-          .run(this, crossterm, hooks, () => err, () => restored.countDown())
-          .map(s => onExit(s).andThen(s))
-        TuiApp.report(TuiApp.block(run, hooks, restored), err)
+        val run      = Tui
+          .runWith(
+            options,
+            crossterm,
+            hooks,
+            () => err,
+            () => restored.countDown(),
+          )(_ => ui)
+          .andThen(Sync.defer(hooks.shuttingDown))
+          .map(stopping => if stopping then Kyo.unit else onExit)
+        val result   = TuiApp.block(run, hooks, restored)
+        if hooks.shuttingDown then 1 else TuiApp.report(result, err)
     end runMain
 
     /** The command-line arguments of [[main]]. */
     protected final def args: Seq[String] = arguments
 
-    /** Source constructors with `S` fixed: `source.every(1.second)(...)`. */
-    protected final def source: Source.For[S] = Source.For[S]
-
-    /** Runs after the terminal is restored, with the last state: print a
-      * result, write a file. The default does nothing.
+    /** Runs after the terminal is restored, after a run that ended with a quit:
+      * print a result, write a file. A kyo-ui app keeps its state in its
+      * signals, so `onExit` reads them where `ui` made them (for example in a
+      * field of the app). It does not run when the run failed or when the JVM
+      * stops the app. A failure gives the exit code 1. The default does
+      * nothing.
       */
-    protected def onExit(@unused state: S): Unit < (Async & Abort[Throwable]) =
-      ()
+    // claude 2026-10-13: changed (T2, RC-24): no state parameter
+    protected def onExit: Unit < (Async & Abort[Throwable]) = ()
 end TuiApp
 
 private[tui4s] object TuiApp:
@@ -80,13 +135,13 @@ private[tui4s] object TuiApp:
       * fiber, whose release restores the terminal, and waits at most 2 s for
       * `restored`: the release counts it down, and so does the end of the
       * fiber. It does not wait for the fiber: a fiber whose thread is blocked
-      * in `System.exit` never ends, and `onExit` runs after the restore.
+      * in `System.exit` never ends.
       */
-    def block[S](
-        program: S < (Async & Abort[Throwable]),
+    def block[A](
+        program: A < (Async & Abort[Throwable]),
         hooks: Hooks,
         restored: CountDownLatch,
-    )(using Frame): Result[Throwable, S] =
+    )(using Frame): Result[Throwable, A] =
         import AllowUnsafe.embrace.danger
         KyoApp.Unsafe.runAndBlock(Duration.Infinity)(
           Fiber.initUnscoped(program).map { fiber =>
@@ -111,7 +166,11 @@ private[tui4s] object TuiApp:
         discard(fiber.unsafe.interrupt())
         discard(restored.await(2, TimeUnit.SECONDS))
 
-    /** Prints a failed run to `err` and gives the exit code. */
+    /** Prints a failed run to `err` and gives the exit code. The prints run
+      * after the terminal is restored, by design: a 'tui4s: allowed' marker at
+      * each.
+      */
+    // claude 2026-10-13: changed (T2): the markers
     def report(result: Result[Throwable, Any], err: PrintStream): Int =
         result match
             case Result.Success(_) => ()
@@ -120,17 +179,16 @@ private[tui4s] object TuiApp:
         err.flush()
         if result.isSuccess then 0 else 1
 
+    // claude 2026-10-13: changed (T2): no AppFailed and no SourceFailed (the
+    // old engine's cases; a failure of the UI comes as it is: its stack trace)
     private def describe(e: Throwable, err: PrintStream): Unit = e match
-        case e: (TuiError.AppFailed | TuiError.SourceFailed) =>
-          err.println(e.getMessage)
+        case e: TuiError    =>
+          err.println(e.getMessage) // tui4s: allowed
           val cause = e.getCause
-          if cause != null then cause.printStackTrace(err)
-        case e: TuiError                                     =>
-          err.println(e.getMessage)
-          val cause = e.getCause
-          if cause != null then err.println(s"  cause: $cause")
-        case _: Interrupted                                  =>
-          err.println("interrupted")
-        case other                                           =>
+          if cause != null then err.println(s"  cause: $cause") /* tui4s:
+               * allowed */
+        case _: Interrupted =>
+          err.println("interrupted") // tui4s: allowed
+        case other =>
           other.printStackTrace(err)
 end TuiApp
