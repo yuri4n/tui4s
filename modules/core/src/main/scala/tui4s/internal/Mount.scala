@@ -319,8 +319,8 @@ private[tui4s] final class Mount(
     /** Mounts a component node at `path` (C4).
       *
       * A [[tui4s.Component]] (`ComponentSpec.Instance`): its state is the
-      * `SignalRef` of `w.comps` under its state key (the path and
-      * `Component.stateKey`, by default the class), or a new one with
+      * `SignalRef` of `w.comps` under its path and its state key
+      * (`Component.stateKey`, by default the class), or a new one with
       * `initial`. `view(state)` of the new instance gives the content at once.
       * When `reclaim` has a component of the same key at this path, its mount
       * goes on: the state, the generation and the `onMount` fiber stay.
@@ -343,6 +343,8 @@ private[tui4s] final class Mount(
     // claude 2026-10-13: changed (C4, P-6): the Scaladoc of the Instance form
     // and of the pending wait
     // claude 2026-10-13: changed (C4, review R2-5): a body that fails
+    // claude 2026-10-13: changed (C4, review R2-4): `w.comps` is keyed by the
+    // path and the state key
     private def mountComponent(
         spec: ComponentSpec,
         path: Loc,
@@ -353,8 +355,11 @@ private[tui4s] final class Mount(
           case ComponentSpec.Instance(c)          =>
             // claude 2026-10-13: changed (C4, FC-17): the state key of the
             // component (`Component.stateKey`, the class name by default)
-            val key       =
-              s"${path.mkString("/")}|${Component.stateKeyOf(c)}"
+            // claude 2026-10-13: changed (C4, review R2-4): the key of
+            // `w.comps` is the path and the state key, not one string (the
+            // path "0/#a/0" of a keyed item "a/0" and of the first child of
+            // the item "a" was one string)
+            val key       = Component.stateKeyOf(c)
             // claude 2026-10-13: changed (C4, P-6): a mount of the same key at
             // this path goes on (its generation and its onMount fiber stay),
             // so a parent that renders again (also the verify pass and the
@@ -373,7 +378,7 @@ private[tui4s] final class Mount(
             }
             val (gen, w1) = mounted.fold(w.gen)((g, _) => (g, w))
             for
-                state   <- w1.comps.get(key) match
+                state   <- w1.comps.get((path, key)) match
                                case Some(ref) =>
                                  Kyo.lift(ref.asInstanceOf[SignalRef[c.State]])
                                case None      =>
@@ -403,7 +408,7 @@ private[tui4s] final class Mount(
                              w1.copy(
                                regions = w1.regions.updated(path, region),
                                comps = w1.comps.updated(
-                                 key,
+                                 (path, key),
                                  state.asInstanceOf[SignalRef[Any]],
                                ),
                              ),
@@ -546,17 +551,19 @@ private[tui4s] final class Mount(
     // kept the settle waiting until pendingTimeout)
     // claude 2026-10-13: changed (C4, review R1-2): also the pending paths
     // whose region is now another one (the `else` branch of a `render`)
+    // claude 2026-10-13: changed (C4, review R2-4): the live keys are the path
+    // and the state key
     def gcComps(w: World): World =
         val live = w.regions.values.collect {
           case RegionState(
-                _,
+                path,
                 Source.Comp(_: ComponentSpec.Instance, key),
                 _,
                 _,
                 _,
                 _,
               ) =>
-            key
+            (path, key)
         }.toSet
         w.copy(
           comps = w.comps.filter((k, _) => live.contains(k)),

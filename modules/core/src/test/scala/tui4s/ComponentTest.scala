@@ -266,6 +266,32 @@ class ComponentTest extends ComponentSuite:
       )
     }
 
+    // claude 2026-10-13: created (C4, review R2-4)
+    "state key: two positions whose paths join to one string (a keyed item 'a/0', and the first child of the item 'a') do not share state" in {
+      for
+          items <- Signal.initRef(Chunk("a/0", "a"))
+          row    = (k: String) =>
+                     if k == "a/0" then (SameKey("x").ui: UI)
+                     else div(SameKey("y").ui)
+          h     <-
+            Headless.start(30, 6)(_ => div(items.foreachKeyed(identity)(row)))
+          ok0   <- h.awaitScreen(
+                     s => s.contains("[x=0]") && s.contains("[y=0]"),
+                     2.seconds,
+                   )
+          _     <- h.key(Keyboard.Enter) // the `+` of x: the first focus
+          ok1   <- h.awaitScreen(showing("[x=1]"), 2.seconds)
+          _     <- Async.sleep(200.millis)
+          s     <- h.screen
+      yield
+          assert(ok0 && ok1, s.text)
+          assert(
+            s.contains("[y=0]"),
+            s"the two components share one state: ${s.text}",
+          )
+      end for
+    }
+
     // ---- the mount of a Component ----
 
     /** A Component that counts the runs of its `onMount`; the effect waits for
