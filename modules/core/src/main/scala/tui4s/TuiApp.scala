@@ -63,9 +63,8 @@ abstract class TuiApp:
 
     /** The UI of the app. [[Tui.quit]] ends the run: an app whose UI is a
       * function of the quit value (as [[Tui.run]] gives it) passes `Tui.quit`
-      * to it. It runs once, when the run starts; [[args]] is set then. A
-      * `Scope.ensure` inside it runs at the end of the run, before the terminal
-      * is restored.
+      * to it. It runs once, when the run starts; [[args]] is set then. After a
+      * quit, a `Scope.ensure` inside it runs before the terminal is restored.
       */
     // claude 2026-10-13: created (T2, RC-24)
     def ui: UI < (Async & Scope)
@@ -185,8 +184,11 @@ private[tui4s] object TuiApp:
         case e: TuiError    =>
           err.println(e.getMessage) // tui4s: allowed
           val cause = e.getCause
-          if cause != null then err.println(s"  cause: $cause") /* tui4s:
-               * allowed */
+          // claude 2026-10-13: changed (T2): one print per line, so that the
+          // marker stays a trailing comment
+          if cause != null then
+              val line = s"  cause: $cause"
+              err.println(line) // tui4s: allowed
         case _: Interrupted =>
           err.println("interrupted") // tui4s: allowed
         case other =>
