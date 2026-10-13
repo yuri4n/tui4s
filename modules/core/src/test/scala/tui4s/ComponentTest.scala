@@ -481,11 +481,14 @@ class ComponentTest extends ComponentSuite:
       end for
     }
 
+    // claude 2026-10-13: changed (C4): 200 ms between the show and the hide (a
+    // loaded machine)
     "pending frame: a component that mounts and unmounts inside one settle leaves no wait behind" in {
       // pendingTimeout 3 s; the body takes 2 s. The handler of the key shows
-      // the component and hides it again 50 ms later, so the settle of the
-      // key mounts it and unmounts it. Allowance: the frame of the key comes
-      // before 1 s.
+      // the component and hides it again 200 ms later (time for the watcher
+      // of `shown` to post the first value, also on a loaded machine), so the
+      // settle of the key mounts it and unmounts it. Allowance: the frame of
+      // the key (the handler's 200 ms included) comes before 1 s.
       val options = TuiOptions(pendingTimeout = JDuration.ofSeconds(3))
       for
           h <- Headless.start(30, 4, options)(_ =>
@@ -494,7 +497,7 @@ class ComponentTest extends ComponentSuite:
                      case KeyboardEvent(Keyboard.Char('b'), _, _) =>
                        shown
                          .set(true)
-                         .andThen(Async.sleep(50.millis))
+                         .andThen(Async.sleep(200.millis))
                          .andThen(shown.set(false))
                      case _                                       => ()
                    }(
