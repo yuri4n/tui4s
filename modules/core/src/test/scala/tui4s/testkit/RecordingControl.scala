@@ -26,9 +26,13 @@ import tui4s.internal.TerminalControl
 // no resize (the runner's Canvas resizes a TestBackend)
 private[tui4s] final class RecordingControl(width: Int = 80, height: Int = 24)
     extends TerminalControl:
-    /** The test terminal. The runner's canvas resizes it on a resize. Only the
-      * runner fiber may read it while the app runs.
+    /** The test terminal. Only the runner fiber may read it while the app runs.
+      * A resize does not reach it: the canvas resizes only a bare
+      * `TestBackend`, and [[enter]] gives a wrapper. Do not send a resize
+      * through this control: after a resize to a larger size, the next flush
+      * throws (a cell outside the area of the `TestBackend`).
       */
+    // claude 2026-10-13: changed (T1, review R2-5): a resize does not reach it
     val backend: TestBackend = TestBackend(width, height)
 
     private val log = new ConcurrentLinkedQueue[String]()

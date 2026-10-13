@@ -54,15 +54,25 @@ object Tui:
       * -Dkyo.scheduler.regulator.concurrencyCollectIntervalMs=100` (fewer split
       * frames under load, less CPU when idle).
       *
+      * After a quit, the run first closes the `Scope` of the UI: it interrupts
+      * the fibers that the UI started with `Fiber.init` and waits for them to
+      * end. Then it restores the terminal. A fiber that does not stop on the
+      * interrupt (for example a blocking call in `Sync.defer`) keeps the
+      * terminal in raw mode until it ends. When the run itself is interrupted,
+      * the terminal is restored at once.
+      *
       * Fails with `TuiError.NotATerminal` when stdin is not a terminal, with
       * `TuiError.NativeAccessDenied` when the JVM does not allow the native
-      * library (both before the terminal changes), and with
-      * `TuiError.TerminalIO` when the terminal cannot be set up, read or
-      * written. A failure of the UI itself comes out as it is, after the
+      * library, with `TuiError.NativeLoadFailed` when the native library cannot
+      * be loaded for another reason (these three before the terminal changes),
+      * and with `TuiError.TerminalIO` when the terminal cannot be set up, read
+      * or written. A failure of the UI itself comes out as it is, after the
       * restore.
       */
     // claude 2026-10-13: created (T1, RC-2): the shape of Headless.start (the
     // quit value, D-15; Tui.quit as the second way)
+    // claude 2026-10-13: changed (T1, reviews R1-2, R2-2, R2-3): the Scaladoc
+    // names NativeLoadFailed and the order of the scope close and the restore
     def run(options: TuiOptions)(ui: (Unit < Sync) => UI < (Async & Scope))(
         using Frame,
     ): Unit < (Async & Abort[TuiError]) =

@@ -5,8 +5,8 @@ import java.io.OutputStream
 import java.io.PrintStream
 import java.nio.charset.Charset
 
-/** Captures `System.out` and `System.err` while the UI is up (SPEC 5.10,
-  * `TuiOptions.captureOutput`): a stray `println` in user code or in a library
+/** Captures `System.out` and `System.err` while the UI is up
+  * (`TuiOptions.captureOutput`): a stray `println` in user code or in a library
   * goes to the run's [[LogSink]], not over the screen. JVM-global.
   *
   * It installs two forwarding streams as `System.out` and `System.err`. While
@@ -14,14 +14,17 @@ import java.nio.charset.Charset
   * capture, each line goes to the sink. Scala's `println` writes to
   * `scala.Console.out`, which keeps the stream that `System.out` was when
   * `scala.Console` first loaded, so the installation also loads
-  * `scala.Console`. `TuiApp` installs the forwarders in its constructor, before
-  * user code runs, so `println` is always captured there; with `Tui.run` it is
-  * captured when nothing used `scala.Console` before the first run.
+  * `scala.Console`. A main that calls [[install]] before its code uses
+  * `scala.Console` gets `println` always captured (`TuiApp` will do this in its
+  * constructor, in a later version); with `Tui.run` alone it is captured when
+  * nothing used `scala.Console` before the first run.
   */
 // claude 2026-10-13: changed (T1): a 'tui4s: allowed' marker at each use of
 // System.out and System.err: the forwarders replace and restore them, by
 // design (the rule "no stderr and no println in core main" of the pull
 // request T1)
+// claude 2026-10-13: changed (T1, review R1-3): the Scaladoc names install,
+// not TuiApp (it comes later), and no SPEC section
 private[tui4s] object OutputCapture:
     private var originalOut: PrintStream | Null = null
     private var originalErr: PrintStream | Null = null
@@ -119,7 +122,7 @@ private[tui4s] object OutputCapture:
         def capturing: Boolean = OutputCapture.synchronized(active eq this)
 
         /** Stops capturing: the forwarders write to the original streams again
-          * and, unless `TuiApp` installed them for good, `System.out` and
+          * and, unless [[install]] installed them for good, `System.out` and
           * `System.err` are again the streams they were at the start of this
           * capture. A last line without its line break goes to the sink.
           */

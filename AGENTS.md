@@ -140,7 +140,12 @@ tests then allow 1 split frame).
 - The release of the terminal (`Session.close`) closes the canvas first: it
   waits for a draw in progress (the backend's monitor), and nothing is drawn
   after it. It runs once, from the end of the run or from the JVM shutdown
-  hook, whichever comes first.
+  hook, whichever comes first. After a quit, `Tui.run` closes the `Scope` of
+  the UI before the release: it interrupts the fibers that the UI started
+  with `Fiber.init` and waits for them. A fiber that does not stop on an
+  interrupt (a blocking call in `Sync.defer`) keeps the terminal in raw mode
+  until it ends.
+  <!-- claude 2026-10-13: changed (T1, review R2-2): the scope closes before the release -->
 - jatatui 0.31.0's JNI cuts a typed character outside the Basic Multilingual
   Plane (an emoji) to 16 bits: such a key arrives wrong. A bracketed paste
   keeps it (`internal.EventMapping` Scaladoc).

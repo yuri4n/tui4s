@@ -19,8 +19,10 @@ import tui4s.*
 private[tui4s] trait TerminalControl:
     /** Enters the terminal modes for `opts` and returns the backend to draw on.
       * Throws a [[TuiError]] (`NotATerminal`, `NativeAccessDenied`,
-      * `TerminalIO`); a failing enter undoes its own earlier steps.
+      * `NativeLoadFailed`, `TerminalIO`); a failing enter undoes its own
+      * earlier steps.
       */
+    // claude 2026-10-13: changed (T1, review R1-2): NativeLoadFailed
     def enter(opts: TuiOptions): Backend
 
     /** A step of the session: "input-started", "input-stopped", "input-joined",

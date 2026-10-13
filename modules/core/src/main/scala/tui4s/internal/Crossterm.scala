@@ -21,8 +21,10 @@ import tui4s.*
   */
 private[tui4s] trait Crossterm:
     /** Loads the native library. Throws `NativeAccessDenied` when the JVM does
-      * not allow it.
+      * not allow it, and `NativeLoadFailed` when it cannot be loaded for
+      * another reason ([[NativeCrossterm.loadError]]).
       */
+    // claude 2026-10-13: changed (T1, review R1-2): NativeLoadFailed
     def load(): Unit
 
     /** False when stdin is not a terminal. crossterm then uses `/dev/tty` for

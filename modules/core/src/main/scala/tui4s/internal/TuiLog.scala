@@ -4,10 +4,10 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import kyo.*
 
-/** The Kyo logger of a run (SPEC 5.10): `Tui.run` binds it with `Log.let`, so a
-  * `Log.info` in user code or in a source writes into the run's [[LogSink]] and
-  * never onto the screen. Lines at warn or above are printed after the terminal
-  * is restored (without a log file).
+/** The Kyo logger of a run: `Tui.run` binds it with `Log.let`, so a `Log.info`
+  * in user code or in a library writes into the run's [[LogSink]] and never
+  * onto the screen. Lines at warn or above are printed after the terminal is
+  * restored (without a log file).
   *
   * @param sink
   *   where the lines go
@@ -17,6 +17,8 @@ import kyo.*
   * @param name
   *   the logger name
   */
+// claude 2026-10-13: changed (T1, review R1-3): the Scaladoc names no SPEC
+// section and no source (a term of the old engine)
 private[tui4s] final class TuiLog(
     sink: LogSink,
     val level: Log.Level,

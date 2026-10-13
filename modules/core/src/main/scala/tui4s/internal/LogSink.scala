@@ -7,8 +7,8 @@ import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import scala.util.control.NonFatal
 
-/** Where the log lines and the captured output of one run go while the UI is up
-  * (SPEC 5.10): the `logFile`, or a memory ring that is printed to the real
+/** Where the log lines and the captured output of one run go while the UI is
+  * up: the `TuiOptions.logFile`, or a memory ring that is printed to the real
   * stderr after the terminal is restored. Thread-safe.
   *
   * The ring keeps only the lines to print after the restore (captured output,
@@ -28,6 +28,8 @@ import scala.util.control.NonFatal
 // claude 2026-10-13: changed (T1): a 'tui4s: allowed' marker at each print:
 // each one runs after the terminal is restored, by design (the rule "no
 // stderr and no println in core main" of the pull request T1)
+// claude 2026-10-13: changed (T1, review R1-3): the Scaladoc names no SPEC
+// section
 private[tui4s] final class LogSink(file: Option[Path], val capacity: Int = 200):
     private val ring                         = scala.collection.mutable.ArrayDeque.empty[String]
     private var dropped                      = 0L
