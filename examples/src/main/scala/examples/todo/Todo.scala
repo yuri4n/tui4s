@@ -8,10 +8,19 @@ import kyo.UI.*
 // claude 2026-10-13: changed (T2, adapt): tui4s.Tui (the prototype had
 // tui4s.kyoui.Tui)
 import tui4s.Tui
+import tui4s.TuiApp
 
 /** The Todo app in plain kyo-ui. Components are plain functions of signals and
-  * actions.
+  * actions. Keys: type a text and press Enter to add it; Tab moves between the
+  * input and the list; in the list, the arrows (or `k` and `j`) move, Space
+  * toggles, `d` deletes; Ctrl-S writes the list to the file; Esc quits
+  * (`Tui.quit`). In the input, `d` and `q` are text. A paste (the bracketed
+  * paste of the terminal) is one edit of the input, and a line break in it is a
+  * space: a paste never adds an item.
   */
+// claude 2026-10-13: changed (T2, RC-33): the Scaladoc names the keys; a file
+// that cannot be read is in the status line (the prototype showed "loaded 0
+// items")
 object Todo:
 
     final case class Item(id: Int, text: String, done: Boolean) derives CanEqual
@@ -30,7 +39,13 @@ object Todo:
         .map(t => s"${if t.done then "[x]" else "[ ]"} ${t.text}")
         .mkString("", "\n", "\n")
 
-    def load(file: String)(using Frame): Chunk[Item] < Sync =
+    /** The items of `file`: no file is no item; a file that cannot be read is a
+      * failure.
+      */
+    // claude 2026-10-13: changed (T2): the result keeps the failure
+    def load(file: String)(using
+        Frame,
+    ): Result[java.io.IOException, Chunk[Item]] < Sync =
       Abort
         .run[java.io.IOException](Abort.catching[java.io.IOException] {
           val p = Paths.get(file)
@@ -44,7 +59,17 @@ object Todo:
           else Chunk.empty
           end if
         })
-        .map(r => parse(r.getOrElse(Chunk.empty)))
+        .map(_.map(parse))
+
+    /** The status line after the load of `file`. */
+    // claude 2026-10-13: created (T2)
+    def loadStatus(
+        file: String,
+        loaded: Result[java.io.IOException, Chunk[Item]],
+    ): String = loaded match
+        case Result.Success(ts) => s"loaded ${ts.size} items from $file"
+        case Result.Failure(e)  => s"could not load $file: ${e.getMessage}"
+        case Result.Panic(e)    => s"could not load $file: $e"
 
     def save(file: String, items: Chunk[Item])(using
         Frame,
@@ -113,11 +138,13 @@ object Todo:
 
     def app(file: String): UI < (Async & Scope) =
       for
-          loaded  <- load(file)
+          // claude 2026-10-13: changed (T2): the status of a failed load
+          result  <- load(file)
+          loaded   = result.getOrElse(Chunk.empty)
           items   <- Signal.initRef(loaded)
           draft   <- Signal.initRef("")
           cursor  <- Signal.initRef(0)
-          status  <- Signal.initRef(s"loaded ${loaded.size} items from $file")
+          status  <- Signal.initRef(loadStatus(file, result))
           nextId  <- AtomicInt.init(loaded.size + 1)
           rows     =
             items
@@ -150,10 +177,11 @@ object Todo:
                            (c + d).max(0).min((ts.size - 1).max(0)),
                          ),
                        )
-          /* The result type is load-bearing: without it the match widens to
-           * `Any` and kyo lifts the effects as plain */
-          /* values, so they never run (the "lift trap"; see REPORT.md section
-           * 5). */
+          // The result type is load-bearing: without it the match widens to
+          // `Any`, and Kyo lifts the effects as plain values, so they never run
+          // (the lift trap; AGENTS.md "Rules for code").
+          // claude 2026-10-13: changed (T2): the comment names AGENTS.md (the
+          // prototype named its REPORT.md)
           listKeys = (e: KeyboardEvent) =>
                        (e.key match
                            case Keyboard.ArrowUp | Keyboard.Char('k')   =>
@@ -183,5 +211,16 @@ object Todo:
       )
 end Todo
 
-// claude 2026-10-13: changed (T2, adapt): the KyoApp main of the prototype
-// (TodoMain) is cut; the example gets a TuiApp main in its own commit.
+/** Runs the Todo app in the real terminal. The list is in a file: the first
+  * argument, or `todos.txt` in the working directory. Start it with its start
+  * script, not with `sbt run` (sbt also reads the keyboard):
+  * {{{
+  * sbt examples/launchers
+  * examples/target/bin/todo my-list.txt
+  * }}}
+  */
+// claude 2026-10-13: created (T2, RC-33): the prototype's TodoMain read the
+// file from the variable TODO_FILE
+object TodoApp extends TuiApp:
+    def ui: UI < (Async & Scope) =
+      Todo.app(args.headOption.getOrElse("todos.txt"))
