@@ -437,11 +437,15 @@ private[tui4s] final class Runner(
     // claude 2026-10-13: changed (C4, P-6): the deadline of the frame
     // claude 2026-10-13: changed (C4, review R1-3, R2-3): the start of the
     // frame; the time left is a difference
+    // claude 2026-10-13: changed (C4, review R1-1, R2-1): `start` is in the
+    // loop state: the end of the wait for a component sets it, so the `max`
+    // of the settle counts from there (the wait counted as a settle timeout,
+    // and the frame skipped the `confirm` observations)
     private def settle(w: World, frameStart: Long)(using
         Frame,
     ): World < Async =
-      nanos.map { start =>
-        Loop(w, 0, start) { (w, quiet, last) =>
+      nanos.map { t0 =>
+        Loop(w, 0, t0, t0) { (w, quiet, start, last) =>
           if w.pending.nonEmpty then
               // a component mount is running its effect: its first content
               // will come, wait for it (bounded)
@@ -458,7 +462,7 @@ private[tui4s] final class Runner(
                 val left   =
                   if waited <= 0L then pendingNanos else pendingNanos - waited
                 if left <= 0L then
-                    Loop.continue(w.copy(pending = Set.empty), 0, now)
+                    Loop.continue(w.copy(pending = Set.empty), 0, now, now)
                 else
                     Abort
                       .run[Timeout | Closed](
@@ -466,11 +470,12 @@ private[tui4s] final class Runner(
                       )
                       .map {
                         case Result.Success(m) =>
-                          absorb(w, m)
-                            .map(w1 => nanos.map(t => Loop.continue(w1, 0, t)))
+                          absorb(w, m).map(w1 =>
+                            nanos.map(t => Loop.continue(w1, 0, t, t)),
+                          )
                         case _                 =>
                           nanos.map(t =>
-                            Loop.continue(w.copy(pending = Set.empty), 0, t),
+                            Loop.continue(w.copy(pending = Set.empty), 0, t, t),
                           )
                       }
                 end if
@@ -492,7 +497,7 @@ private[tui4s] final class Runner(
                 case Result.Success(msgs) if msgs.nonEmpty =>
                   Kyo
                     .foldLeft(msgs)(w)(absorb)
-                    .map(w1 => nanos.map(t => Loop.continue(w1, 0, t)))
+                    .map(w1 => nanos.map(t => Loop.continue(w1, 0, start, t)))
                 case _                                     =>
                   nanos.map { now =>
                     options.settle match
@@ -514,13 +519,17 @@ private[tui4s] final class Runner(
                                 Loop.continue(
                                   w,
                                   if idleBefore then quiet + 1 else 0,
+                                  start,
                                   last,
                                 ),
                               )
                         case Settle.Hops(hops, window)      =>
                           if quiet >= hops && now - last >= window.toNanos then
                               Loop.done(w)
-                          else hop.andThen(Loop.continue(w, quiet + 1, last))
+                          else
+                              hop.andThen(
+                                Loop.continue(w, quiet + 1, start, last),
+                              )
                   }
               }
           end if

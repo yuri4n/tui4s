@@ -60,6 +60,8 @@ import tui4s.spi.Settle
   *   longer). When the body takes longer, the frame comes without it (the
   *   component's place is empty), and its content comes in a later frame; the
   *   frames between do not wait for it again. A negative value counts as zero.
+  *   After the wait, the frame settles as usual: the `max` of `settle` counts
+  *   from the end of the wait.
   */
 // claude 2026-10-12: changed: Kyo-free (java.time.Duration, D-14 a), CanEqual,
 // Scaladoc (RC-3)
@@ -71,6 +73,8 @@ import tui4s.spi.Settle
 // claude 2026-10-13: changed (C4, the C2 cut back): pendingTimeout (D-14 a: a
 // java.time.Duration; the prototype's default, 2 s); changed (C4, P-6): the
 // bound is in total, and only the frame of the mount waits
+// claude 2026-10-13: changed (C4, review R1-1, R2-1): the Scaladoc of
+// pendingTimeout: the settle after the wait
 final case class TuiOptions(
     autoFocus: Boolean = true,
     settle: Settle = Settle.Quiescent(Duration.ofMillis(100)),

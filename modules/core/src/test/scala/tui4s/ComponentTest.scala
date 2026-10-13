@@ -412,6 +412,12 @@ class ComponentTest extends ComponentSuite:
             ms(f) < 1000L,
             s"the frame waited for the content: ${ms(f)} ms",
           )
+          // claude 2026-10-13: changed (C4, review R1-1, R2-1): the wait is
+          // not a settle that ran out of its max
+          assert(
+            f.settleTimeouts == 0,
+            s"the wait for the component counted as a settle timeout: $f",
+          )
           assert(
             s1.contains("[top]") && s1.contains("[bottom]") &&
               !s1.contains("[slow]"),
@@ -434,6 +440,14 @@ class ComponentTest extends ComponentSuite:
       yield
           assert(s1.contains("[slow]"), s1.text)
           assert(ms(f) >= 250L, s"the frame came after ${ms(f)} ms")
+          // claude 2026-10-13: changed (C4, review R1-1, R2-1): the wait is
+          // not a settle that ran out of its max, and the settle after it
+          // confirms the quiescence as usual
+          assert(
+            f.settleTimeouts == 0,
+            s"the wait for the component counted as a settle timeout: $f",
+          )
+      end for
     }
 
     /** The value of `[tick=<n>]` on the screen, or -1. */
