@@ -17,8 +17,12 @@ jobs:
     name: Format, compile, test, compatibility
     runs-on: ubuntu-latest
     # claude 2026-10-12: created: sbt-tpolecat CI mode, a warning fails the build (D-8)
+    # claude 2026-10-13: changed: TUI4S_LOAD, the load flag of the glitch tests:
+    # modules/core/build.sbt gives the test JVM -Dtui4s.load=1, which allows 1
+    # split frame in 500 events on a loaded runner (gate 1 item 2; AGENTS.md)
     env:
       SBT_TPOLECAT_CI: "1"
+      TUI4S_LOAD: "1"
     steps:
       - uses: actions/checkout@v7
         with:

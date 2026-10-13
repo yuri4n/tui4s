@@ -68,7 +68,9 @@ The stress probes (`tui4s.stress.*`) are ignored in `sbt check`. To run one,
 set `-Dtui4s.stress=<rounds>` in the test JVM and run it alone on the machine:
 `sbt 'set core / Test / javaOptions += "-Dtui4s.stress=150"' 'core/testOnly
 tui4s.stress.LeakProbe'`. A test run under CPU contention sets
-`-Dtui4s.load=1` the same way (the glitch test then allows 1 split frame).
+`-Dtui4s.load=1` the same way, or runs `TUI4S_LOAD=1 sbt ...` (the glitch
+tests then allow 1 split frame).
+<!-- claude 2026-10-13: changed: TUI4S_LOAD (C3) -->
 <!-- claude 2026-10-12: created this paragraph (review R3-8, R3-2) -->
 
 ## Rules for code
@@ -88,10 +90,14 @@ tui4s.stress.LeakProbe'`. A test run under CPU contention sets
   under load (Kyo 1.0.0-RC7 can lose a wakeup in `Signal.combineLatest`, and
   a region on `combineLatest`, `zip`, `switchMap` or `combineLatestAll` still
   runs one `Async.race` per change inside Kyo; the watcher loop of the runner
-  removes only its own race: issue #8). The glitch test (AppsTest) asserts 0
-  split frames in 500 events and prints the count; a run under CPU contention
-  sets `-Dtui4s.load=1` in the test JVM, which allows 1. One event is one
-  write. The runner cannot tell a consequence of the active event from an
+  removes only its own race: issue #8). The glitch tests (AppsTest: 500
+  writes, and 500 keys) assert 0 split frames and print the count; a run
+  under CPU contention sets `-Dtui4s.load=1` in the test JVM, which allows 1.
+  CI sets the environment variable `TUI4S_LOAD=1` (`ci.yml`), and
+  `modules/core/build.sbt` gives the test JVM `-Dtui4s.load=1`: on a loaded
+  2-CPU runner, 500 events give about a 5 percent chance of 1 split under the
+  SOFT contract, and a real regression gives many. One event is one write
+  (or one key). The runner cannot tell a consequence of the active event from an
   independent write that lands while it settles (a Kyo signal carries no
   cause), so the writes that land inside one settle window share one frame:
   a frame is a batch, and `FrameStats.updates` counts its region values. The
@@ -106,6 +112,7 @@ tui4s.stress.LeakProbe'`. A test run under CPU contention sets
   stats of a frame after its flush: a test that counts frames after
   `awaitScreen` waits for them with `RunnerSuite.framesUntil`.
   <!-- claude 2026-10-12: created this item (D-17 c, RC-19); changed: the races inside Kyo, the glitch assertion and the load flag, one event is one write, framesUntil (review R2-6, R3-2, K2-2, R2-3) -->
+  <!-- claude 2026-10-13: changed: the glitch test by keys, the CI load flag TUI4S_LOAD (C3, gate 1 item 2) -->
 - A `Reactive` region whose UI holds a closure (a handler) or a nested signal
   never compares equal to its last render. The verify pass and the repair
   tick (every 1 s) render it again: the frame has `repaired > 0` and, when
