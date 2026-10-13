@@ -246,19 +246,19 @@ private[tui4s] final class Runner(
     // claude 2026-10-12: created (RC-11)
     // claude 2026-10-13: changed (C4, P-6): one deadline for the wait for a
     // mounting component, for the settle and the re-check of this frame
+    // claude 2026-10-13: changed (C4, review R1-3, R2-3): the start of the
+    // frame, not an absolute deadline: the settle compares differences of
+    // `System.nanoTime` (its value can be negative)
     private def settleAndVerify(w: World, input: Boolean)(using
         Frame,
     ): World < Async =
       nanos.map { t0 =>
-        val deadline =
-          if pendingNanos > Long.MaxValue - t0 then Long.MaxValue
-          else t0 + pendingNanos
-        settle(w, deadline).map { w1 =>
+        settle(w, t0).map { w1 =>
           verify(w1, input).map { w2 =>
             // TODO(#9): drop the re-check when Kyo closes the lost-wakeup
             // window of `Signal` (the conditions of D-17 c).
             // https://github.com/yuri4n/tui4s/issues/9
-            if w2.repaired > w1.repaired then settle(w2, deadline) else w2
+            if w2.repaired > w1.repaired then settle(w2, t0) else w2
           }
         }
       }
@@ -429,13 +429,15 @@ private[tui4s] final class Runner(
       * scheduled task, often through one or more races (`observe`,
       * `combineLatest`). See [[tui4s.spi.Settle]] for the two strategies. While
       * a component that this frame mounts waits for its first content
-      * (`World.pending`), the settle takes messages until `pendingDeadline`
-      * (`System.nanoTime`), and then goes on without it.
+      * (`World.pending`), the settle takes messages until `pendingTimeout`
+      * after `frameStart` (`System.nanoTime`), and then goes on without it.
       */
     // claude 2026-10-13: changed (C4, the C2 cut back): the bounded wait for
     // a mounting component (the `pending` branch)
     // claude 2026-10-13: changed (C4, P-6): the deadline of the frame
-    private def settle(w: World, pendingDeadline: Long)(using
+    // claude 2026-10-13: changed (C4, review R1-3, R2-3): the start of the
+    // frame; the time left is a difference
+    private def settle(w: World, frameStart: Long)(using
         Frame,
     ): World < Async =
       nanos.map { start =>
@@ -449,7 +451,12 @@ private[tui4s] final class Runner(
               // traffic, the settle of a slow component did not end); the
               // deadline is the frame's (the settle and its re-check)
               nanos.map { now =>
-                val left = pendingDeadline - now
+                // claude 2026-10-13: changed (C4, review R1-3, R2-3): by
+                // difference, so that a negative `nanoTime` cannot overflow
+                // (`pendingNanos` and `waited` are not negative)
+                val waited = now - frameStart
+                val left   =
+                  if waited <= 0L then pendingNanos else pendingNanos - waited
                 if left <= 0L then
                     Loop.continue(w.copy(pending = Set.empty), 0, now)
                 else
