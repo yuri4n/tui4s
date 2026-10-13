@@ -278,7 +278,7 @@ reviewers, carries, searches and log reading: Opus. W2 (wf_4ed01b5c-abd) was lau
 all its agents on Fable; the C1 fix round and C3 onward apply it. Recorded in the repo's CLAUDE.md (local branch
 `chore/claude-rules` from main; the push waits for the user: the designated branch needs a force push) and in
 this container's ~/.claude/CLAUDE.md.
-NAMES (user rule, 2026-10-13): say "CatFx" for Cats Effect in the chat and in the notes; the library keeps its
+NAMES (user rule, 2026-10-13): say "CatsFx" for Cats Effect in the chat and in the notes; the library keeps its
 own name in code, docs and PR text that its users read.
 <= 4 agents in parallel, <= 2 when building; one workflow at a time; announce runs > 10 agents; agents save
 notes early (`.work/impl/`); keep durable copies in `.work/`; never deploy docs; release only with approval;

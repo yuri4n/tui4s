@@ -198,11 +198,11 @@ Eighth round (2026-10-11, gate 0, after W0; recorded by Claude from the user's a
 <!-- claude 2026-10-13: created this section -->
 
 - PARKED, not decided (the user: "esto no lo hagas ahora"): ZIO as the "compat monad": one upstream bridge Kyo to ZIO
-  (kyo-zio) and CatFx through zio-interop-cats, instead of a vendored Kyo-to-CatFx bridge. Claude's reading: true for
+  (kyo-zio) and CatsFx through zio-interop-cats, instead of a vendored Kyo-to-CatsFx bridge. Claude's reading: true for
   the effect layer (zero vendored interop), false for the reactive-state layer (interop-cats has no SubscriptionRef to
-  SignallingRef; three runtimes and three cells for a CatFx user; the settle sees none of the hops); CatFx users would
-  carry ZIO as a dependency; the CatFx DSL stays hand-written either way. Options A (plan), B (hub by ZIO), C (a small
+  SignallingRef; three runtimes and three cells for a CatsFx user; the settle sees none of the hops); CatsFx users would
+  carry ZIO as a dependency; the CatsFx DSL stays hand-written either way. Options A (plan), B (hub by ZIO), C (a small
   runtime capability interface with three instances), D (measure it in spike SZ as part SZ-5). REC: D. Open
-  questions for the user: which part of the CatFx facade they want gone (the effect bridge or the DSL with the state),
-  and whether ZIO is an acceptable dependency for CatFx users. Goes to gate Z.
-- Name (user, 2026-10-13): "CatFx" for Cats Effect in the chat and the notes.
+  questions for the user: which part of the CatsFx facade they want gone (the effect bridge or the DSL with the state),
+  and whether ZIO is an acceptable dependency for CatsFx users. Goes to gate Z.
+- Name (user, 2026-10-13): "CatsFx" for Cats Effect in the chat and the notes.
