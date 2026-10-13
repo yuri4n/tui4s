@@ -4,8 +4,11 @@ import kyo.*
 import kyo.UI.*
 
 /** Terminal-ish widgets written in PLAIN kyo-ui (spans of block characters), so
-  * they also render in a browser.
+  * they also render in a browser. A library of UI functions, not an app: it has
+  * no main and no start script; the Dashboard (`examples.dashboard`) uses it.
   */
+// claude 2026-10-13: changed (T2, RC-33): the Scaladoc says that this is a
+// library (no main)
 object Widgets:
 
     private val blocks = "▁▂▃▄▅▆▇█"
