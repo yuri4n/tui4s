@@ -43,6 +43,8 @@ echo "ptycheck: java $java_bin (Java $java_major)"
 # and the examples need no network: the runs of the apps do not get them. sbt
 # above keeps them (it may need the proxy).
 unset JAVA_TOOL_OPTIONS JDK_JAVA_OPTIONS
+# check.py imports vt.py: no bytecode files in the source tree.
+export PYTHONDONTWRITEBYTECODE=1
 status=0
 expect "$here/checklist.exp" "$root/examples/target/bin" "$work" "$work/session.log" || status=1
 python3 "$here/check.py" "$work/session.log" "$work/screens.txt" || status=1
