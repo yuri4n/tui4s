@@ -29,16 +29,23 @@ import tui.crossterm.KeyModifiers
   *     and modifier keys, and the mouse and focus events are dropped (`null`).
   *     The runner has no mouse and no focus events (D-30).
   *
-  * A character outside the Basic Multilingual Plane cannot be a kyo-ui
-  * `Keyboard.Char` (one UTF-16 char), and crossterm's `KeyCode.Char` holds one
-  * UTF-16 char too: such a character comes as the text of a bracketed paste,
-  * which the text editing inserts as it is.
+  * A character outside the Basic Multilingual Plane (an emoji) cannot be a
+  * kyo-ui `Keyboard.Char` (one UTF-16 char), and crossterm's `KeyCode.Char`
+  * holds one UTF-16 char too. The JNI layer of jatatui 0.31.0 cuts a TYPED
+  * character outside the plane to its low 16 bits (U+1F600 arrives as U+F600;
+  * measured in a pseudo-terminal), so the mapping cannot see it, and such a key
+  * arrives as a wrong character. A PASTED one is right: a bracketed paste is
+  * one `Paste` event with a Java string, and the text editing inserts it as it
+  * is (the text of `Keyboard.Unknown` is the other way in, which the headless
+  * kit uses).
   *
   * Java records are not Scala extractors, so the matches use type patterns.
   * Every match lists all cases of the sealed Java interface, so a new crossterm
   * case is a compile error here (`modules/core/build.sbt` makes the
   * exhaustivity warning of this file an error).
   */
+// claude 2026-10-13: changed (T1): the Scaladoc says what jatatui's JNI does
+// with a typed character outside the BMP
 // claude 2026-10-13: changed (T1, RC-22, D-21 a): to kyo-ui KeyboardEvent,
 // Msg.Paste, Msg.Resize (it replaces the prototype's Keys.scala and keeps its
 // rules); the mouse and the focus events are dropped (D-30)

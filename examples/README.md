@@ -1,12 +1,15 @@
 # tui4s examples
 
+<!-- claude 2026-10-13: changed this file (T1): the PR 5 text for the kyo-ui Counter, the launchers and the PTY kit -->
+
 This project has the sample apps of tui4s. They are not published.
 
-| App       | Main class                         | What it shows                                                 |
-| --------- | ---------------------------------- | ------------------------------------------------------------- |
-| Counter   | `examples.counter.CounterApp`      | A keymap, a help bar, `Quit`.                                 |
-| Todo      | `examples.todo.TodoApp`            | A text field, a list, focus, a load task, a save task.        |
-| Dashboard | `examples.dashboard.DashboardApp`  | Tabs, a gauge and a sparkline from a poller, a log stream.    |
+| App     | Main class                       | Script                        | What it shows                                                        |
+| ------- | -------------------------------- | ----------------------------- | -------------------------------------------------------------------- |
+| Counter | `examples.counter.CounterKyoApp` | `examples/target/bin/counter` | A kyo-ui UI with a `SignalRef`, key handlers, buttons, the quit value. |
+
+More examples (Todo, Dashboard, Widgets, two counters, the component styles)
+come in a later version.
 
 ## Run an example
 
@@ -15,25 +18,38 @@ Write the start scripts, then start an app in a real terminal:
 ```sh
 sbt examples/launchers
 examples/target/bin/counter
-examples/target/bin/todo
-examples/target/bin/dashboard
 ```
 
-Each script starts the app in its own JVM with these flags:
+`sbt examples/launchers` writes one script for each main class of the
+examples into `examples/target/bin`, named after the package of the main
+(`examples.counter.CounterKyoApp` gets `counter`), and the class path into
+`examples/target/bin/classpath`. Each script starts the app in its own JVM
+with `$JAVA_HOME/bin/java` (or `java` on `PATH`), which must be JDK 25, and
+with these flags (`examples / run / javaOptions` in `build.sbt`):
 
 - `--enable-native-access=ALL-UNNAMED`: crossterm is a native library.
-- `--sun-misc-unsafe-memory-access=allow`: Kyo and Scala use `sun.misc.Unsafe`.
+  Without it, JDK 25 prints a warning into the terminal before the UI starts.
+- `--sun-misc-unsafe-memory-access=allow`: Kyo and Scala use
+  `sun.misc.Unsafe`.
+- `-Xss16m`: Kyo's deep stacks.
+- `-Dkyo.scheduler.cycleIntervalNs=10000000`,
+  `-Dkyo.scheduler.blockingMonitorIntervalNs=20000000` and
+  `-Dkyo.scheduler.regulator.concurrencyCollectIntervalMs=100`: the tui4s
+  scheduler values. With them the runner gives fewer split frames under load
+  and uses less CPU when the app is idle. An app with its own `main` gives
+  them as JVM flags; `TuiApp`, in a later version, sets them in code.
 
 Put more JVM options in `JAVA_OPTS`, for example
-`JAVA_OPTS=-Duser.home=/tmp/x examples/target/bin/todo`.
+`JAVA_OPTS=-Dkyo.Log.defaultLevel=info examples/target/bin/counter`.
 
-Do not use `sbt run` or `sbt runMain` to use an app. The app starts, but sbt
-also reads the keyboard, so some keys never get to the app (a `q` can be lost).
-With `sbt -batch`, sbt gives the app a pipe as stdin, and the app stops with
-"stdin is not a terminal". This is true for every terminal UI that sbt starts,
-not only for tui4s.
+When the environment sets `JAVA_TOOL_OPTIONS` or `JDK_JAVA_OPTIONS` (a proxy
+setup can do this), the JVM prints a line "Picked up ..." into the terminal
+before the UI starts. It does no harm; unset the variable to remove it.
 
-The Todo app reads and writes `~/.tui4s-todo.txt`.
+Do not use `sbt run` or `sbt runMain` to use an app. sbt also reads the
+keyboard, so some keys never get to the app, and the forked JVM gets no
+terminal on stdin, so the app stops with "stdin/stdout is not a terminal".
+This is true for every terminal UI that sbt starts, not only for tui4s.
 
 ## Test the examples
 
@@ -41,89 +57,69 @@ The Todo app reads and writes `~/.tui4s-todo.txt`.
 sbt examples/test
 ```
 
-The tests do not need a terminal. They use `tui4s.testkit.TuiTest` with munit.
+The tests do not need a terminal. They run the app on
+`tui4s.testkit.Headless` with munit
+(`examples/src/test/scala/examples/counter/CounterSuite.scala`).
 
 ## Real-terminal checklist
 
-The unit tests cannot open a real terminal. Before each release, do this
-checklist.
-
-Most of it runs without a human:
+The unit tests cannot open a real terminal. The PTY kit does it without a
+human:
 
 ```sh
 examples/ptycheck/run.sh
 ```
 
-The script starts each example in a pseudo-terminal (with `expect`), sends the
-keys of the checklist, replays the output in a small terminal emulator, and
-checks the screen. After each run it checks with `stty` that the terminal is
-back in cooked mode with echo. It needs `expect` and `python3`.
+The script writes the start scripts (one sbt process), starts each example in
+a pseudo-terminal of 100x30 (with `expect`, `checklist.exp`), sends the keys of
+the checklist, checks raw mode and `stty -a` from outside, then replays the
+output in a small terminal emulator (`vt.py`) and checks the screens
+(`check.py`). It prints one line per row and exits with 1 when a row fails.
+It needs `expect` and `python3`. The CI job `terminal` runs it. Run it after
+each change to the terminal code. `PTY_SKIP_BUILD=1` uses the scripts as they
+are; `PTY_WORK=<dir>` keeps the logs there (the raw output `session.log` and
+the replayed screens `screens.txt`).
 
-Then a human does the steps that a pseudo-terminal cannot show (colors, real
-window resizes, look and feel) on macOS Terminal and on iTerm2. Write the
-result in the pull request.
+The rows for the Counter:
 
-### Counter
+| Row | Check |
+| --- | --- |
+| Start | The app enters the alternate screen and draws the first frame. |
+| Raw mode | `stty -a` of the pseudo-terminal shows `-icanon -echo -isig` while the app runs. |
+| Keys | `+`, `+`, `-` show `Count: 1`, `Count: 2`, `Count: 1`; each key writes less than 200 bytes (a partial repaint). |
+| `q` | The app stops with exit code 0. |
+| Ctrl-C | The app stops with exit code 0 (in raw mode Ctrl-C is a key, not a signal). |
+| Restore | After `q` and after Ctrl-C the app leaves the alternate screen and shows the cursor, and nothing comes before the prompt. `stty -a` after the run is the same as before. |
+| Resize | At 40x20 the screen is laid out again inside 40 columns (the help line wraps); at 100x30 again, the help line is one line. |
+| Pipe | `echo \| examples/target/bin/counter`: "stdin/stdout is not a terminal", exit code 1, no alternate screen, `stty -a` unchanged. |
+| Native access | `java --illegal-native-access=deny ...`: "start the JVM with --enable-native-access=ALL-UNNAMED", exit code 1, no alternate screen. |
 
-- [ ] Start the Counter. Push `+` and `-`. The count changes at once.
+A human does the steps that a pseudo-terminal cannot show (colours, real
+window resizes, look and feel) on the terminals of the platform, and writes
+the result in the pull request:
+
+- [ ] Start the Counter. Push `+` and `-`. The count changes at once. Tab
+      moves between the buttons; Enter presses the button with the focus.
 - [ ] Push `q`. The app stops. The shell prompt is correct, and there is no
       stray output.
 - [ ] Start the Counter again. Push Ctrl-C. The app stops, and the prompt is
       correct.
-
-### Todo
-
-- [ ] Type a title and push Enter. The item shows in the list.
-- [ ] Paste a text that has an emoji. The text shows correctly in the field.
-- [ ] Push Tab. The focus moves to the list. The help bar shows the list keys.
-- [ ] Push Space. The item toggles. Push `d`. The item is deleted.
-- [ ] Push Ctrl-S. The status shows "saved". `~/.tui4s-todo.txt` has the items.
-- [ ] Stop the app and start it again. The items load.
-
-### Dashboard
-
-- [ ] Push Left and Right. The tab changes.
-- [ ] The gauge moves about 4 times each second.
-- [ ] Push `p`. The samples stop. The log lines continue.
 - [ ] Make the window smaller and larger. The screen has no artefacts.
-
-### Stop and restore
-
-- [ ] Start an example. In a second terminal, run `kill -TERM <pid>`. The
-      terminal is restored (no raw mode, no alternate screen, the cursor shows).
-      The exit code is 143 (128 + SIGTERM), as for other JVM programs.
-- [ ] Start an example with `--illegal-native-access=deny` in place of
-      `--enable-native-access=ALL-UNNAMED`. The app stops with "start the JVM
-      with --enable-native-access=ALL-UNNAMED", before raw mode:
+- [ ] Start the Counter without `--enable-native-access`. JDK 25 prints its
+      warning before the UI starts, and the app starts:
 
       ```sh
-      java --illegal-native-access=deny --sun-misc-unsafe-memory-access=allow \
-        -cp "$(cat examples/target/bin/classpath)" examples.counter.CounterApp
+      java --sun-misc-unsafe-memory-access=allow \
+        -cp "$(cat examples/target/bin/classpath)" examples.counter.CounterKyoApp
       ```
 
-- [ ] Start an example without `--enable-native-access`. JDK 25 prints its
-      JEP 472 warning before raw mode, and the app starts:
+## Known limits
 
-      ```sh
-      sbt 'set examples / run / javaOptions := Seq("--sun-misc-unsafe-memory-access=allow")' "examples/runMain examples.counter.CounterApp"
-      ```
-
-- [ ] Start an example with stdin that is not a terminal. It prints
-      "stdin/stdout is not a terminal" (cause: "stdin is not a terminal")
-      before raw mode, and the exit code is 1:
-
-      ```sh
-      sbt "examples/runMain examples.counter.CounterApp" < /dev/null
-      ```
-
-`sbt -J<flag>` does not work for these steps: it changes the JVM of sbt, not
-the forked JVM of the app.
-
-### Known risks to look at
-
-- An inline viewport (`TuiOptions(viewport = Viewport.Inline(10))`): the
-  cursor query at start must not take a key from the input thread, and the
-  prompt must come below the last frame.
-- The input thread reads while the render fiber writes (crossterm reader and
-  writer at the same time). Type fast while the Dashboard draws. No key is
-  lost, and no escape sequence shows on the screen.
+- jatatui 0.31.0 cuts a typed character outside the Basic Multilingual Plane
+  (an emoji) to 16 bits, so such a key arrives as a wrong character. A paste
+  (bracketed paste) keeps it.
+- A stop with `kill -INT` or `kill -TERM` from outside: a `KyoApp` main (as
+  `CounterKyoApp`) interrupts the run, the run restores the terminal, and the
+  app exits with 130 or 143 (Kyo's own signal handling; seen once in a
+  pseudo-terminal, not a row of the kit yet). The rows for these signals come
+  with `TuiApp` in a later version.

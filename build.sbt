@@ -110,10 +110,11 @@ lazy val examples = project
     outputStrategy := Some(StdoutOutput),
     // The JVM flags of a real run. The launchers write them into each script.
     // --enable-native-access: crossterm is a JNI library (without the flag
-    // JDK 25 prints a warning over the UI; with --illegal-native-access=deny
-    // the app stops with NativeAccessDenied). --sun-misc-unsafe-memory-access:
-    // Kyo and Scala use sun.misc.Unsafe. -Xss16m: Kyo's deep stacks, as in
-    // the prototype runs.
+    // JDK 25 prints a warning into the terminal before the UI starts; with
+    // --illegal-native-access=deny the app stops with NativeAccessDenied).
+    // --sun-misc-unsafe-memory-access: Kyo and Scala use sun.misc.Unsafe.
+    // -Xss16m: Kyo's deep stacks, as in the prototype runs.
+    // claude 2026-10-13: changed: where the warning goes (seen in a PTY)
     run / javaOptions ++= Seq(
       "--enable-native-access=ALL-UNNAMED",
       "--sun-misc-unsafe-memory-access=allow",
