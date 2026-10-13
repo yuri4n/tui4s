@@ -5,8 +5,11 @@ import kyo.UI.*
 import tui4s.internal.Knobs
 import tui4s.testkit.Headless
 
-/** The headless kit: the quit value, resize, idle, awaitScreen (RC-7, D-15). */
+/** The headless kit: the quit value, resize, idle, awaitScreen (RC-7, D-15);
+  * the waits after the end of the run, `char` and half of a surrogate pair.
+  */
 // claude 2026-10-12: created
+// claude 2026-10-13: changed: the leaves of the reviews R1-8, R2-7 and R2-8
 class HeadlessTest extends RunnerSuite:
 
     "the quit value ends the run; awaitEnd and finished see it" in {
@@ -197,5 +200,71 @@ class HeadlessTest extends RunnerSuite:
           no <- h.awaitScreen(showing("zzz"), 200.millis)
           t2 <- now
       yield assert(!no && (t2 - t1) / 1_000_000 >= 200)
+    }
+
+    /** The result of `v`, or a `Timeout` failure after 5 s. */
+    // claude 2026-10-13: created (review R1-8, R2-7)
+    private def within5s[A](v: => A < Async)(using
+        Frame,
+    ): Result[Throwable, A] < Async =
+      Abort.run[Throwable](Async.timeout(5.seconds)(v))
+
+    /** True when `r` is a panic with an `IllegalStateException` that says the
+      * run has ended.
+      */
+    // claude 2026-10-13: created (review R1-8, R2-7)
+    private def runEnded(r: Result[Throwable, Any]): Boolean = r match
+        case Result.Panic(e: IllegalStateException) =>
+          e.getMessage.contains("the run has ended")
+        case _                                      => false
+
+    // claude 2026-10-13: created (review R1-8, R2-7)
+    "after the run has ended, a key, a paste, a resize and nextFrame fail at once; the key that ended it still gets its frame" in {
+      for
+          h   <- Headless.start(20, 3)(quit =>
+                   div.onKeyDown {
+                     case KeyboardEvent(Keyboard.Char('q'), _, _) => quit
+                     case _                                       => ()
+                   }("x"),
+                 )
+          f   <- h.char('q')
+          fin <- h.awaitEnd(10.seconds)
+          _   <- h.drainFrames // the frames before the end, if any
+          t0  <- now
+          k   <- within5s(h.char('x'))
+          p   <- within5s(h.paste("p"))
+          z   <- within5s(h.resize(10, 3))
+          n   <- within5s(h.nextFrame)
+          k2  <- within5s(h.key(Keyboard.Enter))
+          t1  <- now
+          d   <- h.drainFrames
+      yield
+          val all = Seq(k, p, z, n, k2)
+          assert(f.cause == FrameCause.Input && fin, s"$f; ended: $fin")
+          assert(all.forall(runEnded), s"results: $all")
+          assert((t1 - t0) / 1_000_000 < 2000, s"${(t1 - t0) / 1_000_000} ms")
+          assert(d.isEmpty, s"frames left: $d")
+    }
+
+    // claude 2026-10-13: created (review R2-8)
+    "char: half of a surrogate pair fails and types nothing; typeText types the emoji as one key" in {
+      val emoji = "\uD83D\uDE00"
+      for
+          ref <- Signal.initRef("")
+          h   <- Headless.start(20, 3)(_ =>
+                   div(input.value(ref).style(_.width(10.px))),
+                 )
+          r   <- Abort.run[Throwable](h.char(emoji.charAt(0)))
+          t0  <- ref.get
+          fs  <- h.typeText(emoji)
+          t1  <- ref.get
+      yield
+          val half = r match
+              case Result.Panic(e: IllegalArgumentException) =>
+                e.getMessage.contains("surrogate")
+              case _                                         => false
+          assert(half && t0 == "", s"char: $r; text: $t0")
+          assert(fs.size == 1 && t1 == emoji, s"keys: ${fs.size}; text: $t1")
+      end for
     }
 end HeadlessTest

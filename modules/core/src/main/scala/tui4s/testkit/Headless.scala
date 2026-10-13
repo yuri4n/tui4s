@@ -33,13 +33,18 @@ import tui4s.internal.*
   * `TuiOptions.paste`). Each key is one event and waits for its Input frame,
   * which holds all the consequences of the key (the handlers' writes and the
   * regions that derive from them).
+  *
+  * After the run has ended (a quit, or a failure of the run), a method that
+  * waits for a frame (the key methods, `paste`, `resize`, `nextFrame`) fails at
+  * once when no frame for it is left, with an `IllegalStateException` (a
+  * panic). The key that ended the run still gets its frame.
   */
 // claude 2026-10-12: changed (PR #11 review: Codex, Headless.scala:115): the one-driver rule
 // claude 2026-10-12: changed: the final API (RC-7, D-15): the quit value, Screen,
 // awaitScreen, Vector[FrameStats], no TestBackend and no jatatui Cell in the
 // API; the key methods are C3
 // claude 2026-10-13: changed (C3): the key methods press, key, char, typeText;
-// paste
+// paste; changed (review R1-8, R2-7): no wait without end after the run
 final class Headless private (
     inbox: Channel[Msg],
     frames: Channel[FrameStats],
@@ -153,12 +158,21 @@ final class Headless private (
 
     /** Types the character `c` as one key and waits for its frame: a space is
       * `Keyboard.Space`, a line break (`\n` or `\r`) is `Keyboard.Enter`, a tab
-      * is `Keyboard.Tab`, any other character is `Keyboard.Char(c)`.
+      * is `Keyboard.Tab`, any other character is `Keyboard.Char(c)`. `c` is a
+      * character of the Basic Multilingual Plane: half of a surrogate pair is
+      * not a key, and `char` fails with an `IllegalArgumentException` (a
+      * panic). Type a character outside it (an emoji) with `typeText`.
       */
     // claude 2026-10-13: created (C3; the prototype's char, with the line
-    // break and the tab)
+    // break and the tab); changed (review R2-8): half of a surrogate pair fails
     def char(c: Char)(using Frame): FrameStats < Async =
-      press(Headless.keyOf(c.toInt))
+      if Character.isSurrogate(c) then
+          Abort.panic(
+            IllegalArgumentException(
+              s"tui4s: char got half of a surrogate pair (U+${c.toInt.toHexString.toUpperCase}); type an emoji with typeText",
+            ),
+          )
+      else press(Headless.keyOf(c.toInt))
 
     /** Types `s`, one key per character (as [[char]]), and waits for the frame
       * of each key. A line break `\r\n` is one Enter. A character outside the
@@ -196,9 +210,11 @@ final class Headless private (
 
     /** Posts the Input message that `mk` builds with the next sequence number
       * and waits for its frame (the Input frame with that number). Background
-      * frames that come first are consumed.
+      * frames that come first are consumed. When the run has ended before that
+      * frame, the end mark wakes the wait and it fails (see the class).
       */
-    // claude 2026-10-13: created (C3; the wait of the old `resize`)
+    // claude 2026-10-13: created (C3; the wait of the old `resize`); changed
+    // (review R1-8, R2-7): the end mark
     private def send(mk: Long => Msg)(using Frame): FrameStats < Async =
       seq.getAndIncrement
         .map { n =>
@@ -207,7 +223,9 @@ final class Headless private (
             .andThen {
               Loop.foreach {
                 frames.take.map(s =>
-                  if s.cause == FrameCause.Input && s.seq == n then Loop.done(s)
+                  if s eq Headless.endMark then Headless.ended(frames)
+                  else if s.cause == FrameCause.Input && s.seq == n then
+                      Loop.done(s)
                   else Loop.continue,
                 )
               }
@@ -216,16 +234,63 @@ final class Headless private (
         .handle(Abort.run[Closed])
         .map(_.getOrThrow)
 
-    /** The next frame of any cause (waits for it). */
+    /** The next frame of any cause (waits for it). After the run has ended and
+      * every frame is taken, it fails (see the class).
+      */
+    // claude 2026-10-13: changed (review R1-8, R2-7): the end mark
     def nextFrame(using Frame): FrameStats < Async =
-      Abort.run[Closed](frames.take).map(_.getOrThrow)
+      Abort
+        .run[Closed](
+          frames.take.map(s =>
+            if s eq Headless.endMark then Headless.ended(frames) else s,
+          ),
+        )
+        .map(_.getOrThrow)
 
     /** The frames that arrived and were not consumed. */
+    // claude 2026-10-13: changed (review R1-8, R2-7): the end mark stays in
+    // the channel and is not returned
     def drainFrames(using Frame): Vector[FrameStats] < Sync =
-      Abort.run[Closed](frames.drain).map(_.getOrElse(Chunk.empty).toVector)
+      Abort
+        .run[Closed](frames.drain.map { fs =>
+          if fs.exists(_ eq Headless.endMark) then
+              frames
+                .offer(Headless.endMark)
+                .andThen(
+                  fs.filterNot(_ eq Headless.endMark),
+                )
+          else fs
+        })
+        .map(_.getOrElse(Chunk.empty).toVector)
 end Headless
 
 object Headless:
+    /** The end mark: the end of the run puts it into the frame channel after
+      * the last frame, so a method that waits for a frame wakes up and fails
+      * instead of a wait without end. Compared by reference, never returned,
+      * and put back when taken, so each later wait sees it too.
+      */
+    // claude 2026-10-13: created (review R1-8, R2-7)
+    private val endMark: FrameStats =
+      FrameStats(Long.MinValue, FrameCause.Background, 0, 0, 0L, 0)
+
+    /** Puts the end mark back and fails: the run has ended and no frame for the
+      * caller is left.
+      */
+    // claude 2026-10-13: created (review R1-8, R2-7)
+    private def ended(frames: Channel[FrameStats])(using
+        Frame,
+    ): Nothing < (Abort[Closed] & Sync) =
+      frames
+        .offer(endMark)
+        .andThen(
+          Abort.panic(
+            IllegalStateException(
+              "tui4s: the run has ended (a quit, or a failure of the run), so no frame comes",
+            ),
+          ),
+        )
+
     /** Starts a headless run of `ui` on a `width` x `height` screen and returns
       * after its first frame. `ui` gets the quit value: running it ends the run
       * (D-15). [[tui4s.Tui.quit]] does the same inside the construction of
@@ -249,6 +314,9 @@ object Headless:
           runner   = Runner(inbox, canvas, options, Present(frames), knobs)
           seq     <- AtomicLong.init(1L)
           run     <- Fiber.init(runner.scoped(ui(runner.quit).map(runner.run)))
+          // claude 2026-10-13: created (review R1-8, R2-7): the end mark after
+          // the last frame
+          _       <- run.onComplete(_ => Abort.run[Closed](frames.offer(endMark)))
           h        = Headless(inbox, frames, backend, seq, run, runner, options)
           // it quits and waits before its scope ends (RC-7)
           _       <- Scope.ensure(h.quit.andThen(h.awaitEnd(5.seconds)))
@@ -284,8 +352,15 @@ object Headless:
     )(using Frame): Unit < (Async & Scope) =
       Loop.foreach {
         Abort.run[Closed](frames.poll).map {
-          case Result.Success(Present(_)) => Loop.done
-          case _                          =>
+          // claude 2026-10-13: changed (review R1-8, R2-7): the end mark (the
+          // run ended before its first frame) stays for the later waits
+          case Result.Success(Present(s)) if s eq endMark =>
+            Abort
+              .run[Closed](frames.offer(endMark))
+              .andThen(run.get)
+              .andThen(Loop.done)
+          case Result.Success(Present(_))                 => Loop.done
+          case _                                          =>
             run.done.map { ended =>
               if ended then run.get.andThen(Loop.done)
               else
