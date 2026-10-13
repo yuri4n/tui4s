@@ -7,6 +7,7 @@ import kyo.*
 import kyo.UI.*
 import tui4s.Hooks.*
 import tui4s.internal.Canvas
+import tui4s.internal.Knobs
 import tui4s.internal.Msg
 import tui4s.internal.Runner
 import tui4s.spi.Settle
@@ -16,36 +17,8 @@ import tui4s.testkit.Headless
   * starts; the state key of a `Component`.
   */
 // claude 2026-10-13: created (C4, RC-8); changed: the state key (FC-17)
-class ComponentTest extends RunnerSuite:
-
-    /** Polls `cond` every 2 ms: the ms until it was true, or -1 after
-      * `timeout`.
-      */
-    def waitFor(timeout: Duration)(cond: => Boolean < Sync)(using
-        Frame,
-    ): Long < Async =
-      now.map { t0 =>
-        Loop.foreach {
-          cond.map { ok =>
-            now.map { t =>
-              if ok then Loop.done((t - t0) / 1_000_000)
-              else if t - t0 > timeout.toNanos then Loop.done(-1L)
-              else Async.sleep(2.millis).andThen(Loop.continue)
-            }
-          }
-        }
-      }
-
-    /** The value of `n` now. */
-    def read(n: AtomicInteger)(using Frame): Int < Sync = Sync.defer(n.get())
-
-    /** True when `ticks` does not move for 100 ms. */
-    def stopped(ticks: AtomicInteger)(using Frame): Boolean < Async =
-      for
-          t1 <- read(ticks)
-          _  <- Async.sleep(100.millis)
-          t2 <- read(ticks)
-      yield t1 == t2
+// claude 2026-10-13: changed (C4): the helpers are in ComponentSuite
+class ComponentTest extends ComponentSuite:
 
     /** The body of a hook component: an effect that waits for ever and counts
       * its own end (its `Scope` closes), an interval that counts its ticks, and
@@ -290,5 +263,68 @@ class ComponentTest extends RunnerSuite:
         ok2,
         s"the default key (the class name) shares the state: $t2",
       )
+    }
+
+    // ---- the mount of a Component ----
+
+    /** A Component that counts the runs of its `onMount`; the effect waits for
+      * ever, and its `Scope.ensure` counts the ends.
+      */
+    final class Mounts(runs: AtomicInteger, ends: AtomicInteger)
+        extends Component:
+        type State = Int
+        def initial: Int                                               = 0
+        def view(n: SignalRef[Int]): UI                                = counterView("m", n)
+        override def onMount(n: SignalRef[Int]): Any < (Async & Scope) =
+          Sync
+            .defer(runs.incrementAndGet())
+            .andThen(Scope.ensure(Sync.defer(ends.incrementAndGet())))
+            .andThen(Async.never[Unit])
+    end Mounts
+
+    "Component.onMount runs once per mount: a parent that renders again (also the verify pass and the repair tick) keeps the mount, its state and its effects; the unmount ends them" in {
+      // a repair tick every 50 ms: it renders the parent again (its UI holds
+      // closures), as the 1 s tick does in a real run
+      Knobs.let(Knobs(repairInterval = 50.millis)) {
+        for
+            runs  <- Sync.defer(AtomicInteger(0))
+            ends  <- Sync.defer(AtomicInteger(0))
+            title <- Signal.initRef(0)
+            shown <- Signal.initRef(true)
+            h     <- Headless.start(40, 6)(_ =>
+                       div(
+                         when(shown)(
+                           div(
+                             title.render(t =>
+                               div(span(s"[t=$t]"), Mounts(runs, ends).ui),
+                             ),
+                           ),
+                         ),
+                       ),
+                     )
+            ok0   <- h.awaitScreen(showing("[m=0]"), 2.seconds)
+            _     <- h.key(Keyboard.Enter)
+            ok1   <- h.awaitScreen(showing("[m=1]"), 2.seconds)
+            _     <- title.set(1)
+            ok2   <- h.awaitScreen(showing("[t=1]"), 2.seconds)
+            _     <- title.set(2)
+            ok3   <- h.awaitScreen(showing("[t=2]"), 2.seconds)
+            _     <- Async.sleep(300.millis) // about 6 repair ticks
+            r     <- read(runs)
+            e     <- read(ends)
+            s     <- h.screen
+            _     <- shown.set(false)
+            gone  <- h.awaitScreen(!_.contains("[m="), 2.seconds)
+            ended <- waitFor(2.seconds)(read(ends).map(_ == 1))
+        yield
+            assert(ok0 && ok1 && ok2 && ok3, s.text)
+            assert(
+              r == 1 && e == 0,
+              s"onMount ran $r times and ended $e times while the mount lasted",
+            )
+            assert(s.contains("[m=1]"), s.text)
+            assert(gone && ended >= 0L, "the unmount did not end onMount")
+        end for
+      }
     }
 end ComponentTest

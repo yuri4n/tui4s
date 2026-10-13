@@ -321,9 +321,12 @@ private[tui4s] final class Mount(
       * A [[tui4s.Component]] (`ComponentSpec.Instance`): its state is the
       * `SignalRef` of `w.comps` under its state key (the path and
       * `Component.stateKey`, by default the class), or a new one with
-      * `initial`. `view(state)` gives the content at once. The effects of the
-      * old mount at this path stop, and `onMount(state)` runs in a new fiber,
-      * with a `Scope` that closes when the fiber ends.
+      * `initial`. `view(state)` of the new instance gives the content at once.
+      * When `reclaim` has a component of the same key at this path, its mount
+      * goes on: the state, the generation and the `onMount` fiber stay.
+      * Otherwise the effects of the old region at this path stop, and
+      * `onMount(state)` runs in a new fiber, with a `Scope` that closes when
+      * the fiber ends (at the unmount: an interrupt).
       *
       * A hook component (`ComponentSpec.Hook`, [[tui4s.Hooks.component]]): a
       * region of the same identity in `reclaim` is kept as it is (its fiber,
@@ -335,6 +338,7 @@ private[tui4s] final class Mount(
       */
     // claude 2026-10-13: created (C4, the C2 cut back: the prototype's
     // mountComponent, Mount.scala lines 114-154)
+    // claude 2026-10-13: changed (C4, P-6): the Scaladoc of the Instance form
     private def mountComponent(
         spec: ComponentSpec,
         path: Loc,
@@ -347,7 +351,23 @@ private[tui4s] final class Mount(
             // component (`Component.stateKey`, the class name by default)
             val key       =
               s"${path.mkString("/")}|${Component.stateKeyOf(c)}"
-            val (gen, w1) = w.gen
+            // claude 2026-10-13: changed (C4, P-6): a mount of the same key at
+            // this path goes on (its generation and its onMount fiber stay),
+            // so a parent that renders again (also the verify pass and the
+            // repair tick, which render a UI with closures again) does not
+            // run onMount again; only the view is new
+            val mounted   = reclaim.get(path).collect {
+              case RegionState(
+                    _,
+                    Source.Comp(_: ComponentSpec.Instance, k),
+                    g,
+                    _,
+                    _,
+                    Some(f),
+                  ) if k == key =>
+                (g, f)
+            }
+            val (gen, w1) = mounted.fold(w.gen)((g, _) => (g, w))
             for
                 state   <- w1.comps.get(key) match
                                case Some(ref) =>
@@ -357,21 +377,14 @@ private[tui4s] final class Mount(
                                    CanEqual.derived
                                  Signal.initRef[c.State](c.initial)
                 content  = c.view(state)
-                // the old mount's effects stop; a new one starts for the new
-                // instance (with the kept state)
-                _       <- reclaim
-                             .get(path)
-                             .flatMap(_.watcher)
-                             .fold(Kyo.unit)(_.interrupt.unit)
-                // claude 2026-10-13: changed (C4, RC-8): the fiber joins the
-                // gauge (R1 option b)
-                effects <- Fiber
-                             .initUnscoped(
-                               Abort
-                                 .run[Throwable](Scope.run(c.onMount(state)))
-                                 .unit,
-                             )
-                             .map(f => Sync.defer { track(f); f })
+                effects <- mounted match
+                               case Some((_, f)) =>
+                                 Kyo.lift[Fiber[Any, Nothing], Sync](f)
+                               case None         =>
+                                 // the effects of the region that was at this
+                                 // path (another key) stop; onMount runs for
+                                 // the new mount
+                                 startEffects(c, state, reclaim.get(path))
                 region   = RegionState(
                              path,
                              Source.Comp(spec, key),
@@ -446,6 +459,27 @@ private[tui4s] final class Mount(
                     }
             end match
     end mountComponent
+
+    /** Stops the effects of `old` (the region that was at the path) and runs
+      * `c.onMount(state)` in a new fiber, with a `Scope` that closes when the
+      * fiber ends. The fiber joins the gauge.
+      */
+    // claude 2026-10-13: created (C4, P-6): the prototype's start of the
+    // effects, out of mountComponent; it joins the gauge (RC-8)
+    private def startEffects(
+        c: Component,
+        state: SignalRef[c.State],
+        old: Option[RegionState],
+    )(using Frame): Fiber[Any, Nothing] < Sync =
+      old
+        .flatMap(_.watcher)
+        .fold(Kyo.unit)(_.interrupt.unit)
+        .andThen(
+          Fiber.initUnscoped(
+            Abort.run[Throwable](Scope.run(c.onMount(state))).unit,
+          ),
+        )
+        .map(f => Sync.defer { track(f); f })
 
     /** Replaces the content of the region at `path` (already updated in `w`),
       * mounting the regions in its new content and unmounting the old ones it
