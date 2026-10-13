@@ -2,7 +2,9 @@ package examples.twocounters
 
 import kyo.*
 import kyo.UI.*
-import tui4s.kyoui.Tui
+// claude 2026-10-13: changed (T2, adapt): tui4s.Tui (the prototype had
+// tui4s.kyoui.Tui)
+import tui4s.Tui
 
 /** The Counter in plain kyo-ui: only kyo-ui's API, plus `Tui.quit` for the quit
   * key.
@@ -61,8 +63,6 @@ object Counter:
       )
 end Counter
 
-object CounterMain extends KyoApp:
-    run(Tui.run(Counter.app))
-
-object TwoCountersMain extends KyoApp:
-    run(Tui.run(Counter.twoCounters))
+// claude 2026-10-13: changed (T2, adapt): the KyoApp mains of the prototype
+// (CounterMain, TwoCountersMain) are cut; the example gets a TuiApp main in
+// its own commit (one main per package).

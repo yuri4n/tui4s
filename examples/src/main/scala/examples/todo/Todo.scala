@@ -5,7 +5,9 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import kyo.*
 import kyo.UI.*
-import tui4s.kyoui.Tui
+// claude 2026-10-13: changed (T2, adapt): tui4s.Tui (the prototype had
+// tui4s.kyoui.Tui)
+import tui4s.Tui
 
 /** The Todo app in plain kyo-ui. Components are plain functions of signals and
   * actions.
@@ -181,5 +183,5 @@ object Todo:
       )
 end Todo
 
-object TodoMain extends KyoApp:
-    run(Tui.run(Todo.app(sys.env.getOrElse("TODO_FILE", "todos.txt"))))
+// claude 2026-10-13: changed (T2, adapt): the KyoApp main of the prototype
+// (TodoMain) is cut; the example gets a TuiApp main in its own commit.

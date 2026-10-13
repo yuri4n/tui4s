@@ -2,9 +2,11 @@ package examples.counterstyles
 
 import kyo.*
 import kyo.UI.*
-import tui4s.kyoui.Component
-import tui4s.kyoui.Hooks.*
-import tui4s.kyoui.Tui
+// claude 2026-10-13: changed (T2, adapt): the tui4s package (the prototype
+// had tui4s.kyoui)
+import tui4s.Component
+import tui4s.Hooks.*
+import tui4s.Tui
 
 /** Style 1: hooks. A component is a function that returns `UI < Sync` (or
   * `< (Async & Scope)`).
@@ -81,11 +83,6 @@ object CounterComponents:
       )
 end CounterComponents
 
-object CounterHooksMain extends KyoApp:
-    run(Tui.run(CounterHooks.app))
-
-object CounterHooksDynamicMain extends KyoApp:
-    run(Tui.run(CounterHooks.dynamic))
-
-object CounterComponentsMain extends KyoApp:
-    run(Tui.run(CounterComponents.app))
+// claude 2026-10-13: changed (T2, adapt): the three KyoApp mains of the
+// prototype are cut; the example gets one TuiApp main in its own commit (one
+// main per package).

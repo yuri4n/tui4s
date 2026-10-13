@@ -1,8 +1,11 @@
 package examples.dashboard
 
+// claude 2026-10-13: changed (T2, adapt): the widgets are in their own
+// package; tui4s.Tui (the prototype had tui4s.kyoui.Tui)
+import examples.widgets.Widgets
 import kyo.*
 import kyo.UI.*
-import tui4s.kyoui.Tui
+import tui4s.Tui
 
 /** The Dashboard in plain kyo-ui: tabs (Left / Right), a gauge and a sparkline
   * fed by a 250 ms sampler, a log pane fed by a stream, `p` pauses the sampler
@@ -136,5 +139,5 @@ object Dashboard:
       yield view(s)
 end Dashboard
 
-object DashboardMain extends KyoApp:
-    run(Tui.run(Dashboard.app))
+// claude 2026-10-13: changed (T2, adapt): the KyoApp main of the prototype
+// (DashboardMain) is cut; the example gets a TuiApp main in its own commit.
