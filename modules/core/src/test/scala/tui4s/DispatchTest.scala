@@ -1,7 +1,9 @@
 package tui4s
 
+import java.util.concurrent.ConcurrentLinkedQueue
 import kyo.*
 import kyo.UI.*
+import scala.jdk.CollectionConverters.*
 import tui4s.internal.Dispatch
 import tui4s.internal.Kind
 import tui4s.internal.Layout
@@ -10,9 +12,10 @@ import tui4s.internal.World
 import tui4s.testkit.Headless
 
 /** The key routing of the runner (`tui4s.internal.Dispatch`): the quit key, the
-  * focus moves, bubbling and `stopPropagation`.
+  * focus moves, bubbling and `stopPropagation`, a handler that fails.
   */
-// claude 2026-10-13: created (C3); changed: the leaf of the review R2-3
+// claude 2026-10-13: created (C3); changed: the leaves of the reviews R2-1 and
+// R2-3
 class DispatchTest extends RunnerSuite:
 
     "Ctrl-C ends the run (TuiOptions.ctrlCQuits); with ctrlCQuits = false it is a key for the handlers" in {
@@ -201,4 +204,103 @@ class DispatchTest extends RunnerSuite:
         s"target: $target; handlers that ran: $l",
       )
     }
+
+    /** Waits (at most `timeout`, a poll every 5 ms on the live clock) until `q`
+      * holds `n` elements.
+      */
+    // claude 2026-10-13: created (review R2-1)
+    private def awaitSize(
+        q: ConcurrentLinkedQueue[String],
+        n: Int,
+        timeout: Duration,
+    )(using Frame): Unit < Async =
+      now.map { t0 =>
+        Loop.foreach {
+          now.map { t =>
+            if q.size >= n || t - t0 > timeout.toNanos then Loop.done
+            else
+                Clock
+                  .let(Clock.live)(Async.sleep(5.millis))
+                  .andThen(Loop.continue)
+          }
+        }
+      }
+
+    // claude 2026-10-13: created (review R2-1)
+    "a handler that fails or panics is logged (Kyo's Log) and the event goes on; a failing onInput keeps the bound write" in {
+      val errors = new ConcurrentLinkedQueue[String]()
+      for
+          after <- AtomicInt.init(0)
+          ref   <- Signal.initRef("")
+          h     <- Log.let(Log(ErrorRecorder(errors))) {
+                     Headless.start(30, 3)(_ =>
+                       div.onKeyDown {
+                         case KeyboardEvent(Keyboard.Char('t'), _, _) =>
+                           Sync.defer(throw new IllegalStateException("t"))
+                         case KeyboardEvent(Keyboard.Char('p'), _, _) =>
+                           Abort.panic(new IllegalStateException("p"))
+                         case _                                       =>
+                           after.incrementAndGet
+                       }(
+                         input
+                           .value(ref)
+                           .onInput(_ =>
+                             Sync.defer(throw new IllegalStateException("i")),
+                           )
+                           .style(_.width(10.px)),
+                       ),
+                     )
+                   }
+          fs    <- h.typeText("tpa")
+          fin   <- h.finished
+          n     <- after.get
+          text  <- ref.get
+          // Kyo's Log can write on its own daemon fiber: wait for the lines
+          _     <- awaitSize(errors, 5, 5.seconds)
+      yield
+          val logged = errors.asScala.toVector
+          assert(
+            fs.map(_.cause) == Seq.fill(3)(FrameCause.Input) && !fin,
+            s"frames: ${fs.map(_.cause)}; run ended: $fin",
+          )
+          assert(n == 1 && text == "tpa", s"handler after: $n; text: $text")
+          assert(
+            logged.sorted == Vector(
+              "tui4s: onInput handler failed: i",
+              "tui4s: onInput handler failed: i",
+              "tui4s: onInput handler failed: i",
+              "tui4s: onKeyDown handler failed: t",
+              "tui4s: onKeyDown handler panicked: p",
+            ),
+            s"logged: $logged",
+          )
+      end for
+    }
 end DispatchTest
+
+/** A Kyo log backend that keeps the lines at level error (with the message of
+  * the error) and writes nothing to the console.
+  */
+// claude 2026-10-13: created (review R2-1)
+private final class ErrorRecorder(lines: ConcurrentLinkedQueue[String])
+    extends Log.Unsafe:
+    def level: Log.Level                                                       = Log.Level.error
+    def name: String                                                           = "tui4s.test"
+    def withName(name: String): Log.Unsafe                                     = this
+    def trace(msg: => String)(using Frame, AllowUnsafe): Unit                  = ()
+    def trace(msg: => String, t: => Throwable)(using Frame, AllowUnsafe): Unit =
+      ()
+    def debug(msg: => String)(using Frame, AllowUnsafe): Unit                  = ()
+    def debug(msg: => String, t: => Throwable)(using Frame, AllowUnsafe): Unit =
+      ()
+    def info(msg: => String)(using Frame, AllowUnsafe): Unit                   = ()
+    def info(msg: => String, t: => Throwable)(using Frame, AllowUnsafe): Unit  =
+      ()
+    def warn(msg: => String)(using Frame, AllowUnsafe): Unit                   = ()
+    def warn(msg: => String, t: => Throwable)(using Frame, AllowUnsafe): Unit  =
+      ()
+    def error(msg: => String)(using Frame, AllowUnsafe): Unit                  =
+        val _ = lines.add(msg)
+    def error(msg: => String, t: => Throwable)(using Frame, AllowUnsafe): Unit =
+        val _ = lines.add(s"$msg: ${t.getMessage}")
+end ErrorRecorder
