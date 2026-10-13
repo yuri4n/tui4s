@@ -1,10 +1,11 @@
 package tui4s
 
-/** Why a frame was made: the first frame, an input (a key or a resize), or a
-  * change in the background (a signal, the repair tick).
+/** Why a frame was made: the first frame, an input (a key, a paste or a
+  * resize), or a change in the background (a signal, the repair tick).
   */
 // claude 2026-10-12: changed: CanEqual (OS-16), Scaladoc
-// claude 2026-10-13: changed: the Scaladoc names the keys (C3)
+// claude 2026-10-13: changed: the Scaladoc names the keys (C3) and the paste
+// (review R1-6)
 enum FrameCause derives CanEqual:
     case Initial, Input, Background
 
