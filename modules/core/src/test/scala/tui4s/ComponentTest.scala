@@ -484,4 +484,42 @@ class ComponentTest extends ComponentSuite:
           assert(s.contains("[top]") && !s.contains("[slow]"), s.text)
       end for
     }
+
+    "pending frame: only the frame of the mount waits, once: the re-check of that frame and the later renders of the parent (the repair tick) do not wait again" in {
+      // pendingTimeout 1 s; the body takes 4 s; a repair tick every 100 ms
+      // renders the parent of the component again (its UI holds closures),
+      // and a region changes every 50 ms. Allowance: the frame of the key
+      // takes 0.9 s to 1.6 s (one wait of 1 s, not two); then, for 1.5 s and
+      // before the content comes, no frame takes 500 ms or more (a new wait
+      // would take up to 1 s).
+      val options = TuiOptions(pendingTimeout = JDuration.ofSeconds(1))
+      Knobs.let(Knobs(repairInterval = 100.millis)) {
+        for
+            h   <- Headless.start(40, 5, options)(_ =>
+                     for
+                         n  <- useSignal(0)
+                         _  <- useInterval(50.millis)(n.updateAndGet(_ + 1))
+                         ui <- slowApp(4.seconds, span(n.map(v => s"[tick=$v]")))
+                     yield ui,
+                   )
+            ok0 <- h.awaitScreen(s => tickOn(s) >= 3, 2.seconds)
+            f   <- h.char('s')
+            fs  <- framesUntil(h, 1500.millis)(_ => false)
+            s   <- h.screen
+            ok2 <- h.awaitScreen(showing("[slow]"), 5.seconds)
+        yield
+            val slow = fs.filter(ms(_) >= 500L).map(ms)
+            assert(ok0, "the interval did not tick")
+            assert(
+              ms(f) >= 900L && ms(f) < 1600L,
+              s"the frame of the key: ${ms(f)} ms (one wait is about 1 s)",
+            )
+            assert(
+              slow.isEmpty,
+              s"frames that waited again for the component: $slow ms (of ${fs.size} frames)",
+            )
+            assert(!s.contains("[slow]") && ok2, s.text)
+        end for
+      }
+    }
 end ComponentTest

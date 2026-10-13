@@ -333,12 +333,14 @@ private[tui4s] final class Mount(
       * its content, its state). Otherwise a new fiber runs `body` in a `Scope`
       * and posts the UI that it gives; the fiber then waits until the unmount
       * interrupts it, which closes the `Scope`. Until the content arrives, the
-      * region is `Content.Pending` and its path is in `w.pending`: the settle
-      * waits for it (`TuiOptions.pendingTimeout`).
+      * region is `Content.Pending`. A new mount puts its path in `w.pending`:
+      * the settle of this frame waits for it (`TuiOptions.pendingTimeout`). A
+      * reclaimed region does not: a later frame does not wait for it again.
       */
     // claude 2026-10-13: created (C4, the C2 cut back: the prototype's
     // mountComponent, Mount.scala lines 114-154)
     // claude 2026-10-13: changed (C4, P-6): the Scaladoc of the Instance form
+    // and of the pending wait
     private def mountComponent(
         spec: ComponentSpec,
         path: Loc,
@@ -420,10 +422,15 @@ private[tui4s] final class Mount(
                       ),
                     ) if id == identity =>
                   val w1 = w.copy(regions = w.regions.updated(path, old))
+                  // claude 2026-10-13: changed (C4, P-6): a reclaimed component
+                  // whose content has not come yet does not go back into
+                  // `pending`: only the frame of its mount waits for it (a
+                  // later render of the parent, as the repair tick, made each
+                  // of its frames wait again)
                   content match
                       case Content.Single(c) =>
                         walk(c, path :+ "~", w1, reclaim)
-                      case _                 => w1.copy(pending = w1.pending + path)
+                      case _                 => w1
                 case _ =>
                   val (gen, w1) = w.gen
                   // claude 2026-10-13: changed (C4, RC-8): the fiber joins the
