@@ -23,20 +23,23 @@ import tui4s.internal.*
   * ended, so no watcher outlives the test.
   *
   * One test fiber drives a `Headless`. Its methods are not for two fibers at
-  * the same time: `press`, `resize` and `nextFrame` take frames from one shared
-  * channel, so a second caller can take the frame that the first one waits for.
+  * the same time: the key methods, `paste`, `resize` and `nextFrame` take
+  * frames from one shared channel, so a second caller can take the frame that
+  * the first one waits for.
   *
   * The keys go to the app as a terminal sends them: `press` sends one
   * [[kyo.UI.KeyboardEvent]], `key` builds one from a [[kyo.UI.Keyboard]] and
-  * modifiers, `char` and `typeText` type characters. Each key is one event and
-  * waits for its Input frame, which holds all the consequences of the key (the
-  * handlers' writes and the regions that derive from them).
+  * modifiers, `char` and `typeText` type characters, `paste` pastes a text (see
+  * `TuiOptions.paste`). Each key is one event and waits for its Input frame,
+  * which holds all the consequences of the key (the handlers' writes and the
+  * regions that derive from them).
   */
 // claude 2026-10-12: changed (PR #11 review: Codex, Headless.scala:115): the one-driver rule
 // claude 2026-10-12: changed: the final API (RC-7, D-15): the quit value, Screen,
 // awaitScreen, Vector[FrameStats], no TestBackend and no jatatui Cell in the
 // API; the key methods are C3
-// claude 2026-10-13: changed (C3): the key methods press, key, char, typeText
+// claude 2026-10-13: changed (C3): the key methods press, key, char, typeText;
+// paste
 final class Headless private (
     inbox: Channel[Msg],
     frames: Channel[FrameStats],
