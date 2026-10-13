@@ -1,29 +1,31 @@
 #!/usr/bin/expect -f
-# Real-PTY checklist for the kyoui-runner apps (Counter, Todo), adapted from the desktop
-# script .work/scratch/pty/checklist.exp. It drives the apps in a pseudo-terminal of 100x30, writes @@MARK name@@ lines
-# into logs/pty-session.log (check.py replays the output between the marks with vt.py), checks raw mode from outside
-# while an app runs, and compares `stty -a` before and after each app.
-# Environment: KYOUI_JAR (the assembly jar), PTY_WORK (the working directory of the apps).
+# The real-terminal checklist of the Counter example, with no human. It drives
+# examples/target/bin/counter in a pseudo-terminal of 100x30, writes
+# @@MARK name@@ lines into the session log (check.py replays the output between
+# the marks with vt.py and checks the screens), checks raw mode from outside
+# while the app runs, and compares `stty -a` before and after each run.
+# Run it with run.sh, which builds the launchers first.
+# Usage: expect checklist.exp <bin dir> <work dir> <session log>
+# Results and notes are printed only after the session log is closed:
+# `log_file -a` also logs send_user output, and vt.py would draw that text onto
+# the replayed screens.
+# claude 2026-10-13: changed (T1, RC-31 part): the Counter rows of plan 6.5 for
+# the launcher of examples.counter.CounterKyoApp (the prototype ran the apps
+# of an assembly jar; the Todo rows come with the Todo example in T2)
 
 set timeout 40
-set here [file normalize [file dirname [info script]]]
-set logs [file normalize "$here/../logs"]
-set work $env(PTY_WORK)
+set bin  [file normalize [lindex $argv 0]]
+set work [file normalize [lindex $argv 1]]
 log_user 0
-log_file -a -noappend "$logs/pty-session.log"
-# Results and notes are printed only after the session log is closed. `log_file -a` also
-# logs send_user output, and vt.py then drew that text onto the replayed screens.
+log_file -a -noappend [lindex $argv 2]
 set results {}
 proc pass {name} { global results; lappend results "PASS $name" }
 proc fail {name why} { global results; lappend results "FAIL $name: $why" }
+proc skip {name why} { global results; lappend results "SKIP $name: $why" }
 proc mark {name} { send_log "\n@@MARK $name@@\n" }
-proc note {text} {
-    global logs results
-    set f [open "$logs/pty-notes.log" a]; puts $f $text; close $f
-    lappend results "NOTE $text"
-}
 
 spawn -noecho /bin/bash --norc --noprofile
+set shell [exp_pid]
 set slave $spawn_out(slave,name)
 exec stty rows 30 columns 100 < $slave
 send "PS1='PROMPT> '; export TERM=xterm-256color; cd $work\r"
@@ -41,48 +43,52 @@ proc pump {ms} {
 }
 
 proc stty_save {name when} {
-    global logs
-    send "stty -a > $logs/pty-stty-$name-$when.log; echo STTY_\$((6*7))SAVED\r"
+    global work
+    send "stty -a > $work/stty-$name-$when.txt; echo STTY_\$((6*7))SAVED\r"
     expect -ex "STTY_42SAVED"
     wait_prompt
 }
 
 proc stty_compare {name} {
-    global logs
+    global work
     stty_save $name after
-    send "cmp -s $logs/pty-stty-$name-before.log $logs/pty-stty-$name-after.log && echo STTY_\$((7*0))SAME || echo STTY_\$((7*0))DIFF\r"
+    send "cmp -s $work/stty-$name-before.txt $work/stty-$name-after.txt && echo STTY_\$((7*0))SAME || echo STTY_\$((7*0))DIFF\r"
     expect {
-        -ex "STTY_0SAME" { pass "$name: stty -a after exit equals stty -a before start" }
-        -ex "STTY_0DIFF" { fail $name "stty -a differs after exit (see pty-stty-$name-*.log)" }
+        -ex "STTY_0SAME" { pass "$name: stty -a after the exit equals stty -a before the start" }
+        -ex "STTY_0DIFF" { fail $name "stty -a differs after the exit (see $work/stty-$name-*.txt)" }
         timeout { fail $name "no stty comparison" }
     }
     wait_prompt
 }
 
-proc run_app {main {env ""}} {
-    global here
-    send "$env $here/run.sh $main; echo EXIT=\$?\r"
+proc run_app {cmd} {
+    global started
+    set started [clock milliseconds]
+    send "$cmd; echo EXIT=\$?\r"
 }
 
 # The app is ready when it has entered the alternate screen and drawn the text.
+# The text must be one run of cells: the runner sends only the cells that
+# change, so "Count: 0" comes as "Count:", a cursor move and "0".
 proc first_frame {name text} {
-    set t0 [clock milliseconds]
+    global started
     expect {
         -ex "\x1b\[?1049h" { pass "$name: entered the alternate screen" }
-        timeout { fail $name "never entered the alternate screen"; return }
+        timeout { fail $name "never entered the alternate screen"; return 0 }
     }
     expect {
-        -ex $text { pass "$name: first frame drawn ([expr {[clock milliseconds] - $t0}] ms after the start command)" }
-        timeout { fail $name "no first frame (waited for '$text')" }
+        -ex $text { pass "$name: first frame drawn ([expr {[clock milliseconds] - $started}] ms after the start command, JVM start included)" }
+        timeout { fail $name "no first frame (waited for '$text')"; return 0 }
     }
     pump 500
+    return 1
 }
 
 # Raw mode, read from outside on the PTY slave while the app runs.
 proc raw_check {name} {
-    global slave logs
+    global slave work
     set modes [exec stty -a < $slave]
-    set f [open "$logs/pty-stty-$name-running.log" w]; puts $f $modes; close $f
+    set f [open "$work/stty-$name-running.txt" w]; puts $f $modes; close $f
     if {[regexp {(^|\s)-icanon(\s|$)} $modes] && [regexp {(^|\s)-echo(\s|$)} $modes] && [regexp {(^|\s)-isig(\s|$)} $modes]} {
         pass "$name: raw mode while running (-icanon -echo -isig)"
     } else {
@@ -96,72 +102,79 @@ proc back_at_prompt {name {codes {0}}} {
             set code $expect_out(1,string)
             if {[lsearch -exact $codes $code] >= 0} { pass "$name: exit code $code" } else { fail $name "exit code $code, expected $codes" }
         }
-        timeout { fail $name "app did not exit"; send "\003"; return }
+        timeout { fail $name "the app did not exit"; send "\003"; return }
     }
     wait_prompt
 }
 
-proc idle_cpu {name main secs} {
-    global here
-    set pid [string trim [exec pgrep -f "java.*$main"]]
-    set r [exec $here/cpu.sh $pid $secs]
-    note "idle CPU $name (pid $pid, no keys for $secs s): $r"
+# The PID of the app: the child of the shell in the pseudo-terminal (the
+# launcher execs java).
+proc app_pid {} {
+    global shell
+    return [string trim [exec pgrep -P $shell -n]]
 }
 
-# ---- Counter (Kyo default scheduler settings): + + - then q
+# ---- Counter: + + - then q
 stty_save counter before
 mark "counter-start"
-run_app apps.CounterMain
-first_frame "counter" "Count:"
-raw_check "counter"
-idle_cpu "counter, Kyo default scheduler" apps.CounterMain 10
-pump 200
-mark "counter-plus1";  send "+"; pump 500
-mark "counter-plus2";  send "+"; pump 500
-mark "counter-minus";  send -- "-"; pump 500
-mark "counter-q";      send "q"
+run_app "$bin/counter"
+if {[first_frame "counter" "Count:"]} {
+    raw_check "counter"
+    mark "counter-plus1";  send "+"; pump 500
+    mark "counter-plus2";  send "+"; pump 500
+    mark "counter-minus";  send -- "-"; pump 500
+    mark "counter-q";      send "q"
+}
 back_at_prompt "counter q"
 stty_compare "counter"
 
-# ---- Counter with the tui4s scheduler properties: idle CPU, then Ctrl-C quits
-stty_save counterflags before
-mark "counterflags-start"
-run_app apps.CounterMain "JFLAGS='-Dkyo.scheduler.cycleIntervalNs=10000000 -Dkyo.scheduler.blockingMonitorIntervalNs=20000000 -Dkyo.scheduler.regulator.concurrencyCollectIntervalMs=100'"
-first_frame "counter (tui4s scheduler properties)" "Count:"
-raw_check "counterflags"
-idle_cpu "counter, tui4s scheduler properties" apps.CounterMain 10
-pump 200
-mark "counterflags-plus"; send "+"; pump 500
-mark "counterflags-ctrlc"; send "\003"
-back_at_prompt "counter ctrl-c"
-stty_compare "counterflags"
-
-# ---- Todo: type an item, Enter, Tab to the list, Space toggles, Ctrl-S saves, Esc quits
-set todofile "$work/todo-pty.txt"
-file delete -force $todofile
-stty_save todo before
-mark "todo-start"
-run_app apps.TodoMain "TODO_FILE=$todofile"
-first_frame "todo" "Todo"
-raw_check "todo"
-mark "todo-typed";  send "buy milk"; pump 800
-mark "todo-enter";  send "\r"; pump 600
-mark "todo-tab";    send "\t"; pump 500
-mark "todo-space";  send " "; pump 500
-mark "todo-ctrls";  send "\x13"; pump 800
-mark "todo-esc";    send "\x1b"
-back_at_prompt "todo"
-stty_compare "todo"
-if {[file exists $todofile]} {
-    set fh [open $todofile r]; set content [read $fh]; close $fh
-    if {$content eq "\[x\] buy milk\n"} { pass "todo: saved file is '\[x\] buy milk'" } else { fail "todo file" "content: [string map {"\n" "\\n"} $content]" }
-} else {
-    fail "todo file" "no file $todofile"
+# ---- Counter: Ctrl-C quits (the key: raw mode sends no signal), exit 0
+stty_save ctrlc before
+mark "ctrlc-start"
+run_app "$bin/counter"
+if {[first_frame "counter ctrl-c" "Count:"]} {
+    mark "ctrlc-plus"; send "+"; pump 500
+    mark "ctrlc-key";  send "\003"
 }
+back_at_prompt "counter ctrl-c"
+stty_compare "ctrlc"
+
+# ---- Counter: a resize (SIGWINCH) lays the screen out again
+mark "resize-start"
+run_app "$bin/counter"
+if {[first_frame "counter resize" "Count:"]} {
+    set pid [app_pid]
+    mark "resize-small"
+    exec stty rows 20 columns 40 < $slave
+    catch {exec kill -WINCH $pid}
+    pump 1000
+    mark "resize-big"
+    exec stty rows 30 columns 100 < $slave
+    catch {exec kill -WINCH $pid}
+    pump 1000
+    mark "resize-q"; send "q"
+}
+back_at_prompt "counter resize"
+
+# ---- Stdin is a pipe: NotATerminal before anything changes
+stty_save pipe before
+mark "pipe-start"
+run_app "echo | $bin/counter"
+back_at_prompt "stdin is a pipe" {1 2}
+stty_compare "pipe"
+
+# ---- Native access denied (JDK 25: --illegal-native-access=deny forces the
+# error that a JVM without --enable-native-access warns about)
+stty_save deny before
+mark "deny-start"
+run_app "\${JAVA_HOME:+\$JAVA_HOME/bin/}java --illegal-native-access=deny --sun-misc-unsafe-memory-access=allow -cp \"\$(cat $bin/classpath)\" examples.counter.CounterKyoApp"
+back_at_prompt "native access denied" {1 2}
+stty_compare "deny"
 
 mark "end"
 send "exit\r"
 expect eof
 log_file
 foreach r $results { send_user "$r\n" }
-send_user "\nPTY part: [llength [lsearch -all $results PASS*]] passed, [llength [lsearch -all $results FAIL*]] failed\n"
+send_user "\nTerminal part: [llength [lsearch -all $results PASS*]] passed, [llength [lsearch -all $results FAIL*]] failed, [llength [lsearch -all $results SKIP*]] skipped\n"
+exit [expr {[llength [lsearch -all $results FAIL*]] > 0}]
