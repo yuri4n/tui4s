@@ -26,8 +26,11 @@ enum Content:
 end Content
 
 /** What layout and paint need from the runner. All lookups are pure reads of
-  * the runner's immutable world.
+  * the runner's immutable world. `caret` gives the caret of the text input at a
+  * path as a grapheme index (`World.carets`; `Int.MaxValue` is the end of the
+  * text).
   */
+// claude 2026-10-13: changed the Scaladoc (C3): the caret is a grapheme index
 final case class Scene(
     content: Loc => Option[Content],
     focus: Option[Loc],

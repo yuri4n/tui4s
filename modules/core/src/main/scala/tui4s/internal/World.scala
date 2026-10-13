@@ -44,7 +44,13 @@ final case class RegionState(
 
 /** The runner's whole state. Immutable; one `World` per step of the runner
   * loop.
+  *
+  * `carets` holds the caret of each text input that a key moved or edited, as a
+  * GRAPHEME index: 0 to the number of grapheme clusters of its text (what a
+  * reader sees as one character), not a UTF-16 index. No entry is the end of
+  * the text. `Paint` turns it into a cell column.
   */
+// claude 2026-10-13: changed the Scaladoc (C3): carets are grapheme indexes
 final case class World(
     root: UI,
     regions: Map[Loc, RegionState],

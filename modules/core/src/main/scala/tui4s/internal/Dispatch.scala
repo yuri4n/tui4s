@@ -202,35 +202,55 @@ final class Dispatch(quit: Unit < Sync, knobs: Knobs = Knobs.default):
                 case Present(UI.Bound.Const(v)) => v
                 case _                          => ""
 
+    /** The key `ev` on the text input at `p`: the grapheme editing of
+      * [[TextEdit]]. Enter runs `onChange` with the text (the commit).
+      */
+    // claude 2026-10-13: changed (C3, OS-11): the grapheme editing of TextEdit
+    // replaces the UTF-16 editing of the prototype; the caret is a grapheme
+    // index; the write and onInput are in `commitText`
     private def editText(w: World, p: Loc, ti: TextInput, ev: KeyboardEvent)(
         using Frame,
     ): World < Async =
-        val readOnly          = ti.readOnly.getOrElse(false)
         val value             = currentText(w, p, ti)
-        val caret             = w.carets.getOrElse(p, Int.MaxValue).min(value.length).max(0)
-        val ctrlAlt           = ev.modifiers.ctrl || ev.modifiers.alt || ev.modifiers.meta
-        val (next, nextCaret) = ev.key match
-            case Keyboard.Char(c) if !ctrlAlt && !readOnly    =>
-              (value.patch(caret, c.toString, 0), caret + 1)
-            case Keyboard.Space if !ctrlAlt && !readOnly      =>
-              (value.patch(caret, " ", 0), caret + 1)
-            case Keyboard.Backspace if !readOnly && caret > 0 =>
-              (value.patch(caret - 1, "", 1), caret - 1)
-            case Keyboard.Delete if !readOnly                 =>
-              (value.patch(caret, "", 1), caret)
-            case Keyboard.ArrowLeft                           => (value, (caret - 1).max(0))
-            case Keyboard.ArrowRight                          => (value, (caret + 1).min(value.length))
-            case Keyboard.Home                                => (value, 0)
-            case Keyboard.End                                 => (value, value.length)
-            case _                                            => (value, caret)
-        val w1                =
-          (if nextCaret != caret then
-               w.copy(carets = w.carets.updated(p, nextCaret)).markNode(p)
-           else w)
-        if next == value then
-            if isKey(ev, Keyboard.Enter) then
-                safe("onChange", runWith(ti.onChange, value)).andThen(w1)
-            else w1
+        val caret             = caretOf(w, p, value)
+        val (next, nextCaret) =
+          TextEdit.key(value, caret, ev, ti.readOnly.getOrElse(false))
+        if next == value && isKey(ev, Keyboard.Enter) then
+            safe("onChange", runWith(ti.onChange, value))
+              .andThen(moveCaret(w, p, caret, nextCaret))
+        else commitText(w, p, ti, value, caret, next, nextCaret)
+    end editText
+
+    /** The caret of the text input at `p` with the text `value`: a grapheme
+      * index; no entry is the end of the text.
+      */
+    // claude 2026-10-13: created (C3)
+    private def caretOf(w: World, p: Loc, value: String): Int =
+      w.carets.getOrElse(p, Int.MaxValue).min(TextEdit.count(value)).max(0)
+
+    // claude 2026-10-13: created (C3)
+    private def moveCaret(w: World, p: Loc, caret: Int, next: Int): World =
+      if next != caret then
+          w.copy(carets = w.carets.updated(p, next)).markNode(p)
+      else w
+
+    /** One edit of the text input at `p`: the new caret, then (when the text
+      * changed) the runner's own copy of the text, the bound write through
+      * [[writeBound]], and `onInput` once, in this order.
+      */
+    // claude 2026-10-13: created (C3; the second half of the prototype's
+    // editText, shared with the paste)
+    private def commitText(
+        w: World,
+        p: Loc,
+        ti: TextInput,
+        value: String,
+        caret: Int,
+        next: String,
+        nextCaret: Int,
+    )(using Frame): World < Async =
+        val w1 = moveCaret(w, p, caret, nextCaret)
+        if next == value then w1
         else
             /* the runner's own write is applied at once (no wait for the
              * watcher); the watcher's echo is then a no-op */
@@ -255,7 +275,7 @@ final class Dispatch(quit: Unit < Sync, knobs: Knobs = Knobs.default):
               .andThen(safe("onInput", runWith(ti.onInput, next)))
               .andThen(w2)
         end if
-    end editText
+    end commitText
 
     // ---- checkbox, radio, select ----
 

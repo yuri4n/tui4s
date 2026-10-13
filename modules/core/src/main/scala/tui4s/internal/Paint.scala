@@ -459,19 +459,41 @@ object Paint:
                 ),
               )
             case ti: TextInput  =>
+              // claude 2026-10-13: changed (C3): the caret is a grapheme index
+              // (World.carets); the text scrolls and the cursor lands by cell
+              // widths (a wide character takes two cells), not by UTF-16
+              // chars
               val value     = textValue(env, n.path, ti)
-              val shown     = e match
-                  case _: PasswordInput => "*" * value.length
-                  case _                => value
-              val caret     = env.caret(n.path).max(0).min(shown.length)
-              val offset    = (caret - r.w + 1).max(0)
+              val glyphs    = e match
+                  case _: PasswordInput =>
+                    TextEdit.graphemes(value).map(_ => "*")
+                  case _                => TextEdit.graphemes(value)
+              val widths    = glyphs.map(Layout.textWidth)
+              val caret     = env.caret(n.path).max(0).min(glyphs.size)
+              // the first grapheme shown: the cells from it to the caret, plus
+              // the cell of the cursor, fit in the field
+              val cursorW   = widths.lift(caret).getOrElse(1).max(1)
+              val first     = Iterator
+                .iterate(0)(_ + 1)
+                .find(i =>
+                  i >= caret || widths.slice(i, caret).sum + cursorW <= r.w,
+                )
+                .getOrElse(caret)
+              val visible   = glyphs
+                .drop(first)
+                .zip(widths.drop(first))
+                .scanLeft(("", 0)) { case ((_, used), (g, w)) => (g, used + w) }
+                .drop(1)
+                .takeWhile(_._2 <= r.w)
+                .map(_._1)
+                .mkString
               val field     =
                 style.withAddModifier(jatatui.core.style.Modifier.UNDERLINED)
               val text      =
-                if shown.isEmpty && !focused then ti.placeholder.getOrElse("")
-                else shown.slice(offset, offset + r.w)
+                if glyphs.isEmpty && !focused then ti.placeholder.getOrElse("")
+                else visible
               val textStyle =
-                if shown.isEmpty && !focused then
+                if glyphs.isEmpty && !focused then
                     field
                       .withAddModifier(jatatui.core.style.Modifier.DIM)
                       .withAddModifier(jatatui.core.style.Modifier.ITALIC)
@@ -481,8 +503,8 @@ object Paint:
               )
               discard(canvas.text(r.x, r.y, text, textStyle, clip))
               if focused then
-                  val cx = r.x + caret - offset
-                  val ch = shown.lift(caret).map(_.toString).getOrElse(" ")
+                  val cx = r.x + widths.slice(first, caret).sum
+                  val ch = glyphs.lift(caret).getOrElse(" ")
                   canvas.put(
                     cx,
                     r.y,
