@@ -206,6 +206,9 @@ kill_row int INT 130
 
 # ---- Printing: a println while the UI is up is captured; the lines come
 # after the restore, or into the log file with --log
+# claude 2026-10-13: changed (T2, review R1-1): the app prints one line before
+# the run too (it comes before the UI, check.py); the log file has only the two
+# lines of the run (no R3 warning)
 stty_save print before
 mark "print-start"
 run_app "$bin/printing"
@@ -231,7 +234,7 @@ if {[file exists $printlog]} {
     set fh [open $printlog r]; set content [read $fh]; close $fh
     set want "printing: the UI is built\nprinting: + gives 1\n"
     if {$content eq $want} {
-        pass "printing --log: the log file has the two printed lines"
+        pass "printing --log: the log file has the two printed lines of the run, and nothing more"
     } else {
         fail "printing --log" "the log file has: [string map {"\n" "\\n"} $content]"
     }

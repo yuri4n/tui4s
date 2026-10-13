@@ -202,15 +202,28 @@ for name, sig, code in (("term", "TERM", 143), ("int", "INT", 130)):
     restored(f"{name}-kill", f"counter kill -{sig}", code)
 
 # Printing: the printed lines never reach the screen; they come after the restore (or go to the log file)
+# claude 2026-10-13: changed (T2, review R1-1): the println before the run (IR output probe, R3): it comes before the
+# alternate screen, and the later prints are captured all the same (no R3 warning)
+R3_WARNING = "scala.Console was in use before the run"
 shown = inside_alt(("print-start", "print-plus", "print-q"))
+early = ESC.sub("", seg("print-start").split("\x1b[?1049h", 1)[0])
+check("printing: the println before the run comes before the alternate screen",
+      "printing: before the run" in early and "\x1b[?1049h" in seg("print-start"), repr(early[-300:]))
 check("printing: + shows 'Count: 1'", "Count: 1" in screen("print-plus"), screen("print-plus"))
 check("printing: no printed line on the screen while the UI is up", "printing:" not in shown, repr(shown[:600]))
 lines = after_restore("print-q").splitlines()[:3]
 check("printing: after the restore come the two printed lines, then EXIT=0",
       lines == ["printing: the UI is built", "printing: + gives 1", "EXIT=0"], lines)
+printed = "".join(seg(m) for m in ("print-start", "print-plus", "print-q"))
+check("printing: no R3 warning (the TuiApp constructor installed the capture)", R3_WARNING not in printed,
+      repr(printed[-600:]))
 check("printing --log: + shows 'Count: 1'", "Count: 1" in screen("printlog-plus"), screen("printlog-plus"))
 logged = "".join(seg(m) for m in ("printlog-start", "printlog-plus", "printlog-q"))
-check("printing --log: no printed line in the terminal (they go to the file)", "printing:" not in logged, repr(logged[:600]))
+log_early, _, log_rest = logged.partition("\x1b[?1049h")
+check("printing --log: the println before the run comes before the alternate screen",
+      "printing: before the run" in ESC.sub("", log_early) and log_rest != "", repr(log_early[-300:]))
+check("printing --log: no printed line in the terminal while the UI is up or after it (they go to the file)",
+      "printing:" not in log_rest and R3_WARNING not in log_rest, repr(log_rest[:600]))
 restored("printlog-q", "printing --log")
 
 # The Counter with its own main (KyoApp)

@@ -55,8 +55,22 @@ end Printing
   * examples/target/bin/printing                 # the lines come after the UI
   * examples/target/bin/printing --log out.log   # the lines go to out.log
   * }}}
+  *
+  * The app also prints one line before the run, when the object is made. It
+  * comes in the terminal at once, before the UI. It is the first use of
+  * `scala.Console`, which keeps the stream of that time. The constructor of
+  * `TuiApp` installed the capture streams before it, so the prints while the UI
+  * is up are captured all the same.
   */
 // claude 2026-10-13: created (T2)
+// claude 2026-10-13: changed (T2, review R1-1): the Scaladoc (the println
+// before the run)
 object PrintingApp extends TuiApp:
+    // claude 2026-10-13: created (T2, review R1-1): a println before the run,
+    // the IR output probe (R3): the PTY rows "printing" check that the later
+    // prints are captured
+    println("printing: before the run")
+
     override def options: TuiOptions = Printing.options(args)
     def ui: UI < (Async & Scope)     = Printing.ui(Tui.quit)
+end PrintingApp
