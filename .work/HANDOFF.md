@@ -105,6 +105,16 @@ started from the main checkout): it is the user's Metals sbt server.
   on kyo-ui (runner proposal: (a) runner core, (b) terminal + app from PR 5, (c) examples/ptycheck/bench;
   close or replace PRs 3 and 4).
 
+<!-- claude 2026-10-13: added this item (gate 1 closed) -->
+- 2026-10-13: GATE 1 CLOSED. The user: "go for your solution and move ahead. want to see that usable version asap".
+  DECISIONS eleventh round: the gate 1 answers (seal tui4s.internal in C3; CI sets the glitch load flag; the repair
+  tick re-render and the self-cancelling canary are accepted; D-14 and D-15 confirmed; frame = batch and the
+  single-driver kit stand), the WIP limit lifted until the terminal PR is open, the T1 RECs D-21/22/24 (a), and the
+  NEW ORDER C3 -> T1 -> C4 -> T2 (T1 before C4: the terminal Counter needs no hooks). Branches: feat/kyoui-03-input,
+  feat/kyoui-04-terminal, feat/kyoui-05-components, feat/kyoui-06-app-examples. chore/claude-rules pushed plain;
+  PR 5 closed with the plan 4.1 comment. W3 (C3) runs with Opus agents (Fable only for the runtime reviewer R2 and
+  its skeptic K2); script tui4s-w3-c3-input-*.js in the session workflows dir.
+
 ## 2026-10-02: DIRECTION CHANGE
 
 The user reviewed the core and said it is not a functional wrapper of jatatui and that the internals are not
@@ -204,8 +214,10 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
    `Sync.ensure`), armkey (D-16), the own watcher loop with the repair tick (K29 option 2; TODO issue #8), the settle
    conditions of D-17 (c) (public scheduler probe, tui4s scheduler values in `TuiApp` and the test JVM, re-check after
    settle, `awaitScreen`; TODO issue #9).
-3. **Gate 1** after C2 (the user reviews the public run API). Then C3, C4, T1, T2, P1, L1, L2, D as plan 6.15, under the
-   WIP limit P-11.
+3. DONE 2026-10-13: gate 1 closed (DECISIONS eleventh round). **W3 = C3 `feat/kyoui-03-input`** (plan 6.3 + the write
+   seam 0.3 + the seal of tui4s.internal + the CI load flag), then **W5 = T1 `feat/kyoui-04-terminal`** (plan 6.5; the
+   first usable version), then **W4 = C4 `feat/kyoui-05-components`** (plan 6.4), then T2, P1, L1, L2, D. The WIP limit
+   P-11 is lifted until T1 is open (the user wants a usable version first).
 4. **Merge mechanics (D-4 c):** the user squash-merges; Claude then rebases the next branch of the stack (own branches
    only), runs `sbt check`, pushes. Never rewrite a branch that is not Claude's.
 5. **Tracking:** one GitHub issue per TODO (labels `upstream-kyo`, `todo`). The user creates the GitHub Project with
@@ -217,9 +229,10 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
 - Search getkyo/kyo for duplicates of the two drafts in `design/upstream/kyo-signal-issues.md`; post them (user only);
   link them in issues #8 and #9.
 - Create the GitHub Project (auto-add workflow). Say whether the wiki is enabled (a private repo needs GitHub Pro).
-- PR 5: close it (C1 is open as PR #10). Plan 4.1 wants the close comment to link the new stack and place the
-  unresolved bot threads; the table is in plan 4.1.
-- Review PR #10, or say "go C2" to start W2 before the review (the WIP limit P-11 allows 2 PRs above `main`).
+- (done 2026-10-13) PR 5 closed by Claude with the plan 4.1 comment. PRs #10 and #11 accepted by the user's "go for
+  your solution" (2026-10-13); the merges are the user's (squash, then Claude rebases the next branch, D-4 c).
+- The repo rule on the model of subagents: branch `chore/claude-rules` (one commit from main) is pushed; the user opens
+  its PR or asks Claude to.
 - Publishing: deferred until the user brings it up (do not ask).
 
 ## Facts the next session must keep

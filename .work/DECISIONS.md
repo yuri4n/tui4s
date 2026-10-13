@@ -141,3 +141,36 @@ Eighth round (2026-10-11, gate 0, after W0; recorded by Claude from the user's a
   the user decides: separate frames for independent writes that land inside one settle (Kyo signals carry no cause,
   so a render per message brings back split frames; AGENTS.md now says a frame is a batch), and per-request replies
   for two fibers that call `resize` at once (the kit is single-driver by its Scaladoc).
+
+## Eleventh round (2026-10-13, gate 1 CLOSED; claude)
+
+<!-- claude 2026-10-13: created this section -->
+
+- The user: "go for your solution and move ahead. want to see that usable version asap" (after the state report of
+  2026-10-13). Taken as: gate 1 passed with Claude's recommendations; PRs #10 and #11 accepted as they stand (the two
+  open Codex threads on #11 keep Claude's answers; nothing more is built for them); the WIP limit P-11 is lifted until
+  the terminal PR is open (the user wants a usable version first); the T1 RECs D-21 (a) crossterm `Event` as the
+  `InputPort` element, D-22 (a) inline viewport deferred, D-24 (a) Ctrl-C key = quit with exit 0 are taken.
+- Gate 1 answers (Claude's solutions, as the user asked):
+  1. `tui4s.internal` is sealed in C3: `private[tui4s]` on its top-level types (the REC of the C2 API review).
+  2. The glitch test keeps the strict 0 as the default, and CI sets the load flag for the forked test JVM, so that CI
+     allows 1 split frame in 500 events. Reason: CI is "under load", and the SOFT contract itself says at most 1 per
+     10 000 under load; at that rate 500 events give about 5 percent chance of 1 split, and a false red per 20 CI runs
+     costs more than the flag. A real regression shows many splits, not 1. The local 3-run acceptance stays strict.
+  3. The repair tick re-renders a Reactive region whose UI holds closures once per second (no cells change, no flush):
+     ACCEPTED until Kyo fixes `observe` (#8). C3 does not change it.
+  4. The settle canary that cancels itself on a one-worker JVM: ACCEPTED in CI. No fourth scheduler value.
+  5. D-14 (a) `java.time.Duration` and D-15 (a) quit as a value: CONFIRMED.
+  6. Frame = batch (Codex P1 on #11): STANDS. 7. Single-driver kit (Codex P2 on #11): STANDS.
+- Order of the next PRs (claude 2026-10-13, for "usable asap"): C3 -> T1 -> C4 -> T2 -> P1 -> L1 -> L2 -> D. T1 (the
+  terminal) moves before C4 (components and hooks): the terminal Counter uses plain `Signal.initRef` and handlers
+  (C3), nothing of C4, so the first usable version (a kyo-ui app in the real terminal) is one workflow earlier. C4 then
+  stacks on T1. Branch names follow the new order: `feat/kyoui-03-input`, `feat/kyoui-04-terminal`,
+  `feat/kyoui-05-components`, `feat/kyoui-06-app-examples`. The plan's section ids (6.3, 6.4, 6.5) do not change.
+- The repo rule on the model of subagents (`CLAUDE.md` = `@AGENTS.md` + the rule): branch `chore/claude-rules` pushed
+  plain, no PR (plan 4.4 covers only the stack PRs; the user opens it or asks for it).
+- PR 5 (old stack, `feat/core-3-terminal`): CLOSED by Claude with the plan 4.1 comment (the user's "move ahead"
+  covers the "yes" of plan 4.4).
+- Model of the agents from W3 on: Opus for the implementer, the plan and API reviewer, the skeptic of that review, the
+  fixer and the final-runs agent; Fable for the runtime reviewer and its skeptic (the adversarial check of handler and
+  fiber code). The user repeated the rule on 2026-10-13 ("use opus subagents when fable is overkill").
