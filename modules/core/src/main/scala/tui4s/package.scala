@@ -14,12 +14,18 @@
   * terminal (raw mode, the alternate screen, an input thread for the keys),
   * restores the terminal when the run ends, and fails with a [[tui4s.TuiError]]
   * when it cannot start. The headless test kit [[tui4s.testkit.Headless]] runs
-  * an app without a terminal and sends it keys. The components are not in this
-  * version yet.
+  * an app without a terminal and sends it keys. Components come in two styles:
+  * [[tui4s.Hooks]] (a component is a function with `useSignal`, `useEffect`,
+  * `useInterval`, ...; `component(key)` lets the runner mount it) and the class
+  * [[tui4s.Component]] (a `State` type member; the runner keeps the state under
+  * the position and the state key). A component in a `when` loses its state
+  * when it is hidden, and the fibers of the components and hooks end with the
+  * run.
   */
 // claude 2026-10-12: created (OS-13 part): the package Scaladoc; changed:
 // plain words instead of the pull request ids (review R1-4, R2-3); changed:
 // what this version does (signals, the headless kit)
 // claude 2026-10-13: changed: keys, Tui.quit (C3)
 // claude 2026-10-13: changed: Tui.run in the real terminal (T1)
+// claude 2026-10-13: changed: the two component styles (C4)
 package object tui4s

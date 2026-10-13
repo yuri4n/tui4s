@@ -4,8 +4,9 @@ import kyo.*
 import tui4s.internal.ComponentSpec
 import tui4s.internal.Tui4sTrack
 
-/** Hook-style helpers. They are plain Kyo effects: a "component" is any
-  * function that returns `UI < (Async & Scope)`.
+/** Hooks: the first style of tui4s components (the second is [[Component]]).
+  * They are plain Kyo effects: a component is any function that returns
+  * `UI < Sync` or `UI < (Async & Scope)`.
   *
   * {{{
   * def counter(label: String): UI < Sync =
@@ -13,11 +14,22 @@ import tui4s.internal.Tui4sTrack
   *     yield div(span(label), span(count.map(_.toString)), button("+").onClick(count.updateAndGet(_ + 1)))
   * }}}
   *
-  * At the top of an app, sequence the components in a `for` (they run once).
-  * Inside a reactive part of the tree (a `render`, a `foreach` row, a `when`),
-  * wrap the effect in [[component]]: the runner runs it when the node mounts
-  * and closes its `Scope` when the node unmounts.
+  * At the top of an app, sequence the components in a `for`: they run once, and
+  * their effects live as long as the `Scope` of the app. Inside a reactive part
+  * of the tree (a `render`, a `foreach` row, a `when`), wrap the component in
+  * [[component]]: the runner runs its body when the node mounts, in a `Scope`
+  * that closes when the node unmounts. A node inside a `when` that hides it
+  * unmounts: its state is dropped, and it starts fresh when it comes back. The
+  * frame of the event that mounts a hook component waits for its first UI at
+  * most `TuiOptions.pendingTimeout`; then it comes without it, and the UI comes
+  * in a later frame.
+  *
+  * The fibers that the hooks start (`useEffect`, `useInterval`, `useHold`,
+  * `useFold`) end when their `Scope` closes, and in a run they also end with
+  * the run.
   */
+// claude 2026-10-13: changed (C4): the Scaladoc of the final shape (the two
+// styles, the mount, the pending frame, the fibers end with the run)
 object Hooks:
 
     /** A piece of state: `Signal.initRef`. */
@@ -59,8 +71,12 @@ object Hooks:
       yield ref
 
     /** Runs `effect` in a fiber that lives as long as the enclosing `Scope`
-      * (the app, or the [[component]] mount).
+      * (the app, or the [[component]] mount). The effect has a `Scope` of its
+      * own: when the fiber ends (the enclosing `Scope` closes, or the run
+      * ends), it closes, so a `Scope.ensure` inside the effect is its cleanup.
+      * There is no cleanup function to return.
       */
+    // claude 2026-10-13: changed (C4): the Scaladoc (the cleanup)
     def useEffect(effect: => Any < (Async & Scope))(using
         Frame,
     ): Unit < (Async & Scope) =
@@ -75,9 +91,14 @@ object Hooks:
       useEffect(Loop.forever(Async.sleep(period).andThen(action)))
 
     /** A component node: the runner runs `body` when the node mounts and closes
-      * its `Scope` when it unmounts. The node keeps its state while the same
-      * call site (and `key`) stays at the same position.
+      * its `Scope` when it unmounts. The identity of the node is its call site
+      * and `key`: while a node of the same identity stays at the same position,
+      * the mount goes on (its state, its effects and its UI stay, and `body`
+      * does not run again). Give a `key` when one call site shows different
+      * things at one position (for example `component(user.id)(...)`): another
+      * key mounts fresh. In another kyo-ui runner, the node is empty.
       */
+    // claude 2026-10-13: changed (C4): the Scaladoc (the identity and the key)
     def component(
         key: String,
     )(body: => UI < (Async & Scope))(using frame: Frame): UI =
@@ -86,6 +107,8 @@ object Hooks:
         UI.empty,
       )
 
+    /** [[component]] with no key: the identity is the call site. */
+    // claude 2026-10-13: changed (C4): the Scaladoc
     def component(body: => UI < (Async & Scope))(using frame: Frame): UI =
       component("")(body)
 end Hooks

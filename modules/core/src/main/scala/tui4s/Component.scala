@@ -6,14 +6,26 @@ import scala.annotation.unused
 import scala.language.implicitConversions
 import tui4s.internal.ComponentSpec
 
-/** A component with a type member for its state (the second style the user
-  * asked for).
+/** A component class: the second style of tui4s components (the first is
+  * [[Hooks]]). The state is a type member, `State`, with its `initial` value.
   *
-  * The runner allocates `SignalRef[State]` with `initial` when the component
-  * mounts, keeps it while a component of the same class stays at the same
-  * position (keyed lists: the same key), and drops it when the component
-  * unmounts. `view` is pure: it only builds a kyo-ui value. `onMount` runs
-  * effects (timers, streams) for the mount's lifetime.
+  * The runner allocates a `SignalRef[State]` with `initial` when the component
+  * mounts, and keeps it under the position of the component and its
+  * [[stateKey]] (by default the name of the class). The mount lasts while a
+  * component with the same key stays at the same position: when its parent
+  * renders again (it builds a new instance), the new instance gets the same
+  * state, and `view` of the new instance gives the content. A keyed list
+  * (`foreachKeyed`) keeps the position of an item when it moves. When the
+  * component goes away (for example inside a `when` that hides it), the mount
+  * ends and its state is dropped: when it comes back, it starts from `initial`.
+  *
+  * `view` is pure: it only builds a kyo-ui value from the state. `onMount` runs
+  * once per mount, in a fiber with a `Scope` of its own, for effects (timers,
+  * streams, [[Hooks.useInterval]]): the end of the mount interrupts that fiber,
+  * and the end of the run too.
+  *
+  * A component is a child of an element: `div(Counter("a"), Counter("b"))` (the
+  * conversion of the companion), or `ui` where a `UI` is needed.
   *
   * {{{
   * final class Counter(label: String) extends Component:
@@ -22,12 +34,24 @@ import tui4s.internal.ComponentSpec
   *     def view(count: SignalRef[Int]) = div(span(label), span(count.map(_.toString)), button("+").onClick(count.updateAndGet(_ + 1)))
   * }}}
   */
+// claude 2026-10-13: changed (C4): the Scaladoc of the final shape (the state
+// key, the mount, onMount once per mount and its end with the run)
 abstract class Component:
     type State
+
+    /** The state when the component mounts. */
     def initial: State
+
+    /** The UI of the component over its state. Pure: it only builds a value. */
     def view(state: SignalRef[State]): UI
+
+    /** Effects for the time of the mount (by default none). It runs once per
+      * mount, in its own fiber, with a `Scope` that closes when the mount ends
+      * or the run ends.
+      */
     // claude 2026-10-13: changed (strict-flag fix, as S6 25aab29): @unused on
     // the parameter of the default
+    // claude 2026-10-13: changed (C4): the Scaladoc of the members
     def onMount(@unused state: SignalRef[State]): Any < (Async & Scope) = ()
 
     /** The key of this component's state at its position. The runner keeps the
