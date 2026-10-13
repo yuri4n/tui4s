@@ -1,0 +1,42 @@
+== 19:37 step 4n (the stale-pending leaf: 200 ms between the show and the hide): SBT_TPOLECAT_CI=1 core/testOnly ComponentTest ==
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-05-components-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/)
+[info] scalafmt: Formatting 1 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core)...
+[success] Total time: 3 s, completed Oct 13, 2026, 7:37:58 PM
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/cats)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/zio)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components)...
+[success] Total time: 0 s, completed Oct 13, 2026, 7:37:58 PM
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Running 1 suite(s) with parallelism 8
+
+[1m=== ComponentTest ===[0m
+  [1m[32m[PASS][0m[0m R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  [2m(254ms)[0m
+  [1m[32m[PASS][0m[0m R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  [2m(242ms)[0m
+  [1m[32m[PASS][0m[0m R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  [2m(1.2s)[0m
+  [1m[32m[PASS][0m[0m state key: two Component classes at one position do not share state  [2m(141ms)[0m
+  [1m[32m[PASS][0m[0m state key: a custom stateKey separates two instances of one class at one position; without it they share (the default)  [2m(69ms)[0m
+  [1m[32m[PASS][0m[0m Component.onMount runs once per mount: a parent that renders again (also the verify pass and the repair tick) keeps the mount, its state and its effects; the unmount ends them  [2m(374ms)[0m
+  [1m[32m[PASS][0m[0m Component.onMount: an effect that it starts lives as long as the mount, also when onMount returns at once; the unmount ends it  [2m(232ms)[0m
+[pending] the frame of the key: 116 ms, without the content; then 1 Background frame(s) drew it
+  [1m[32m[PASS][0m[0m pending frame: a component whose first content takes longer than pendingTimeout: the frame comes without it (an empty place), and the content follows in a later frame  [2m(1.5s)[0m
+  [1m[32m[PASS][0m[0m pending frame: with a pendingTimeout longer than the body, the frame of the event waits and holds the content  [2m(328ms)[0m
+  [1m[32m[PASS][0m[0m pending frame: the wait is bounded in total, also when other messages arrive while it waits (a region that changes every 50 ms keeps changing on the screen)  [2m(3.1s)[0m
+  [1m[32m[PASS][0m[0m pending frame: a component that mounts and unmounts inside one settle leaves no wait behind  [2m(222ms)[0m
+  [1m[32m[PASS][0m[0m pending frame: only the frame of the mount waits, once: the re-check of that frame and the later renders of the parent (the repair tick) do not wait again  [2m(4.1s)[0m
+[2m---[0m ComponentTest: [32m12 passed[0m, [31m0 failed[0m  [2m(12.3s)[0m
+
+Results: [32m12 passed[0m, [31m0 failed[0m  (total: 12.3s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 35 s, completed Oct 13, 2026, 7:38:34 PM
+exit 0

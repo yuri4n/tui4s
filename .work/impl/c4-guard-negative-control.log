@@ -1,0 +1,43 @@
+== 19:26 the guard, C4 part: the reader has the new pin (K3: the identity of a Signal), the checked-in list does not have it yet: the guard reports it ==
+[info] scalafmt: Reformatted 2 Scala sources
+  [PASS] compare reports an added, a removed and a changed line  (51ms)
+  [FAIL] the kyo-ui surface that the runner reads and copies is the checked-in list  (2.4s) *** FAILED ***
+    ADDED	pin	K3 Signal equals and hashCode	Signal: none; SignalRef: none
+--- KyoUiSurfaceTest: 1 passed, 1 failed  (2.7s)
+    ADDED	pin	K3 Signal equals and hashCode	Signal: none; SignalRef: none
+Results: 1 passed, 1 failed  (total: 2.7s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 1
+
+== 19:27 the line added to kyo-ui-surface.txt: the guard passes ==
+  [PASS] compare reports an added, a removed and a changed line  (61ms)
+  [PASS] the kyo-ui surface that the runner reads and copies is the checked-in list  (2.4s)
+--- KyoUiSurfaceTest: 2 passed, 0 failed  (2.8s)
+Results: 2 passed, 0 failed  (total: 2.8s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 0
+
+== 19:27 NEGATIVE CONTROL: the checked-in line says that Signal declares equals (a temporary edit of the list, restored from a copy): the guard reports CHANGED ==
+20:# C4 part: pin K3: kyo.Signal and kyo.Signal.SignalRef (kyo-core) declare no equals and no hashCode; the
+238:pin	K3 Signal equals and hashCode	Signal: equals; SignalRef: none
+  [PASS] compare reports an added, a removed and a changed line  (58ms)
+  [FAIL] the kyo-ui surface that the runner reads and copies is the checked-in list  (2.4s) *** FAILED ***
+    CHANGED	pin	K3 Signal equals and hashCode	Signal: none; SignalRef: none	was: Signal: equals; SignalRef: none
+--- KyoUiSurfaceTest: 1 passed, 1 failed  (2.7s)
+    CHANGED	pin	K3 Signal equals and hashCode	Signal: none; SignalRef: none	was: Signal: equals; SignalRef: none
+Results: 1 passed, 1 failed  (total: 2.7s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 1
+restored: 1 line(s) as checked in
+
+== 19:27 NEGATIVE CONTROL of the reader: it reads kyo.UI.Ast.Div (a case class: it declares equals and hashCode) in place of kyo.Signal (a temporary edit of KyoUiSurface.scala, restored from a copy): the reader sees them, and the guard reports CHANGED ==
+edit: kyo.UI.Ast.Div in place of kyo.Signal
+  [PASS] compare reports an added, a removed and a changed line  (55ms)
+  [FAIL] the kyo-ui surface that the runner reads and copies is the checked-in list  (2.5s) *** FAILED ***
+    CHANGED	pin	K3 Signal equals and hashCode	Signal: equals|hashCode; SignalRef: none	was: Signal: none; SignalRef: none
+--- KyoUiSurfaceTest: 1 passed, 1 failed  (2.9s)
+    CHANGED	pin	K3 Signal equals and hashCode	Signal: equals|hashCode; SignalRef: none	was: Signal: none; SignalRef: none
+Results: 1 passed, 1 failed  (total: 2.9s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 1
+restored: 1 line(s) read kyo.Signal again

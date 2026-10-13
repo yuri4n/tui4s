@@ -1,0 +1,26 @@
+== greps at 46fe338 ==
+$ grep -rnE "System\.err|System\.out|println" modules/core/src/main | wc -l; marked; comment lines
+36
+14
+0
+$ grep -rn jatatui.widgets modules/core examples/src
+exit 1
+$ grep -rn "getDeclaredField\|setAccessible" modules/core/src/main examples/src
+exit 1
+$ grep -rn TODO modules/core/src/main examples/src
+modules/core/src/main/scala/tui4s/internal/Runner.scala:105:    // TODO(#8): remove the repair tick when the watchers go back to
+modules/core/src/main/scala/tui4s/internal/Runner.scala:258:            // TODO(#9): drop the re-check when Kyo closes the lost-wakeup
+modules/core/src/main/scala/tui4s/internal/Runner.scala:286:        // TODO(#9): drop the pull check when Kyo closes the lost-wakeup window
+modules/core/src/main/scala/tui4s/internal/Mount.scala:85:    // TODO(#8): go back to `signal.observe` when Kyo fixes the leak of
+$ grep -rn "private\[kyo\]" modules/core/src/main examples/src
+exit 1
+$ grep -rln "^package kyo" modules examples
+exit 1
+$ grep -rnE "\.frame\b|\.withAttrs\b|\bjsProp\b|HtmlChildVal|\bAttrs\b|applyTyped|KeyedChild|TextInputAttrs|\bStyle\(|\bHex\(|\bRgb\(|\bRgba\(|\bVar\(" modules/core/src/main examples/src  (private[kyo] check 4)
+modules/core/src/main/scala/tui4s/Component.scala:94:    implicit def componentToChild(c: Component)(using Frame): HtmlChildVal =
+modules/core/src/main/scala/tui4s/Component.scala:95:      HtmlChildVal.lift(c.ui)
+modules/core/src/main/scala/tui4s/internal/Props.scala:172:        case r: kyo.Style.Color.Rgb      => Some(JColor.Rgb(r.r, r.g, r.b))
+modules/core/src/main/scala/tui4s/internal/Props.scala:174:          if r.a < 0.5 then None else Some(JColor.Rgb(r.r, r.g, r.b))
+modules/core/src/main/scala/tui4s/internal/Props.scala:184:                JColor.Rgb(
+modules/core/src/main/scala/tui4s/internal/Props.scala:192:                JColor.Rgb(
+modules/core/src/main/scala/tui4s/internal/Mount.scala:242:             * render (kyo-ui's `applyTyped` is private). */

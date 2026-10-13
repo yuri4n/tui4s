@@ -1,0 +1,19 @@
+== 19:08 NEGATIVE CONTROL of the onMount fix: the new ComponentTest leaf (and the helpers moved to ComponentSuite) on the main code of e3e4c05 (the restored prototype rule: 'the old mount's effects stop; a new one starts for the new instance') ==
+e3e4c05 feat(c4): the overridable state key of Component (FC-17, plan 0.2)
+ M modules/core/src/test/scala/tui4s/ComponentTest.scala
+?? modules/core/src/test/scala/tui4s/ComponentSuite.scala
+[info] scalafmt: Reformatted 2 Scala sources
+  [PASS] R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  (279ms)
+  [PASS] R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  (345ms)
+  [PASS] R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  (1.2s)
+  [PASS] state key: two Component classes at one position do not share state  (173ms)
+  [PASS] state key: a custom stateKey separates two instances of one class at one position; without it they share (the default)  (91ms)
+  [FAIL] Component.onMount runs once per mount: a parent that renders again (also the verify pass and the repair tick) keeps the mount, its state and its effects; the unmount ends them  (2.4s) *** FAILED ***
+    // message: onMount ran 27 times and ended 26 times while the mount lasted
+--- ComponentTest: 5 passed, 1 failed  (4.8s)
+    // message: onMount ran 27 times and ended 26 times while the mount lasted
+Results: 5 passed, 1 failed  (total: 4.8s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 1
+
+== 19:11 after the fix (Mount: a mount of the same key at the path goes on): the same leaf PASSES; ComponentTest 6, AppsTest 14, WatcherTest 5 passed in CI mode (c4-step4d-test.log) ==

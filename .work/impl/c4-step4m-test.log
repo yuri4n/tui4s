@@ -1,0 +1,86 @@
+== 19:36 step 4m (the Scope of onMount stays open until the unmount): sbt fmt, then SBT_TPOLECAT_CI=1 core/testOnly ComponentTest HooksTest AppsTest NameClashTest ==
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-05-components-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/)
+[info] scalafmt: Formatting 1 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core)...
+[success] Total time: 3 s, completed Oct 13, 2026, 7:36:54 PM
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/zio)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/cats)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components)...
+[success] Total time: 0 s, completed Oct 13, 2026, 7:36:54 PM
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+Running 1 suite(s) with parallelism 8
+
+[1m=== ComponentTest ===[0m
+  [1m[32m[PASS][0m[0m R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  [2m(294ms)[0m
+  [1m[32m[PASS][0m[0m R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  [2m(275ms)[0m
+  [1m[32m[PASS][0m[0m R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  [2m(1.2s)[0m
+  [1m[32m[PASS][0m[0m state key: two Component classes at one position do not share state  [2m(131ms)[0m
+  [1m[32m[PASS][0m[0m state key: a custom stateKey separates two instances of one class at one position; without it they share (the default)  [2m(73ms)[0m
+  [1m[32m[PASS][0m[0m Component.onMount runs once per mount: a parent that renders again (also the verify pass and the repair tick) keeps the mount, its state and its effects; the unmount ends them  [2m(369ms)[0m
+  [1m[32m[PASS][0m[0m Component.onMount: an effect that it starts lives as long as the mount, also when onMount returns at once; the unmount ends it  [2m(228ms)[0m
+[pending] the frame of the key: 113 ms, without the content; then 1 Background frame(s) drew it
+  [1m[32m[PASS][0m[0m pending frame: a component whose first content takes longer than pendingTimeout: the frame comes without it (an empty place), and the content follows in a later frame  [2m(1.5s)[0m
+  [1m[32m[PASS][0m[0m pending frame: with a pendingTimeout longer than the body, the frame of the event waits and holds the content  [2m(328ms)[0m
+  [1m[32m[PASS][0m[0m pending frame: the wait is bounded in total, also when other messages arrive while it waits (a region that changes every 50 ms keeps changing on the screen)  [2m(3.1s)[0m
+  [1m[32m[PASS][0m[0m pending frame: a component that mounts and unmounts inside one settle leaves no wait behind  [2m(69ms)[0m
+  [1m[32m[PASS][0m[0m pending frame: only the frame of the mount waits, once: the re-check of that frame and the later renders of the parent (the repair tick) do not wait again  [2m(4.1s)[0m
+[2m---[0m ComponentTest: [32m12 passed[0m, [31m0 failed[0m  [2m(12.2s)[0m
+
+Results: [32m12 passed[0m, [31m0 failed[0m  (total: 12.2s)
+Running 1 suite(s) with parallelism 8
+
+[1m=== HooksTest ===[0m
+  [1m[32m[PASS][0m[0m useSignal: the initial value on the screen; a handler's write and an outside write reach it  [2m(24ms)[0m
+  [1m[32m[PASS][0m[0m useHold: the initial value until the stream's first element, then the last element  [2m(51ms)[0m
+  [1m[32m[PASS][0m[0m useFold: folds the stream into a state (a running sum)  [2m(20ms)[0m
+  [1m[32m[PASS][0m[0m useEffect: runs once at mount, not again when its parent renders again; at the unmount its Scope closes (a Scope.ensure in it runs); a new mount runs it again  [2m(148ms)[0m
+  [1m[32m[PASS][0m[0m useInterval: its ticks reach the screen; at the unmount it stops (the count and the gauge)  [2m(200ms)[0m
+  [1m[32m[PASS][0m[0m component(key): in a keyed foreach, a component keeps its state when its siblings move  [2m(50ms)[0m
+  [1m[32m[PASS][0m[0m component(key): another key at the same position mounts fresh; the same key keeps the mount when the parent renders again; without a key the old mount stays  [2m(263ms)[0m
+  [1m[32m[PASS][0m[0m a hook component inside `when` loses its state when it is hidden and comes back fresh; a Component too (RR O7)  [2m(46ms)[0m
+[2m---[0m HooksTest: [32m8 passed[0m, [31m0 failed[0m  [2m(810ms)[0m
+
+Results: [32m8 passed[0m, [31m0 failed[0m  (total: 810ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== AppsTest ===[0m
+  [1m[32m[PASS][0m[0m counter by keys: + + - with keys, Tab and Enter on the buttons, nothing happens for an unknown key, q quits  [2m(55ms)[0m
+  [1m[32m[PASS][0m[0m two counters by keys are independent; Tab order is document order  [2m(51ms)[0m
+  [1m[32m[PASS][0m[0m todo by keys: type + Enter adds, Tab to the list, arrows + Space toggle, d deletes, Ctrl-S saves, Esc quits  [2m(134ms)[0m
+  [1m[32m[PASS][0m[0m dashboard by keys: ArrowRight changes the tab, p pauses the sampler  [2m(77ms)[0m
+  [1m[32m[PASS][0m[0m hooks: top-level sequencing and runner-mounted components (state dropped when hidden)  [2m(61ms)[0m
+  [1m[32m[PASS][0m[0m Component class: state per position, kept across a parent re-render  [2m(37ms)[0m
+  [1m[32m[PASS][0m[0m counter: writes to the count reach the screen; the kit's quit ends the run  [2m(27ms)[0m
+  [1m[32m[PASS][0m[0m two counters are independent  [2m(26ms)[0m
+  [1m[32m[PASS][0m[0m todo: load, add, select, toggle, delete, save, status  [2m(74ms)[0m
+  [1m[32m[PASS][0m[0m overflow: a list taller than the screen keeps the header and the input; the list is clipped  [2m(40ms)[0m
+  [1m[32m[PASS][0m[0m dashboard: a sampler tick updates the gauge and the sparkline in one frame; tabs; pause  [2m(197ms)[0m
+  [1m[32m[PASS][0m[0m idle: no frame at all when nothing changes  [2m(1.8s)[0m
+[glitch] splits=0 of 500 (events by frame count: 1 frames: 500; events with a settle timeout: 0; not seen in 2 s: 0; load flag: false)
+  [1m[32m[PASS][0m[0m glitch-free: one event (one write to one ref) updates all 4 dependent regions in one frame (500 events)  [2m(2.9s)[0m
+[glitch-keys] splits=0 of 500 (key frames by region values: 4: 500; frames with a settle timeout: 0; load flag: false)
+  [1m[32m[PASS][0m[0m glitch-free by keys: one key whose handler writes two refs updates all 4 dependent regions in its frame (500 keys)  [2m(505ms)[0m
+[2m---[0m AppsTest: [32m14 passed[0m, [31m0 failed[0m  [2m(6.0s)[0m
+
+Results: [32m14 passed[0m, [31m0 failed[0m  (total: 6.0s)
+Running 1 suite(s) with parallelism 8
+
+[1m=== NameClashTest ===[0m
+  [1m[32m[PASS][0m[0m kyo.*, kyo.UI.*, kyo.test.*, tui4s.*, tui4s.spi.* and tui4s.testkit.* together  [2m(19ms)[0m
+  [1m[32m[PASS][0m[0m the same imports and tui4s.Hooks.*: the hooks and Component  [2m(19ms)[0m
+[2m---[0m NameClashTest: [32m2 passed[0m, [31m0 failed[0m  [2m(42ms)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 42ms)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 33 s, completed Oct 13, 2026, 7:37:27 PM
+exit 0

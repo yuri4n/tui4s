@@ -1,0 +1,91 @@
+== 18:56 step 4a: sbt fmt, then SBT_TPOLECAT_CI=1 core/testOnly AppsTest TuiOptionsTest PublicApiTest ==
+[info] scalafmt: Reformatted 1 Scala sources
+[info] scalafmt: Reformatted 4 Scala sources
+[success] Total time: 4 s, completed Oct 13, 2026, 6:56:49 PM
+[success] Total time: 0 s, completed Oct 13, 2026, 6:56:49 PM
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-05-components-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/)
+[info] compiling 5 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 8 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 42 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core/target/scala-3.9.0/test-classes ...
+[error] -- [E172] Type Error: /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core/src/test/scala/tui4s/TuiOptionsTest.scala:43:13 
+[error] 43 |      assert(o.pendingTimeout == Duration.ofSeconds(2))
+[error]    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[error]    |Values of types java.time.Duration and (java.time.Duration)? cannot be compared with == or !=
+[error] one error found
+[error] (core / Test / compileIncremental) Compilation failed
+[error] Total time: 35 s, completed Oct 13, 2026, 6:57:32 PM
+exit 1
+== 18:57 step 4a, try 2 (TuiOptionsTest: toMillis; strictEquality) ==
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-05-components-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/)
+[info] scalafmt: Formatting 1 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core)...
+[success] Total time: 3 s, completed Oct 13, 2026, 6:57:46 PM
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/cats)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/zio)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components)...
+[success] Total time: 1 s, completed Oct 13, 2026, 6:57:47 PM
+[info] compiling 42 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Running 1 suite(s) with parallelism 8
+
+[1m=== AppsTest ===[0m
+  [1m[32m[PASS][0m[0m counter by keys: + + - with keys, Tab and Enter on the buttons, nothing happens for an unknown key, q quits  [2m(462ms)[0m
+  [1m[32m[PASS][0m[0m two counters by keys are independent; Tab order is document order  [2m(109ms)[0m
+  [1m[32m[PASS][0m[0m todo by keys: type + Enter adds, Tab to the list, arrows + Space toggle, d deletes, Ctrl-S saves, Esc quits  [2m(324ms)[0m
+  [1m[32m[PASS][0m[0m dashboard by keys: ArrowRight changes the tab, p pauses the sampler  [2m(199ms)[0m
+  [1m[32m[PASS][0m[0m hooks: top-level sequencing and runner-mounted components (state dropped when hidden)  [2m(133ms)[0m
+  [1m[32m[PASS][0m[0m Component class: state per position, kept across a parent re-render  [2m(71ms)[0m
+  [1m[32m[PASS][0m[0m counter: writes to the count reach the screen; the kit's quit ends the run  [2m(34ms)[0m
+  [1m[32m[PASS][0m[0m two counters are independent  [2m(42ms)[0m
+  [1m[32m[PASS][0m[0m todo: load, add, select, toggle, delete, save, status  [2m(88ms)[0m
+  [1m[32m[PASS][0m[0m overflow: a list taller than the screen keeps the header and the input; the list is clipped  [2m(39ms)[0m
+  [1m[32m[PASS][0m[0m dashboard: a sampler tick updates the gauge and the sparkline in one frame; tabs; pause  [2m(215ms)[0m
+  [1m[32m[PASS][0m[0m idle: no frame at all when nothing changes  [2m(1.8s)[0m
+[glitch] splits=0 of 500 (events by frame count: 1 frames: 500; events with a settle timeout: 0; not seen in 2 s: 0; load flag: false)
+  [1m[32m[PASS][0m[0m glitch-free: one event (one write to one ref) updates all 4 dependent regions in one frame (500 events)  [2m(2.9s)[0m
+[glitch-keys] splits=0 of 500 (key frames by region values: 4: 500; frames with a settle timeout: 0; load flag: false)
+  [1m[32m[PASS][0m[0m glitch-free by keys: one key whose handler writes two refs updates all 4 dependent regions in its frame (500 keys)  [2m(420ms)[0m
+[2m---[0m AppsTest: [32m14 passed[0m, [31m0 failed[0m  [2m(7.2s)[0m
+
+Results: [32m14 passed[0m, [31m0 failed[0m  (total: 7.2s)
+Running 1 suite(s) with parallelism 8
+
+[1m=== TuiOptionsTest ===[0m
+  [1m[32m[PASS][0m[0m the defaults: autoFocus, Quiescent(100 ms, confirm = 2)  [2m(1ms)[0m
+  [1m[32m[PASS][0m[0m pendingTimeout: a java.time.Duration, 2 s by default (the prototype's value)  [2m(0ms)[0m
+  [1m[32m[PASS][0m[0m a java.time.Duration builds every Settle; the cases compare with ==  [2m(6ms)[0m
+  [1m[32m[PASS][0m[0m the options of the real terminal: pollInterval 25 ms, inboxCapacity 1024, captureOutput, no log file  [2m(0ms)[0m
+[2m---[0m TuiOptionsTest: [32m4 passed[0m, [31m0 failed[0m  [2m(12ms)[0m
+
+Results: [32m4 passed[0m, [31m0 failed[0m  (total: 12ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== PublicApiTest ===[0m
+  [1m[32m[PASS][0m[0m every top-level definition of tui4s.internal is private[tui4s]  [2m(3.8s)[0m
+  [1m[32m[PASS][0m[0m no public signature of tui4s, tui4s.spi or tui4s.testkit names a jatatui or crossterm type  [2m(4.2s)[0m
+  [1m[32m[PASS][0m[0m no public signature of tui4s, tui4s.spi or tui4s.testkit names a type of tui4s.internal  [2m(4.2s)[0m
+[2m---[0m PublicApiTest: [32m3 passed[0m, [31m0 failed[0m  [2m(4.2s)[0m
+
+Results: [32m3 passed[0m, [31m0 failed[0m  (total: 4.2s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 74 s (0:01:14.0), completed Oct 13, 2026, 6:59:01 PM
+exit 0

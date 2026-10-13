@@ -1,0 +1,69 @@
+== 19:41 the greps at a32ce55 (tree: 0 changed files) ==
+$ grep -rnE "System\.err|System\.out|println" modules/core/src/main
+hits: 36
+(a) code lines with the marker 'tui4s: allowed':
+  modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:45:      if e != null then e else java.lang.System.err.nn // tui4s: allowed
+  modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:51:      if o != null then o else java.lang.System.out.nn // tui4s: allowed
+  modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:69:        val sysOut = java.lang.System.out.nn // tui4s: allowed
+  modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:70:        val sysErr = java.lang.System.err.nn // tui4s: allowed
+  modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:135:                  if java.lang.System.out eq out then // tui4s: allowed
+  modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:137:                  if java.lang.System.err eq err then // tui4s: allowed
+  modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:158:              err.println(w) // tui4s: allowed
+  modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:164:            err.println(problem) // tui4s: allowed
+  modules/core/src/main/scala/tui4s/internal/LogSink.scala:67:          else if important then done.println(text) // tui4s: allowed
+  modules/core/src/main/scala/tui4s/internal/LogSink.scala:106:            err.println(problem) // tui4s: allowed
+  modules/core/src/main/scala/tui4s/internal/LogSink.scala:107:            if important then err.println(text) // tui4s: allowed
+  modules/core/src/main/scala/tui4s/internal/LogSink.scala:131:              err.println(note) // tui4s: allowed
+  modules/core/src/main/scala/tui4s/internal/LogSink.scala:132:          ring.foreach(err.println) // tui4s: allowed
+  modules/core/src/main/scala/tui4s/internal/LogSink.scala:135:          if p != null then err.println(p) // tui4s: allowed
+count: 14
+(b) comment or Scaladoc lines:
+22
+(c) other lines (code without the marker):
+count: 0
+
+$ grep -rn jatatui.widgets modules/core examples/src
+exit 1 (1 = 0 hits)
+$ grep -rn "getDeclaredField\|setAccessible" modules/core/src/main examples/src
+exit 1 (1 = 0 hits)
+$ grep -rn TODO modules/core/src/main examples/src
+modules/core/src/main/scala/tui4s/internal/Runner.scala:105:    // TODO(#8): remove the repair tick when the watchers go back to
+modules/core/src/main/scala/tui4s/internal/Runner.scala:258:            // TODO(#9): drop the re-check when Kyo closes the lost-wakeup
+modules/core/src/main/scala/tui4s/internal/Runner.scala:286:        // TODO(#9): drop the pull check when Kyo closes the lost-wakeup window
+modules/core/src/main/scala/tui4s/internal/Mount.scala:85:    // TODO(#8): go back to `signal.observe` when Kyo fixes the leak of
+
+-- private[kyo] check (the method of c3-private-kyo-check.log)
+-- 1. $ grep -rnE "^package kyo" modules examples/src
+exit 1
+-- 2. $ grep -rn "private\[kyo\]" modules/core/src/main examples/src
+exit 1
+-- 3. $ grep -rnE "getDeclared|setAccessible|java\.lang\.reflect|MethodHandles|\.getMethod\(|\.getField\(" modules/core/src/main examples/src
+exit 1
+-- 4. the private[kyo] members of kyo-ui RC7 (UI.scala, Style.scala) by name, in the core main sources and the example:
+$ grep -rnE "\.frame\b|\.withAttrs\b|\bjsProp\b|HtmlChildVal|\bAttrs\b|applyTyped|KeyedChild|TextInputAttrs|\bStyle\(|\bHex\(|\bRgb\(|\bRgba\(|\bVar\(" modules/core/src/main examples/src
+modules/core/src/main/scala/tui4s/Component.scala:88:    implicit def componentToChild(c: Component)(using Frame): HtmlChildVal =
+modules/core/src/main/scala/tui4s/Component.scala:89:      HtmlChildVal.lift(c.ui)
+modules/core/src/main/scala/tui4s/internal/Props.scala:172:        case r: kyo.Style.Color.Rgb      => Some(JColor.Rgb(r.r, r.g, r.b))
+modules/core/src/main/scala/tui4s/internal/Props.scala:174:          if r.a < 0.5 then None else Some(JColor.Rgb(r.r, r.g, r.b))
+modules/core/src/main/scala/tui4s/internal/Props.scala:184:                JColor.Rgb(
+modules/core/src/main/scala/tui4s/internal/Props.scala:192:                JColor.Rgb(
+modules/core/src/main/scala/tui4s/internal/Mount.scala:242:             * render (kyo-ui's `applyTyped` is private). */
+exit 0
+   Check 4 result: 6 hits, none a private[kyo] member: Component.scala:88-89 names the public class kyo.UI.Ast.HtmlChildVal and calls its public HtmlChildVal.lift (only its constructor and its field value are private[kyo]: kyo-ui UI.scala:964-968); Props.scala:172,174 a type test on kyo.Style.Color.Rgb and its public fields; Props.scala:184,192 jatatui's JColor.Rgb(; Mount.scala:242 a comment.
+
+-- 5. a throwaway file in package tui4s.internal that calls the private[kyo] Element.withAttrs (untracked, removed after the compile)
+package tui4s.internal
+
+import kyo.UI.Ast.Element
+
+private[tui4s] object Throwaway:
+    def f(e: Element): Element = e.withAttrs(e.attrs)
+$ sbt -Dsbt.supershell=false core/compile
+[error] -- [E173] Reference Error: /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core/src/main/scala/tui4s/internal/Throwaway.scala:6:35 
+[error] 6 |    def f(e: Element): Element = e.withAttrs(e.attrs)
+[error]   |                                 ^^^^^^^^^^^
+[error]   |method withAttrs cannot be accessed as a member of (e : kyo.UI.Ast.Element) from object Throwaway.
+[error]   |  private[kyo] method withAttrs can only be accessed from package kyo.
+[error] one error found
+sbt exit 1
+the file removed; git status: 0 changed files

@@ -1,0 +1,23 @@
+== 19:13 a control of the hook leaves at 4fb2ebd (not required by the plan; it shows that they can fail): the reclaim of a hook component never matches (a temporary edit, restored) ==
+edit: if false && id == identity
+-                    ) if id == identity =>
++                    ) if false && id == identity =>
+  [PASS] useSignal: the initial value on the screen; a handler's write and an outside write reach it  (575ms)
+  [PASS] useHold: the initial value until the stream's first element, then the last element  (85ms)
+  [PASS] useFold: folds the stream into a state (a running sum)  (48ms)
+  [FAIL] useEffect: runs once at mount, not again when its parent renders again; at the unmount its Scope closes (a Scope.ensure in it runs); a new mount runs it again  (6.3s) *** FAILED ***
+    // message: the effect did not run at the mount
+  [PASS] useInterval: its ticks reach the screen; at the unmount it stops (the count and the gauge)  (217ms)
+  [FAIL] component(key): in a keyed foreach, a component keeps its state when its siblings move  (2.0s) *** FAILED ***
+    // message: [c=0]
+  [FAIL] component(key): another key at the same position mounts fresh; the same key keeps the mount when the parent renders again; without a key the old mount stays  (4.2s) *** FAILED ***
+    // message: the keyed app did not start or count
+  [PASS] a hook component inside `when` loses its state when it is hidden and comes back fresh; a Component too (RR O7)  (58ms)
+--- HooksTest: 5 passed, 3 failed  (14.0s)
+    // message: the effect did not run at the mount
+    // message: [c=0]
+    // message: the keyed app did not start or count
+Results: 5 passed, 3 failed  (total: 14.0s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 1
+restored: 0 changed files

@@ -1,0 +1,84 @@
+== 19:01 NEGATIVE CONTROL A at bbb8783: the track calls of Hooks removed (a temporary edit, restored): useEffect, useHold, useFold do not join the gauge ==
+edit: 3 track calls replaced by .unit
+ modules/core/src/main/scala/tui4s/Hooks.scala | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
+-          _   <- Fiber.init(stream.foreach(ref.set)).map(Tui4sTrack(_))
++          _   <- Fiber.init(stream.foreach(ref.set)).unit
+-                   .map(Tui4sTrack(_))
++                   .unit
+-      Fiber.init(Scope.run(effect)).map(Tui4sTrack(_))
++      Fiber.init(Scope.run(effect)).unit
+  [FAIL] R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  (5.2s) *** FAILED ***
+    // message: the gauge before the interrupt: 3 (7 or more)
+  [FAIL] R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  (2.1s) *** FAILED ***
+    assert(live0 >= 0L, "the gauge did not count the hook fibers")
+    // message: the gauge did not count the hook fibers
+  [FAIL] R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  (1.2s) *** FAILED ***
+    assert(live0 >= 5, s"fibers before the interrupt: $live0")
+--- ComponentTest: 0 passed, 3 failed  (8.9s)
+FAILURES (3):
+  R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  [FAIL]
+    // message: the gauge before the interrupt: 3 (7 or more)
+  R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  [FAIL]
+    assert(live0 >= 0L, "the gauge did not count the hook fibers")
+    // message: the gauge did not count the hook fibers
+  R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  [FAIL]
+    assert(live0 >= 5, s"fibers before the interrupt: $live0")
+Results: 0 passed, 3 failed  (total: 8.9s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.ComponentTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 19 s, completed Oct 13, 2026, 7:01:46 PM
+exit 1
+restored: 0 changed files
+
+== 19:01 the assertions reordered (behaviour first, then the gauge); 4b amended before review: 86d1d47. Run 1: the code as committed ==
+  [PASS] R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  (239ms)
+  [PASS] R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  (257ms)
+  [PASS] R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  (1.2s)
+--- ComponentTest: 3 passed, 0 failed  (2.0s)
+Results: 3 passed, 0 failed  (total: 2.0s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 0
+
+== 19:02 NEGATIVE CONTROL A at 86d1d47: the 3 track calls of Hooks replaced by .unit (a temporary edit, restored) ==
+edit: 3 track calls replaced by .unit
+-          _   <- Fiber.init(stream.foreach(ref.set)).map(Tui4sTrack(_))
++          _   <- Fiber.init(stream.foreach(ref.set)).unit
+-                   .map(Tui4sTrack(_))
++                   .unit
+-      Fiber.init(Scope.run(effect)).map(Tui4sTrack(_))
++      Fiber.init(Scope.run(effect)).unit
+  [FAIL] R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  (5.2s) *** FAILED ***
+    // message: the gauge before the interrupt: 3 (7 or more)
+  [FAIL] R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  (2.1s) *** FAILED ***
+    // message: the top-level interval ticks after the run ended (before the kit's scope ends)
+  [FAIL] R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  (1.2s) *** FAILED ***
+    // message: fibers before the interrupt: 3
+--- ComponentTest: 0 passed, 3 failed  (8.9s)
+    // message: the gauge before the interrupt: 3 (7 or more)
+    // message: the top-level interval ticks after the run ended (before the kit's scope ends)
+    // message: fibers before the interrupt: 3
+Results: 0 passed, 3 failed  (total: 8.9s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 1
+restored: 0 changed files
+
+== 19:02 NEGATIVE CONTROL B at 86d1d47: Mount does not track the fiber of a hook component's body (a temporary edit, restored) ==
+edit: the track of the hook fiber removed
+-                    .map(f => Sync.defer { track(f); f })
+  [FAIL] R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  (5.2s) *** FAILED ***
+    // message: the gauge before the interrupt: 4 (7 or more)
+  [FAIL] R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  (2.1s) *** FAILED ***
+    // message: the gauge did not count the hook fibers
+  [FAIL] R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  (2.3s) *** FAILED ***
+    // message: the Scope of the hook component did not close (its fiber was not stopped)
+--- ComponentTest: 0 passed, 3 failed  (10.0s)
+    // message: the gauge before the interrupt: 4 (7 or more)
+    // message: the gauge did not count the hook fibers
+    // message: the Scope of the hook component did not close (its fiber was not stopped)
+Results: 0 passed, 3 failed  (total: 10.0s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 1
+restored: 0 changed files

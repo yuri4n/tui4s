@@ -1,0 +1,49 @@
+== 19:05 NEGATIVE CONTROL at e3e4c05: Mount keys the state by getClass.getName only (a temporary edit, restored) ==
+edit: the key is the path and getClass.getName
+-              s"${path.mkString("/")}|${Component.stateKeyOf(c)}"
++              s"${path.mkString("/")}|${c.getClass.getName}"
+[warn] -- [E198] Unused Symbol Warning: /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core/src/main/scala/tui4s/internal/Mount.scala:7:13 
+[warn] 7 |import tui4s.Component
+[warn]   |             ^^^^^^^^^
+[warn]   |             unused import
+[warn] one warning found
+exit 1
+restored: 0 changed files
+
+== 19:05 the same control, try 2: in DEV mode (no SBT_TPOLECAT_CI): the edit leaves the import of Component unused, and CI mode stops on that warning (above) ==
+edit: the key is the path and getClass.getName
+-              s"${path.mkString("/")}|${Component.stateKeyOf(c)}"
++              s"${path.mkString("/")}|${c.getClass.getName}"
+[warn] -- [E198] Unused Symbol Warning: /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core/src/main/scala/tui4s/internal/Mount.scala:7:13 
+  [PASS] R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  (256ms)
+  [PASS] R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  (353ms)
+  [PASS] R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  (1.2s)
+  [PASS] state key: two Component classes at one position do not share state  (198ms)
+  [FAIL] state key: a custom stateKey separates two instances of one class at one position; without it they share (the default)  (2.0s) *** FAILED ***
+    // message: [y=3]
+--- ComponentTest: 4 passed, 1 failed  (4.4s)
+    // message: [y=3]
+Results: 4 passed, 1 failed  (total: 4.4s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 1
+restored: 0 changed files
+
+== 19:07 a second control (DEV mode): the key is the path only (no class, no stateKey) ==
+edit: the key is the path only
+-              s"${path.mkString("/")}|${Component.stateKeyOf(c)}"
++              s"${path.mkString("/")}"
+[warn] -- [E198] Unused Symbol Warning: /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core/src/main/scala/tui4s/internal/Mount.scala:7:13 
+  [PASS] R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  (275ms)
+  [PASS] R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  (239ms)
+  [PASS] R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  (1.2s)
+  [FAIL] state key: two Component classes at one position do not share state  (2.1s) *** FAILED ***
+    // message: [B=3]
+  [FAIL] state key: a custom stateKey separates two instances of one class at one position; without it they share (the default)  (2.0s) *** FAILED ***
+    // message: [y=3]
+--- ComponentTest: 3 passed, 2 failed  (6.2s)
+    // message: [B=3]
+    // message: [y=3]
+Results: 3 passed, 2 failed  (total: 6.2s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 1
+restored: 0 changed files

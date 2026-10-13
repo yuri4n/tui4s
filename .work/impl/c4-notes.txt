@@ -1,0 +1,139 @@
+C4 feat/kyoui-05-components: implementer notes (agent I, 2026-10-13). Plain text, ASD-STE100.
+Worktree: .work/worktrees/feat-kyoui-05-components, branch feat/kyoui-05-components from feat/kyoui-04-terminal 0893800.
+
+18:52 Read: PLAN 6.0, 6.4, 0 (0.2: the core state key on Component stays in C4), 3.2 D-20; DECISIONS eleventh to
+      thirteenth rounds (not in the local .work/DECISIONS.md; read from origin/wip/handoff:.work/DECISIONS.md, 7a4e449);
+      t1-pr-body.txt, c2-pr-body-final.md 'Cuts' (Runner lines 85, 89, 121-126 too), c3-notes, t1-notes; inventory RC-4,
+      RC-5, RC-8, RC-15, RC-19, RC-36; REPORT (O7, N9, refuted 9); proto Component, Hooks, Mount, World, Runner settle,
+      CounterStyles, Apps.test.scala 62-100; fe06611 Component, Hooks, ComponentSpec, CounterStyles; 25aab29 (spike-sbt).
+      Facts and choices:
+      - Commit trailer: the session's system reminder says 'Co-Authored-By: Claude Opus 5.5'; the computed task says
+        'Claude Fable 5.1'. As in C3 and T1, the session attribution wins (the task text is script output): Opus 5.5.
+      - Kyo RC7 Fiber.init: the fiber gets its own scope; the ENCLOSING scope's release interrupts it and waits. So a
+        top-level hook (useEffect in the UI construction) under Headless lives until the test's Scope ends, unless
+        the run stops it: the hooks must join the gauge (a Local with the track function, as Tui4sQuit).
+      - Scope.run closes on an interrupt (Sync.ensure) and drains the finalizers on a detached fiber: the effects of
+        a hook component stop asynchronously after the hook fiber is interrupted.
+      - Name clash: tui4s.internal.Hooks (shutdown hooks, T1) and the public tui4s.Hooks (C4). Tui.scala imports the
+        internal one explicitly (an explicit import wins over a package member of another file).
+18:53 step 1 carry commit 381c992 (4 files byte-identical to fe06611; c4-carry-verify.log RESULT OK). step 2 format commit 6585840: marks 4 -> 0 (the 4 carry headers; the prototype files had 0); sbt fmt reformatted only the 4 files (+148/-105; -w +96/-53) (c4-step2-fmt.log). Sizes after fmt: Component 47, Hooks 82, ComponentSpec 49, CounterStyles 91.
+18:54 step 3 commit 9b25b7b: the one CI-mode warning on the carried main code (unused parameter of Component.onMount) fixed with @unused, as S6 25aab29; 2 code lines (import, parameter) + a mark; core/compile CI mode 0 warnings (c4-step3-warnings.log). Main compiles before 4a, so step 3 comes before 4a here.
+18:59 step 4a commit 9de884b: the restore (World Comp/comps/pending, Mount post/lookup/mountComponent/gcComps, Runner apply Comp + settle pending branch, TuiOptions.pendingTimeout, ComponentSpec sealed, fixture mains cut). AppsTest 14 (+2 prototype cases), TuiOptionsTest 4, PublicApiTest 3 passed in CI mode (c4-step4a-test.log). Found while restoring (prototype shape): the pending wait restarts its timeout on each message (a settle with a pending component and steady traffic never ends), and a pending path whose region is gone stays in pending (a needless wait). Fix in step 4e (own commits, tests, negative controls).
+19:03 step 4b commit 86d1d47 (amended once before any review: the assertions of ComponentTest leaves 2 and 3 reordered, behaviour first): Mount tracks the hook fiber and the onMount fiber; Hooks track useEffect/useInterval/useHold/useFold fibers through the new Local internal.Tui4sTrack (set by Runner.scoped). ComponentTest 3, WatcherTest 5, AppsTest 14, QuitTest 4 passed, CI mode (c4-step4b-test.log). Negative controls (c4-r1-negative-control.log): A (Hooks' track calls removed): 3 of 3 FAIL, leaf 2 with 'the top-level interval ticks after the run ended (before the kit's scope ends)'; B (Mount does not track the hook fiber): 3 of 3 FAIL, leaf 3 with 'the Scope of the hook component did not close (its fiber was not stopped)'. Restored, tree clean.
+19:07 step 4c commit e3e4c05: Component.stateKey (protected, default getClass.getName, Scaladoc), Component.stateKeyOf (private[tui4s], the companion reads the protected key), Mount keys by path|stateKey. ComponentTest 5 (+2 state-key leaves), AppsTest 14, PublicApiTest 3 passed, CI mode (c4-step4c-test.log; try 1 failed to compile: a helper with assert needs (using kyo.test.AssertScope)). Negative controls (c4-statekey-negative-control.log): CI mode stops on the unused import of the edit (the try is kept); DEV mode: key by getClass.getName only -> the custom-key leaf FAILS ('[y=3]'); key by path only -> both state-key leaves FAIL ('[B=3]', '[y=3]'). Restored, tree clean.
+19:11 step 4d commit 25d11a7 (P-6 fix, found while writing the onMount test): the restored rule restarts onMount at each mount of an instance; the C2 verify pass and the repair tick render a when/render with closures again, so onMount ran again after the mount and every 1 s (NC at e3e4c05: 'onMount ran 27 times and ended 26 times' with a 50 ms tick; c4-onmount-negative-control.log). Fix: a mount of the same state key at the path goes on (gen and onMount fiber kept; new view). ComponentTest 6, AppsTest 14, WatcherTest 5 passed (c4-step4d-test.log). Helpers moved to ComponentSuite.
+19:18 step 4e commit 4fb2ebd: HooksTest 8 (useSignal, useHold, useFold, useEffect, useInterval, component(key) x2, when + Component) passed (c4-step4e-test.log); a sanity control (hook reclaim never matches): 3 of 8 FAIL (c4-hooks-negative-control.log). step 4f commit 6e12ad6: the pending frame, 2 leaves (100 ms: the key frame 216 ms without the content, then a Background frame; 5 s: the frame holds the content) (c4-step4f-test.log).
+19:24 step 4g commit c11e731: the pending wait is bounded in total (from the settle start). NC at 6e12ad6: 'the frame of the key came after 3012 ms' (c4-pending-negative-control.log, try 5; tries 1-4: the first leaf form passed on the old code because the key handler was on a child of the root: no focusable element -> the key goes to the root; a debug suite showed 'updates 0' in the key frame; removed). After: ComponentTest 9, HooksTest 8, AppsTest 14 passed (c4-step4g-test.log).
+19:26 step 4h commit ae7782c: gcComps drops pending paths whose region is gone. NC at c11e731: 'the frame waited for a component that is gone: 3053 ms'; after: 70 ms. ComponentTest 10, HooksTest 8, AppsTest 14, WatcherTest 5 (c4-step4h-test.log).
+19:28 step 4i commit 5d489c6: guard C4 part: pin K3 (kyo.Signal and Signal.SignalRef declare no equals/hashCode). NCs (c4-guard-negative-control.log): ADDED without the line; CHANGED with a changed line; CHANGED with the reader on UI.Ast.Div (case class). KyoUiSurfaceTest 2 passed.
+19:29 step 4j commit 1e06fef docs (AGENTS.md, README via Bash: not refused; the Scaladoc of package, Component, Hooks); PublicApiTest 3, NameClashTest 1 (c4-step4j-docs.log). step 4k commit 52900b0: NameClashTest +1 with tui4s.Hooks.* (c4-step4k-test.log).
+19:30 review of my own diff: the reclaim of a still-pending hook component re-adds its path to pending (the prototype's line). After the first wait timed out, every later render of the parent (the verify pass of the next step: youngPrev; each repair tick, 1 s) makes that frame wait pendingTimeout again until the content comes: test A's key frame took 216 ms with P = 100 ms (2 waits: the settle and the re-check after the verify pass). Plan: (1) no re-add on reclaim (only the frame of the mount waits); (2) one deadline per frame for the settle and its re-check. Test first (NC on 5d489c6/52900b0 main code).
+19:32 step 4l commit 8366961: only the frame of the mount waits, once (no re-add on reclaim; one deadline per frame). NC at 52900b0: 'frames that waited again for the component: Vector(1002) ms (of 1 frames)'. After: all green; [pending] 114 ms (was 216). (c4-step4l-test.log)
+19:35 FULL CHECK 1 (c4-check.log, 162 s): ComponentTest leaf 1 FAILED: 'the gauge before the interrupt: 5 (7 or more)'. Cause: Mount runs Scope.run(c.onMount(state)) in the effects fiber (the prototype): the Scope closes when onMount RETURNS, so a useInterval (or any resource) that onMount starts is interrupted at once (the drain of the Scope runs on a detached fiber, so the gauge saw 7 for a moment: the leaf passed by luck in the earlier runs). The Hook form keeps its Scope open with .andThen(Async.never). Fix (P-6): onMount(state).andThen(Async.never) inside the Scope.run; test first (NC).
+19:37 step 4m commit b08eb13: onMount's Scope stays open (andThen Async.never). NC at 8366961: '0 ticks'. ComponentTest 12, HooksTest 8, AppsTest 14, NameClashTest 2 (c4-step4m-test.log).
+19:43 FINAL at a32ce55: SBT_TPOLECAT_CI=1 sbt clean check alone: exit 0, 144 s, 0 [warn], 0 [error]; core 201 passed, 0 failed, 3 ignored (32 suites; T1 had 177: +24 = AppsTest +2, TuiOptionsTest +1, ComponentTest 12, HooksTest 8, NameClashTest +1); examples CounterSuite 4; scalafmt checks and versionPolicyCheck green (c4-check.log; the first check at 8366961 failed: c4-check-1-failed.log, the onMount Scope bug). Greps (c4-greps.log): 36 hits = 14 marked code lines (as T1) + 22 comment lines, 0 other; jatatui.widgets 0; reflection 0; private[kyo] checks 1-5 as C3 (check 4: 6 hits, none a private[kyo] member; check 5: E173). version-order-test 55/55 (c4-version-order-test.log). PTY kit: 17/17 + 16/16, ALL ROWS PASSED, 47 s (c4-pty.log; c4-pty-files/). Tree clean, no JVM left.
+19:44 PR body written: c4-pr-body.txt. Done: tree clean at a32ce55; no JVM left. The 3 final runs (one under contention) are for the next agent.
+
+K2 (skeptic of R2, 2026-10-13). Plain text, ASD-STE100. No edit of the PR files, no commit.
+20:01 SBT_TPOLECAT_CI=1 sbt -Dsbt.supershell=false check in the PR worktree at a32ce55, alone (pgrep -x java empty, tree clean):
+      exit 0, 82 s, 0 [warn], 0 [error]; core 201 passed, 0 failed, 3 ignored (32 suites); examples 4 passed; scalafmt and
+      versionPolicyCheck green; [glitch] and [glitch-keys] 0 of 500; [pending] key frame 105 ms (c4-k2-check.log).
+20:04 Probe: a TEMPORARY untracked suite K2ProbeTest (dev mode, deleted after the run; tree clean after): core/testOnly
+      tui4s.K2ProbeTest (c4-k2-K2ProbeTest.log). Each leaf asserts the ABSENCE of a finding, so a FAIL shows the finding:
+      R2-1: pendingTimeout 5 s, body 300 ms: key frame 384 ms with the content, settleTimeouts=1; pendingTimeout 100 ms,
+      body 1.5 s: key frame 106 ms, settleTimeouts=1 (both FAIL: shown). R2-2: pendingTimeout 5 s, body 4 s, quit 300 ms
+      after the key: the run ended 3714 ms later (at the content), not within 1 s; Ctrl-C through the inbox: 3708 ms
+      (both FAIL: shown; note: the proposed fix `if w1.quit` does not cover Ctrl-C, which sits in the backlog until the
+      next step). R2-4: foreachKeyed Chunk("a/0", "a"), row "a/0" = Shared("x").ui, row "a" = div(Shared("y").ui): one
+      `+` on x gives [x=1] AND [y=1] (FAIL: shown; both paths print 0/0/#a/0). R2-7: Tui.quit from a useEffect inside
+      component(...) and from Component.onMount: both PASS (the run ends in about 60 ms): coverage only, no defect.
+      R2-3 by arithmetic (python, 64-bit wrap): with t0 < 0 the guard gives deadline = Long.MaxValue, but `left =
+      MaxValue - now` wraps negative too, so the frame does NOT wait (a zero wait), not an unbounded one; unreachable on
+      HotSpot (positive nanoTime). R2-5 and R2-6 by reading only (unambiguous). Kyo Channel puts a value back when the
+      taker was interrupted (Channel.scala 865-890): a timed-out `inbox.take` in the pending branch loses no message.
+
+F (fixer of the C4 review round, 2026-10-13). Plain text, ASD-STE100. The only builder on the machine.
+20:12 Start at a32ce55 (tree clean, no JVM). Inputs: R1 (6 findings), R2 (7), K1 (R1-1,2,3,5,6 confirmed, R1-4
+      refuted, extra K1-X1), K2 (R2-1..7 confirmed; R2-1, R2-2, R2-4 shown at runtime; R2-3: the effect is a zero wait,
+      not an unbounded one). Plan (one commit per fix, the test in the same commit):
+      1 R1-3/R2-3: the pending wait by difference (no test: positive nanoTime on HotSpot);
+      2 R1-1/R2-1: the settle's max from the end of the pending wait (assert settleTimeouts == 0 in two pending leaves);
+      3 R2-2: a quit, Runner.quit or a Ctrl-C in the backlog ends the pending wait (R1-4 is its twin: K1 refuted it as
+        the documented contract; K2 confirmed R2-2 at runtime, 3.7 s; the rule makes R2-2 confirmed; cheap; the docs
+        say "at most", so an early end is in the contract);
+      4 R1-2: gcComps keeps a pending path only while its region is a hook component that waits;
+      5 R2-5 (the wait part only): a hook body that fails posts an empty UI, so the frame does not wait; the log line
+        stays a question for the user;
+      6 R2-4: World.comps keyed by (Loc, state key), not by a joined string;
+      7 docs: R1-5 (ComponentSpec, Mount Scaladoc), R2-6 + K1-X1 (the stateKey Scaladoc: a custom key that two classes
+        share is one mount; the example names the class), R1-6 (the AppsTest mark);
+      8 R2-7: QuitTest +2 (Tui.quit from a hook component's useEffect and from Component.onMount).
+      Negative controls: all new leaves first, on the main code of a32ce55, in one run (c4-fix-negative-control.log).
+20:16 Negative controls (c4-fix-negative-control.log, 113 s, CI mode): on the main code of a32ce55 the new leaves FAIL:
+      R2-4 'the two components share one state: [x=1]'; R2-1 both pending leaves 'counted as a settle timeout'
+      (FrameStats ... settleTimeouts=1, 106 ms and 305 ms); R2-2 'a quit inside the wait ... did not end the run within
+      1 s' (the Ctrl-C part not reached: split into its own leaf, its control at the fix); R1-2 '3204 ms'; R2-5 '3003 ms'.
+      The two R2-7 leaves (QuitTest) PASS (coverage only, as K2). The test edits were reverted (saved in the scratchpad)
+      and come back one commit at a time.
+20:17-20:31 The fix commits (each: fmt, the affected suites in CI mode, then the commit; logs c4-fix-<n>-test.log):
+      b7aac11 fix 1 R1-3/R2-3 (pending wait by difference; no test possible on HotSpot); ComponentTest 12, HooksTest 8.
+      c56358e fix 2 R1-1/R2-1 (`start` in the loop state, set at each exit of the pending branch); two pending leaves
+              assert settleTimeouts == 0; ComponentTest 12, HooksTest 8, SettleTest 3, AppsTest 14, glitch 0/500 twice.
+      76cc7c6 fix 3 R2-2 (Runner.ending: w.quit, quitRequested, or a Ctrl-C in the backlog with ctrlCQuits); two leaves.
+              Control: the partial fix (quit only, the proposed `if w1.quit`) -> the Ctrl-C leaf FAILS
+              (c4-fix-3-negative-control.log). ComponentTest 14, QuitTest 4, SettleTest 3.
+      afac8da fix 4 R1-2 (gcComps keeps a pending path only for a Hook region with Content.Pending); one leaf.
+      8016e1e fix 5 R2-5, the wait part (a failing body posts UI.empty; no log: still a question); one leaf.
+      6b10b0e fix 6 R2-4 (World.comps: Map[(Loc, String), ...]; Source.Comp keeps the state key alone); one leaf.
+      15981d8 docs R1-5, R1-6, R2-6 + K1-X1 (stateKey Scaladoc; ComponentSpec.Instance; Mount '(C4)'; AppsTest mark).
+      46fe338 test R2-7: QuitTest +2; control: Tui.quit -> Kyo.unit makes both FAIL (c4-fix-8-negative-control.log).
+      Not fixed: R1-4 (refuted by K1; its behaviour is R2-2, fixed). Kyo RC7 IOTask: an interrupt abandons the rest of
+      a fiber (only the finalizers run), so the new `.map` after Abort.run in the hook fiber does not post at an
+      unmount; a late post would carry an old generation anyway.
+20:32-20:35 FINAL at 46fe338: sbt fmt (no change; c4-fix-fmt.log); SBT_TPOLECAT_CI=1 sbt clean check alone: exit 0,
+      150 s, 0 [warn], 0 [error]; core 208 passed, 0 failed, 3 ignored, 32 suites (ComponentTest 17, QuitTest 6);
+      CounterSuite 4; glitch 0/500 twice; [pending] 105 ms; versionPolicyCheck: Compatibility.None x3 (c4-fix-check.log).
+      version-order-test 55/55 (c4-fix-version-order-test.log). PTY kit once at 46fe338: 17/17 + 16/16, ALL ROWS
+      PASSED, 48 s, first frames 1065/1005/1090 ms, 26 bytes per key (c4-fix-pty.log, c4-fix-pty-files/). Greps
+      (c4-fix-greps.log): 36 = 14 marked + 22 comment lines, 0 other; jatatui.widgets, reflection, private[kyo],
+      package kyo: 0; the 4 TODOs of C2; check 4: Component.scala:94-95 (public HtmlChildVal), Props, a comment.
+      Counts: main 6585840..46fe338 +664/-131 (-w +593/-60); the round +159/-56; tests vs base +1352/-10 in 11 files;
+      whole PR 21 files +2211/-118; 25 commits. AGENTS.md and README: no change in the round (still true).
+      PR body round 2: c4-pr-body-round2.txt. Tree clean, no JVM left. The 3 final runs remain for the next agent.
+
+V (FINAL-RUNS agent of C4, 2026-10-13). Plain text, ASD-STE100. The only builder on the machine. No code change.
+20:43 Start at 46fe338 (tree clean; pgrep -x java empty; 4 CPUs; load 0.06). Plan: 3 test runs of
+      'sbt core/test examples/test' (run 2 under taskset -c 0,1 with 2 busy loops on CPUs 0,1); one PTY run
+      (JAVA_HOME=JDK 25); the greps and the private[kyo] checks 1-5 as C3; then SBT_TPOLECAT_CI=1 clean check alone
+      and the version-order test; then the PR body c4-pr-body.txt (from the fixer's body c4-pr-body-round2.txt).
+20:46 V: run 1 (quiet): exit 0, wall 136 s (sbt core 125 s with the dev-mode compile, examples 3 s); core 208 passed,
+      0 failed, 3 ignored, 32 suites (ComponentTest 17, HooksTest 8, QuitTest 6, AppsTest 14); CounterSuite 4; glitch
+      0/500 twice, load flag false; [pending] 106 ms; 0 [warn]; tree clean, no JVM after (c4-final-run-1.log).
+20:48 V: run 2 (CPU contention: taskset -c 0,1 sbt ...; busy loops PIDs 315 and 316, mask 3 read AFTER the start and
+      again after the run; killed by PID; ps -p shows both gone): exit 0, wall 85 s (core 64 s, examples 4 s); core
+      207 passed, 0 failed, 3 ignored, 1 cancelled (the SettleTest canary cancels itself under load by design, as in
+      T1: "the canary needs a second Kyo worker ..."); CounterSuite 4; glitch 0/500 twice, load flag false;
+      [pending] 104 ms (c4-final-run-contention.log).
+20:49 V: run 3 (quiet; the load average 2.84 at the start is the lag of run 2: no busy loop and no JVM ran): exit 0,
+      wall 53 s (core 44 s, examples 2 s); core 208 passed, 0 failed, 3 ignored; CounterSuite 4; glitch 0/500 twice;
+      [pending] 108 ms (c4-final-run-3.log). The 3 runs: all green. Next: the PTY kit.
+20:50 V: PTY kit once at 46fe338 (JAVA_HOME=JDK 25; PTY_WORK in the scratchpad; quiet machine): 17 of 17 terminal
+      rows, 16 of 16 screen checks, ALL ROWS PASSED, exit 0, 23 s; first frame 1119, 1018, 1137 ms; 26 bytes per key;
+      no JVM and a clean tree after (c4-final-pty.log; session.log and screens.txt in c4-final-pty-files/).
+20:51 V: greps (c4-final-greps.log): System.err/println/System.out in core main: 36 hits = 14 code lines with
+      'tui4s: allowed' (the same 14 lines as T1 0893800: diff empty) + 22 comment or Scaladoc lines, 0 other;
+      jatatui.widgets 0 (modules/core, examples/src); getDeclaredField/setAccessible 0; private[kyo] checks 1-5 as C3:
+      no package kyo, no private[kyo], no reflection; check 4: 7 hits, none a private[kyo] member (Component.scala:94-95
+      the public class HtmlChildVal and its public lift; Props 4; a Mount comment); check 5: the throwaway file gives
+      E173, removed, tree clean; TODO: the 4 of C2.
+20:53 V: final check: SBT_TPOLECAT_CI=1 sbt clean check alone at 46fe338: exit 0, wall 155 s, 0 [warn], 0 [error];
+      scalafmt checks green; core 208 passed, 0 failed, 3 ignored, 32 suites (test task 90 s); CounterSuite 4; glitch
+      0/500 twice; [pending] 108 ms; versionPolicyCheck: Compatibility.None x3 (c4-final-check.log). version-order-test
+      55/55 (c4-final-version-order-test.log). ALL GREEN. Tree clean, no JVM, no busy loop. Next: the PR body.
+20:58 V: PR body written: c4-pr-body.txt (330 lines; from the fixer's c4-pr-body-round2.txt). The first round's body,
+      which had the name c4-pr-body.txt, is kept as c4-pr-body-round1.txt (byte-identical copy, made before the write).
+      Changes: the intro (the final runs are green); P-3 (the final check, the base 0893800 PR #14); P-12 (only the CI
+      jobs after the push); P-13 (the final check, the table of the 3 test runs with the contention run, the table of
+      the PTY run); "Problems" (+3: the canary, one PTY run, the body names); "Acceptance" (the 3 runs: yes; the PTY
+      rows; the grep output of c4-final-greps.log; the private[kyo] checks 1-5 at 46fe338; version-order 55/55);
+      "Logs" (+ the final logs). ALL GREEN. No code change, no commit. Tree clean at 46fe338; no JVM; no busy loop.

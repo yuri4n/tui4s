@@ -185,6 +185,31 @@ started from the main checkout): it is the user's Metals sbt server.
   gap the T1 fixer closed in the input thread (R2-4). The fix and the test are written, UNCOMMITTED, in the T1 worktree;
   they wait for sbt (W4 owns it). The steps: .work/impl/t1-round2-brief.txt. Then merge-up into C4.
 
+<!-- claude 2026-10-13: added these three items (T1 round 2 done, W4 done and PR #15, W6 launched) -->
+- 2026-10-13 21:15 UTC: T1 ROUND 2 DONE by the session (Fable): b912d3b `fix(terminal): a LinkageError in a release step
+  does not stop the restore (PR #14 review: Codex)`. Negative control t1-r2-negative-control.log (the new leaf fails
+  with the escaped UnsatisfiedLinkError); t1-r2-test.log; t1-r2-check.log (CI mode, 0 warnings, 178 core leaves);
+  version order 55/55; t1-r2-pty.log (17 terminal rows, 16 screen checks). PUSHED; the Codex thread answered and
+  resolved; a round-2 comment on PR #14; CI green on b912d3b (both jobs).
+- 2026-10-13 21:20 UTC: W4 DONE (wf_f99c07c9-d80, 7 agents, Opus except R2/K2): C4 code tip 46fe338 (25 commits: 17 of
+  the first round + 8 review fixes; 5 prototype bugs and 6 review defects fixed, each with a negative control); the
+  merge-up of T1 round 2 = 9047a50 (`git merge`; check green: c4-mergeup-check.log, 209 core leaves, 0 warnings).
+  PUSHED; PR #15 `feat(core): components in two styles, hooks and a Component class` against feat/kyoui-04-terminal;
+  subscribed; CI at the time of writing: terminal green, sbt running. Body c4-pr-body.txt (60.8 KB). Two questions
+  for the user in the body: keep "onMount once per mount" (React-like) or restart onMount on a new instance; log a
+  failing hook body or onMount with Log.error (follow-up or in C4). The W4 check-in trigger was deleted (its work is
+  done). LESSON: `cp c4-pr-body.txt c4-pr-body-round2.txt` overwrote the fixer's body copy; the body says so.
+- 2026-10-13 21:30 UTC: W6 = T2 LAUNCHED: workflow wf_cbfa3587-619 (shape 6 + V: I, R1, R2, K1, K2, F, V; Opus except
+  R2/K2 on Fable), worktree .work/worktrees/feat-kyoui-06-app-examples from C4 9047a50 (T2 stacks on C4, not on T1:
+  the order C3 -> T1 -> C4 -> T2 of the eleventh round, and the CounterStyles example needs the components). Script:
+  tui4s-w6-t2-app-examples-wf_cbfa3587-619.js (the workflows dir of the projects entry named after the T2 worktree
+  path). Brief: plan 6.6 and D-24 (a); TuiApp in its final shape (ui, options, args, onExit, main, the runMain seam
+  through Tui.runWith; the constructor calls SchedulerDefaults.applyIfUnset() and OutputCapture.install()); the
+  examples from the prototype apps, one TuiApp main per package (CounterKyoApp moves to its own package); all PTY
+  rows (kill -TERM 143, kill -INT 130, the println row, Todo, Dashboard, CounterStyles, a resize, the class-load INFO
+  line); a ReadmeSuite pins the quick-start blocks to the files. A send_later check-in fires at about 00:20 UTC.
+  AFTER W6: push, PR against feat/kyoui-05-components, subscribe, logs and notes; then P1 (W7, shape 4), L1, L2, D.
+
 ## 2026-10-02: DIRECTION CHANGE
 
 The user reviewed the core and said it is not a functional wrapper of jatatui and that the internals are not
@@ -288,6 +313,7 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
    a6c4598 after round 2); W5 = T1 `feat/kyoui-04-terminal` DONE (PR #14, tip 0893800). Then **W5 = T1 `feat/kyoui-04-terminal`** (plan 6.5; the
    first usable version), then **W4 = C4 `feat/kyoui-05-components`** (plan 6.4), then T2, P1, L1, L2, D. The WIP limit
    P-11 is lifted until T1 is open (the user wants a usable version first).
+   UPDATE 2026-10-13 21:30 UTC: C4 DONE (PR #15, 9047a50); W6 = T2 RUNNING (wf_cbfa3587-619); then P1, L1, L2, D.
 4. **Merge mechanics (D-4 c):** the user squash-merges; Claude then rebases the next branch of the stack (own branches
    only), runs `sbt check`, pushes. Never rewrite a branch that is not Claude's.
 5. **Tracking:** one GitHub issue per TODO (labels `upstream-kyo`, `todo`). The user creates the GitHub Project with

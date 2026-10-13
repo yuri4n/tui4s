@@ -1,0 +1,160 @@
+== 19:18 NEGATIVE CONTROL 1 of the pending fixes: the new leaf 'the wait is bounded in total ...' on the main code of 6e12ad6 (the prototype's wait: Async.timeout(pendingTimeout) per message) ==
+6e12ad6 test(c4): the pending frame (TuiOptions.pendingTimeout)
+ M modules/core/src/test/scala/tui4s/ComponentTest.scala
+  [PASS] R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  (261ms)
+  [PASS] R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  (286ms)
+  [PASS] R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  (1.2s)
+  [PASS] state key: two Component classes at one position do not share state  (158ms)
+  [PASS] state key: a custom stateKey separates two instances of one class at one position; without it they share (the default)  (87ms)
+  [PASS] Component.onMount runs once per mount: a parent that renders again (also the verify pass and the repair tick) keeps the mount, its state and its effects; the unmount ends them  (374ms)
+[pending] the frame of the key: 218 ms, without the content; then 1 Background frame(s) drew it
+  [PASS] pending frame: a component whose first content takes longer than pendingTimeout: the frame comes without it (an empty place), and the content follows in a later frame  (1.5s)
+  [PASS] pending frame: with a pendingTimeout longer than the body, the frame of the event waits and holds the content  (322ms)
+  [PASS] pending frame: the wait is bounded in total, also when other messages arrive while it waits (a region that changes every 50 ms)  (173ms)
+--- ComponentTest: 9 passed, 0 failed  (4.7s)
+Results: 9 passed, 0 failed  (total: 4.7s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 0
+
+== 19:19 NEGATIVE CONTROL 1, try 2: the first form of the leaf PASSED on the old code (above): the frame of the KEY came at once, so the component mounted in a later step and that step waited. The leaf now checks that frames go on (the tick on the screen moves) while a component waits. On the main code of 6e12ad6 ==
+[error] -- [E008] Not Found Error: /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core/src/test/scala/tui4s/ComponentTest.scala:404:24 
+exit 1
+
+== 19:20 try 3 (the compile error of try 2 fixed: Match.group gives String | Null under explicit nulls). On the main code of 6e12ad6 ==
+  [PASS] R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  (272ms)
+  [PASS] R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  (318ms)
+  [PASS] R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  (1.2s)
+  [PASS] state key: two Component classes at one position do not share state  (115ms)
+  [PASS] state key: a custom stateKey separates two instances of one class at one position; without it they share (the default)  (76ms)
+  [PASS] Component.onMount runs once per mount: a parent that renders again (also the verify pass and the repair tick) keeps the mount, its state and its effects; the unmount ends them  (383ms)
+[pending] the frame of the key: 216 ms, without the content; then 1 Background frame(s) drew it
+  [PASS] pending frame: a component whose first content takes longer than pendingTimeout: the frame comes without it (an empty place), and the content follows in a later frame  (1.5s)
+  [PASS] pending frame: with a pendingTimeout longer than the body, the frame of the event waits and holds the content  (320ms)
+  [FAIL] pending frame: the wait is bounded in total, also when other messages arrive while it waits (a region that changes every 50 ms keeps changing on the screen)  (5.8s) *** FAILED ***
+    // message: the content did not come in a later frame
+--- ComponentTest: 8 passed, 1 failed  (10.4s)
+  pending frame: the wait is bounded in total, also when other messages arrive while it waits (a region that changes every 50 ms keeps changing on the screen)  [FAIL]
+    // message: the content did not come in a later frame
+Results: 8 passed, 1 failed  (total: 10.4s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 1
+
+== 19:21 try 4: try 3 failed for a wrong reason: a debug run (a scratch suite, removed) showed that the key frame had 0 updates: the key handler was on a child of the root, and with no focusable element a key goes to the root, so the component never mounted. Now the root has the handler and the tick region is its first child, and the leaf checks that the key frame has updates. On the main code of 6e12ad6 ==
+[info] scalafmt: Reformatted 1 Scala sources
+  [PASS] R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  (253ms)
+  [PASS] R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  (273ms)
+  [PASS] R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  (1.2s)
+  [PASS] state key: two Component classes at one position do not share state  (149ms)
+  [PASS] state key: a custom stateKey separates two instances of one class at one position; without it they share (the default)  (89ms)
+  [PASS] Component.onMount runs once per mount: a parent that renders again (also the verify pass and the repair tick) keeps the mount, its state and its effects; the unmount ends them  (394ms)
+[pending] the frame of the key: 215 ms, without the content; then 1 Background frame(s) drew it
+  [PASS] pending frame: a component whose first content takes longer than pendingTimeout: the frame comes without it (an empty place), and the content follows in a later frame  (1.5s)
+  [PASS] pending frame: with a pendingTimeout longer than the body, the frame of the event waits and holds the content  (321ms)
+  [FAIL] pending frame: the wait is bounded in total, also when other messages arrive while it waits (a region that changes every 50 ms keeps changing on the screen)  (3.8s) *** FAILED ***
+    // message: no frame while the settle waited for the component: the tick stayed at 70 (75)
+--- ComponentTest: 8 passed, 1 failed  (8.4s)
+  pending frame: the wait is bounded in total, also when other messages arrive while it waits (a region that changes every 50 ms keeps changing on the screen)  [FAIL]
+    // message: no frame while the settle waited for the component: the tick stayed at 70 (75)
+Results: 8 passed, 1 failed  (total: 8.4s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 1
+
+== 19:23 try 5: the leaf with the assertion on the frame of the key, on the main code of 6e12ad6 (an edit script failed before it wrote the fix, so this run of c4-step4g-test.log is the old code; copied here) ==
+  [PASS] R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  (322ms)
+  [PASS] R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  (292ms)
+  [PASS] R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  (1.2s)
+  [PASS] state key: two Component classes at one position do not share state  (122ms)
+  [PASS] state key: a custom stateKey separates two instances of one class at one position; without it they share (the default)  (69ms)
+  [PASS] Component.onMount runs once per mount: a parent that renders again (also the verify pass and the repair tick) keeps the mount, its state and its effects; the unmount ends them  (379ms)
+[pending] the frame of the key: 219 ms, without the content; then 1 Background frame(s) drew it
+  [PASS] pending frame: a component whose first content takes longer than pendingTimeout: the frame comes without it (an empty place), and the content follows in a later frame  (1.5s)
+  [PASS] pending frame: with a pendingTimeout longer than the body, the frame of the event waits and holds the content  (322ms)
+  [FAIL] pending frame: the wait is bounded in total, also when other messages arrive while it waits (a region that changes every 50 ms keeps changing on the screen)  (3.8s) *** FAILED ***
+    // message: the wait started again with each message: the frame of the key came after 3012 ms
+--- ComponentTest: 8 passed, 1 failed  (8.4s)
+  pending frame: the wait is bounded in total, also when other messages arrive while it waits (a region that changes every 50 ms keeps changing on the screen)  [FAIL]
+    // message: the wait started again with each message: the frame of the key came after 3012 ms
+Results: 8 passed, 1 failed  (total: 8.4s)
+  [PASS] useSignal: the initial value on the screen; a handler's write and an outside write reach it  (25ms)
+  [PASS] useHold: the initial value until the stream's first element, then the last element  (48ms)
+  [PASS] useFold: folds the stream into a state (a running sum)  (22ms)
+  [PASS] useEffect: runs once at mount, not again when its parent renders again; at the unmount its Scope closes (a Scope.ensure in it runs); a new mount runs it again  (157ms)
+  [PASS] useInterval: its ticks reach the screen; at the unmount it stops (the count and the gauge)  (192ms)
+  [PASS] component(key): in a keyed foreach, a component keeps its state when its siblings move  (50ms)
+  [PASS] component(key): another key at the same position mounts fresh; the same key keeps the mount when the parent renders again; without a key the old mount stays  (267ms)
+  [PASS] a hook component inside `when` loses its state when it is hidden and comes back fresh; a Component too (RR O7)  (53ms)
+--- HooksTest: 8 passed, 0 failed  (824ms)
+Results: 8 passed, 0 failed  (total: 824ms)
+  [PASS] counter by keys: + + - with keys, Tab and Enter on the buttons, nothing happens for an unknown key, q quits  (60ms)
+  [PASS] two counters by keys are independent; Tab order is document order  (46ms)
+  [PASS] todo by keys: type + Enter adds, Tab to the list, arrows + Space toggle, d deletes, Ctrl-S saves, Esc quits  (162ms)
+  [PASS] dashboard by keys: ArrowRight changes the tab, p pauses the sampler  (76ms)
+  [PASS] hooks: top-level sequencing and runner-mounted components (state dropped when hidden)  (64ms)
+
+== 19:24 after the fix (the bound in total, from the start of the settle): the leaf PASSES; ComponentTest 9, HooksTest 8, AppsTest 14 passed in CI mode (c4-step4g-test.log, try 2) ==
+
+== 19:24 NEGATIVE CONTROL 2 of the pending fixes: the new leaf 'a component that mounts and unmounts inside one settle leaves no wait behind' on the main code of c11e731 (a pending path whose region is gone stays in World.pending) ==
+  [PASS] R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  (306ms)
+  [PASS] R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  (293ms)
+  [PASS] R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  (1.2s)
+  [PASS] state key: two Component classes at one position do not share state  (125ms)
+  [PASS] state key: a custom stateKey separates two instances of one class at one position; without it they share (the default)  (82ms)
+  [PASS] Component.onMount runs once per mount: a parent that renders again (also the verify pass and the repair tick) keeps the mount, its state and its effects; the unmount ends them  (395ms)
+[pending] the frame of the key: 216 ms, without the content; then 1 Background frame(s) drew it
+  [PASS] pending frame: a component whose first content takes longer than pendingTimeout: the frame comes without it (an empty place), and the content follows in a later frame  (1.5s)
+  [PASS] pending frame: with a pendingTimeout longer than the body, the frame of the event waits and holds the content  (323ms)
+  [PASS] pending frame: the wait is bounded in total, also when other messages arrive while it waits (a region that changes every 50 ms keeps changing on the screen)  (3.1s)
+  [FAIL] pending frame: a component that mounts and unmounts inside one settle leaves no wait behind  (3.0s) *** FAILED ***
+    // message: the frame waited for a component that is gone: 3053 ms
+--- ComponentTest: 9 passed, 1 failed  (10.8s)
+    // message: the frame waited for a component that is gone: 3053 ms
+Results: 9 passed, 1 failed  (total: 10.8s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 1
+
+== 19:26 after the fix (gcComps drops the pending paths whose region is gone): the leaf PASSES (70 ms); ComponentTest 10, HooksTest 8, AppsTest 14, WatcherTest 5 passed in CI mode (c4-step4h-test.log) ==
+
+== 19:30 NEGATIVE CONTROL 3 of the pending fixes: the new leaf 'only the frame of the mount waits, once ...' on the main code of 52900b0 (the reclaim of a pending hook component adds its path to pending again; one bound per settle call) ==
+  [PASS] R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  (271ms)
+  [PASS] R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  (266ms)
+  [PASS] R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  (1.2s)
+  [PASS] state key: two Component classes at one position do not share state  (117ms)
+  [PASS] state key: a custom stateKey separates two instances of one class at one position; without it they share (the default)  (71ms)
+  [PASS] Component.onMount runs once per mount: a parent that renders again (also the verify pass and the repair tick) keeps the mount, its state and its effects; the unmount ends them  (377ms)
+[pending] the frame of the key: 211 ms, without the content; then 1 Background frame(s) drew it
+  [PASS] pending frame: a component whose first content takes longer than pendingTimeout: the frame comes without it (an empty place), and the content follows in a later frame  (1.5s)
+  [PASS] pending frame: with a pendingTimeout longer than the body, the frame of the event waits and holds the content  (322ms)
+  [PASS] pending frame: the wait is bounded in total, also when other messages arrive while it waits (a region that changes every 50 ms keeps changing on the screen)  (3.1s)
+  [PASS] pending frame: a component that mounts and unmounts inside one settle leaves no wait behind  (70ms)
+  [FAIL] pending frame: only the frame of the mount waits, once: the re-check of that frame and the later renders of the parent (the repair tick) do not wait again  (4.1s) *** FAILED ***
+    // message: frames that waited again for the component: Vector(1002) ms (of 1 frames)
+--- ComponentTest: 10 passed, 1 failed  (11.9s)
+    // message: frames that waited again for the component: Vector(1002) ms (of 1 frames)
+Results: 10 passed, 1 failed  (total: 11.9s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 1
+
+== 19:32 after the fix (a reclaimed pending component does not go back into pending; one deadline per frame for the settle and its re-check): the leaf PASSES; the [pending] line of the first leaf: 114 ms (one wait of 100 ms; before: 211-219 ms, two waits); ComponentTest 11, HooksTest 8, AppsTest 14, WatcherTest 5, SeamTest 3 passed in CI mode (c4-step4l-test.log) ==
+
+== 19:38 NEGATIVE CONTROL 2 again, with the final form of the leaf (200 ms) at a32ce55: gcComps keeps the pending paths whose region is gone (a temporary edit, restored) ==
+edit: the pending filter of gcComps removed
+-          pending = w.pending.filter(w.regions.contains),
+  [PASS] R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  (276ms)
+  [PASS] R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  (267ms)
+  [PASS] R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  (1.2s)
+  [PASS] state key: two Component classes at one position do not share state  (157ms)
+  [PASS] state key: a custom stateKey separates two instances of one class at one position; without it they share (the default)  (85ms)
+  [PASS] Component.onMount runs once per mount: a parent that renders again (also the verify pass and the repair tick) keeps the mount, its state and its effects; the unmount ends them  (377ms)
+  [PASS] Component.onMount: an effect that it starts lives as long as the mount, also when onMount returns at once; the unmount ends it  (231ms)
+  [PASS] pending frame: a component whose first content takes longer than pendingTimeout: the frame comes without it (an empty place), and the content follows in a later frame  (1.5s)
+  [PASS] pending frame: with a pendingTimeout longer than the body, the frame of the event waits and holds the content  (329ms)
+  [PASS] pending frame: the wait is bounded in total, also when other messages arrive while it waits (a region that changes every 50 ms keeps changing on the screen)  (3.1s)
+  [FAIL] pending frame: a component that mounts and unmounts inside one settle leaves no wait behind  (3.2s) *** FAILED ***
+    // message: the frame waited for a component that is gone: 3203 ms
+  [PASS] pending frame: only the frame of the mount waits, once: the re-check of that frame and the later renders of the parent (the repair tick) do not wait again  (4.1s)
+--- ComponentTest: 11 passed, 1 failed  (15.4s)
+    // message: the frame waited for a component that is gone: 3203 ms
+Results: 11 passed, 1 failed  (total: 15.4s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 1
+restored: 0 changed files

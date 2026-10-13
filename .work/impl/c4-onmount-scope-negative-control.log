@@ -1,0 +1,22 @@
+== 19:35 NEGATIVE CONTROL: the new leaf 'Component.onMount: an effect that it starts lives as long as the mount ...' on the main code of 8366961 (Scope.run(c.onMount(state)): the Scope closes when onMount returns) ==
+[info] scalafmt: Reformatted 1 Scala sources
+  [PASS] R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  (259ms)
+  [PASS] R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  (276ms)
+  [PASS] R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  (1.2s)
+  [PASS] state key: two Component classes at one position do not share state  (136ms)
+  [PASS] state key: a custom stateKey separates two instances of one class at one position; without it they share (the default)  (85ms)
+  [PASS] Component.onMount runs once per mount: a parent that renders again (also the verify pass and the repair tick) keeps the mount, its state and its effects; the unmount ends them  (371ms)
+  [FAIL] Component.onMount: an effect that it starts lives as long as the mount, also when onMount returns at once; the unmount ends it  (3.1s) *** FAILED ***
+    // message: the interval of onMount stopped when onMount returned: 0 ticks; 
+  [PASS] pending frame: a component whose first content takes longer than pendingTimeout: the frame comes without it (an empty place), and the content follows in a later frame  (1.5s)
+  [PASS] pending frame: with a pendingTimeout longer than the body, the frame of the event waits and holds the content  (321ms)
+  [PASS] pending frame: the wait is bounded in total, also when other messages arrive while it waits (a region that changes every 50 ms keeps changing on the screen)  (3.1s)
+  [PASS] pending frame: a component that mounts and unmounts inside one settle leaves no wait behind  (71ms)
+  [PASS] pending frame: only the frame of the mount waits, once: the re-check of that frame and the later renders of the parent (the repair tick) do not wait again  (4.1s)
+--- ComponentTest: 11 passed, 1 failed  (15.1s)
+    // message: the interval of onMount stopped when onMount returned: 0 ticks; 
+Results: 11 passed, 1 failed  (total: 15.1s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+exit 1
+
+== 19:37 after the fix (Scope.run(onMount(state).andThen(Async.never))): the leaf PASSES; ComponentTest 12, HooksTest 8, AppsTest 14, NameClashTest 2 passed in CI mode (c4-step4m-test.log) ==

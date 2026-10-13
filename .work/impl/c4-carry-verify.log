@@ -1,0 +1,47 @@
+== 18:52 carry check of the working tree (the carry commit) ==
+OK   whole file modules/core/src/main/scala/tui4s/Component.scala == fe06611:modules/core/src/main/scala/tui4s/Component.scala (45 lines)
+OK     code lines (no package, import, blank or carry-header line): /home/user/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/Component.scala lines 39-74: 33; carried: 33
+       frame +package tui4s
+       frame +
+       frame +// claude 2026-10-09: created (carried from .work/proto/kyoui-runner/src/tui4s/kyoui/Component.scala lines 39-74; new path and package only)
+       frame +
+       frame +import kyo.*
+       frame +import kyo.UI.Ast.*
+       frame +import scala.language.implicitConversions
+       frame +import tui4s.internal.ComponentSpec
+       frame +
+       marks (claude 20..): prototype lines 39-74 0, carried 1
+OK   whole file modules/core/src/main/scala/tui4s/internal/ComponentSpec.scala == fe06611:modules/core/src/main/scala/tui4s/internal/ComponentSpec.scala (39 lines)
+OK     code lines (no package, import, blank or carry-header line): /home/user/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/Component.scala lines 7-37: 25; carried: 25
+       frame +package tui4s.internal
+       frame +
+       frame +// claude 2026-10-09: created (carried from .work/proto/kyoui-runner/src/tui4s/kyoui/Component.scala lines 7-37; new path and package only)
+       frame +
+       frame +import kyo.*
+       frame +import kyo.UI.Ast.*
+       frame +import tui4s.Component
+       frame +
+       marks (claude 20..): prototype lines 7-37 0, carried 1
+OK   whole file modules/core/src/main/scala/tui4s/Hooks.scala == fe06611:modules/core/src/main/scala/tui4s/Hooks.scala (62 lines)
+OK     code lines (no package, import, blank or carry-header line): /home/user/tui4s/.work/proto/kyoui-runner/src/tui4s/kyoui/Hooks.scala: 48; carried: 48
+       frame -package tui4s.kyoui
+       frame +package tui4s
+       frame +
+       frame +// claude 2026-10-09: created (carried from .work/proto/kyoui-runner/src/tui4s/kyoui/Hooks.scala; new path and package only)
+       frame +import tui4s.internal.ComponentSpec
+       marks (claude 20..): prototype 0, carried 1
+OK   whole file modules/core/src/test/scala/tui4s/fixtures/CounterStyles.scala == fe06611:modules/core/src/test/scala/tui4s/fixtures/CounterStyles.scala (80 lines)
+OK     code lines (no package, import, blank or carry-header line): /home/user/tui4s/.work/proto/kyoui-runner/apps/CounterStyles.scala: 62; carried: 62
+       frame -package apps
+       frame +package tui4s.fixtures
+       frame +
+       frame +// claude 2026-10-09: created (carried from .work/proto/kyoui-runner/apps/CounterStyles.scala; new path and package only)
+       frame -import tui4s.kyoui.Component
+       frame -import tui4s.kyoui.Hooks.*
+       frame -import tui4s.kyoui.Tui
+       frame +import tui4s.Component
+       frame +import tui4s.Hooks.*
+       frame +import tui4s.Tui
+       marks (claude 20..): prototype 0, carried 1
+RESULT OK
+exit 0

@@ -1,0 +1,80 @@
+== 19:00 step 4b: sbt fmt, then SBT_TPOLECAT_CI=1 core/testOnly ComponentTest WatcherTest AppsTest QuitTest ==
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-05-components-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/)
+[info] scalafmt: Formatting 3 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core)...
+[info] scalafmt: Formatting 1 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core)...
+[info] scalafmt: Reformatted 1 Scala sources
+[info] scalafmt: Reformatted 1 Scala sources
+[success] Total time: 4 s, completed Oct 13, 2026, 7:00:30 PM
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/cats)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/zio)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-05-components)...
+[success] Total time: 0 s, completed Oct 13, 2026, 7:00:31 PM
+[info] compiling 3 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Running 1 suite(s) with parallelism 8
+
+[1m=== ComponentTest ===[0m
+  [1m[32m[PASS][0m[0m R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  [2m(237ms)[0m
+  [1m[32m[PASS][0m[0m R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  [2m(252ms)[0m
+  [1m[32m[PASS][0m[0m R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  [2m(1.2s)[0m
+[2m---[0m ComponentTest: [32m3 passed[0m, [31m0 failed[0m  [2m(2.0s)[0m
+
+Results: [32m3 passed[0m, [31m0 failed[0m  (total: 2.0s)
+Running 1 suite(s) with parallelism 8
+
+[1m=== WatcherTest ===[0m
+  [1m[32m[PASS][0m[0m R1: 0 live fibers after an INTERRUPTED run  [2m(163ms)[0m
+  [1m[32m[PASS][0m[0m R1: 0 live fibers after an interrupt INSIDE A SETTLE (a remount in flight)  [2m(1.1s)[0m
+  [1m[32m[PASS][0m[0m R1: 0 live fibers after a quit, and after the scope of the kit ends  [2m(41ms)[0m
+  [1m[32m[PASS][0m[0m K29: 200 writes to every region kind all reach the screen  [2m(1.2s)[0m
+  [1m[32m[PASS][0m[0m K29: a write in the window is lost by the loop and repaired by the tick within 2 ticks  [2m(657ms)[0m
+[2m---[0m WatcherTest: [32m5 passed[0m, [31m0 failed[0m  [2m(3.2s)[0m
+
+Results: [32m5 passed[0m, [31m0 failed[0m  (total: 3.2s)
+Running 1 suite(s) with parallelism 8
+
+[1m=== AppsTest ===[0m
+  [1m[32m[PASS][0m[0m counter by keys: + + - with keys, Tab and Enter on the buttons, nothing happens for an unknown key, q quits  [2m(138ms)[0m
+  [1m[32m[PASS][0m[0m two counters by keys are independent; Tab order is document order  [2m(47ms)[0m
+  [1m[32m[PASS][0m[0m todo by keys: type + Enter adds, Tab to the list, arrows + Space toggle, d deletes, Ctrl-S saves, Esc quits  [2m(153ms)[0m
+  [1m[32m[PASS][0m[0m dashboard by keys: ArrowRight changes the tab, p pauses the sampler  [2m(89ms)[0m
+  [1m[32m[PASS][0m[0m hooks: top-level sequencing and runner-mounted components (state dropped when hidden)  [2m(62ms)[0m
+  [1m[32m[PASS][0m[0m Component class: state per position, kept across a parent re-render  [2m(40ms)[0m
+  [1m[32m[PASS][0m[0m counter: writes to the count reach the screen; the kit's quit ends the run  [2m(28ms)[0m
+  [1m[32m[PASS][0m[0m two counters are independent  [2m(24ms)[0m
+  [1m[32m[PASS][0m[0m todo: load, add, select, toggle, delete, save, status  [2m(66ms)[0m
+  [1m[32m[PASS][0m[0m overflow: a list taller than the screen keeps the header and the input; the list is clipped  [2m(44ms)[0m
+  [1m[32m[PASS][0m[0m dashboard: a sampler tick updates the gauge and the sparkline in one frame; tabs; pause  [2m(203ms)[0m
+  [1m[32m[PASS][0m[0m idle: no frame at all when nothing changes  [2m(1.8s)[0m
+[glitch] splits=0 of 500 (events by frame count: 1 frames: 500; events with a settle timeout: 0; not seen in 2 s: 0; load flag: false)
+  [1m[32m[PASS][0m[0m glitch-free: one event (one write to one ref) updates all 4 dependent regions in one frame (500 events)  [2m(2.9s)[0m
+[glitch-keys] splits=0 of 500 (key frames by region values: 4: 500; frames with a settle timeout: 0; load flag: false)
+  [1m[32m[PASS][0m[0m glitch-free by keys: one key whose handler writes two refs updates all 4 dependent regions in its frame (500 keys)  [2m(498ms)[0m
+[2m---[0m AppsTest: [32m14 passed[0m, [31m0 failed[0m  [2m(6.1s)[0m
+
+Results: [32m14 passed[0m, [31m0 failed[0m  (total: 6.1s)
+Running 1 suite(s) with parallelism 8
+
+[1m=== QuitTest ===[0m
+  [1m[32m[PASS][0m[0m a key handler calls Tui.quit: the run ends  [2m(9ms)[0m
+  [1m[32m[PASS][0m[0m a fiber that a handler forks calls Tui.quit after a delay: the run ends  [2m(1.0s)[0m
+  [1m[32m[PASS][0m[0m the construction of the UI forks a fiber that calls Tui.quit after a delay: the run ends  [2m(205ms)[0m
+  [1m[32m[PASS][0m[0m Tui.quit outside a run does nothing  [2m(216ms)[0m
+[2m---[0m QuitTest: [32m4 passed[0m, [31m0 failed[0m  [2m(1.4s)[0m
+
+Results: [32m4 passed[0m, [31m0 failed[0m  (total: 1.4s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 40 s, completed Oct 13, 2026, 7:01:10 PM
+exit 0

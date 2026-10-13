@@ -1,0 +1,330 @@
+After the merge, a tui4s app has components in two styles. Hooks (`tui4s.Hooks`): a component is a function with `useSignal`, `useHold`, `useFold`, `useEffect` and `useInterval`, and `component(key)(body)` is a node that the runner mounts (the body runs at the mount, in a `Scope` that closes at the unmount). The class style (`tui4s.Component`): a `State` type member, `initial`, `view(state)` and `onMount(state)`; the runner keeps the state under the position and the overridable `stateKey` (the class name by default). The runner's component branch, which C2 cut from the carried prototype, is back (`World.comps`, `World.pending`, `Source.Comp`, `Mount.mountComponent`, `gcComps`, the pending wait of the settle), with `TuiOptions.pendingTimeout` (a `java.time.Duration`, 2 s). Every fiber that a component mount or a hook starts joins the live-fiber gauge of the run and ends with the run (R1 option b). Five bugs of the prototype's component code, found by the new tests, are fixed in their own commits, each with a regression test and a negative control (P-6). The review round (R1, R2 and the skeptics K1, K2) found more defects in the restored code; eight new commits fix them, each fix with its test and a negative control ("Review fixes"). The CounterStyles fixture (both styles) runs in the core tests; the runnable example is T2's. Base: PR #14 (T1, `feat/kyoui-04-terminal`) at b912d3b (its round 2, merged up into this branch as 9047a50: plan 4.3). The final check at the code tip 46fe338 is green in CI mode with 0 warnings, and so is the check at the merge-up tip 9047a50 (209 core leaves, 0 warnings, `c4-mergeup-check.log`); the 3 final test runs in a row (run 2 under CPU contention) are green; the PTY kit passes 17 of 17 terminal rows and 16 of 16 screen checks.
+
+## P-1 One purpose
+
+A tui4s app has components in both styles: hooks and a `Component` class.
+
+## P-2 Size
+
+Hand-written main lines, from the format commit 6585840 to the tip 46fe338 (`git diff --numstat 6585840 46fe338 -- modules/core/src/main`): **664 added, 131 deleted** (`-w`: +593/-60), 8 files: `internal/Mount.scala` +324/-42 (the restored component branch, the R1 tracks, `Tui4sTrack`, the fixes), `internal/Runner.scala` +168/-58 (much of it is the re-indent of the settle under the `pending` branch: `-w` is smaller), `Component.scala` +63/-8 (the state key, the Scaladoc), `Hooks.scala` +46/-12 (the tracks, the Scaladoc), `TuiOptions.scala` +22, `internal/World.scala` +16, `internal/ComponentSpec.scala` +17/-9 (the seal, the comments), `package.scala` +8/-2. Of these, the review round (a32ce55 to 46fe338) adds +159/-56 (`-w` +147/-44). Carried main code (P-8): 146 lines at the carry commit (Component 45, Hooks 62, ComponentSpec 39), 178 after the format. The plan's estimate was about 300; the restore of the cut prototype lines (after the format), the five fixes, the review fixes and the Scaladoc make it more. Limit: about 1500; no split is needed. Tests (against the base 0893800): +1352/-10 in 11 files (2 new suites: ComponentTest 727 lines, HooksTest 311; ComponentSuite 40; the CounterStyles fixture 87; AppsTest +68; KyoUiSurface +29/-4 and its list +4; NameClashTest +33/-2; QuitTest +38/-2; TuiOptionsTest +10; KyoUiSurfaceTest +5/-2). Docs: AGENTS.md +35/-3, README +11/-3 (no change in the review round). Whole PR against its base (`git diff --shortstat 0893800 46fe338`): 21 files, +2211/-118.
+
+## P-3 Working base
+
+Base: `feat/kyoui-04-terminal` at b912d3b (PR #14, T1, with its round-2 fix; its final check, 3 test runs and 3 PTY runs are green: `t1-pr-body.txt`; the round-2 checks are in the PR's round-2 comment). T1 stacks on PR #13 (C3) a6c4598, PR #11 (C2) 0646343, PR #10 (C1) f525808, `main` 863db67. This PR adds 25 commits on the first-parent line: 17 of the first round (1 to 4n) and 8 of the review round (5a to 5h), and then the merge-up 9047a50 of T1's round 2 (`git merge feat/kyoui-04-terminal`, no rebase; plan 4.3). After the merge-up, `SBT_TPOLECAT_CI=1 sbt clean check` alone on the machine: exit 0, 0 `[warn]`, 0 `[error]`, 209 core leaves passed, 0 failed (`c4-mergeup-check.log`).
+
+The final check at the tip 46fe338, alone on the machine (4 CPUs, JDK 25.0.4.1; `pgrep -x java` empty before the run; the tree clean; no code change after the review round): `SBT_TPOLECAT_CI=1 sbt -Dsbt.supershell=false clean check`: exit 0, 155 s, 0 `[warn]`, 0 `[error]`; core: 208 passed, 0 failed, 3 ignored (the stress probes); examples: CounterSuite 4 passed; scalafmt checks and `versionPolicyCheck` green (`.work/impl/c4-final-check.log`; its header has the command, the date, the commit, the tree and the `pgrep` result; the fixer's check at the same tip has the same result, 150 s: `c4-fix-check.log`). `bash scripts/version-order-test.sh`: 55 of 55 (`c4-final-version-order-test.log`). The 3 test runs in a row (`sbt core/test examples/test`, run 2 under CPU contention) and the final PTY run (17 of 17 terminal rows, 16 of 16 screen checks) are green: P-13 and "Acceptance". The check of the first round, at a32ce55: 201 passed, 144 s (`c4-check.log`). The first full check, at 8366961, failed one leaf and found the fifth bug (P-6 row 5); its log is `c4-check-1-failed.log`.
+
+## P-4 Final shape first
+
+Public types and members that this PR adds, in their final shape (the full list is in "API review"):
+
+- `abstract class Component` (package `tui4s`): `type State`, `initial`, `view(state)`, `onMount(state)` (default: no effect), `protected def stateKey: String = getClass.getName` (FC-17, plan 0.2), `final def ui(using Frame): Reactive[UI]`; the companion has the implicit conversion `componentToChild` (a component is a child of an element).
+- `object Hooks` (package `tui4s`): `useSignal`, `useHold`, `useFold`, `useEffect`, `useInterval`, `component(key)(body)` and `component(body)`, with the prototype's signatures (RC-4).
+- `TuiOptions.pendingTimeout: java.time.Duration = Duration.ofMillis(2000)`, at the end of the fields, with Scaladoc (D-14 a; Kyo-free; `derives CanEqual` stays).
+
+## P-5 Never port the replaced
+
+No file of this PR is replaced by a later PR of the stack. The facade components of the ZIO phase (D-20) build on these hooks and this class; they do not replace them.
+
+## P-6 Fix with the code
+
+The restored code is the prototype's. The new tests found five bugs in it (the prototype had no test for `onMount` and four hooks: REPORT, verifier "refuted" 9). Each fix is its own commit with a regression test; the test FAILS on the code before the fix (the negative control).
+
+| Bug | Commit | Test (ComponentTest) | Negative control (`.work/impl/`) |
+| --- | --- | --- | --- |
+| 1. `onMount` ran again at each render of the parent: the prototype stops the old mount's effects and starts new ones for each new instance, and the C2 runner renders a region whose UI holds closures again in the verify pass and at each repair tick (1 s) | 25d11a7: a mount of the same state key at the same path goes on (its state, its generation and its `onMount` fiber stay; only the view is new) | "Component.onMount runs once per mount: a parent that renders again (also the verify pass and the repair tick) keeps the mount, its state and its effects; the unmount ends them" | FAIL at e3e4c05: "onMount ran 27 times and ended 26 times while the mount lasted" (`c4-onmount-negative-control.log`) |
+| 2. The wait of a frame for a mounting component started again with each message that arrived meanwhile: with steady traffic (a region that changes every 50 ms) the settle of a slow component did not end, and the UI stood still | c11e731: the bound is in total, from the start of the settle | "pending frame: the wait is bounded in total, also when other messages arrive while it waits (...)" | FAIL at 6e12ad6: "the wait started again with each message: the frame of the key came after 3012 ms" (`c4-pending-negative-control.log`, try 5; tries 1 to 4 are explained in the log) |
+| 3. A pending component that was unmounted before its content came (mount and unmount in one settle) kept its path in `World.pending`: the frame waited until `pendingTimeout` | ae7782c: `gcComps` also drops the pending paths whose region is gone | "pending frame: a component that mounts and unmounts inside one settle leaves no wait behind" | FAIL at c11e731: "the frame waited for a component that is gone: 3053 ms"; with the final form of the leaf (a32ce55, the filter removed): 3203 ms (`c4-pending-negative-control.log`) |
+| 4. A reclaimed pending component went back into `pending`: after the mount's frame had waited, each later render of its parent (the verify pass, each repair tick) made its frame wait again; the settle and the re-check of one frame each had their own bound | 8366961: a reclaimed region does not go back into `pending`; one deadline per frame (the settle and its re-check) | "pending frame: only the frame of the mount waits, once: (...) the repair tick (...) do not wait again" | FAIL at 52900b0: "frames that waited again for the component: Vector(1002) ms (of 1 frames)" (`c4-pending-negative-control.log`) |
+| 5. The `Scope` of `onMount` closed when `onMount` returned (`Scope.run(c.onMount(state))`): an interval or a resource that `onMount` started ended at once | b08eb13: `onMount(state).andThen(Async.never)` inside the `Scope.run`, as for a hook component; the unmount or the end of the run interrupts the fiber | "Component.onMount: an effect that it starts lives as long as the mount, also when onMount returns at once; the unmount ends it" | FAIL at 8366961: "the interval of onMount stopped when onMount returned: 0 ticks" (`c4-onmount-scope-negative-control.log`) |
+
+Bug 5 was found by the first full check (`c4-check-1-failed.log`): the R1 leaf "0 effect fibers after an INTERRUPTED run" saw 5 fibers, not 7. The `Scope` drains on a detached fiber, so the gauge saw 7 for a short time, and that leaf had passed by luck in the earlier single-suite runs.
+
+The review round found six more defects in the restored code (the pending wait and the state key) and fixed them in the same way: one commit per fix, the test in the commit, the test FAILS on the code before the fix. See "Review fixes".
+
+## P-7 Commit map
+
+| # | Commit | What |
+| --- | --- | --- |
+| 1 | 381c992 carry | `Component.scala`, `Hooks.scala`, `internal/ComponentSpec.scala` and the test fixture `fixtures/CounterStyles.scala`, byte-identical to their fe06611 blobs (`c4-carry-verify.py`, `c4-carry-verify.log`: RESULT OK; against the prototype only the package line, the carry header and the tui4s imports differ; 226 lines). It does not compile alone (P-7): the test sources need 4a (the fixture's mains call the old `Tui.run`). |
+| 2 | 6585840 format | `sbt fmt` reformatted the four files and no other file (`c4-step2-fmt.log`; +148/-105, `-w` +96/-53). The `// claude <date>` marks: **4 before, 0 after** (the four carry headers of fe06611; the prototype files had 0). |
+| 3 | 9b25b7b strict | The sbt-tpolecat flags in CI mode report **1 warning** on the carried main code: "unused explicit parameter" of the default `Component.onMount` (`c4-step3-warnings.log`). Fix as spike S6 (25aab29): `@unused` on the parameter. **2 code lines changed** (the import, the parameter) and a mark. After it, `core/compile` in CI mode: 0 warnings. The main code compiles without 4a, so step 3 comes before 4a. |
+| 4a | 9de884b restore | The reverse of the C2 cuts (c2-pr-body-final.md "Cuts"), adapted to the C2/C3/T1 shapes: `World` `Source.Comp(spec, key)`, `comps`, `pending` and their init values; `Mount` `post`, the `ComponentSpec.lookup` branch of `walk`, `mountComponent` (Instance and Hook), `gcComps` in `remount`; `Runner`: a `Comp` region takes its content and leaves `pending`, the settle's `pending` branch; `TuiOptions.pendingTimeout`; `ComponentSpec` sealed (`private[tui4s]`); the fixture loses its three mains (T2). Tests: AppsTest +2 (the prototype's two component cases, on Headless with the fixture), TuiOptionsTest +1 (`c4-step4a-test.log`). |
+| 4b | 86d1d47 R1 | RC-8 (R1 option b) for components: `Mount` tracks the hook fiber and the `onMount` fiber; the hooks track their fibers through the new Local `internal.Tui4sTrack`, which `Runner.scoped` sets next to the quit. ComponentTest (new) 3 leaves (`c4-step4b-test.log`); negative controls A and B (`c4-r1-negative-control.log`). This commit was amended once before any review (the order of the assertions: the behaviour first); no later commit was amended. |
+| 4c | e3e4c05 state key | `Component.stateKey` (protected, overridable) and `Component.stateKeyOf` (`private[tui4s]`, the companion reads the protected key); `Mount` keys the state by path and state key. ComponentTest +2 (`c4-step4c-test.log`); negative controls (`c4-statekey-negative-control.log`). |
+| 4d | 25d11a7 fix 1 | P-6 row 1. The helpers of ComponentTest move to `ComponentSuite`. |
+| 4e | 4fb2ebd hooks | HooksTest (new), 8 leaves: one per hook, `component(key)` twice, a hook component and a `Component` inside `when` (`c4-step4e-test.log`). |
+| 4f | 6e12ad6 pending | ComponentTest +2: the pending frame with a short and a long `pendingTimeout` (`c4-step4f-test.log`). |
+| 4g | c11e731 fix 2 | P-6 row 2 (`c4-step4g-test.log`). |
+| 4h | ae7782c fix 3 | P-6 row 3 (`c4-step4h-test.log`). |
+| 4i | 5d489c6 guard | The surface guard, the C4 part of RC-12: the pin "K3 Signal equals and hashCode" (`c4-guard-negative-control.log`). |
+| 4j | 1e06fef docs | AGENTS.md, README, the package Scaladoc, the Scaladoc of `Component` and `Hooks` (`c4-step4j-docs.log`). |
+| 4k | 52900b0 name clash | NameClashTest +1: the same wildcard imports and `tui4s.Hooks.*` (`c4-step4k-test.log`). |
+| 4l | 8366961 fix 4 | P-6 row 4 (`c4-step4l-test.log`). |
+| 4m | b08eb13 fix 5 | P-6 row 5 (`c4-step4m-test.log`). |
+| 4n | a32ce55 test | The stale-pending leaf waits 200 ms (not 50 ms) between the show and the hide, for a loaded machine (`c4-step4n-test.log`; its negative control again with the final form). |
+| 5a | b7aac11 fix R1-3, R2-3 | The settle gets the start of the frame; the time left of the pending wait is a difference of `nanoTime` (`c4-fix-1-test.log`). No test: no behaviour change on HotSpot. |
+| 5b | c56358e fix R1-1, R2-1 | `start` of the settle is in the loop state and each exit of the pending branch sets it: the `max` counts from the end of the wait. Two pending leaves assert `settleTimeouts == 0` (`c4-fix-2-test.log`). |
+| 5c | 76cc7c6 fix R2-2 | `Runner.ending`: a quit, the quit flag, or a Ctrl-C in the backlog ends the pending wait. ComponentTest +2 (`c4-fix-3-negative-control.log`, `c4-fix-3-test.log`). |
+| 5d | afac8da fix R1-2 | `gcComps` keeps a pending path only while its region is a hook component that waits. ComponentTest +1 (`c4-fix-4-test.log`). |
+| 5e | 8016e1e fix R2-5 | A hook body that fails posts `UI.empty`: its frame does not wait. ComponentTest +1 (`c4-fix-5-test.log`). |
+| 5f | 6b10b0e fix R2-4 | `World.comps` is keyed by the path and the state key (a tuple), not by a joined string. ComponentTest +1 (`c4-fix-6-test.log`). |
+| 5g | 15981d8 docs | R1-5, R1-6, R2-6, K1-X1: the Scaladoc of `Component.stateKey`, of `ComponentSpec.Instance` and of `Mount.mountComponent`; the AppsTest mark (`c4-fix-7-docs.log`). No code change. |
+| 5h | 46fe338 test R2-7 | QuitTest +2: `Tui.quit` from a `useEffect` of a hook component and from `Component.onMount` (`c4-fix-8-negative-control.log`, `c4-fix-8-test.log`). |
+
+Every build commit was fmt-clean before it was made (`sbt fmt` ran before each test run and each commit; the check at the tip runs `scalafmtCheckAll` and `scalafmtSbtCheck`). Each step compiled and ran its suites in CI mode (`SBT_TPOLECAT_CI=1`), 0 warnings; the command is in the header of each step log. The negative controls of the review round ran in one run first (all new leaves on the main code of a32ce55, `c4-fix-negative-control.log`); then each fix came with its leaves.
+
+## P-8 Delta guide
+
+Sources: `fe06611` = spike S6's carry of the kyo-ui runner prototype into `modules/core` (worktree `.work/worktrees/spike-sbt-carry`); `1d100ed` = the prototype on `origin/wip/handoff` (`.work/proto/kyoui-runner`, byte-identical to the local copy). The carry commit 381c992 holds the fe06611 blobs; the format commit 6585840 is the formatted, mark-free state; the hand-written delta of a carried file is `git diff 6585840 46fe338 -- <new path>`.
+
+| New file | Source | Delta command |
+| --- | --- | --- |
+| `modules/core/src/main/scala/tui4s/Component.scala` | `fe06611:modules/core/src/main/scala/tui4s/Component.scala` (from `1d100ed:.work/proto/kyoui-runner/src/tui4s/kyoui/Component.scala` lines 39-74) | `git diff fe06611:modules/core/src/main/scala/tui4s/Component.scala 46fe338:modules/core/src/main/scala/tui4s/Component.scala` (+74/-17) |
+| `modules/core/src/main/scala/tui4s/Hooks.scala` | `fe06611:modules/core/src/main/scala/tui4s/Hooks.scala` (from `1d100ed:.work/proto/kyoui-runner/src/tui4s/kyoui/Hooks.scala`) | `git diff fe06611:modules/core/src/main/scala/tui4s/Hooks.scala 46fe338:modules/core/src/main/scala/tui4s/Hooks.scala` (+85/-31) |
+| `modules/core/src/main/scala/tui4s/internal/ComponentSpec.scala` | `fe06611:modules/core/src/main/scala/tui4s/internal/ComponentSpec.scala` (from `1d100ed:.work/proto/kyoui-runner/src/tui4s/kyoui/Component.scala` lines 7-37) | `git diff fe06611:modules/core/src/main/scala/tui4s/internal/ComponentSpec.scala 46fe338:modules/core/src/main/scala/tui4s/internal/ComponentSpec.scala` (+36/-18) |
+| `modules/core/src/test/scala/tui4s/fixtures/CounterStyles.scala` | `fe06611:modules/core/src/test/scala/tui4s/fixtures/CounterStyles.scala` (from `1d100ed:.work/proto/kyoui-runner/apps/CounterStyles.scala`) | `git diff fe06611:modules/core/src/test/scala/tui4s/fixtures/CounterStyles.scala 46fe338:modules/core/src/test/scala/tui4s/fixtures/CounterStyles.scala` (+59/-52: the format and the three mains cut) |
+| The restored lines of `internal/Mount.scala` | `fe06611:modules/core/src/main/scala/tui4s/internal/Mount.scala` lines 13-14 (`post`), 58-60 (the lookup branch), 115-155 (`mountComponent`), 170 and 174-177 (`gcComps`) | `git show fe06611:modules/core/src/main/scala/tui4s/internal/Mount.scala \| sed -n 114,177p` against `git diff 0893800 46fe338 -- modules/core/src/main/scala/tui4s/internal/Mount.scala` |
+| The restored lines of `internal/Runner.scala` | `fe06611:modules/core/src/main/scala/tui4s/internal/Runner.scala` lines 85, 89 (`apply`), 121-126 (the `pending` branch of `settle`) | `git show fe06611:modules/core/src/main/scala/tui4s/internal/Runner.scala \| sed -n 80,127p` against `git diff 0893800 46fe338 -- modules/core/src/main/scala/tui4s/internal/Runner.scala` |
+| The restored lines of `internal/World.scala` | `fe06611:modules/core/src/main/scala/tui4s/internal/World.scala` lines 21, 43-44, 60 | `git diff 0893800 46fe338 -- modules/core/src/main/scala/tui4s/internal/World.scala` |
+| `TuiOptions.pendingTimeout` | `fe06611:modules/core/src/main/scala/tui4s/Tui.scala` lines 21-22 (a Kyo `Duration`; now a `java.time.Duration`, D-14 a) | `git diff 0893800 46fe338 -- modules/core/src/main/scala/tui4s/TuiOptions.scala` |
+| AppsTest, the two component leaves | `1d100ed:.work/proto/kyoui-runner/test/Apps.test.scala` lines 62-100 (munit) | `git show 1d100ed:.work/proto/kyoui-runner/test/Apps.test.scala \| sed -n 62,100p` against `git diff 0893800 46fe338 -- modules/core/src/test/scala/tui4s/AppsTest.scala` |
+
+New files with no source: `ComponentTest.scala`, `HooksTest.scala`, `ComponentSuite.scala` (tests). The hand-written main delta in one command: `git diff 6585840 46fe338 -- modules/core/src/main`.
+
+## P-9 No rewrite
+
+No rebase and no force push. One amend before any review: 86d1d47 (4b) got the assertions of two of its leaves in another order (the behaviour first, then the gauge), so that its negative controls show the behaviour; the commit message already named the log. No commit after it was amended; the later corrections of this PR are new commits (4n is a test-only commit for a leaf of 4h; the review round adds 5a to 5h, with no amend and no rebase).
+
+## P-10 Docs true at each merge
+
+- AGENTS.md "What tui4s is": the two component styles (Hooks with `component(key)`; the `Component` class with `stateKey`), the mount that goes on while the same identity stays at a position (`onMount` once per mount), a component inside `when` loses its state when it is hidden, the pending frame (`TuiOptions.pendingTimeout`, 2 s, in all), the global weak registry of component nodes. The sentence "The components come in the next pull request" goes. True: AppsTest (the prototype cases), ComponentTest, HooksTest.
+- AGENTS.md "Rules for code": the fibers that a component or a hook starts end with the run (the gauge, `internal.Tui4sTrack`, `Mount.interruptAll`; a new hook or mount adds its fiber in the same way; ComponentTest checks it); the item on the re-render of a `Reactive` region with closures now says that the component mounts go on. True: ComponentTest R1 leaves and the onMount leaves, HooksTest.
+- README: the status line (components in two styles) and a short paragraph with the two styles. True: as above.
+- Scaladoc: the package (the two styles), `Component` (the final shape: the state key, the mount, `onMount` once per mount and its `Scope`, the members), `Hooks` (the two styles, the mount, the pending frame, the fibers end with the run; `useEffect`: the cleanup is a `Scope.ensure` inside the effect; `component`: the identity and the key), `TuiOptions.pendingTimeout`, `Mount.mountComponent`, `startEffects`, `gcComps`, `Tui4sTrack`, `Runner.settle`.
+- The review round: `TuiOptions.pendingTimeout` (after the wait the frame settles as usual, the `max` counts from the end of the wait; a quit or a Ctrl-C ends the wait; a body that fails ends it too), `Hooks.component` (a body that fails leaves the node empty), `Component.stateKey` (a custom key replaces the class name; keep the class name in it, or give one `State` type to the classes that share a key; the example keeps the class name), `ComponentSpec.Instance` (the state key), `Mount.mountComponent` (no PR name; a body that fails), `gcComps` (a pending path stays only for a hook component that waits), `Runner.ending`, `Runner.settle`. AGENTS.md and README stay as in 4j: their text is still true (the pending frame waits "at most" `pendingTimeout`).
+
+## P-11 WIP limit
+
+The eleventh round of DECISIONS (`origin/wip/handoff:.work/DECISIONS.md`) lifted the WIP limit until the terminal PR is open; T1 (PR #14) is open. PRs #10, #11, #13 and #14 are open; this PR (C4) is the fifth above `main`. The order is C3 -> T1 -> C4 -> T2 (eleventh round); the branch names follow it (this branch is `feat/kyoui-05-components`; the plan's 6.4 says `feat/kyoui-04-components`).
+
+## P-12 Not in this PR
+
+- The CounterStyles example (its three mains: hooks, hooks in `when`, the class) as a runnable example with start scripts, and its PTY row: T2 (`feat/kyoui-06-app-examples`). Here it is a test fixture only.
+- `TuiApp`, the other examples (two counters, Todo, Dashboard, Widgets) and their PTY rows: T2.
+- Facade components (ZIO and Cats Effect `component(key)` and `Component` over the core hooks, mounted by the runner, FC-17; D-20): the ZIO phase (spike SZ-3, then F2 and F4).
+- The trace writer and the bench: P1.
+- A log line for a hook component's body or an `onMount` that fails: today the failure is silent (`Abort.run[Throwable]`, the prototype's shape; the component stays empty). The needless wait of the frame for such a body is fixed (5e, review R2-5); the log line is a follow-up, after the user's answer ("Questions for the user"). Kyo RC7's `IOTask` abandons the rest of an interrupted fiber (only its finalizers run), so the interrupt of an unmount does not reach the code after `Abort.run`.
+- An extension node in kyo-ui's AST for components (REPORT, upstream proposal 4), which would replace the global registry: upstream.
+- The CI jobs `sbt` and `terminal` (plan 6.0): after the push. The 3 final test runs in a row (one under CPU contention), the final check and the final PTY run are done and green (P-13).
+- K1-X1 (a custom `stateKey` that two classes share): the key shape does not change (FC-17 and RC-5 are decided: the facade adapter class needs a key without the class); the Scaladoc says the rule (5g).
+
+## P-13 Zero warnings
+
+**0 warnings.** `SBT_TPOLECAT_CI=1 sbt -Dsbt.supershell=false clean check` (`-Werror` on) at the tip 46fe338, alone, as the final run: exit 0, 155 s, 0 `[warn]`, 0 `[error]` (`.work/impl/c4-final-check.log`; the fixer's `c4-fix-check.log` has the same result, 150 s). Core (kyo-test), 208 passed, 0 failed, 3 ignored, 32 suites: EventMappingTest 8, DispatchTest 12, NativeTerminalTest 2, HeadlessTest 10, NativeLoadErrorTest 4, ScreenTest 5, HooksTest 8 (new), GoldenScreenTest 27, NameClashTest 2 (+1), TextEditTest 13, SessionTest 8, AppsTest 14 (+2), OutputCaptureTest 15, ComponentTest 17 (new), WatcherTest 5, PublicApiTest 3, StrictEqualityTest 1, QuitTest 6 (+2), SeamTest 3, LiftTrapTest 2, RenderTest 2, TuiOptionsTest 4 (+1), PasteTest 4, KyoUiSurfaceTest 2, TerminalIOTest 17, SettleTest 3, WriteSeamTest 2, RelayoutTest 1, TuiRunTest 8; LeakProbe, ObserveLeakProbe, SplitProbe ignored. T1 had 177; this PR adds 31 (24 in the first round, 7 in the review round: ComponentTest +5, QuitTest +2). Examples (munit): CounterSuite 4 passed. The glitch lines: `[glitch] splits=0 of 500 (... events with a settle timeout: 0; ... load flag: false)` and `[glitch-keys] splits=0 of 500 (key frames by region values: 4: 500; frames with a settle timeout: 0; ...)`. The pending line: `[pending] the frame of the key: 108 ms, without the content; then 1 Background frame(s) drew it` (pendingTimeout 100 ms; the frame now also has `settleTimeouts == 0`; 105 ms in the fixer's check). Each step compiled and ran its suites in CI mode with 0 warnings (the step logs in P-7). The dev-mode compile (no CI flag) in test run 1 below and the launchers build of the PTY run also give 0 `[warn]`.
+
+The 3 final runs of `sbt core/test examples/test` in a row at the tip 46fe338, alone on the machine (plan 6.0: the timing-sensitive suites green in 3 local runs in a row, one of them under CPU contention). `pgrep -x java` was empty before each run, and the tree was clean before and after each run. No run has the load flag (`TUI4S_LOAD` unset), so both glitch leaves assert the strict 0 in each run, also under contention.
+
+| Run | Conditions | Result | Glitch and pending lines | Log (`.work/impl/`) |
+| --- | --- | --- | --- | --- |
+| 1 | quiet machine (load 0.06 before the runs); `sbt -Dsbt.supershell=false core/test examples/test` (it compiles the test sources first, in dev mode: 0 `[warn]`) | exit 0, 136 s (sbt core 125 s with the compile, examples 3 s); core 208 passed, 0 failed, 3 ignored, 32 suites; CounterSuite 4 passed | `[glitch] splits=0 of 500` (1 frame: 500; 0 settle timeouts; 0 not seen); `[glitch-keys] splits=0 of 500` (region values 4: 500); `[pending]` 106 ms | `c4-final-run-1.log` |
+| 2 | **CPU contention**, the model of the CI runner: `taskset -c 0,1 sbt -Dsbt.supershell=false core/test examples/test` with two busy loops `taskset -c 0,1 bash -c "while :; do :; done"` pinned to CPUs 0 and 1 (PIDs 315 and 316; affinity mask 3, read with `taskset -p` after the start, when `taskset` had set it, and again after the run; killed by PID after the run; `ps -p` shows both gone); no load flag | exit 0, 85 s (sbt core 64 s, examples 4 s); core 207 passed, 0 failed, 3 ignored, 1 cancelled: the SettleTest canary cancels itself ("the canary needs a second Kyo worker: no attempt ran its step while the spin ran (3 attempts); a 2-CPU JVM under load has one"; by design, as in T1; see "Problems"); CounterSuite 4 passed | `[glitch] splits=0 of 500` (1 frame: 500; 0 settle timeouts; 0 not seen); `[glitch-keys] splits=0 of 500` (region values 4: 500); `[pending]` 104 ms | `c4-final-run-contention.log` |
+| 3 | quiet machine (the load average 2.84 at the start is the lag of run 2: no busy loop and no other JVM ran) | exit 0, 53 s (sbt core 44 s, examples 2 s); core 208 passed, 0 failed, 3 ignored; CounterSuite 4 passed | `[glitch] splits=0 of 500`; `[glitch-keys] splits=0 of 500` (region values 4: 500); `[pending]` 108 ms | `c4-final-run-3.log` |
+
+Every suite passes in each of the 3 runs: the suites of this PR (ComponentTest 17, HooksTest 8, AppsTest 14 with the two component leaves, QuitTest 6, NameClashTest 2, TuiOptionsTest 4, KyoUiSurfaceTest 2) and the timing-sensitive suites of C2, C3 and T1 (AppsTest with the glitch leaves, HeadlessTest, WatcherTest, SettleTest, QuitTest, SeamTest, DispatchTest, SessionTest, TuiRunTest). The only leaf that does not pass is the SettleTest canary in run 2, which cancels itself by design. Under contention (run 2), the timed leaves of ComponentTest stay inside their margins: the pending leaves 1.5 s, 317 ms, 3.1 s, 217 ms, 4.1 s, 314 ms, 318 ms, 234 ms and 78 ms; the R1 leaf of an interrupt inside a settle 1.3 s.
+
+The final PTY run at the tip 46fe338, with its own launchers build (`JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64 examples/ptycheck/run.sh`; `pgrep -x java` empty before the run; the rows are in "Acceptance"). C4 changes `Mount` and `Runner`, so the terminal path must still pass:
+
+| Run | Conditions | Result | First frame (the `q`, Ctrl-C and resize runs) | Log (`.work/impl/`) |
+| --- | --- | --- | --- | --- |
+| 1 | quiet machine, after the 3 test runs | 17 of 17 terminal rows, 16 of 16 screen checks, `ALL ROWS PASSED`, exit 0, 23 s | 1119, 1018, 1137 ms; 26 bytes per key | `c4-final-pty.log` (the raw output and the replayed screens: `c4-final-pty-files/`) |
+
+The fixer's PTY run at the same tip has the same rows (48 s, `c4-fix-pty.log`), and so has the run at a32ce55 (47 s, `c4-pty.log`).
+
+The greps at the tip: "Acceptance" (`.work/impl/c4-final-greps.log`). 0 code lines name `System.err`, `System.out` or `println` without the `// tui4s: allowed` marker.
+
+Marks (`// claude 2026-10-13`): the review round adds 34 mark lines in the main and test sources (each new or changed fragment) and removes 1 (the AppsTest mark that the format had cut in two, now one comment); the carried files still have no carry or prototype mark.
+
+## P-14 New sbt projects
+
+None.
+
+## API review (RC-36, at the tip 46fe338)
+
+PUBLIC, package `tui4s`, added:
+
+- `abstract class Component`: `type State`; `def initial: State`; `def view(state: SignalRef[State]): UI`; `def onMount(@unused state: SignalRef[State]): Any < (Async & Scope) = ()`; `protected def stateKey: String = getClass.getName`; `final def ui(using Frame): Reactive[UI]` (a node that this runner mounts; another kyo-ui runner sees the view over a state that the node value allocates). `object Component`: `implicit def componentToChild(c: Component)(using Frame): HtmlChildVal` (kyo-ui's public `HtmlChildVal.lift`).
+- `object Hooks`: `def useSignal[A](initial: A)(using CanEqual[A, A], Frame): SignalRef[A] < Sync`; `def useHold[A](initial: A)(stream: => Stream[A, Async])(using CanEqual[A, A], Frame, Tag[Emit[Chunk[A]]]): Signal[A] < (Async & Scope)`; `def useFold[A, S](initial: S)(stream: => Stream[A, Async])(f: (S, A) => S)(using CanEqual[S, S], Frame, Tag[Emit[Chunk[A]]]): Signal[S] < (Async & Scope)`; `def useEffect(effect: => Any < (Async & Scope))(using Frame): Unit < (Async & Scope)`; `def useInterval(period: Duration)(action: => Any < Async)(using Frame): Unit < (Async & Scope)` (a Kyo `Duration`: Hooks are the Kyo API); `def component(key: String)(body: => UI < (Async & Scope))(using frame: Frame): UI`; `def component(body: => UI < (Async & Scope))(using frame: Frame): UI`. The signatures are the prototype's (RC-4).
+- `TuiOptions`: `pendingTimeout: java.time.Duration = Duration.ofMillis(2000)` at the end (Kyo-free; `derives CanEqual` stays; Scaladoc: at most this long in all, the frames between do not wait again, a negative value counts as zero; after the wait the frame settles as usual; a quit, a Ctrl-C or a body that fails ends the wait).
+- The review round changes no public signature. It changes three documented behaviours (all inside the contract "at most `pendingTimeout`"): the wait for a mounting component no longer counts as a settle timeout (`FrameStats.settleTimeouts`), a quit or a Ctrl-C ends that wait, and a hook body that fails ends it (the node stays empty). The Scaladoc of `Component.stateKey` names the rule of a custom key.
+- Unchanged: `Tui`, `TuiError`, `FrameStats`, `FrameCause`, `spi.Settle`, `testkit.Headless` (no signature change), `testkit.Screen`.
+
+Kyo and kyo-ui types in the new public signatures: `UI`, `Reactive`, `HtmlChildVal` (kyo-ui), `SignalRef`, `Signal`, `Stream`, `Emit`, `Chunk`, `Tag`, `Duration`, `CanEqual`, `Frame`, `<`, `Sync`, `Async`, `Scope`. `Component` and `Hooks` are the Kyo API (the ZIO and Cats Effect facades wrap them in the ZIO phase); `TuiOptions` stays Kyo-free. No jatatui type, no crossterm type, no type of `tui4s.internal`: PublicApiTest (3 leaves) is green.
+
+THE SEAL stays: every top-level definition of `tui4s.internal` is `private[tui4s]`, also the new ones: `ComponentSpec` (trait and object) and `Tui4sTrack`. PublicApiTest leaf 1 checks it.
+
+`private[tui4s]` SEAMS, new (bytecode-public; MiMa sees them): `Component.stateKeyOf(c)` (the runner reads the protected key); `internal.ComponentSpec` (`Hook(identity, body)`, `Instance(component)`, `lookup(signal)`, `node(spec, fallback)`; the registry is private); `internal.Tui4sTrack` (`let(track)(v)`, `apply(fiber)`); `internal.Mount.gcComps` (public inside the `private[tui4s]` class); `World.comps` (since 5f a `Map[(Loc, String), SignalRef[Any]]`: the path and the state key), `World.pending`, `Source.Comp(spec, key)` (`key`: the state key of a `Component` alone, or the identity of a hook component). New private members of the review round: `Runner.ending`, `Mount.waits`. `compat.sbt`: no change (`Compatibility.None` for the three modules).
+
+## Negative controls (all logs in `.work/impl/`)
+
+| Test | Control | Result | Log |
+| --- | --- | --- | --- |
+| ComponentTest R1, 3 leaves (RC-8) | A: the 3 track calls of `Hooks` replaced by `.unit` (temporary, restored) | 3 of 3 FAIL; the quit leaf: "the top-level interval ticks after the run ended (before the kit's scope ends)"; the other two: the gauge before the interrupt is 3 | `c4-r1-negative-control.log` |
+| ComponentTest R1, 3 leaves (RC-8) | B: `Mount` does not track the fiber of a hook component's body (temporary, restored) | 3 of 3 FAIL; the leaf of an interrupt inside a settle: "the Scope of the hook component did not close (its fiber was not stopped)" | `c4-r1-negative-control.log` |
+| ComponentTest, the custom state key (FC-17) | `Mount` keys the state by `getClass.getName` only (temporary, restored; DEV mode: the edit leaves an unused import, which CI mode stops on, also in the log) | the custom-key leaf FAILS: "[y=3]" (the two instances share the state) | `c4-statekey-negative-control.log` |
+| ComponentTest, both state-key leaves | `Mount` keys the state by the path only (temporary, restored; DEV mode) | 2 of 2 FAIL: "[B=3]", "[y=3]" | `c4-statekey-negative-control.log` |
+| P-6 rows 1 to 5 | the new leaf on the main code before each fix | FAIL (P-6 table) | `c4-onmount-negative-control.log`, `c4-pending-negative-control.log`, `c4-onmount-scope-negative-control.log` |
+| HooksTest (a check that the hook leaves can fail; the plan does not ask for it) | the reclaim of a hook component never matches (temporary, restored; DEV mode) | 3 of 8 FAIL: useEffect, the keyed foreach, the key leaf | `c4-hooks-negative-control.log` |
+| Review fixes 5b to 5f and 5h: the new and the changed leaves (ComponentTest: 2 changed pending leaves and 4 new leaves, the R2-2 leaf then still one; QuitTest +2), all in one run on the main code of a32ce55 | (none: the code before the fixes) | 6 FAIL: the state-key leaf "[x=1]" (R2-4); both pending leaves "counted as a settle timeout ... settleTimeouts=1" at 106 and 305 ms (R2-1); "a quit inside the wait ... did not end the run within 1 s" (R2-2); "3204 ms" (R1-2); "3003 ms" (R2-5). The two QuitTest leaves (R2-7) PASS: coverage only | `c4-fix-negative-control.log` |
+| ComponentTest, the Ctrl-C leaf (5c, R2-2) | the partial fix that looks only at the quit (the proposed `if w1.quit`; temporary) | the Ctrl-C leaf FAILS: "a Ctrl-C inside the wait for a component did not end the run within 1 s"; the quit leaf passes | `c4-fix-3-negative-control.log` |
+| QuitTest, the two leaves of 5h (R2-7) | `Tui.quit` replaced by `Kyo.unit` in the two leaves (temporary, restored from a copy; DEV mode) | 2 of 2 FAIL: "the run did not end" | `c4-fix-8-negative-control.log` |
+| KyoUiSurfaceTest, the K3 pin (the guard, C4 part) | (1) the reader with the new pin, the list without it; (2) the list says "Signal: equals" (temporary, restored from a copy); (3) the reader reads `kyo.UI.Ast.Div` (a case class) in place of `kyo.Signal` (temporary, restored from a copy) | (1) ADDED; (2) CHANGED; (3) the reader sees "equals\|hashCode": CHANGED | `c4-guard-negative-control.log` |
+
+## Review fixes (R1, R2, K1, K2; tip 46fe338)
+
+The rule: a finding is confirmed when its skeptic confirmed it, or when the reviewer's evidence and a check of the fixer agree and no skeptic refuted it. The fixer fixed every confirmed finding (all are cheap; for R2-5 the wait part, not the log line) and no refuted one.
+
+| Finding | Verdict | Fix or why not |
+| --- | --- | --- |
+| R1-1 = R2-1 (major): the wait for a mounting component counted toward the Quiescent `max`; after a wait over 100 ms the settle ended at the first empty drain, with no D-17 c confirm and a false `FrameStats.settleTimeouts = 1` | confirmed (K1, as minor; K2, at runtime: `settleTimeouts=1` at 384 ms and 106 ms) | 5b c56358e: `start` is in the loop state, and each exit of the pending branch sets it. Test: the two pending leaves assert `settleTimeouts == 0`; both FAIL at a32ce55 |
+| R1-2 (minor): `gcComps` kept a pending path when another region took the path (the `else` branch of a `render`): the frame waited the whole `pendingTimeout` | confirmed (K1; also a `Component` at the path) | 5d afac8da: a pending path stays only while its region is a hook component with `Content.Pending`. Test +1; FAIL at a32ce55: 3204 ms |
+| R1-3 = R2-3 (minor): the overflow guard of the frame's deadline was wrong for a negative `System.nanoTime` | confirmed (K1, K2; K2: the effect is a zero wait, not an unbounded one; HotSpot gives a positive value) | 5a b7aac11: the settle gets the frame's start, and the time left is `pendingTimeout - (now - start)`. No test: no behaviour change on HotSpot |
+| R1-4 (minor): a quit during the pending wait is delayed up to `pendingTimeout` | refuted (K1: the documented contract) | Not fixed as R1-4. The same behaviour is R2-2, which K2 confirmed at runtime (3.7 s); the fix of R2-2 (5c) covers it. The fix stays inside the contract ("at most `pendingTimeout`"; `Tui.quit`: "the run ends after the frame of the current event") |
+| R1-5 (minor): `ComponentSpec.Instance` said "keyed by position and class"; `Mount.mountComponent` named a PR | confirmed (K1) | 5g 15981d8 |
+| R1-6 (minor): the AppsTest mark that the format had cut into a block comment and a line comment | confirmed (K1) | 5g 15981d8: one `//` comment |
+| R2-2 (minor): a quit or a Ctrl-C during the pending wait waited for the content or the deadline | confirmed (K2, at runtime: 3714 ms and 3708 ms; K2: the proposed `if w1.quit` does not cover Ctrl-C, which waits in the backlog) | 5c 76cc7c6: `Runner.ending` (an absorbed quit, the quit flag, or a Ctrl-C key in the backlog with `ctrlCQuits`) ends the wait; the key keeps its place in the backlog. Tests +2; the quit leaf FAILS at a32ce55, the Ctrl-C leaf FAILS with the partial fix |
+| R2-4 (minor): the state key was one joined string of the path and the state key; a `/` in a `foreachKeyed` key made two positions share one state | confirmed (K2, at runtime: `[x=1]` and `[y=1]`) | 5f 6b10b0e: `World.comps` is keyed by `(Loc, String)`. Test +1; FAIL at a32ce55 |
+| R2-5 (minor): a hook body that fails is silent, and the frame of its mount waited the whole `pendingTimeout` | confirmed (K2) | 5e 8016e1e: the wait part (the fiber posts `UI.empty`). Test +1; FAIL at a32ce55: 3003 ms. The log line: not fixed (a question for the user, P-12) |
+| R2-6 (minor): the Scaladoc of `stateKey` held only for the default key | confirmed (K2) | 5g 15981d8 |
+| K1-X1 (minor, K1's own finding): two classes that give one custom `stateKey` at one position share the state (an erased cast) and the mount | the same gap as R2-6 | 5g 15981d8: the Scaladoc (the doc option of K1: keep the class name in a custom key, or give the classes one `State` type; the example keeps the class name). The key shape stays: FC-17 and RC-5 are decided |
+| R2-7 (minor): no leaf ran `Tui.quit` from a fiber of a component mount | confirmed (K2: coverage only; the two leaves passed on a32ce55) | 5h 46fe338: QuitTest +2; control: with `Kyo.unit` in place of `Tui.quit` both FAIL |
+
+## Problems and decisions in this PR
+
+- The eleventh to thirteenth rounds are not in the local `.work/DECISIONS.md`; they are read from `origin/wip/handoff` (7a4e449).
+- The commit trailer is "Co-Authored-By: Claude Opus 5.5": the attribution of the session (as in C3 and T1); the task text named "Claude Fable 5.1".
+- Step 3 comes before 4a: the carried main code compiles with only the strict-flag fix; the test sources need 4a.
+- The restored prototype code had five bugs (P-6). The fixes change the component rules of the prototype in two places: a `Component` mount goes on while the same state key stays at the same position (the prototype restarted `onMount` for each new instance), and only the frame of a component's mount waits for its first content, at most `pendingTimeout` in all (the prototype waited per message and again at each render). AGENTS.md and the Scaladoc describe the new rules. See "Questions for the user".
+- The plan asked for "R1 at Mount.scala:128, 147" (the two fibers that the mount starts). The fibers that the hooks start (`useEffect`, `useInterval`, `useHold`, `useFold`) are not started by `Mount`; they join the gauge through the new Local `internal.Tui4sTrack` (as `Tui4sQuit` carries the quit). Without it, a hook at the top of the app (its `Scope` is the kit's, Kyo RC7 `Fiber.init`) runs on after the run until the kit's scope ends (negative control A).
+- The pending wait of the runner converts `pendingTimeout` to nanoseconds (a negative value is 0, a value too long for nanoseconds is `Long.MaxValue`) and builds the Kyo duration with `Duration.fromNanos`, not `Duration.fromJava`: one deadline per frame needs nanoseconds.
+- `armkey` and the verify pass do not change: a component region is not young and the verify pass skips it (`verifyRegion` has no case for `Source.Comp`); the regions inside its content are young as any mounted region.
+- A `Component` inside a region whose UI holds closures (a `when`, a `render`): the verify pass and the repair tick (1 s) render the parent again (gate 1 item 3), so `view` of a new instance runs again and the regions inside its view get new watchers; the mount (state, `onMount`) goes on. No cells change, and the terminal gets no bytes.
+- Without a key, `component(body)` keeps its first mount when its parent renders another value at that position (the identity is the call site): this is the prototype's rule, written in the Scaladoc of `Hooks.component` and pinned by a HooksTest leaf. Give a key (`component(user.id)(...)`) for a fresh mount.
+- A hook component's body or an `onMount` that fails is silent (P-12; "Questions for the user").
+- `tui4s.internal.Hooks` (the shutdown hooks of T1) and the public `tui4s.Hooks` share a simple name. `Tui.scala` and the test double `FakeCrossterm.scala` import the internal one by name (an explicit import wins over a member of the package from another file); NameClashTest compiles with `import tui4s.Hooks.*` and the wildcard imports of the public packages; the new suites import `tui4s.Hooks.*` and only the internal names that they use. A rename of the internal trait (for example `ShutdownHooks`) would remove the doubt; it is not in this PR (T1's file).
+- The first form of the negative control of P-6 row 2 passed on the old code for a wrong reason: the key handler was on a child of the root, and with no focusable element a key goes to the root, so the component never mounted. A debug suite (a scratch file, removed) showed the key frame with 0 updates. The final leaf has the handler on the root and asserts that the key frame has updates. All the tries are in `c4-pending-negative-control.log`.
+- The surface guard: the component branch reads `UI.Ast.Reactive.signal` (pinned in C2: ast.fields) and needs the identity of a `Signal` (the registry is a `WeakHashMap`, which uses `equals` and `hashCode`): that was not pinned; the new pin line is "K3 Signal equals and hashCode". `Signal.initRaw`, `UI.empty` and `HtmlChildVal.lift` are compile-time API (a change does not compile), not pinned.
+- `HtmlChildVal` is in the private[kyo] check 4 list (C3, T1): the class is public; only its constructor and its field `value` are `private[kyo]`. `Component.componentToChild` names the public class and calls the public `HtmlChildVal.lift` (`c4-greps.log`).
+- The CounterStyles fixture loses the prototype's three mains (T2 brings the runnable example). The `Tui.quit` in its key handlers stays.
+- The `pending` leaves measure the step time of a frame (`FrameStats.nanos`) with wide margins, written in each leaf (for example: the content takes 1.5 s, the frame waits at most 100 ms, the frame must come between 90 ms and 1 s). The stale-pending leaf waits 200 ms between the show and the hide (4n), so that a loaded machine still mounts the component in that settle.
+- The review round: R1-4 and R2-2 name one behaviour; K1 refuted R1-4 (the documented contract) and K2 confirmed R2-2 at runtime. By the rule of the round, R2-2 is confirmed, and it is fixed (5c); R1-4 is not counted as fixed. The fix is inside the documented contract, and it makes the quit as fast as before C4 (at most the settle `max` and one frame).
+- The review round, R2-5: only the wait is fixed. The log line stays a question for the user (a stray log at an unmount is not possible: Kyo RC7 abandons the rest of an interrupted fiber).
+- The review round, R2-4: `Source.Comp` keeps the state key alone (the path is the region's), and `World.comps` is keyed by `(Loc, String)`; the hook identity does not use the path, so it had no such clash.
+- The review round ran its negative controls first, all in one run on the main code of a32ce55 (one leaf of R2-2 then held both the quit and the Ctrl-C; the second part was not reached, so the leaf became two leaves, and the Ctrl-C leaf got its own control with the partial fix).
+- The final runs: in the contention run (run 2) the SettleTest canary cancels itself, as in the contention run of T1. The canary needs a second Kyo worker while a CPU-bound fiber spins; a JVM on 2 CPUs under load has only one. It is a check of the harness, not of the runner, and it cancels; it does not fail. Its two other leaves pass.
+- The final runs: one PTY run at the tip (the task of C4; T1 made three, with one under contention). The fixer's run at the same tip and the run at a32ce55 have the same rows.
+- The final body takes the name `c4-pr-body.txt`. The body of the first round, which had that name, is kept as `c4-pr-body-round1.txt`; `c4-pr-body-round2.txt` is this body before the merge-up sentences (the fixer's own copy was overwritten by mistake when the merge-up sentences were added).
+
+## Questions for the user
+
+- `Component.onMount` now runs once per mount: while the same state key stays at the same position, a parent that renders again keeps the old effects, also when the new instance has other constructor values (only `view` of the new instance is used). To restart the effects for a new value, the state key must change (`override protected def stateKey = s"...$value"`). Keep this rule (as React's mount), or restart `onMount` when the new instance is not equal to the old one (only useful for case-class components)?
+- Log a hook component's body or an `onMount` that fails or panics (`Log.error`, as the handlers in C3), in a follow-up commit or in this PR? The review round fixed only the needless wait of such a body (5e).
+
+## Acceptance (plan 6.0 and 6.4, at the tip 46fe338)
+
+The final runs were made alone on the machine (4 CPUs, 15 GB, JDK 25.0.4.1, one sbt at a time; `pgrep -x java` empty before each run), with no code change after 46fe338. The tree was clean before and after the runs.
+
+- Plan 6.0, every PR: `sbt check` green, run alone, CI mode, 0 warnings: yes (P-13, `c4-final-check.log`; also the fixer's `c4-fix-check.log`). The timing-sensitive suites green in 3 local runs in a row, one under CPU contention: yes, 3 of 3 (the first table in P-13; run 2 is the contention run, with the strict 0 of the glitch leaves; the SettleTest canary cancels itself there by design). The reviewers' findings: fixed or answered ("Review fixes"). `compat.sbt`: no change; the final check prints `Compatibility.None` for the three modules. The CI job `sbt`: after the push.
+- Plan 6.0, from T1 on: the CI job `terminal` (`examples/ptycheck/run.sh`): green locally in the final PTY run at the tip 46fe338 with `JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64` (C4 changes `Mount` and `Runner`): 17 of 17 terminal rows, 16 of 16 screen checks, `ALL ROWS PASSED`, exit 0, 23 s; the first frame 1119, 1018 and 1137 ms after the start command; 26 bytes per key (`c4-final-pty.log`; the raw output and the replayed screens: `c4-final-pty-files/`). Earlier runs with the same rows: the fixer's at 46fe338, 48 s (`c4-fix-pty.log`); at a32ce55, 47 s (`c4-pty.log`). The CI job `terminal`: after the push.
+- Plan 6.4 tests: one per hook (HooksTest: useSignal, useHold, useFold, useEffect, useInterval, component(key) twice); the CounterStyles fixture, both styles (AppsTest, the prototype's two cases); `Component` state survives a parent re-render (AppsTest; ComponentTest: the mount goes on); a hook component inside `when` loses its state (AppsTest and HooksTest, documented, RR O7), and a `Component` too (HooksTest); two `Component` classes at one position do not share state (ComponentTest, a plain Kyo test on Headless, plan 0.2); a custom `stateKey` (ComponentTest; without it two instances of one class share, the documented default); 0 effect fibers after an interrupted run, after a quit, and after an interrupt inside a settle (ComponentTest R1); `onMount` (ComponentTest: once per mount, and its effects live for the mount); the pending frame (ComponentTest: a short `pendingTimeout` shows the frame without the content and then the content; a long one holds the content; neither counts as a settle timeout; a quit and a Ctrl-C end the wait; a component that gives its path to another region, and a body that fails, leave no wait); the state key of two positions whose paths join to one string (ComponentTest); `Tui.quit` from the fibers of a component mount (QuitTest). All green in the final check and in the 3 final runs.
+- RR O7 and RC-15 rest: yes (above). RC-8 for component effects and hook bodies: yes (P-6 and the negative controls A and B).
+
+**The PTY rows** of the final run (`examples/ptycheck/run.sh`, `c4-final-pty.log`): 17 of 17 terminal rows (expect) and 16 of 16 screen checks (vt.py and check.py), no row skipped. run.sh unsets `JAVA_TOOL_OPTIONS` and `JDK_JAVA_OPTIONS` for the app (this container sets `JAVA_TOOL_OPTIONS` for its proxy).
+
+```
+PASS counter: entered the alternate screen
+PASS counter: first frame drawn (1119 ms after the start command, JVM start included)
+PASS counter: raw mode while running (-icanon -echo -isig)
+PASS counter q: exit code 0
+PASS counter: stty -a after the exit equals stty -a before the start
+PASS counter ctrl-c: entered the alternate screen
+PASS counter ctrl-c: first frame drawn (1018 ms after the start command, JVM start included)
+PASS counter ctrl-c: exit code 0
+PASS ctrlc: stty -a after the exit equals stty -a before the start
+PASS counter resize: entered the alternate screen
+PASS counter resize: first frame drawn (1137 ms after the start command, JVM start included)
+PASS counter resize: exit code 0
+PASS resize: stty -a after the exit equals stty -a before the start
+PASS stdin is a pipe: exit code 1
+PASS pipe: stty -a after the exit equals stty -a before the start
+PASS native access denied: exit code 1
+PASS deny: stty -a after the exit equals stty -a before the start
+Terminal part: 17 passed, 0 failed
+PASS counter: alt screen entered
+PASS counter: first screen shows 'Count: 0'
+PASS counter: + shows 'Count: 1'
+PASS counter: second + shows 'Count: 2'
+PASS counter: - shows 'Count: 1'
+INFO bytes written for counter-plus1: 26
+INFO bytes written for counter-plus2: 26
+INFO bytes written for counter-minus: 26
+PASS counter: partial repaint (one key writes < 200 bytes)
+PASS counter q: leaves the alternate screen and shows the cursor
+PASS counter q: nothing stray after the restore (the next output is EXIT=0)
+PASS counter ctrl-c: + shows 'Count: 1'
+PASS counter ctrl-c: leaves the alternate screen and shows the cursor
+PASS counter ctrl-c: nothing stray after the restore (the next output is EXIT=0)
+PASS resize: at 100 columns the help is one line
+PASS resize: at 40 columns the screen is laid out again inside 40 columns (the help wraps)
+PASS resize: back at 100 columns the help is one line again
+PASS pipe: NotATerminal, its message, and no alternate screen
+PASS native access denied: the message names --enable-native-access=ALL-UNNAMED, no alternate screen
+Screen part: 16 passed, 0 failed
+ptycheck: ALL ROWS PASSED
+```
+
+**The grep checks** at the tip 46fe338 (`.work/impl/c4-final-greps.log`; the fixer's at the same tip: `c4-fix-greps.log`; at a32ce55: `c4-greps.log`). The rule: no `System.err` and no `println` in the core main sources, except the log sink, the output forwarders and the prints after the restore of T1, by design, each with a `// tui4s: allowed` comment. The grep has 36 hits: 14 code lines, each with the marker, and 22 comment or Scaladoc lines; 0 other lines. C4 adds no hit.
+
+```
+$ grep -rn "System.err\|println\|System.out" modules/core/src/main
+36 hits (exit 0), sorted in the log:
+(a) code lines with the marker 'tui4s: allowed': 14 (the same 14 lines as T1 0893800: the diff of the line texts is empty)
+  internal/OutputCapture.scala:45    if e != null then e else java.lang.System.err.nn // tui4s: allowed       (realErr: the original System.err)
+  internal/OutputCapture.scala:51    if o != null then o else java.lang.System.out.nn // tui4s: allowed       (realOut: the original System.out)
+  internal/OutputCapture.scala:69    val sysOut = java.lang.System.out.nn // tui4s: allowed                   (the streams that the forwarders wrap)
+  internal/OutputCapture.scala:70    val sysErr = java.lang.System.err.nn // tui4s: allowed
+  internal/OutputCapture.scala:135   if java.lang.System.out eq out then // tui4s: allowed                    (Capture.stop: the streams go back)
+  internal/OutputCapture.scala:137   if java.lang.System.err eq err then // tui4s: allowed
+  internal/TerminalIO.scala:158      err.println(w) // tui4s: allowed                                         (the R3 warning, once, after the restore)
+  internal/TerminalIO.scala:164      err.println(problem) // tui4s: allowed                                   ("restoring the terminal failed", after the restore)
+  internal/LogSink.scala:67          else if important then done.println(text) // tui4s: allowed              (the kept lines and the sink's own notes,
+  internal/LogSink.scala:106         err.println(problem) // tui4s: allowed                                   after the restore)
+  internal/LogSink.scala:107         if important then err.println(text) // tui4s: allowed
+  internal/LogSink.scala:131         err.println(note) // tui4s: allowed
+  internal/LogSink.scala:132         ring.foreach(err.println) // tui4s: allowed
+  internal/LogSink.scala:135         if p != null then err.println(p) // tui4s: allowed
+(b) comment or Scaladoc lines: 22 (TuiOptions.scala 40, 42, 43, 44; Tui.scala 47; internal/OutputCapture.scala 8, 9, 12, 14, 15, 18, 23, 24, 42, 48, 62, 94, 125, 126; internal/TerminalIO.scala 54, 83; internal/LogSink.scala 30)
+(c) other lines (code without the marker): 0
+$ grep -rn jatatui.widgets modules/core
+(no output; exit 1: 0 hits)
+$ grep -rn jatatui.widgets examples/src
+(no output; exit 1: 0 hits)
+$ grep -rn "getDeclaredField\|setAccessible" modules/core/src/main
+(no output; exit 1: 0 hits)
+$ grep -rn "getDeclaredField\|setAccessible" examples/src
+(no output; exit 1: 0 hits)
+$ grep -rn TODO modules/core/src/main examples/src
+the 4 of C2: internal/Runner.scala:105 TODO(#8); internal/Runner.scala:258 TODO(#9); internal/Runner.scala:286 TODO(#9); internal/Mount.scala:85 TODO(#8); no new TODO
+```
+
+**The private[kyo] check** (RR N9; AGENTS.md "the runner calls no `private[kyo]` member"), checks 1 to 5 with the method of `c3-private-kyo-check.log`, all at 46fe338 (`c4-final-greps.log`): 1. no source in package `kyo` (`grep -rnE "^package kyo" modules examples/src`: 0 hits); 2. no `private[kyo]` in the core main sources and the example (0 hits); 3. no reflection (`getDeclared`, `setAccessible`, `java.lang.reflect`, `MethodHandles`, `.getMethod(`, `.getField(`: 0 hits); 4. the names of the 79 private[kyo] lines of kyo-ui RC7 in the core main sources and the example: 7 lines, none a private[kyo] member (`Component.scala:94-95` the public class `HtmlChildVal` and its public `lift` (kyo-ui `UI.scala:964, 968`: only the constructor and the field `value` are private[kyo]); `Props.scala:172, 174` a type test on `kyo.Style.Color.Rgb` and its public fields; `Props.scala:184, 192` jatatui's `JColor.Rgb(`; `Mount.scala:242` a comment); the types of the other kyo-ui files with private[kyo] members (Chart, Drag, Selector, Stylesheet, Svg, Sortable): 0 hits; the other kyo API of the C4 files is public (`Signal.initRaw`, `UI.empty`, `Reactive.signal`); 5. a throwaway file in `tui4s.internal` that calls the private[kyo] `Element.withAttrs`: `sbt core/compile` rejects it (E173, "private[kyo] method withAttrs can only be accessed from package kyo"); the file was removed, and `git status --porcelain` was empty after it. RESULT: the core main sources and the example call no `private[kyo]` member of kyo-ui; no source is in package kyo; no reflection.
+
+`bash scripts/version-order-test.sh`: 55 of 55 at 46fe338 (`c4-final-version-order-test.log`; the fixer's: `c4-fix-version-order-test.log`; at a32ce55: `c4-version-order-test.log`).
+
+## Logs (`.work/impl/`)
+
+`c4-notes.txt`, `c4-carry-verify.py`, `c4-carry-verify.log`, `c4-step2-fmt.log`, `c4-step3-warnings.log`, `c4-step4a-test.log`, `c4-step4b-test.log`, `c4-r1-negative-control.log`, `c4-step4c-test.log`, `c4-statekey-negative-control.log`, `c4-onmount-negative-control.log`, `c4-step4d-test.log`, `c4-step4e-test.log`, `c4-hooks-negative-control.log`, `c4-step4f-test.log`, `c4-pending-negative-control.log`, `c4-step4g-test.log`, `c4-step4h-test.log`, `c4-guard-negative-control.log`, `c4-step4j-docs.log`, `c4-step4k-test.log`, `c4-step4l-test.log`, `c4-onmount-scope-negative-control.log`, `c4-step4m-test.log`, `c4-step4n-test.log`, `c4-check-1-failed.log`, `c4-check.log`, `c4-greps.log`, `c4-version-order-test.log`, `c4-pty.log`, `c4-pty-files/`. The review round: `c4-fix-negative-control.log`, `c4-fix-1-test.log`, `c4-fix-2-test.log`, `c4-fix-3-negative-control.log`, `c4-fix-3-test.log`, `c4-fix-4-test.log`, `c4-fix-5-test.log`, `c4-fix-6-test.log`, `c4-fix-7-docs.log`, `c4-fix-8-negative-control.log`, `c4-fix-8-test.log`, `c4-fix-fmt.log`, `c4-fix-check.log`, `c4-fix-greps.log`, `c4-fix-version-order-test.log`, `c4-fix-pty.log`, `c4-fix-pty-files/`. The skeptic K2's runs: `c4-k2-check.log`, `c4-k2-K2ProbeTest.log`. The final runs: `c4-final-run-1.log`, `c4-final-run-contention.log`, `c4-final-run-3.log`, `c4-final-pty.log`, `c4-final-pty-files/` (the raw output and the replayed screens of the PTY run), `c4-final-greps.log`, `c4-final-check.log`, `c4-final-version-order-test.log`. This body: `c4-pr-body.txt` (`c4-pr-body-round2.txt`: this body before the merge-up sentences; the first round's body: `c4-pr-body-round1.txt`). The merge-up: `c4-mergeup-check.log` (the check after the merge-up of T1 round 2, at 9047a50; the merge-up is a `git merge`, so the diff of this PR against its base does not change).
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+https://claude.ai/code/session_013i7PNgzYKkSSTk4McEPUvn

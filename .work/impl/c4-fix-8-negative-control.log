@@ -1,0 +1,65 @@
+Tue Oct 13 20:29:37 UTC 2026
+F fix 8 (R2-7) control: the two new leaves with Tui.quit replaced by Kyo.unit (temporary, restored from a copy): they must FAIL (the run does not end by itself). DEV mode:
+sbt -Dsbt.supershell=false "core/testOnly tui4s.QuitTest"
+15981d8 docs(c4): the stateKey Scaladoc names a key that two classes share; two internal Scaladoc nits; one mark (review R1-5, R1-6, R2-6, K1-X1)
+ modules/core/src/test/scala/tui4s/QuitTest.scala | 40 ++++++++++++++++++++++--
+ 1 file changed, 38 insertions(+), 2 deletions(-)
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39053 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-05-components-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-05-components/)
+[info] compiling 32 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 45 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-05-components/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39053 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+[1m=== QuitTest ===[0m
+  [1m[32m[PASS][0m[0m a key handler calls Tui.quit: the run ends  [2m(243ms)[0m
+  [1m[32m[PASS][0m[0m a fiber that a handler forks calls Tui.quit after a delay: the run ends  [2m(1.0s)[0m
+  [1m[32m[PASS][0m[0m the construction of the UI forks a fiber that calls Tui.quit after a delay: the run ends  [2m(214ms)[0m
+  [1m[32m[PASS][0m[0m Tui.quit outside a run does nothing  [2m(218ms)[0m
+  [1m[31m[FAIL][0m[0m a useEffect of a mounted hook component calls Tui.quit: the run ends  [2m(10.0s)[0m *** FAILED ***
+
+    yield assert(fin, "the run did not end")
+    // message: the run did not end
+
+  [1m[31m[FAIL][0m[0m Component.onMount calls Tui.quit: the run ends  [2m(10.0s)[0m *** FAILED ***
+
+    yield assert(fin, "the run did not end")
+    // message: the run did not end
+
+[2m---[0m QuitTest: [32m4 passed[0m, [31m2 failed[0m  [2m(22.1s)[0m
+FAILURES (2):
+  a useEffect of a mounted hook component calls Tui.quit: the run ends  [FAIL]
+    yield assert(fin, "the run did not end")
+    // message: the run did not end
+  Component.onMount calls Tui.quit: the run ends  [FAIL]
+    yield assert(fin, "the run did not end")
+    // message: the run did not end
+
+Results: [32m4 passed[0m, [31m2 failed[0m  (total: 22.1s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.QuitTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 117 s (0:01:57.0), completed Oct 13, 2026, 8:31:40 PM
+exit 1
+Tue Oct 13 20:31:41 UTC 2026
+ modules/core/src/test/scala/tui4s/QuitTest.scala | 40 ++++++++++++++++++++++--
+ 1 file changed, 38 insertions(+), 2 deletions(-)

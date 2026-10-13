@@ -1,0 +1,465 @@
+===== after counter-start (bytes written in this step: 333, alt screen active: True)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after counter-plus1 (bytes written in this step: 26, alt screen active: True)
+Counter
+Count: 1
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after counter-plus2 (bytes written in this step: 26, alt screen active: True)
+Counter
+Count: 2
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after counter-minus (bytes written in this step: 26, alt screen active: True)
+Counter
+Count: 1
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after counter-q (bytes written in this step: 757, alt screen active: False)
+Counter
+Count: 1
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after ctrlc-start (bytes written in this step: 333, alt screen active: True)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after ctrlc-plus (bytes written in this step: 26, alt screen active: True)
+Counter
+Count: 1
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after ctrlc-key (bytes written in this step: 752, alt screen active: False)
+Counter
+Count: 1
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after resize-start (bytes written in this step: 333, alt screen active: True)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after resize-small (bytes written in this step: 408, alt screen active: True)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter
+presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after resize-big (bytes written in this step: 398, alt screen active: True)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after resize-q (bytes written in this step: 753, alt screen active: False)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after pipe-start (bytes written in this step: 1922, alt screen active: False)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after deny-start (bytes written in this step: 2754, alt screen active: False)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after end (bytes written in this step: 21, alt screen active: False)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
