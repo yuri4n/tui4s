@@ -137,6 +137,19 @@ started from the main checkout): it is the user's Metals sbt server.
   .work/impl/c3-round2-brief.md); shape "fix round" (fixer Opus, skeptic Fable), then push C3, merge-up into T1,
   sbt check there, push T1, open T1's PR. CI is green on #11 (0646343) and #13 (f29b9ff).
 
+<!-- claude 2026-10-13: added this item (C3 round 2 done; W5 partial) -->
+- 2026-10-13 17:15 UTC: C3 ROUND 2 DONE by the session itself (Fable; the Opus budget was out): 583a0c8 (the
+  dispatcher: a keyboard activation of a button runs kyo-ui's Click rule over the chain; onSubmit, onFocus, onBlur run
+  both forms), 2eaf081 (guard pins), a6c4598 (docs); check green, 112 core tests (c3-r2-check.log); pushed; PR #13
+  body updated; the three Codex threads answered and resolved. The W3 shape "fixer + skeptic" was NOT used (no
+  Opus): an Opus skeptic can re-check 583a0c8 later if wanted.
+  W5 (T1) PARTIAL: wf_f2ccf226-44b ran I, R1-R3, K1-K3 (7 agents, 2.49 M tokens, 85 min), then F and V FAILED on the
+  org's monthly spend limit ("resets 6pm UTC"). T1 tip b7ac3ec on feat/kyoui-04-terminal (14 commits; 170 core + 4
+  examples tests; PTY kit 16/16 rows at the tip, t1-pty-tip.log). Findings: R1 5 (1 major: the kit's upper-case
+  letter has no shift, the terminal's has), R2 6, R3 9, mostly confirmed minors. A send_later at 18:06 UTC resumes
+  the run (Workflow resumeFromRunId wf_f2ccf226-44b: the 7 cached, F and V live). AFTER W5: merge feat/kyoui-03-input
+  (a6c4598) into T1, sbt check, push T1, open its PR against feat/kyoui-03-input, then W4 = C4 on T1.
+
 ## 2026-10-02: DIRECTION CHANGE
 
 The user reviewed the core and said it is not a functional wrapper of jatatui and that the internals are not
