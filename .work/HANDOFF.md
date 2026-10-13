@@ -160,6 +160,18 @@ started from the main checkout): it is the user's Metals sbt server.
   restored to b7ac3ec). LESSON: a container restart kills the workflow resume cache; the journal on disk is the
   recovery path (extract the 'result' lines, hand a JSON file to a continuation script).
 
+<!-- claude 2026-10-13: added this item (T1 done) -->
+- 2026-10-13 18:50 UTC: W5b DONE (2 agents, 0.63 M tokens, 27 min): merge-up 0ed0710 (C3 round 2 into T1; one
+  conflict in AGENTS.md marks, both kept), 7 review-fix commits (R1-1: the kit types an upper-case letter with Shift
+  through EventMapping.typed; R2-1 poll floor 1 ms; R2-3 the innermost cause; R2-4 every error but a
+  VirtualMachineError ends the run; docs; marks; CI and kit nits), tip 0893800; 177 core + 4 examples tests, 0
+  warnings; 3 test runs and 3 PTY runs green, one of each under contention (17/17 rows). PUSHED; PR #14
+  `feat(core): Tui.run on the real terminal, with the PTY check in CI` against feat/kyoui-03-input; subscribed.
+  THE FIRST USABLE VERSION: `sbt examples/launchers`, then `examples/target/bin/counter` (JDK 25 in JAVA_HOME or
+  on PATH). Open question for the user: a jatatui issue draft (the JNI cuts a typed non-BMP character to 16 bits).
+  NEXT: W4 = C4 feat/kyoui-05-components (worktree created from 0893800), shape 6 + V, Opus except R2/K2; then T2.
+  Logs: .work/impl/t1-*; the body t1-pr-body.txt (346 lines, 61.8 KB: just under GitHub's limit).
+
 ## 2026-10-02: DIRECTION CHANGE
 
 The user reviewed the core and said it is not a functional wrapper of jatatui and that the internals are not
@@ -260,7 +272,7 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
    conditions of D-17 (c) (public scheduler probe, tui4s scheduler values in `TuiApp` and the test JVM, re-check after
    settle, `awaitScreen`; TODO issue #9).
 3. DONE 2026-10-13: gate 1 closed (DECISIONS eleventh round); W3 = C3 `feat/kyoui-03-input` DONE (PR #13, tip
-   f29b9ff). Then **W5 = T1 `feat/kyoui-04-terminal`** (plan 6.5; the
+   a6c4598 after round 2); W5 = T1 `feat/kyoui-04-terminal` DONE (PR #14, tip 0893800). Then **W5 = T1 `feat/kyoui-04-terminal`** (plan 6.5; the
    first usable version), then **W4 = C4 `feat/kyoui-05-components`** (plan 6.4), then T2, P1, L1, L2, D. The WIP limit
    P-11 is lifted until T1 is open (the user wants a usable version first).
 4. **Merge mechanics (D-4 c):** the user squash-merges; Claude then rebases the next branch of the stack (own branches

@@ -1,0 +1,32 @@
+# greps at 0893800, 2026-10-13T18:25:16+00:00
+$ grep -rnE "System\.err|System\.out|println" modules/core/src/main --include=*.scala | grep -vE "^[^:]+:[0-9]+:\s*(//|\*|/\*)" | grep -v "tui4s: allowed"
+(end; count: 0)
+$ grep -rn "tui4s: allowed" modules/core/src/main
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:22:// claude 2026-10-13: changed (T1): a 'tui4s: allowed' marker at each use of
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:45:      if e != null then e else java.lang.System.err.nn // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:51:      if o != null then o else java.lang.System.out.nn // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:69:        val sysOut = java.lang.System.out.nn // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:70:        val sysErr = java.lang.System.err.nn // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:135:                  if java.lang.System.out eq out then // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:137:                  if java.lang.System.err eq err then // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:158:              err.println(w) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:164:            err.println(problem) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:28:// claude 2026-10-13: changed (T1): a 'tui4s: allowed' marker at each print:
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:67:          else if important then done.println(text) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:106:            err.println(problem) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:107:            if important then err.println(text) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:131:              err.println(note) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:132:          ring.foreach(err.println) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:135:          if p != null then err.println(p) // tui4s: allowed
+$ grep -rn 'jatatui.widgets' modules/core/src/main examples/src: 0 hits
+$ grep -rn 'getDeclaredField\|setAccessible' modules/core/src/main examples/src: 0 hits
+$ grep -rn '^package kyo' modules/core/src/main examples/src: 0 hits
+$ grep -rn 'private\[kyo\]' modules/core/src/main examples/src: 0 hits
+$ grep -rn TODO modules/core/src/main examples/src
+modules/core/src/main/scala/tui4s/internal/Runner.scala:101:    // TODO(#8): remove the repair tick when the watchers go back to
+modules/core/src/main/scala/tui4s/internal/Runner.scala:248:          // TODO(#9): drop the re-check when Kyo closes the lost-wakeup window
+modules/core/src/main/scala/tui4s/internal/Runner.scala:275:        // TODO(#9): drop the pull check when Kyo closes the lost-wakeup window
+modules/core/src/main/scala/tui4s/internal/Mount.scala:77:    // TODO(#8): go back to `signal.observe` when Kyo fixes the leak of
+$ grep -rn "TuiApp\|SPEC 5" modules/core/src/main
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:18:  * `scala.Console` gets `println` always captured (`TuiApp` will do this in its
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:27:// not TuiApp (it comes later), and no SPEC section

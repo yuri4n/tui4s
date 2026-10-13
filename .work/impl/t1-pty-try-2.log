@@ -1,0 +1,42 @@
+ptycheck: work=/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty2 date=2026-10-13T16:04:08+00:00 load=0.48 1.47 1.57
+ptycheck: java /usr/lib/jvm/java-25-openjdk-amd64/bin/java (Java 25)
+PASS counter: entered the alternate screen
+FAIL counter: no first frame (waited for 'Count: 0')
+FAIL counter q: the app did not exit
+FAIL counter: stty -a differs after the exit (see /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty2/stty-counter-*.txt)
+PASS counter ctrl-c: entered the alternate screen
+FAIL counter ctrl-c: no first frame (waited for 'Count: 0')
+FAIL counter ctrl-c: the app did not exit
+FAIL ctrlc: stty -a differs after the exit (see /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty2/stty-ctrlc-*.txt)
+PASS counter resize: entered the alternate screen
+FAIL counter resize: no first frame (waited for 'Count: 0')
+FAIL counter resize: the app did not exit
+PASS stdin is a pipe: exit code 1
+FAIL pipe: stty -a differs after the exit (see /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty2/stty-pipe-*.txt)
+PASS native access denied: exit code 1
+PASS deny: stty -a after the exit equals stty -a before the start
+
+Terminal part: 6 passed, 9 failed, 0 skipped
+PASS counter: alt screen entered
+PASS counter: first screen shows 'Count: 0'
+FAIL counter: + shows 'Count: 1': 
+FAIL counter: second + shows 'Count: 2': 
+FAIL counter: - shows 'Count: 1': 
+INFO bytes written for counter-plus1: 0
+INFO bytes written for counter-plus2: 0
+INFO bytes written for counter-minus: 0
+FAIL counter: partial repaint (one key writes < 200 bytes): [0, 0, 0]
+FAIL counter q: leaves the alternate screen and shows the cursor: ''
+FAIL counter q: nothing stray after the restore (the next output is EXIT=0): ''
+FAIL counter ctrl-c: + shows 'Count: 1': 
+FAIL counter ctrl-c: leaves the alternate screen and shows the cursor: ''
+FAIL counter ctrl-c: nothing stray after the restore (the next output is EXIT=0): ''
+PASS resize: at 100 columns the help is one line
+FAIL resize: at 40 columns the screen is laid out again inside 40 columns (the help wraps): 
+FAIL resize: back at 100 columns the help is one line again: 
+PASS pipe: NotATerminal, its message, and no alternate screen
+PASS native access denied: the message names --enable-native-access=ALL-UNNAMED, no alternate screen
+
+Screen part: 5 passed, 11 failed (screens: /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty2/screens.txt)
+ptycheck: raw terminal output: /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty2/session.log; replayed screens: /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty2/screens.txt
+ptycheck: A ROW FAILED

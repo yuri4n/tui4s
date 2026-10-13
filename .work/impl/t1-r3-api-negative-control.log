@@ -1,0 +1,102 @@
+# negative controls of the R3 warning test and of the PublicApiTest jatatui leaf, at b7ac3ec with two temporary edits (backups in the scratchpad; restored after the run):
+#  (A) TerminalIO.leave does not print the R3 warning (discard(w) in place of err.println(w))
+#  (B) Headless gets a public member 'def leakedBackend: TestBackend'
+# command: sbt core/Test/compile 'core/testOnly tui4s.OutputCaptureTest tui4s.PublicApiTest'  date: 2026-10-13T16:17:24+00:00
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-04-terminal-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/)
+[info] compiling 2 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 41 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+[success] Total time: 60 s, completed Oct 13, 2026, 4:18:32 PM
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+[1m=== OutputCaptureTest ===[0m
+  [1m[32m[PASS][0m[0m the ring keeps the newest important lines and counts the rest  [2m(62ms)[0m
+  [1m[32m[PASS][0m[0m after finish, an important line is printed at once; finish is idempotent  [2m(3ms)[0m
+  [1m[32m[PASS][0m[0m with a file, every line goes to the file and nothing is printed  [2m(7ms)[0m
+  [1m[32m[PASS][0m[0m with a file, a line after finish is still appended to the file  [2m(4ms)[0m
+  [1m[32m[PASS][0m[0m a log file that cannot be opened: the ring, and a note after the restore  [2m(3ms)[0m
+tui4s test: after the capture
+  [1m[32m[PASS][0m[0m System.out and System.err go to the sink while a capture runs  [2m(6ms)[0m
+  [1m[32m[PASS][0m[0m a progress line ('\r') keeps only its last update  [2m(2ms)[0m
+  [1m[32m[PASS][0m[0m a line is cut at MaxLine bytes, never inside a character  [2m(10ms)[0m
+  [1m[32m[PASS][0m[0m a capture restores the streams of its own start  [2m(2ms)[0m
+  [1m[32m[PASS][0m[0m a stream that wraps the installed forwarder does not make a loop  [2m(1ms)[0m
+  [1m[32m[PASS][0m[0m only one capture at a time; stop is idempotent  [2m(1ms)[0m
+  [1m[32m[PASS][0m[0m capturesConsole: true when scala.Console has the forwarders, false when it has another stream  [2m(6ms)[0m
+  [1m[31m[FAIL][0m[0m scala.Console in use before the run: a warning in the log, printed once after the restore  [2m(40ms)[0m *** FAILED ***
+
+    assert(calls.count(_ == warn) == 1, calls.mkString("\n"))
+    // message: load
+    raw-mode-on
+    execute EnterAlternateScreen[],Clear[clear_type=All],Hide[],EnableBracketedPaste[]
+    backend
+    execute DisableBracketedPaste[],Show[],LeaveAlternateScreen[]
+    raw-mode-off
+    flush
+    execute DisableBracketedPaste[],Show[],LeaveAlternateScreen[]
+    raw-mode-off
+    flush
+
+  [1m[32m[PASS][0m[0m scala.Console with the forwarders, or no capture: no warning  [2m(7ms)[0m
+tui4s test: not in the sink
+  [1m[32m[PASS][0m[0m after a capture, System.out writes to the real stdout again  [2m(2ms)[0m
+[2m---[0m OutputCaptureTest: [32m14 passed[0m, [31m1 failed[0m  [2m(558ms)[0m
+FAILURES (1):
+  scala.Console in use before the run: a warning in the log, printed once after the restore  [FAIL]
+    assert(calls.count(_ == warn) == 1, calls.mkString("\n"))
+    // message: load
+    raw-mode-on
+    execute EnterAlternateScreen[],Clear[clear_type=All],Hide[],EnableBracketedPaste[]
+    backend
+    execute DisableBracketedPaste[],Show[],LeaveAlternateScreen[]
+    raw-mode-off
+    flush
+    execute DisableBracketedPaste[],Show[],LeaveAlternateScreen[]
+    raw-mode-off
+    flush
+
+Results: [32m14 passed[0m, [31m1 failed[0m  (total: 558ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== PublicApiTest ===[0m
+  [1m[32m[PASS][0m[0m no public signature of tui4s, tui4s.spi or tui4s.testkit names a type of tui4s.internal  [2m(3.7s)[0m
+  [1m[32m[PASS][0m[0m every top-level definition of tui4s.internal is private[tui4s]  [2m(3.7s)[0m
+  [1m[31m[FAIL][0m[0m no public signature of tui4s, tui4s.spi or tui4s.testkit names a jatatui or crossterm type  [2m(3.7s)[0m *** FAILED ***
+
+    )
+    // message: public signatures that name a jatatui or crossterm type:
+    tui4s.testkit.Headless.leakedBackend names jatatui.core.backend.TestBackend
+
+[2m---[0m PublicApiTest: [32m2 passed[0m, [31m1 failed[0m  [2m(3.8s)[0m
+FAILURES (1):
+  no public signature of tui4s, tui4s.spi or tui4s.testkit names a jatatui or crossterm type  [FAIL]
+    )
+    // message: public signatures that name a jatatui or crossterm type:
+    tui4s.testkit.Headless.leakedBackend names jatatui.core.backend.TestBackend
+
+Results: [32m2 passed[0m, [31m1 failed[0m  (total: 3.8s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.OutputCaptureTest
+[error] 	tui4s.PublicApiTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 7 s, completed Oct 13, 2026, 4:18:39 PM

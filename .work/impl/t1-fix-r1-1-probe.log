@@ -1,0 +1,10 @@
+# R1-1 probe (fixer, 2026-10-13T16:56:01Z): jatatui 0.31.0 crossterm JNI in a pseudo-terminal (python3 pty, JDK 25, --enable-native-access=ALL-UNNAMED)
+# typed: aA+ éÉZ!  (Probe.java of the implementer's diag; driver shift_probe.py)
+EVENT Key[keyEvent=KeyEvent[code=Char[c=a], modifiers=KeyModifiers[bits=0], kind=Press, state=KeyEventState[bits=0]]] U+61
+EVENT Key[keyEvent=KeyEvent[code=Char[c=A], modifiers=KeyModifiers[bits=1], kind=Press, state=KeyEventState[bits=0]]] U+41
+EVENT Key[keyEvent=KeyEvent[code=Char[c=+], modifiers=KeyModifiers[bits=0], kind=Press, state=KeyEventState[bits=0]]] U+2b
+EVENT Key[keyEvent=KeyEvent[code=Char[c= ], modifiers=KeyModifiers[bits=0], kind=Press, state=KeyEventState[bits=0]]] U+20
+EVENT Key[keyEvent=KeyEvent[code=Char[c=é], modifiers=KeyModifiers[bits=0], kind=Press, state=KeyEventState[bits=0]]] U+e9
+EVENT Key[keyEvent=KeyEvent[code=Char[c=É], modifiers=KeyModifiers[bits=1], kind=Press, state=KeyEventState[bits=0]]] U+c9
+EVENT Key[keyEvent=KeyEvent[code=Char[c=Z], modifiers=KeyModifiers[bits=1], kind=Press, state=KeyEventState[bits=0]]] U+5a
+EVENT Key[keyEvent=KeyEvent[code=Char[c=!], modifiers=KeyModifiers[bits=0], kind=Press, state=KeyEventState[bits=0]]] U+21

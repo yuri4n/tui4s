@@ -1,0 +1,11 @@
+UnsatisfiedLinkError in clinit, try 1: toString=java.lang.UnsatisfiedLinkError: Native library libnative-x86_64-linux-crossterm.so cannot be found
+   getMessage=Native library libnative-x86_64-linux-crossterm.so cannot be found
+UnsatisfiedLinkError in clinit, try 2: toString=java.lang.NoClassDefFoundError: Could not initialize class Probe$LinkFails
+   getMessage=Could not initialize class Probe$LinkFails
+   cause1: java.lang.ExceptionInInitializerError: Exception java.lang.UnsatisfiedLinkError: Native library libnative-x86_64-linux-crossterm.so cannot be found [in thread "main"]
+RuntimeException in clinit, try 1: toString=java.lang.ExceptionInInitializerError
+   getMessage=null
+   cause1: java.lang.RuntimeException: Platform detection does not understand os.name = Plan9
+RuntimeException in clinit, try 2: toString=java.lang.NoClassDefFoundError: Could not initialize class Probe$RtFails
+   getMessage=Could not initialize class Probe$RtFails
+   cause1: java.lang.ExceptionInInitializerError: Exception java.lang.RuntimeException: Platform detection does not understand os.name = Plan9 [in thread "main"]

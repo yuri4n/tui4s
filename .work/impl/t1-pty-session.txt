@@ -1,0 +1,115 @@
+PS1='PROMPT> '; export TERM=xterm-256color; cd /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty-full1
+[?2004hbash-5.2# PS1='PROMPT> '; export TERM=xterm-256color; cd /tmp/claude-0/-home-user-tui4s/6d712dbd-bef77-57d0-b343-fd9d5dc2fafb/scratchpad/pty-full1
+[?2004l[?2004hPROMPT> stty -a > /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty--full1/stty-counter-before.txt; echo STTY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK counter-start@@
+/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/examples/target/bin/counter; echo EXIIT=$?
+[?2004l[?1049h[2J[?25l[?2004h[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m
+@@MARK counter-plus1@@
+[2;8H1[39m[49m[59m[0m
+@@MARK counter-plus2@@
+[2;8H2[39m[49m[59m[0m
+@@MARK counter-minus@@
+[2;8H1[39m[49m[59m[0m
+@@MARK counter-q@@
+[?2004l[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty--full1/stty-counter-after.txt; echo STTY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty-fulll1/stty-counter-before.txt /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scrattchpad/pty-full1/stty-counter-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((7*0))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty--full1/stty-ctrlc-before.txt; echo STTY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK ctrlc-start@@
+/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/examples/target/bin/counter; echo EXIIT=$?
+[?2004l[?1049h[2J[?25l[?2004h[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m
+@@MARK ctrlc-plus@@
+[2;8H1[39m[49m[59m[0m
+@@MARK ctrlc-key@@
+[?2004l[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty--full1/stty-ctrlc-after.txt; echo STTY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty-fulll1/stty-ctrlc-before.txt /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchhpad/pty-full1/stty-ctrlc-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((7*0))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> 
+@@MARK resize-start@@
+/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/examples/target/bin/counter; echo EXIIT=$?
+[?2004l[?1049h[2J[?25l[?2004h[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m
+@@MARK resize-small@@
+[2J[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter[5;1Hpresses, q quits[39m[49m[59m[0m[2J[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter[5;1Hpresses, q quits[39m[49m[59m[0m
+@@MARK resize-big@@
+[2J[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m[2J[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m
+@@MARK resize-q@@
+[?2004l[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty--full1/stty-pipe-before.txt; echo STTY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK pipe-start@@
+echo | /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/examples/target/bin/counter; eecho EXIT=$?
+[?2004lFailure(tui4s.TuiError$NotATerminal: stdin/stdout is not a terminal)
+Exception in thread "main" tui4s.TuiError$NotATerminal: stdin/stdout is not a terminal
+	at tui4s.TuiError$NotATerminal$.apply(TuiError.scala:20)
+	at tui4s.internal.TerminalIO.enter(TerminalIO.scala:93)
+	at tui4s.internal.Session$$anon$1.apply(Session.scala:149)
+	at tui4s.internal.Session$$anon$1.apply(Session.scala:146)
+	at kyo.kernel.internal.Eval$.loop$1(Eval.scala:379)
+	at kyo.kernel.internal.Eval$.guarded$1(Eval.scala:570)
+	at kyo.kernel.internal.Eval$.apply(Eval.scala:588)
+	at kyo.kernel.internal.Eval$.partial(Eval.scala:47)
+	at kyo.scheduler.IOTask.run(IOTask.scala:272)
+	at kyo.scheduler.Worker.runTask(Worker.scala:419)
+	at kyo.scheduler.Worker.run(Worker.scala:340)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+Caused by: java.io.IOException: stdin is not a terminal
+	... 13 more
+EXIT=1
+[?2004hPROMPT> stty -a > /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty--full1/stty-pipe-after.txt; echo STTY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty-fulll1/stty-pipe-before.txt /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchppad/pty-full1/stty-pipe-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((7*0))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty--full1/stty-deny-before.txt; echo STTY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK deny-start@@
+${JAVA_HOME:+$JAVA_HOME/bin/}java --illegal-native-access=deny --sun-misc-unsafe-memory-accesss=allow -cp "$(cat /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/examples/target/bin/classspath)" examples.counter.CounterKyoApp; echo EXIT=$?
+[?2004lFailure(tui4s.TuiError$NativeAccessDenied: start the JVM with --enable-native-access=ALL-UNNAMED)
+Exception in thread "main" tui4s.TuiError$NativeAccessDenied: start the JVM with --enable-native-access=ALL-UNNAMED
+	at tui4s.TuiError$NativeAccessDenied$.apply(TuiError.scala:26)
+	at tui4s.internal.NativeCrossterm$.loadError(Crossterm.scala:111)
+	at tui4s.internal.NativeCrossterm.load(Crossterm.scala:74)
+	at tui4s.internal.TerminalIO.enter(TerminalIO.scala:77)
+	at tui4s.internal.Session$$anon$1.apply(Session.scala:149)
+	at tui4s.internal.Session$$anon$1.apply(Session.scala:146)
+	at kyo.kernel.internal.Eval$.loop$1(Eval.scala:379)
+	at kyo.kernel.internal.Eval$.guarded$1(Eval.scala:570)
+	at kyo.kernel.internal.Eval$.apply(Eval.scala:588)
+	at kyo.kernel.internal.Eval$.partial(Eval.scala:47)
+	at kyo.scheduler.IOTask.run(IOTask.scala:272)
+	at kyo.scheduler.Worker.runTask(Worker.scala:419)
+	at kyo.scheduler.Worker.run(Worker.scala:340)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+Caused by: java.lang.ExceptionInInitializerError
+	at tui4s.internal.NativeCrossterm.load(Crossterm.scala:73)
+	... 13 more
+Caused by: java.lang.IllegalCallerException: Illegal native access from an unnamed module (file:/root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/olvind/jatatui/crossterm/0.31.0/crossterm-0.31.0.jar)
+	at java.base/java.lang.Module.ensureNativeAccess(Module.java:307)
+	at java.base/java.lang.System$1.ensureNativeAccess(System.java:2107)
+	at java.base/jdk.internal.reflect.Reflection.ensureNativeAccess(Reflection.java:123)
+	at java.base/java.lang.System.loadLibrary(System.java:1685)
+	at tui.crossterm.NativeLoader.load(NativeLoader.java:11)
+	at tui.crossterm.CrosstermJni.<clinit>(CrosstermJni.java:9)
+	... 14 more
+EXIT=1
+[?2004hPROMPT> stty -a > /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty--full1/stty-deny-after.txt; echo STTY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty-fulll1/stty-deny-before.txt /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchppad/pty-full1/stty-deny-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((7*0))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> 
+@@MARK end@@
+exit
+[?2004lexit

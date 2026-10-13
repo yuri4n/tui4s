@@ -1,0 +1,68 @@
+# T1 merge-up test: SBT_TPOLECAT_CI=1 sbt -Dsbt.supershell=false "core/testOnly tui4s.DispatchTest tui4s.KyoUiSurfaceTest tui4s.TuiRunTest"
+# date: 2026-10-13T18:13:12+00:00  commit: 0ed0710  tree: 0 changed files  pgrep -x java before: none
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39053 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-04-terminal-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/)
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 4 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39053 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+[1m=== DispatchTest ===[0m
+  [1m[32m[PASS][0m[0m Ctrl-C ends the run (TuiOptions.ctrlCQuits); with ctrlCQuits = false it is a key for the handlers  [2m(367ms)[0m
+  [1m[32m[PASS][0m[0m Tab moves in document order (a positive tabIndex first) and wraps; Shift-Tab goes back  [2m(145ms)[0m
+  [1m[32m[PASS][0m[0m a focus group: ArrowLeft and ArrowRight move inside the group and wrap; outside a group they do nothing  [2m(90ms)[0m
+  [1m[32m[PASS][0m[0m a focus trap: Tab and Shift-Tab wrap among the focusables inside it  [2m(58ms)[0m
+  [1m[32m[PASS][0m[0m stopPropagation(true) on a handler stops the parent's onKeyDown; without it both run (child first)  [2m(49ms)[0m
+  [1m[32m[PASS][0m[0m onBlur of the old element and onFocus of the new one run on a Tab  [2m(34ms)[0m
+  [1m[32m[PASS][0m[0m a disabled element: Tab skips it; as the key target its onKeyDown and its click do not run  [2m(48ms)[0m
+  [1m[32m[PASS][0m[0m a disabled key target: its stopPropagation does not stop the bubbling, as its handler does not run (kyo-ui's rule)  [2m(7ms)[0m
+  [1m[32m[PASS][0m[0m a handler that fails or panics is logged (Kyo's Log) and the event goes on; a failing onInput keeps the bound write  [2m(203ms)[0m
+  [1m[32m[PASS][0m[0m a focus move runs both forms of onBlur and onFocus, blur first (kyo-ui's Focus and Blur rules)  [2m(22ms)[0m
+  [1m[32m[PASS][0m[0m a submit runs both forms of onSubmit once: Enter or Space on a button (the click rule), Enter on an anchor and in a text input; Space on an anchor does not submit  [2m(86ms)[0m
+  [1m[32m[PASS][0m[0m Enter on a button is a click that bubbles: the self forms on the target, then onClick and its event form on each ancestor, until stopPropagation  [2m(68ms)[0m
+[2m---[0m DispatchTest: [32m12 passed[0m, [31m0 failed[0m  [2m(1.5s)[0m
+
+Results: [32m12 passed[0m, [31m0 failed[0m  (total: 1.5s)
+Running 1 suite(s) with parallelism 8
+
+[1m=== KyoUiSurfaceTest ===[0m
+  [1m[32m[PASS][0m[0m compare reports an added, a removed and a changed line  [2m(7ms)[0m
+  [1m[32m[PASS][0m[0m the kyo-ui surface that the runner reads and copies is the checked-in list  [2m(3.7s)[0m
+[2m---[0m KyoUiSurfaceTest: [32m2 passed[0m, [31m0 failed[0m  [2m(3.7s)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 3.7s)
+Running 1 suite(s) with parallelism 8
+
+[1m=== TuiRunTest ===[0m
+  [1m[32m[PASS][0m[0m a run starts, a scripted key quits it: the terminal is entered, then left  [2m(146ms)[0m
+  [1m[32m[PASS][0m[0m Ctrl-C quits the run; with ctrlCQuits = false it is a key of the handlers  [2m(73ms)[0m
+  [1m[32m[PASS][0m[0m the quit value that the UI gets ends the run  [2m(231ms)[0m
+  [1m[32m[PASS][0m[0m an interrupted run leaves the terminal  [2m(38ms)[0m
+  [1m[32m[PASS][0m[0m a UI that fails to build leaves the terminal, and its error comes out as it is  [2m(31ms)[0m
+  [1m[32m[PASS][0m[0m the input fails: the run ends with TerminalIO and leaves the terminal  [2m(11ms)[0m
+  [1m[32m[PASS][0m[0m a write to the terminal fails: the run ends with TerminalIO and leaves the terminal  [2m(29ms)[0m
+  [1m[32m[PASS][0m[0m Tui.run and Tui.run(options) take the UI with its quit value  [2m(2ms)[0m
+[2m---[0m TuiRunTest: [32m8 passed[0m, [31m0 failed[0m  [2m(572ms)[0m
+
+Results: [32m8 passed[0m, [31m0 failed[0m  (total: 572ms)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 38 s, completed Oct 13, 2026, 6:13:58 PM
+exit 0

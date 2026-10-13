@@ -1,0 +1,43 @@
+ptycheck: work=/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty3 date=2026-10-13T16:10:27+00:00 load=0.04 0.49 1.08
+ptycheck: java /usr/lib/jvm/java-25-openjdk-amd64/bin/java (Java 25)
+PASS counter: entered the alternate screen
+PASS counter: first frame drawn (1023 ms after the alternate screen)
+PASS counter: raw mode while running (-icanon -echo -isig)
+PASS counter q: exit code 0
+PASS counter: stty -a after the exit equals stty -a before the start
+PASS counter ctrl-c: entered the alternate screen
+PASS counter ctrl-c: first frame drawn (1027 ms after the alternate screen)
+PASS counter ctrl-c: exit code 0
+PASS ctrlc: stty -a after the exit equals stty -a before the start
+PASS counter resize: entered the alternate screen
+PASS counter resize: first frame drawn (1064 ms after the alternate screen)
+PASS counter resize: exit code 0
+PASS stdin is a pipe: exit code 1
+PASS pipe: stty -a after the exit equals stty -a before the start
+PASS native access denied: exit code 1
+PASS deny: stty -a after the exit equals stty -a before the start
+
+Terminal part: 16 passed, 0 failed, 0 skipped
+PASS counter: alt screen entered
+PASS counter: first screen shows 'Count: 0'
+PASS counter: + shows 'Count: 1'
+PASS counter: second + shows 'Count: 2'
+PASS counter: - shows 'Count: 1'
+INFO bytes written for counter-plus1: 26
+INFO bytes written for counter-plus2: 26
+INFO bytes written for counter-minus: 26
+PASS counter: partial repaint (one key writes < 200 bytes)
+PASS counter q: leaves the alternate screen and shows the cursor
+PASS counter q: nothing stray after the restore (the next output is EXIT=0)
+PASS counter ctrl-c: + shows 'Count: 1'
+PASS counter ctrl-c: leaves the alternate screen and shows the cursor
+PASS counter ctrl-c: nothing stray after the restore (the next output is EXIT=0)
+PASS resize: at 100 columns the help is one line
+PASS resize: at 40 columns the screen is laid out again inside 40 columns (the help wraps)
+PASS resize: back at 100 columns the help is one line again
+PASS pipe: NotATerminal, its message, and no alternate screen
+PASS native access denied: the message names --enable-native-access=ALL-UNNAMED, no alternate screen
+
+Screen part: 16 passed, 0 failed (screens: /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty3/screens.txt)
+ptycheck: raw terminal output: /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty3/session.log; replayed screens: /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty3/screens.txt
+ptycheck: ALL ROWS PASSED

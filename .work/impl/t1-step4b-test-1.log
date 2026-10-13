@@ -1,0 +1,146 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-04-terminal-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/)
+[info] scalafmt: Formatting 3 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/core)...
+[info] scalafmt: Formatting 4 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/core)...
+[info] scalafmt: Reformatted 2 Scala sources
+[success] Total time: 3 s, completed Oct 13, 2026, 3:48:41 PM
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/core)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/cats)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/zio)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal)...
+[success] Total time: 0 s, completed Oct 13, 2026, 3:48:41 PM
+[info] compiling 5 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 11 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+[success] Total time: 31 s, completed Oct 13, 2026, 3:49:12 PM
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+[1m=== TuiRunTest ===[0m
+  [1m[32m[PASS][0m[0m a run starts, a scripted key quits it: the terminal is entered, then left  [2m(412ms)[0m
+  [1m[32m[PASS][0m[0m Ctrl-C quits the run; with ctrlCQuits = false it is a key of the handlers  [2m(91ms)[0m
+  [1m[32m[PASS][0m[0m the quit value that the UI gets ends the run  [2m(232ms)[0m
+  [1m[32m[PASS][0m[0m an interrupted run leaves the terminal  [2m(35ms)[0m
+  [1m[32m[PASS][0m[0m a UI that fails to build leaves the terminal, and its error comes out as it is  [2m(33ms)[0m
+  [1m[32m[PASS][0m[0m the input fails: the run ends with TerminalIO and leaves the terminal  [2m(27ms)[0m
+  [1m[32m[PASS][0m[0m a write to the terminal fails: the run ends with TerminalIO and leaves the terminal  [2m(30ms)[0m
+  [1m[32m[PASS][0m[0m Tui.run and Tui.run(options) take the UI with its quit value  [2m(3ms)[0m
+[2m---[0m TuiRunTest: [32m8 passed[0m, [31m0 failed[0m  [2m(1.2s)[0m
+
+Results: [32m8 passed[0m, [31m0 failed[0m  (total: 1.2s)
+Running 1 suite(s) with parallelism 8
+
+[1m=== OutputCaptureTest ===[0m
+  [1m[32m[PASS][0m[0m the ring keeps the newest important lines and counts the rest  [2m(4ms)[0m
+  [1m[32m[PASS][0m[0m after finish, an important line is printed at once; finish is idempotent  [2m(3ms)[0m
+  [1m[32m[PASS][0m[0m with a file, every line goes to the file and nothing is printed  [2m(11ms)[0m
+  [1m[32m[PASS][0m[0m with a file, a line after finish is still appended to the file  [2m(8ms)[0m
+  [1m[32m[PASS][0m[0m a log file that cannot be opened: the ring, and a note after the restore  [2m(2ms)[0m
+tui4s test: after the capture
+  [1m[32m[PASS][0m[0m System.out and System.err go to the sink while a capture runs  [2m(2ms)[0m
+  [1m[32m[PASS][0m[0m a progress line ('\r') keeps only its last update  [2m(2ms)[0m
+  [1m[32m[PASS][0m[0m a line is cut at MaxLine bytes, never inside a character  [2m(11ms)[0m
+  [1m[32m[PASS][0m[0m a capture restores the streams of its own start  [2m(2ms)[0m
+  [1m[32m[PASS][0m[0m a stream that wraps the installed forwarder does not make a loop  [2m(2ms)[0m
+  [1m[32m[PASS][0m[0m only one capture at a time; stop is idempotent  [2m(1ms)[0m
+  [1m[32m[PASS][0m[0m capturesConsole: true when scala.Console has the forwarders, false when it has another stream  [2m(3ms)[0m
+  [1m[32m[PASS][0m[0m scala.Console in use before the run: a warning in the log, printed once after the restore  [2m(6ms)[0m
+  [1m[32m[PASS][0m[0m scala.Console with the forwarders, or no capture: no warning  [2m(4ms)[0m
+tui4s test: not in the sink
+  [1m[32m[PASS][0m[0m after a capture, System.out writes to the real stdout again  [2m(1ms)[0m
+[2m---[0m OutputCaptureTest: [32m15 passed[0m, [31m0 failed[0m  [2m(83ms)[0m
+
+Results: [32m15 passed[0m, [31m0 failed[0m  (total: 83ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== TerminalIOTest ===[0m
+  [1m[32m[PASS][0m[0m open and close in order  [2m(58ms)[0m
+  [1m[32m[PASS][0m[0m paste = false: no bracketed paste mode  [2m(32ms)[0m
+  [1m[32m[PASS][0m[0m no terminal: NotATerminal before anything else changes  [2m(5ms)[0m
+  [1m[32m[PASS][0m[0m stdin is not a terminal: NotATerminal before raw mode  [2m(3ms)[0m
+  [1m[32m[PASS][0m[0m a failing UI construction restores the streams too  [2m(36ms)[0m
+  [1m[32m[PASS][0m[0m a native library that cannot load: NativeAccessDenied  [2m(4ms)[0m
+  [1m[32m[PASS][0m[0m a failing mode command: TerminalIO, raw mode is left again  [2m(4ms)[0m
+  [1m[32m[PASS][0m[0m a failing release step does not stop the others; the error is printed  [2m(31ms)[0m
+  [1m[32m[PASS][0m[0m output while the UI is up is printed after the restore  [2m(30ms)[0m
+tui4s test: not captured
+  [1m[32m[PASS][0m[0m captureOutput = false: the output is not taken  [2m(31ms)[0m
+  [1m[32m[PASS][0m[0m Kyo log lines at warn or above are printed after the restore  [2m(40ms)[0m
+  [1m[32m[PASS][0m[0m with a log file, the output and the log go to the file  [2m(32ms)[0m
+  [1m[32m[PASS][0m[0m the Kyo log of the run has the level of the caller's logger  [2m(56ms)[0m
+  [1m[32m[PASS][0m[0m every Kyo log line of the run is in the log file when the run returns  [2m(200ms)[0m
+  [1m[32m[PASS][0m[0m the shutdown hook restores the terminal while the app runs  [2m(35ms)[0m
+  [1m[32m[PASS][0m[0m the UI's quit value ends the run; the screen showed the UI's own writes  [2m(338ms)[0m
+[2m---[0m TerminalIOTest: [32m16 passed[0m, [31m0 failed[0m  [2m(956ms)[0m
+
+Results: [32m16 passed[0m, [31m0 failed[0m  (total: 956ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== NativeTerminalTest ===[0m
+  [1m[32m[PASS][0m[0m isatty: true for a pseudo-terminal, false for a closed descriptor  [2m(48ms)[0m
+  [1m[32m[PASS][0m[0m without a terminal on stdin, Tui.run fails with NotATerminal  [2m(71ms)[0m
+[2m---[0m NativeTerminalTest: [32m2 passed[0m, [31m0 failed[0m  [2m(76ms)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 76ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== SessionTest ===[0m
+  [1m[32m[PASS][0m[0m the release leaves the terminal also when the closing thread is interrupted  [2m(32ms)[0m
+  [1m[32m[PASS][0m[0m the input thread maps crossterm events to messages and numbers them  [2m(10ms)[0m
+  [1m[32m[PASS][0m[0m an input failure is kept and ends the run, also when the inbox is full  [2m(6ms)[0m
+  [1m[32m[PASS][0m[0m a failure after the session is built closes the whole session  [2m(2ms)[0m
+[2m---[0m SessionTest: [32m4 passed[0m, [31m0 failed[0m  [2m(54ms)[0m
+
+Results: [32m4 passed[0m, [31m0 failed[0m  (total: 54ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== PublicApiTest ===[0m
+  [1m[32m[PASS][0m[0m every top-level definition of tui4s.internal is private[tui4s]  [2m(2.7s)[0m
+  [1m[32m[PASS][0m[0m no public signature of tui4s, tui4s.spi or tui4s.testkit names a type of tui4s.internal  [2m(3.2s)[0m
+[2m---[0m PublicApiTest: [32m2 passed[0m, [31m0 failed[0m  [2m(3.2s)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 3.2s)
+Running 1 suite(s) with parallelism 8
+
+[1m=== NameClashTest ===[0m
+  [1m[32m[PASS][0m[0m kyo.*, kyo.UI.*, kyo.test.*, tui4s.*, tui4s.spi.* and tui4s.testkit.* together  [2m(69ms)[0m
+[2m---[0m NameClashTest: [32m1 passed[0m, [31m0 failed[0m  [2m(71ms)[0m
+
+Results: [32m1 passed[0m, [31m0 failed[0m  (total: 71ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== StrictEqualityTest ===[0m
+  [1m[32m[PASS][0m[0m FrameStats, FrameCause, TuiOptions, Settle, Screen and CellStyle compare with ==  [2m(2ms)[0m
+[2m---[0m StrictEqualityTest: [32m1 passed[0m, [31m0 failed[0m  [2m(7ms)[0m
+
+Results: [32m1 passed[0m, [31m0 failed[0m  (total: 7ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== TuiOptionsTest ===[0m
+  [1m[32m[PASS][0m[0m a java.time.Duration builds every Settle; the cases compare with ==  [2m(1ms)[0m
+  [1m[32m[PASS][0m[0m the defaults: autoFocus, Quiescent(100 ms, confirm = 2)  [2m(2ms)[0m
+[2m---[0m TuiOptionsTest: [32m2 passed[0m, [31m0 failed[0m  [2m(7ms)[0m
+
+Results: [32m2 passed[0m, [31m0 failed[0m  (total: 7ms)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 8 s, completed Oct 13, 2026, 3:49:20 PM

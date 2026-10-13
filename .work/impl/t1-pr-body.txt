@@ -1,0 +1,345 @@
+After the merge, a kyo-ui app runs in a real terminal: `tui4s.Tui.run(options)(ui)` and `tui4s.Tui.run(ui)` put the terminal in raw mode, enter the alternate screen, start an input thread that maps the crossterm events to kyo-ui keys, pastes and resizes, run the C2/C3 runner on a crossterm backend, and restore the terminal in every way that a run ends (a quit, a failure, an interrupt, the JVM shutdown hook). `ui` gets the quit value (as in `Headless.start`); `Tui.quit` and Ctrl-C end the run too. A run that cannot start fails with a Kyo-free `tui4s.TuiError` before the terminal changes. The Counter example runs from a start script (`sbt examples/launchers`, then `examples/target/bin/counter`), and a PTY kit checks it in a pseudo-terminal, locally and in the new CI job `terminal`. The three bot findings of the old PRs 4 and 5 are fixed, each in its own commit with a regression test and a negative control. The review findings of this PR are fixed in new commits ("Review fixes"). The final runs at the tip 0893800 are green: 3 test runs and 3 PTY runs in a row (one of each under CPU contention), the greps, and a clean check in CI mode with 0 warnings (P-13, "Acceptance"). Base: PR #13 (C3, `feat/kyoui-03-input`) at a6c4598, with its round 2, merged into this branch (0ed0710).
+
+## P-1 One purpose
+
+A kyo-ui app runs in the real terminal (`Tui.run`), with a CI job that checks it in a pseudo-terminal.
+
+## P-2 Size
+
+Hand-written main lines, from the format commit 16647c7 to the tip 0893800, without the C3 round-2 file `internal/Dispatch.scala` that the merge-up brings (`git diff --numstat 16647c7 0893800 -- modules/core/src/main ':!modules/core/src/main/scala/tui4s/internal/Dispatch.scala'`): **800 added, 320 deleted** (`-w`: +769/-289), 14 files: `Tui.scala` +149/-2, `internal/EventMapping.scala` +152/-80, `internal/Session.scala` +118/-93, `TuiError.scala` +70 (new), `internal/TerminalIO.scala` +60/-46, `internal/Paint.scala` (Canvas) +56/-17, `internal/Crossterm.scala` +41/-21, `internal/OutputCapture.scala` +41/-14, `TuiOptions.scala` +40/-4, `testkit/Headless.scala` +34/-17, `internal/LogSink.scala` +15/-8, `internal/InputPort.scala` +11/-11, `package.scala` +7/-3, `internal/TuiLog.scala` +6/-4. The review fixes add +145/-46 of these (most of it Scaladoc and marks). Carried main code (P-8): 1116 lines at the carry commit (TerminalIO 188, Crossterm 155, Session 249, EventMapping 103, OutputCapture 179, LogSink 134, TuiLog 90, InputPort 18). The example: `examples/src/main/scala/examples/counter/Counter.scala` 64 lines. The PTY kit: 579 lines (vt.py 229, checklist.exp 186, check.py 100, run.sh 64; vt.py is the prototype's file without its marks). Build and CI: `build.sbt` +90/-9, `modules/core/build.sbt` +8, `ci.yml` +35, `.gitignore` +5. Docs: AGENTS.md +74/-12, README +54/-3, examples/README.md 127 lines (from the PR 5 text). Tests (against the base a6c4598): +2409 lines in 14 files (6 carried and adapted; 2 test doubles moved from main; 3 new suites: TuiRunTest, NativeLoadErrorTest, CounterSuite; 3 suites with new leaves: PublicApiTest, TuiOptionsTest, HeadlessTest). Whole PR against its base (`git diff --shortstat a6c4598 0893800`): 40 files, +5084/-67. Limit: about 1500 hand-written main lines (plan estimate for T1: about 1300 Scala main, most of it carried); no split is needed.
+
+## P-3 Working base
+
+Base: `feat/kyoui-03-input` at a6c4598 (PR #13, C3, with its round 2: 583a0c8 a keyboard activation of a button is a click that bubbles, and onSubmit, onFocus and onBlur run both forms; 2eaf081 the surface guard pins the event forms; a6c4598 the AGENTS.md sentences). C3 merges `feat/kyoui-02-regions` 0646343 (PR #11) on PR #10 `feat/kyoui-01-render` f525808, on `main` 863db67. This PR was built on C3 at f29b9ff; the merge-up commit 0ed0710 (`git merge feat/kyoui-03-input`, plan 4.3) brings the round 2. The only conflict was in the mark comments under AGENTS.md "What tui4s is"; both marks stay, and the paragraph keeps the C3 round-2 sentences and the T1 sentences. After the merge, `core/testOnly tui4s.DispatchTest tui4s.KyoUiSurfaceTest tui4s.TuiRunTest` in CI mode: 12 + 2 + 8 passed, 0 warnings (`.work/impl/t1-merge-test.log`).
+
+This PR adds 22 commits on the first-parent line (14 of the implementation, the merge-up, 7 review fixes). The final check at the tip 0893800, alone on the machine (4 CPUs, JDK 25.0.4.1; `pgrep -x java` empty before the run; the tree clean; no code change after the review fixes): `SBT_TPOLECAT_CI=1 sbt -Dsbt.supershell=false clean check`: exit 0, 117 s, 0 `[warn]`, 0 `[error]`; core: 177 passed, 0 failed, 3 ignored (the stress probes); examples: 4 passed (munit); scalafmt checks and `versionPolicyCheck` green (`.work/impl/t1-final-check.log`; its header has the command, the date, the commit, the tree and the `pgrep` result; the fixer's check `t1-fix-check.log` has the same result). `bash scripts/version-order-test.sh`: 55 of 55 (`t1-final-version-order-test.log`). The 3 test runs in a row (`sbt core/test examples/test`, run 2 under CPU contention) and the 3 PTY runs in a row (run 2 under CPU contention; 17 of 17 terminal rows and 16 of 16 screen checks in each run) are green: P-13 and "Acceptance".
+
+## P-4 Final shape first
+
+Public types and members that this PR adds, in their final shape (the full list is in "API review"):
+
+- `object Tui`: `def run(ui: (Unit < Sync) => UI < (Async & Scope))(using Frame): Unit < (Async & Abort[TuiError])` and `def run(options: TuiOptions)(ui: (Unit < Sync) => UI < (Async & Scope))(using Frame): Unit < (Async & Abort[TuiError])` (RC-2: the shape of `Headless.start`; quit is a value, D-15; `Tui.quit` of C3 is the second way). No public `Tui.start`, no `TuiHandle`.
+- `enum TuiError(message: String, cause: Throwable | Null) extends Exception(message, cause)`, package `tui4s`, Kyo-free: `NotATerminal(error)`, `NativeAccessDenied(error)`, `NativeLoadFailed(error)` (new: the fix of the thread Crossterm.scala:103), `TerminalIO(error)`. The PR 5 cases `AppFailed` and `SourceFailed` are not carried: their features are gone (a failure of the UI comes out as it is, after the restore; a handler that fails is logged, C3). The companion `object TuiError` has only a private helper (the message of `NativeLoadFailed`, review R2-3).
+- `TuiOptions`: four fields at the end, with Scaladoc: `pollInterval: java.time.Duration = Duration.ofMillis(25)` (below 1 ms counts as 1 ms, review R2-1), `inboxCapacity: Int = 1024`, `captureOutput: Boolean = true` (an opt-out, DECISIONS round 4), `logFile: Option[java.nio.file.Path] = None`. Still Kyo-free, `derives CanEqual`. No `fps`, `mouse`, `focusEvents`, `viewport`, `theme` or `trace` (P-4/P-5: no option without effect; D-22, D-30, P1).
+
+## P-5 Never port the replaced
+
+No file of this PR is replaced by a later PR of the stack. Not ported, because this PR replaces them: the prototype's `internal/Keys.scala` (EventMapping keeps its rules), `OutputGuard` (OutputCapture, LogSink, TuiLog), the prototype's `enter`/`restore` and its input fiber (`Tui.scala` lines 70-125: Session, InputThread and TerminalIO replace them), PR 5 `CountingBackend` (its `close()` guard moves into `Canvas`, P-6 row 1), PR 5 `TuiRun` (it merges into `Tui.runWith`), PR 5 `spi/Headless` and `HeadlessControl` (no run uses them; the tests have `RecordingControl`), PR 5 `examples/ptycheck/analyze.py` (vt.py and check.py replace it) and the old Elm `CounterApp`. The two-counters main of the prototype waits for T2: the launchers name a script after the package of its main, so one package has one main (the `launchers` task now stops when two mains get the same name).
+
+## P-6 Fix with the code
+
+The three bot findings of the old PRs (plan 4.1), each in its own commit with a regression test and a negative control (the test FAILS on the code before the fix: the test file on top of the main code of the commit before):
+
+| Finding | Commit | Test | Negative control (`.work/impl/`) |
+| --- | --- | --- | --- |
+| PR 5 `internal/CountingBackend.scala:33` (P1): a draw races the restore from the shutdown hook | e5099a8: `Canvas.close()` under the backend's monitor (the flush holds it while it draws), so a restore waits for a draw in progress; after it, `flush` and `resize` do not touch the backend; `Session.close` closes the canvas first | SessionTest "the release waits for a draw in progress, and a draw after the release writes nothing" | FAIL at 67d09e4: the order is "draw-start, leave, draw-end, draw-start, draw-end"; after the fix: "draw-start, draw-end, leave" (`t1-fix1-negative-control.log`, `t1-fix1-test.log`) |
+| PR 5 `internal/Crossterm.scala:103` (P2): an `UnsatisfiedLinkError` is reported as `NativeAccessDenied` | 31ef81e: only an `IllegalCallerException` in the causes (JEP 472: a JVM that denies native access) is `NativeAccessDenied`, whose message names `--enable-native-access=ALL-UNNAMED`; every other failure of the load is the new `TuiError.NativeLoadFailed`, with the cause in its message | NativeLoadErrorTest (3 leaves; they name the case by its class name, so they compile before the fix), TerminalIOTest +1 | FAIL at e5099a8: the `UnsatisfiedLinkError`, its `ExceptionInInitializerError` and the second try (`NoClassDefFoundError`) give `NativeAccessDenied`, an unknown platform gives `TerminalIO` (`t1-fix2-negative-control.log`); after: 3 of 3 (`t1-fix2-test.log`) |
+| PR 4 `internal/Session.scala:150` (P2): the input thread leaks when the acquire fails after `t.start()` | dbedbb3: the Session exists before the thread starts, so a failure after the start closes the session, which stops and joins the thread | SessionTest "an acquire that fails after the input thread started stops the thread" | FAIL at 31ef81e: "the input thread still polls: 8 polls, then 20", and the steps miss input-stopped and input-joined (`t1-fix3-negative-control.log`); after: 6 of 6 (`t1-fix3-test.log`) |
+
+The review fixes that change behaviour (R1-1, R2-1, R2-3, R2-4) have the same shape: a new commit, a regression test, a negative control ("Review fixes"). The other negative controls (they show that a new test can fail): the R3 warning, the jatatui leaf of PublicApiTest, the exhaustivity rule of EventMapping, the PTY rows (the table "Negative controls").
+
+## P-7 Commit map
+
+| # | Commit | What |
+| --- | --- | --- |
+| 0 | 32dbcd8 build | The examples project: core only (zio and cats are empty), no `run / connectInput`, the `launchers` task in the form of `origin/feat/cats:build.sbt` lines 62-127 (the script name is the package name; two mains with one name stop the task), `run / javaOptions` = `--enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow -Xss16m` and the three tui4s scheduler values (D-17 c; TuiApp sets them in code in T2), munit tests in a forked JVM. `sbt examples/compile examples/launchers` works with no example sources (`t1-step0-build.log`). |
+| 1 | d5d1a0f carry | 21 files, byte-identical to their sources (`t1-carry-verify.py`, `t1-carry-verify.log`: RESULT OK; 3167 lines). `spi/InputPort.scala` goes to `internal/InputPort.scala`: only its package line changes. It does not compile alone (P-7). |
+| 2 | 16647c7 format | `sbt fmt` changes no carried Scala file (the PR 5 code has this repository's format; `t1-step2-fmt.log`). The `// claude <date>` marks: **39 before, 0 after** (vt.py 17, checklist.exp 15, check.py 6, run.sh 1; the PR 5 files had 0). A mark that only names the function goes; a mark with text keeps the text. |
+| 4a | 0cb43b7 adapt | Session and the input thread on the runner's inbox (`Channel[Msg]`) and Canvas; EventMapping to kyo-ui `KeyboardEvent`, `Msg.Paste`, `Msg.Resize`; TerminalIO without the mouse, focus and viewport modes; `TuiError`; the four `TuiOptions` fields; the run seam `Tui.runWith` (private[tui4s]); the exhaustivity rule; the carried tests adapted (TerminalIOTest 16, SessionTest 4, EventMappingTest 8, OutputCaptureTest 12, NativeTerminalTest 2; `t1-step4a-test-1.log`). It comes BEFORE step 3: the carry does not compile without it. |
+| 3 | 166a375 strict | The sbt-tpolecat flags in CI mode report **0 warnings** on the carried code (`t1-step4a-test-1.log`, `t1-step3-warnings.log`). The Java boundary rule of AGENTS.md: `Crossterm.read()` (a native method) can give null: `CEvent \| Null`. **2 code lines changed.** The null checks at the crossterm records came with EventMapping in 4a. |
+| 4b | 67d09e4 Tui.run | The public `Tui.run` (two overloads); a failed write to the terminal is `TerminalIO`; R3 (`OutputCapture.capturesConsole`, the warning in the log and once after the restore); the `// tui4s: allowed` markers. TuiRunTest 8, OutputCaptureTest +3, PublicApiTest +1, TuiOptionsTest +1. |
+| 4c | e5099a8 fix 1 | P-6 row 1. |
+| 4d | 31ef81e fix 2 | P-6 row 2. |
+| 4e | dbedbb3 fix 3 | P-6 row 3. |
+| 4f | 98b0535 Counter | `examples.counter.Counter` and `CounterKyoApp` (its Scaladoc names the launchers: the lesson of the thread CounterApp.scala:8); CounterSuite (munit, 4). |
+| 4g | edc3f54 PTY kit | run.sh, checklist.exp, check.py (the Counter rows of plan 6.5); the first full run is green (`t1-pty.log`). |
+| 4g' | fffc7d7 chore | edc3f54 added `examples/ptycheck/__pycache__/vt.cpython-311.pyc` by mistake; this commit removes it, ignores `__pycache__/` and `*.pyc`, and run.sh sets `PYTHONDONTWRITEBYTECODE=1` (a new commit, not an amend: P-9). |
+| 4h | a6aeff1 CI | The job `terminal`. |
+| 4i | b7ac3ec docs | AGENTS.md, README, examples/README.md, the package Scaladoc, the EventMapping Scaladoc (the JNI cut), a build comment. |
+| M | 0ed0710 merge-up | `git merge feat/kyoui-03-input` (C3 round 2, a6c4598; plan 4.3). Conflict only in the AGENTS.md mark comments; both kept. |
+| 5a | 7f9cccc R1-1 | The kit types an upper-case letter with Shift, as the terminal sends it (`EventMapping.typed`, one place). HeadlessTest +1. |
+| 5b | 12f999b R2-4 | An input error that `NonFatal` does not match (a `LinkageError`) also ends the run. SessionTest +1. |
+| 5c | 3968d45 R2-1 | A poll interval below 1 ms polls with 1 ms (zero spun); no overflow. SessionTest +1. |
+| 5d | 849812a R2-3 | The message of `NativeLoadFailed` names the innermost cause. NativeLoadErrorTest +1. |
+| 5e | 450e51e docs | R1-2, R1-3, R2-2, R2-3 (b), R2-5: Scaladoc and one AGENTS.md sentence. |
+| 5f | 97b35b2 marks | R1-5: a mark at each changed carried leaf; the EventMapping mark in one piece. Comments only. |
+| 5g | 0893800 CI and kit | R3-1, R3-2, R3-3, R3-6, R3-9: `apt-get update`, the logs of a failed run as an artifact, exit code 1 only, `JAVA_HOME` first, the kit nits (one more terminal row: `stty -a` around the resize run). |
+
+Every build commit was fmt-clean before it was made (`sbt fmt` ran before each commit; the check at the tip runs `scalafmtCheckAll` and `scalafmtSbtCheck`).
+
+## P-8 Delta guide
+
+Sources: `666a8e3` = PR 5 head (`origin/feat/core-3-terminal`); `1d100ed` = the prototype on `origin/wip/handoff` (`.work/proto/kyoui-runner`, byte-identical to the local copy). The carry commit d5d1a0f holds the source blobs; the format commit 16647c7 is the formatted, mark-free state; the hand-written delta of a carried file is `git diff 16647c7 0893800 -- <new path>`.
+
+| New file | Source | Delta command |
+| --- | --- | --- |
+| `modules/core/src/main/scala/tui4s/internal/TerminalIO.scala` | `666a8e3:modules/core/src/main/scala/tui4s/internal/TerminalIO.scala` | `git diff 666a8e3:modules/core/src/main/scala/tui4s/internal/TerminalIO.scala 0893800:modules/core/src/main/scala/tui4s/internal/TerminalIO.scala` (+60/-46) |
+| `modules/core/src/main/scala/tui4s/internal/Crossterm.scala` | `666a8e3:modules/core/src/main/scala/tui4s/internal/Crossterm.scala` | `git diff 666a8e3:modules/core/src/main/scala/tui4s/internal/Crossterm.scala 0893800:modules/core/src/main/scala/tui4s/internal/Crossterm.scala` (+41/-21) |
+| `modules/core/src/main/scala/tui4s/internal/Session.scala` | `666a8e3:modules/core/src/main/scala/tui4s/internal/Session.scala` | `git diff 666a8e3:modules/core/src/main/scala/tui4s/internal/Session.scala 0893800:modules/core/src/main/scala/tui4s/internal/Session.scala` (+118/-93) |
+| `modules/core/src/main/scala/tui4s/internal/EventMapping.scala` | `666a8e3:modules/core/src/main/scala/tui4s/internal/EventMapping.scala` (and the rules of `1d100ed:.work/proto/kyoui-runner/src/tui4s/kyoui/internal/Keys.scala`) | `git diff 666a8e3:modules/core/src/main/scala/tui4s/internal/EventMapping.scala 0893800:modules/core/src/main/scala/tui4s/internal/EventMapping.scala` (+152/-80) |
+| `modules/core/src/main/scala/tui4s/internal/OutputCapture.scala` | `666a8e3:modules/core/src/main/scala/tui4s/internal/OutputCapture.scala` | `git diff 666a8e3:modules/core/src/main/scala/tui4s/internal/OutputCapture.scala 0893800:modules/core/src/main/scala/tui4s/internal/OutputCapture.scala` (+41/-14) |
+| `modules/core/src/main/scala/tui4s/internal/LogSink.scala` | `666a8e3:modules/core/src/main/scala/tui4s/internal/LogSink.scala` | `git diff 666a8e3:modules/core/src/main/scala/tui4s/internal/LogSink.scala 0893800:modules/core/src/main/scala/tui4s/internal/LogSink.scala` (+15/-8: the markers and the Scaladoc) |
+| `modules/core/src/main/scala/tui4s/internal/TuiLog.scala` | `666a8e3:modules/core/src/main/scala/tui4s/internal/TuiLog.scala` | `git diff 666a8e3:modules/core/src/main/scala/tui4s/internal/TuiLog.scala 0893800:modules/core/src/main/scala/tui4s/internal/TuiLog.scala` (+6/-4: the Scaladoc, review R1-3) |
+| `modules/core/src/main/scala/tui4s/internal/InputPort.scala` | `666a8e3:modules/core/src/main/scala/tui4s/spi/InputPort.scala` | `git diff 666a8e3:modules/core/src/main/scala/tui4s/spi/InputPort.scala 0893800:modules/core/src/main/scala/tui4s/internal/InputPort.scala` (+12/-12, with the package line) |
+| `modules/core/src/main/scala/tui4s/TuiError.scala` | `666a8e3:modules/core/src/main/scala/tui4s/Options.scala` (the `enum TuiError`, lines 63-94) | `git show 666a8e3:modules/core/src/main/scala/tui4s/Options.scala \| sed -n 63,94p` against `git show 0893800:modules/core/src/main/scala/tui4s/TuiError.scala` |
+| `modules/core/src/main/scala/tui4s/Tui.scala` (`run`, `runWith`) | `666a8e3:modules/core/src/main/scala/tui4s/internal/TuiRun.scala` (`run`) and `666a8e3:modules/core/src/main/scala/tui4s/internal/RenderLoop.scala` (`Runner.runOn`, the session bracket) | `git diff f29b9ff 0893800 -- modules/core/src/main/scala/tui4s/Tui.scala` |
+| `modules/core/src/main/scala/tui4s/internal/Paint.scala` (`Canvas.close`, `Canvas.terminalIO`) | the `close()` guard of `666a8e3:modules/core/src/main/scala/tui4s/internal/CountingBackend.scala` | `git diff f29b9ff 0893800 -- modules/core/src/main/scala/tui4s/internal/Paint.scala` |
+| `modules/core/src/test/scala/tui4s/{TerminalIOTest,SessionTest,EventMappingTest,OutputCaptureTest,NativeTerminalTest,FakeCrossterm}.scala` | `666a8e3:modules/core/src/test/scala/tui4s/<same name>` | `git diff 666a8e3:modules/core/src/test/scala/tui4s/<name> 0893800:modules/core/src/test/scala/tui4s/<name>` |
+| `modules/core/src/test/scala/tui4s/testkit/{RecordingControl,ScriptedInput}.scala` | `666a8e3:modules/core/src/main/scala/tui4s/testkit/<same name>` | `git diff 666a8e3:modules/core/src/main/scala/tui4s/testkit/<name> 0893800:modules/core/src/test/scala/tui4s/testkit/<name>` |
+| `examples/ptycheck/{vt.py,check.py,checklist.exp,run.sh}` | `1d100ed:.work/proto/kyoui-runner/pty/<same name>` | `git diff 1d100ed:.work/proto/kyoui-runner/pty/<name> 0893800:examples/ptycheck/<name>` (vt.py: only the 17 marks removed) |
+| `examples/README.md` | `666a8e3:examples/README.md` | `git diff 666a8e3:examples/README.md 0893800:examples/README.md` |
+| `examples/src/main/scala/examples/counter/Counter.scala` | `1d100ed:.work/proto/kyoui-runner/apps/Counter.scala` (written from it, not carried: the quit value, one main) | `git diff 1d100ed:.work/proto/kyoui-runner/apps/Counter.scala 0893800:examples/src/main/scala/examples/counter/Counter.scala` |
+| `build.sbt` (the `launchers` task) | `origin/feat/cats:build.sbt` lines 62-127 | `git show origin/feat/cats:build.sbt \| sed -n 62,127p` against `git diff f29b9ff 0893800 -- build.sbt` |
+| `.github/workflows/ci.yml` (job `terminal`) | `666a8e3:.github/workflows/ci.yml` (job `terminal`) | `git diff f29b9ff 0893800 -- .github/workflows/ci.yml` |
+
+The review fixes alone: `git diff 0ed0710 0893800` (23 files, +446/-69).
+
+## P-9 No rewrite
+
+No amend, no rebase, no force push. The bytecode file that edc3f54 added by mistake is removed in a new commit (fffc7d7), not by an amend. The C3 round 2 comes in with a merge commit (0ed0710), and the review fixes are new commits on top.
+
+## P-10 Docs true at each merge
+
+- AGENTS.md "What tui4s is": `Tui.run` runs a UI in the real terminal (raw mode and the alternate screen through TerminalIO and Session, the input thread and EventMapping, the crossterm backend, the restore also from the shutdown hook); "the components come in the next pull request" (C4). The C3 round-2 sentences (the button click that bubbles, the event forms) stay after the merge-up. True: TuiRunTest, TerminalIOTest, DispatchTest and the PTY kit.
+- "Daily commands": the rows `sbt examples/launchers`, `examples/target/bin/counter` and `examples/ptycheck/run.sh` replace `sbt "examples/runMain <main>"`; run the PTY kit after a change to the terminal code; never `sbt run` for a terminal UI, and no agent starts one in its own shell; the scripts need JDK 25 (`$JAVA_HOME/bin/java`, or `java` on `PATH`); the "Picked up ..." line. True: the launchers task (0), the kit (4g; the final PTY runs `t1-final-pty-1.log`, `t1-final-pty-contention.log`, `t1-final-pty-3.log`), `examples/README.md`.
+- "Rules for code": the run's own Kyo logger and the output capture, and the marker rule with its grep (true: `t1-final-greps.log`); only the input thread reads the terminal; the native access flag and the two native errors (true: P-6 row 2 and the PTY row "native access denied"); the release closes the canvas first (P-6 row 1); after a quit the UI's `Scope` closes before the release, so a fiber that does not stop on an interrupt delays the restore (review R2-2; true: the bracket in `Tui.onTerminal`); the JNI cut of a typed character outside the BMP (the probe in "Problems"); the tests of the terminal path use a fake crossterm and the PTY kit; the start scripts give the scheduler values (`build.sbt`).
+- README: the status line (first usable version: the real terminal; components and hooks next) and a quick start with the Counter and its start script (the code is the example's); the script uses `$JAVA_HOME/bin/java`, or `java` on `PATH` when `JAVA_HOME` is not set (review R3-6).
+- examples/README.md: the Counter, the launchers and their flags, `JAVA_OPTS`, the "Picked up ..." line, why not `sbt run`, `sbt examples/test`, the PTY kit and its rows (the resize and the native-access rows also compare `stty -a`, review R3-9), the human checklist, the known limits.
+- The Scaladoc of the package, of `Tui` (`run`: the four failures and the order of the scope close and the restore), `TuiError` (the message of `NativeLoadFailed`), the four `TuiOptions` fields (and `paste`: the run turns the bracketed paste mode on), EventMapping (the rules, the JNI cut, `typed`), `Headless.char` and `typeText` (an upper-case character has `shift`).
+
+## P-11 WIP limit
+
+The eleventh round of DECISIONS (gate 1 closed, 2026-10-13; `origin/wip/handoff:.work/DECISIONS.md` 4439d01) lifts the WIP limit P-11 until the terminal PR is open: the user wants a usable version first. PRs #10 (C1), #11 (C2) and #13 (C3) are open; this PR (T1) is the fourth above `main`. The order is C3 -> T1 -> C4; the branch names follow it (this branch is `feat/kyoui-04-terminal`, the plan's 6.5 says `feat/kyoui-05-terminal`).
+
+## P-12 Not in this PR
+
+- `TuiApp`, its exit codes 130 and 143 for `kill -INT` and `kill -TERM`, `SchedulerDefaults.applyIfUnset()`, and their PTY rows: T2 (`feat/kyoui-06-app-examples`). Seen once in a pseudo-terminal: with a `KyoApp` main, Kyo's own signal handling already interrupts the run, the terminal is restored, and the exit code is 143 or 130 (not a row of the kit yet).
+- The Todo, Dashboard and Widgets examples, the two counters, and their PTY rows (typing, Enter, Tab, Space, paste as one edit, save; Dashboard pause and live): T2.
+- Components, hooks and the `CounterStyles` example: C4 (`feat/kyoui-05-components`, after T1).
+- The inline viewport (`Viewport.Inline`): deferred (D-22 a).
+- The trace writer and the bench: P1.
+- Mouse and terminal focus events: D-30 (no option for them).
+- A "Picked up JAVA_TOOL_OPTIONS" line in a user's terminal: documented (AGENTS.md, examples/README.md), not handled; run.sh unsets the two variables for the app.
+- The JNI cut of a typed character outside the BMP: a jatatui limit, documented ("Questions for the user").
+- The kit types the event of a Unix terminal (an upper-case letter with Shift). On Windows, crossterm reads the key state, so Caps Lock gives `A` without Shift (skeptic K1). A handler that wants a typed letter does not test `shift`. tui4s itself does not test it on a character (TextEdit, Dispatch, the Ctrl-C check). No Windows row: the PTY kit runs on Linux.
+- `fps` and `theme` of the old option set: old engine, not carried.
+- The CI job `terminal` green 3 times (plan 6.5, K17): after the push. The 3 final test runs and the 3 PTY runs (one of each under CPU contention) are done and green (P-13).
+
+## P-13 Zero warnings
+
+**0 warnings.** `SBT_TPOLECAT_CI=1 sbt -Dsbt.supershell=false clean check` (`-Werror` on) at the tip 0893800, alone, as the final run: exit 0, 117 s, 0 `[warn]`, 0 `[error]` (`.work/impl/t1-final-check.log`; the fixer's `t1-fix-check.log` has the same result). Core (kyo-test), 177 passed, 0 failed, 3 ignored: EventMappingTest 8, DispatchTest 12, NativeTerminalTest 2, HeadlessTest 10, NativeLoadErrorTest 4, ScreenTest 5, GoldenScreenTest 27, NameClashTest 1, TextEditTest 13, SessionTest 8, AppsTest 12, OutputCaptureTest 15, WatcherTest 5, PublicApiTest 3, StrictEqualityTest 1, QuitTest 4, SeamTest 3, LiftTrapTest 2, RenderTest 2, TuiOptionsTest 3, PasteTest 4, KyoUiSurfaceTest 2, TerminalIOTest 17, SettleTest 3, WriteSeamTest 2, RelayoutTest 1, TuiRunTest 8; LeakProbe, ObserveLeakProbe, SplitProbe ignored (on with `-Dtui4s.stress=<rounds>`). (At b7ac3ec: 170; the merge-up adds DispatchTest +3, the review fixes HeadlessTest +1, SessionTest +2, NativeLoadErrorTest +1.) Examples (munit): CounterSuite 4 passed. scalafmt checks and `versionPolicyCheck` green (`Compatibility.None` for the three modules). The glitch lines: `[glitch] splits=0 of 500 (events by frame count: 1 frames: 500; events with a settle timeout: 0; not seen in 2 s: 0; load flag: false)` and `[glitch-keys] splits=0 of 500 (key frames by region values: 4: 500; frames with a settle timeout: 0; load flag: false)`. Each step also compiled in CI mode with 0 warnings (`t1-step4a-test-1.log`, `t1-step3-warnings.log`, `t1-step4b-test-1.log`, `t1-fix1-test.log`, `t1-fix2-test.log`, `t1-fix3-test.log`, `t1-step4f-test.log`); each review-fix log has the `SBT_TPOLECAT_CI=1` command in its header (`t1-merge-test.log`, `t1-fix-r1-1-test.log`, `t1-fix-r2-test.log`, `t1-fix-docs-compile.log`). The dev-mode compile (no CI flag) in test run 1 below and in the launchers builds of the PTY runs also gives 0 `[warn]`.
+
+The 3 final runs of `sbt core/test examples/test` in a row at the tip 0893800, alone on the machine (plan 6.0: the timing-sensitive suites green in 3 local runs in a row, one of them under CPU contention). `pgrep -x java` was empty before each run, and the tree was clean. No run has the load flag (`TUI4S_LOAD` unset), so both glitch leaves assert the strict 0 in each run, also under contention.
+
+| Run | Conditions | Result | Glitch lines | Log (`.work/impl/`) |
+| --- | --- | --- | --- | --- |
+| 1 | quiet machine; `sbt -Dsbt.supershell=false core/test examples/test` (it compiles main and test in dev mode first: 0 `[warn]`) | exit 0, 104 s (sbt 94 s + 4 s); core 177 passed, 0 failed, 3 ignored; CounterSuite 4 passed | `[glitch] splits=0 of 500` (1 frame: 500; 0 settle timeouts; 0 not seen); `[glitch-keys] splits=0 of 500` (region values 4: 500) | `t1-final-run-1.log` |
+| 2 | **CPU contention**, the model of the CI runner: `taskset -c 0,1 sbt -Dsbt.supershell=false core/test examples/test` with two busy loops `taskset -c 0,1 bash -c "while :; do :; done"` pinned to CPUs 0 and 1 (PIDs 5171 and 5172, affinity mask 3; killed by PID after the run; `ps` shows both gone); no load flag | exit 0, 71 s (sbt 51 s + 4 s); core 176 passed, 0 failed, 3 ignored, 1 cancelled: the SettleTest canary cancels itself ("the canary needs a second Kyo worker: no attempt ran its step while the spin ran (3 attempts); a 2-CPU JVM under load has one"; see "Problems"); CounterSuite 4 passed | `[glitch] splits=0 of 500` (1 frame: 500; 0 settle timeouts; 0 not seen); `[glitch-keys] splits=0 of 500` (region values 4: 500) | `t1-final-run-contention.log` |
+| 3 | quiet machine | exit 0, 39 s (sbt 30 s + 2 s); core 177 passed, 0 failed, 3 ignored; CounterSuite 4 passed | `[glitch] splits=0 of 500`; `[glitch-keys] splits=0 of 500` (region values 4: 500) | `t1-final-run-3.log` |
+
+Every suite passes in each of the 3 runs: the suites of this PR (SessionTest 8, TerminalIOTest 17, TuiRunTest 8, OutputCaptureTest 15, NativeLoadErrorTest 4, EventMappingTest 8, NativeTerminalTest 2, CounterSuite 4) and the timing-sensitive suites of C2 and C3 (AppsTest with the glitch leaves, HeadlessTest, WatcherTest, SettleTest, QuitTest, SeamTest, DispatchTest). The only leaf that does not pass is the SettleTest canary in run 2, which cancels itself by design.
+
+The 3 final PTY runs in a row at the tip 0893800, each with its own launchers build (`JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64 examples/ptycheck/run.sh`; `pgrep -x java` empty before each run; the rows are in "Acceptance"):
+
+| Run | Conditions | Result | First frame (the `q`, Ctrl-C and resize runs) | Log (`.work/impl/`) |
+| --- | --- | --- | --- | --- |
+| 1 | quiet machine | 17 of 17 terminal rows, 16 of 16 screen checks, `ALL ROWS PASSED`, exit 0, 24 s | 1083, 1242, 1056 ms; 26 bytes per key | `t1-final-pty-1.log` |
+| 2 | **CPU contention**: `taskset -c 0,1 examples/ptycheck/run.sh` (the launchers build, expect and the apps inherit the mask) with two busy loops pinned to CPUs 0 and 1 (PIDs 6704 and 6705; affinity mask 3, checked before and after the run; killed by PID; `ps` shows both gone) | 17 of 17, 16 of 16, `ALL ROWS PASSED`, exit 0, 38 s | 1947, 2101, 1784 ms; 26 bytes per key | `t1-final-pty-contention.log` |
+| 3 | quiet machine | 17 of 17, 16 of 16, `ALL ROWS PASSED`, exit 0, 23 s | 1067, 1105, 1144 ms; 26 bytes per key | `t1-final-pty-3.log` |
+
+A first try of PTY run 2 was also green (17 + 16, exit 0; first frame 1685, 2015, 1609 ms), but the script read the affinity of one busy loop before `taskset` had set it (mask `f`), so that try does not prove the contention. It is kept as `t1-final-pty-contention-try-1.log`, and run 2 was repeated with a checked mask. The raw output and the replayed screens of the 3 runs: `t1-final-pty-files/`.
+
+The greps at the tip: "Acceptance" (`.work/impl/t1-final-greps.log`). 0 code lines name `System.err`, `System.out` or `println` without the `// tui4s: allowed` marker.
+
+Marks: every new file and changed fragment has a `claude 2026-10-13` mark; the carried main files: TerminalIO 9, Crossterm 6, Session 14, EventMapping 7, OutputCapture 4, LogSink 2, InputPort 1, TuiLog 1 (the Scaladoc of review R1-3); the carried tests TerminalIOTest and EventMappingTest have a mark at each changed leaf (review R1-5); the kit files: check.py 1, checklist.exp 2, run.sh 2, vt.py 0 (unchanged).
+
+## P-14 New sbt projects
+
+None. `examples` was already in `root.aggregate` with `publish / skip := true`; it now depends on `core` only, has munit tests (`Versions.munit`, already in `project/Versions.scala`) and the `launchers` task. No `version`, no `publishTo`. `versionPolicyCheck` stays green (`Compatibility.None` for the three modules).
+
+## API review (RC-36, at the tip 0893800)
+
+PUBLIC, package `tui4s`, added: `Tui.run(ui: (Unit < Sync) => UI < (Async & Scope))(using Frame): Unit < (Async & Abort[TuiError])`; `Tui.run(options: TuiOptions)(ui: (Unit < Sync) => UI < (Async & Scope))(using Frame): Unit < (Async & Abort[TuiError])`; `enum TuiError(message: String, cause: Throwable | Null) extends Exception(message, cause)` with `NotATerminal(error: Throwable)` ("stdin/stdout is not a terminal"), `NativeAccessDenied(error: Throwable)` ("start the JVM with --enable-native-access=ALL-UNNAMED"), `NativeLoadFailed(error: Throwable)` ("the native terminal library (crossterm) could not be loaded: <error>", and " (cause: <innermost cause>)" when `error` wraps another error, review R2-3), `TerminalIO(error: Throwable)` ("terminal I/O failed"); the companion `object TuiError` has no public member of its own (a private helper builds the message); `TuiOptions` gets `pollInterval: java.time.Duration = Duration.ofMillis(25)`, `inboxCapacity: Int = 1024`, `captureOutput: Boolean = true`, `logFile: Option[java.nio.file.Path] = None` at the end (the defaults; `derives CanEqual` stays; Scaladoc per field; a poll interval below 1 ms counts as 1 ms, review R2-1; an inbox capacity below 1 counts as 1). Unchanged: `Tui.quit`, `FrameStats`, `FrameCause`. The package Scaladoc names `Tui.run` and `TuiError`. `TuiError` has no `CanEqual`: it is an exception, matched by its cases.
+
+PUBLIC, package `tui4s.spi`: no change. PR 5's public `spi.InputPort` is NOT carried as public API: with D-21 (a) its element is the crossterm `Event`, a jatatui type, so it is `private[tui4s]` in `tui4s.internal`.
+
+PUBLIC, package `tui4s.testkit`: no signature change. Two behaviour changes: `Headless.start` uses `options.inboxCapacity` for its inbox (it used 4096), so the kit runs the inbox of a real run; `Headless.char` and `typeText` give an upper-case character `shift = true`, as a real terminal does (review R1-1; before, no modifiers). `RecordingControl` and `ScriptedInput` are test doubles in the TEST sources (`private[tui4s]`), not user API.
+
+Kyo types in the new public signatures: `UI`, `<`, `Sync`, `Async`, `Scope`, `Abort`, `Frame` (as in `Headless.start`; kyo-ui is the DSL of the app). `TuiOptions` and `TuiError` are Kyo-free (`java.time.Duration`, `java.nio.file.Path`, `Throwable`), for the ZIO and Cats Effect modules. No jatatui type, no crossterm type, no Kyo-internal type: PublicApiTest has a new leaf that reads the TASTy of the core and finds no public signature of `tui4s`, `tui4s.spi` or `tui4s.testkit` that names a `jatatui.*` or `tui.crossterm.*` type (negative control: a public `Headless.leakedBackend: TestBackend` makes it FAIL, `t1-r3-api-negative-control.log`); green at the tip.
+
+THE SEAL stays: every top-level definition of `tui4s.internal` is `private[tui4s]`, also the new ones (`TerminalIO`, `Hooks`, `Crossterm`, `NativeCrossterm`, `Tty`, `CrosstermInput`, `InputPort`, `TerminalControl`, `Session`, `InputThread`, `EventMapping`, `OutputCapture`, `LogSink`, `TuiLog`); PublicApiTest leaf 1 checks it, leaf 2 checks that no public signature names an internal type.
+
+`private[tui4s]` SEAMS, new (bytecode-public; MiMa sees them): `Tui.runWith(options, crossterm: internal.Crossterm, hooks: internal.Hooks = Hooks.runtime, err: () => PrintStream = () => OutputCapture.realErr, restored: () => Unit = () => ())(ui)` (the run seam of the tests, and later of the facades); `internal.Canvas.close()`, `Canvas.terminalIO`; `internal.Session.open`, `close`, `canvas`, `inputFailure`, `releaseError`, `Session.pollMillis`, `Session.closeInbox`; `internal.InputThread` (`failure`, `requestStop`); `internal.EventMapping.apply(e, seq)`, `key`, `mods`, `typed` (new in the review fixes: the crossterm event of a typed character, for the kit and the test input); `internal.NativeCrossterm.loadError`; `internal.OutputCapture` (`start`, `install`, `capturesConsole`, `realErr`, `realOut`, `MaxLine`); `internal.TerminalIO` (its constructor takes `consoleCaptured: () => Boolean` for the R3 test) and `TerminalIO.ConsoleNotCaptured`, `enterCommands`, `leaveCommands`; `internal.LogSink`, `internal.TuiLog` (`let`, `flush`). `compat.sbt`: no change (`Compatibility.None`).
+
+## Negative controls (all logs in `.work/impl/`)
+
+| Test | Control | Result | Log |
+| --- | --- | --- | --- |
+| SessionTest, release during a draw (bot fix 1) | the test on the main code of 67d09e4 | FAIL: "draw-start, leave, draw-end, draw-start, draw-end" | `t1-fix1-negative-control.log` |
+| NativeLoadErrorTest (bot fix 2) | the test on the main code of e5099a8 | the NativeLoadFailed leaf FAILS (4 inputs: 3 give NativeAccessDenied, 1 TerminalIO) | `t1-fix2-negative-control.log` |
+| SessionTest, a failed acquire after the start (bot fix 3) | the test on the main code of 31ef81e | FAIL: "the input thread still polls: 8 polls, then 20" | `t1-fix3-negative-control.log` |
+| OutputCaptureTest, the R3 warning | `TerminalIO.leave` does not print the warning (a temporary edit, restored) | FAIL (the warning is not in the calls) | `t1-r3-api-negative-control.log` |
+| PublicApiTest, no jatatui or crossterm type | a public `Headless.leakedBackend: TestBackend` (a temporary edit, restored) | FAIL: "tui4s.testkit.Headless.leakedBackend names jatatui.core.backend.TestBackend" | `t1-r3-api-negative-control.log` |
+| The exhaustivity rule of EventMapping (`-Wconf ...:e`, RC-22) | the case `KeyCode.Modifier` removed, DEV mode (no CI flag) | the compile FAILS with E029 "match may not be exhaustive" (an error, not a warning: the rule of PR 5 still applies under sbt-tpolecat) | `t1-exhaustivity-negative-control.log` |
+| HeadlessTest, the typed event (review R1-1) | the new leaf, `EventMapping.typed` and `ScriptedInput.typed`, with the OLD `Headless.keyOf` | FAIL: 'A', 'É', 'Z' and 'Q' arrive with no modifiers, the terminal gives them shift | `t1-fix-r1-1-negative-control.log` (after: `t1-fix-r1-1-test.log`) |
+| SessionTest, an `UnsatisfiedLinkError` in the input thread (review R2-4) | the leaf on the main code before 12f999b | FAIL: "no Quit from the input thread: Failure(kyo.Timeout)" | `t1-fix-r2-negative-control.log` (after: `t1-fix-r2-test.log`) |
+| SessionTest, a poll interval below 1 ms (review R2-1) | the leaf on the main code before 3968d45 | FAIL: `pollMillis` gives 0, 0, 0, 25, 2147483647 and an `ArithmeticException` | `t1-fix-r2-negative-control.log` |
+| NativeLoadErrorTest, the innermost cause in the message (review R2-3) | the leaf on the main code before 849812a | FAIL: the three wrapped inputs give "could not be loaded: java.lang.ExceptionInInitializerError" or "...: java.lang.NoClassDefFoundError: Could not initialize class ..." | `t1-fix-r2-negative-control.log` |
+| The PTY screen checks (check.py) | the session of the first full run with one doctored segment: no `ESC[?1049l`; a stray line before `EXIT=0`; the second `+` draws 9 | each FAILS its row ("leaves the alternate screen", "nothing stray", "Count: 2"), exit 1 | `t1-pty-negative-control.log` |
+| The PTY terminal rows (checklist.exp) | the first two tries: JDK 21 in `JAVA_HOME`; a pattern that never comes | 6 and 9 rows FAIL, exit 1 | `t1-pty-try-1.log`, `t1-pty-try-2.log` |
+
+## Review fixes
+
+Three reviewers (R1 plan and API, R2 runtime, R3 build, CI and docs) and three skeptics (K1, K2, K3) read b7ac3ec. A finding is fixed when its skeptic confirmed it. No finding was a blocker; R1-1 was the one major.
+
+| Finding | Verdict | Fix, or why not |
+| --- | --- | --- |
+| R1-1 (major) The kit sends an upper-case letter with no modifiers; the terminal (crossterm 0.29) sends it with Shift | confirmed (K1: minor for tui4s itself; Windows with Caps Lock sends no Shift) | 7f9cccc: `EventMapping.typed` is the one place for the crossterm event of a typed character; `Headless.char` and `typeText` map it with `EventMapping.key`, and `ScriptedInput.typed` uses it. HeadlessTest leaf with the probe's events (a probe in a pseudo-terminal: 'A', 'É', 'Z' with SHIFT; 'a', 'é', '+', '!' with none) and every printable ASCII character; negative control red. Windows: P-12. |
+| R1-2 `NativeLoadFailed` is not in the Scaladoc of `Tui.run`, `TerminalControl.enter`, `Crossterm.load` | confirmed | 450e51e: the three Scaladocs name it. |
+| R1-3 The carried Scaladoc names `TuiApp`, "a source" and SPEC 5.10 | confirmed (K1 added SPEC 5.10) | 450e51e: OutputCapture names `install` (TuiApp comes in T2); TuiLog and LogSink name no SPEC section and no source. |
+| R1-4 The adapt commit and 67d09e4 hold more than one behaviour change; row 4a does not name all | refuted (K1: row 4b names them; the commit message of 0cb43b7 names all three; tests pin them; C3 has the same precedent) | No change. |
+| R1-5 The mark of `EventMapping.apply` is split; the carried tests have only file-level marks | confirmed (cosmetic) | 97b35b2: the mark in one piece; a mark at each changed carried leaf of TerminalIOTest and EventMappingTest. |
+| R2-1 A zero `pollInterval` spins the input thread | confirmed | 3968d45: `Session.pollMillis` is at least 1 ms (and gives `Int.MaxValue`, not an `ArithmeticException`, for a very long interval); the Scaladoc of `pollInterval` says so. SessionTest leaf; negative control red. |
+| R2-2 After a quit, the restore waits for the UI's `Scope` to close | confirmed (design-inherited) | 450e51e: a Scaladoc paragraph on `Tui.run` and a sentence in AGENTS.md "Rules for code". No code change (the order of the prototype and of `Headless.start`). |
+| R2-3 The message of `NativeLoadFailed` names the wrapper, not the cause; `Tui.run` Scaladoc | confirmed, narrowed (K2: a first `UnsatisfiedLinkError` is not wrapped; an unknown platform and a second try are) | 849812a: the message is "<error> (cause: <innermost cause>)" when the error wraps another one; NativeLoadErrorTest leaf with the JDK 25 shapes of K2's probe; negative control red. The Scaladoc part: 450e51e. |
+| R2-4 The input thread catches only `NonFatal`: a `LinkageError` ends it silently, and q and Ctrl-C are dead | confirmed | 12f999b: every error but a `VirtualMachineError` is the failure of the input: the thread keeps it and posts `Msg.Quit`, and the run fails with `TerminalIO` after the restore. SessionTest leaf; negative control red. |
+| R2-5 `RecordingControl.backend` Scaladoc says that the canvas resizes it | confirmed (K2: a larger resize would make the next flush throw) | 450e51e: the Scaladoc says that a resize does not reach it and that a test must not send one. Test sources only. |
+| R2-6 The job `terminal` runs `apt-get install` without `apt-get update` | refuted (K2: expect comes from the frozen noble pocket; the PR 5 job was green) | Not fixed as R2-6. The same line changed under R3-1 (confirmed by K3) as a cheap hardening. |
+| R3-1 The same `apt-get update` line, with the move of `ubuntu-latest` to Ubuntu 26 on 2026-10-19 | confirmed | 0893800: `sudo apt-get update && sudo apt-get install -y expect`. |
+| R3-2 A failed CI run keeps no logs | confirmed | 0893800: run.sh prints the last 80 lines of launchers.log when the build fails; the job sets `PTY_WORK` and uploads that directory with `actions/upload-artifact@v7` when it fails. |
+| R3-3 The pipe and deny rows accept exit code 2 | confirmed | 0893800: `{1}` for both rows. |
+| R3-4 A fixed 300 ms sleep before the quit in a TerminalIOTest leaf | refuted (K3: the settle and the verify pass hold the set; the 300 ms matters only in a double corner case) | No change. |
+| R3-5 AGENTS.md lost "run ptycheck before a release" | refuted (K3: plan 6.5 asks only for "after a terminal change"; the rest of OS-47 goes to PR D; release step 1 waits for a green CI, which runs the job `terminal`) | No change. |
+| R3-6 README and run.sh say "JAVA_HOME or PATH" | confirmed | 0893800: "`$JAVA_HOME/bin/java`, or `java` on `PATH` when `JAVA_HOME` is not set". |
+| R3-7 P-13 says each step compiled in CI mode, from logs without the mode | refuted (K3: CI mode is the dev set plus `-Werror`, so 0 `[warn]` is the same proof; the tip check is in CI mode) | No change to the sentence. The logs of the fixes have the command in their header. |
+| R3-8 The Daily-commands row of the counter script next to the agent rule | refuted (K3: the plan asks for the row; the agent rule is in the same section) | No change. |
+| R3-9 Nits: a Java version that is not a number passes the check; `pgrep` without `catch`; no `stty` comparison for the resize run; an unused `skip` proc | confirmed | 0893800: a `case` check of the version; `app_pid` with `catch` and a FAIL row when it finds no pid; `stty -a` before and after the resize run (one more terminal row: 17); no `skip` proc and no SKIP count. |
+
+## Problems and decisions in this PR
+
+- The eleventh and twelfth rounds are not in the local `.work/DECISIONS.md`; they are read from `origin/wip/handoff`.
+- The carried code does not compile before the adapt commit, so 4a (0cb43b7) comes before the strict-flag commit 3 (166a375), as the task allows.
+- `InputPort` is `private[tui4s]` in `tui4s.internal`, not public in `tui4s.spi` as in PR 5: its element is now the crossterm `Event` (D-21 a), and RC-36 forbids a jatatui type in a public signature. A facade that needs scripted input uses the internal seam (it is inside `tui4s`).
+- `HeadlessControl` is not carried: no run uses it (the runner's Canvas resizes a TestBackend; the tests use `RecordingControl`).
+- `TuiError` has no `AppFailed`: a failure of the UI construction comes out of `Tui.run` as it is (a panic), after the restore; a handler that fails is logged and the run goes on (C3). A failed write to the terminal (an `IOException` of the backend) and a failed read (the input thread) are `TerminalIO`.
+- The non-BMP rule (twelfth round) cannot be met for TYPED keys: a probe in a pseudo-terminal (`Probe.java` on the crossterm jar) shows that the JNI layer of jatatui 0.31.0 gives `KeyCode.Char` the low 16 bits of the character (a typed U+1F600 arrives as U+F600, a private-use character; `KeyCode.Char` holds one Java `char`). The mapping cannot see the difference, so such a key arrives as a wrong character. A bracketed paste is right (`Paste[string=x😀y]`, code points 78, 1f600, 79), and `TextEdit` inserts it as it is. EventMapping drops half of a surrogate pair. Documented in the EventMapping Scaladoc, AGENTS.md and examples/README.md.
+- With a `KyoApp` main, `kill -TERM` gives exit 143 and `kill -INT` 130, with the terminal restored (seen once with a script in a pseudo-terminal): Kyo's signal handling interrupts the run, and the bracket restores the terminal. D-24 puts 130 and 143 in T2 (`TuiApp`); T2 can build on this.
+- The `JAVA_HOME` of this container is JDK 21 (`java` on `PATH` is 25). The first PTY try failed with "Unrecognized option: --sun-misc-unsafe-memory-access=allow". run.sh now checks that the java of the start scripts is 25 or later and says so; the local runs set `JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64`. CI uses setup-java 25.
+- The runner sends only the cells that change, so "Count: 0" comes as "Count:", a cursor move and "0": the kit waits for "Count:" (the second try waited for "Count: 0" and timed out).
+- Without `--enable-native-access` (and without `deny`), JDK 25 prints its four-line warning into the terminal BEFORE the alternate screen (seen in a pseudo-terminal); it stays above the prompt after the run. The build comment and the docs say so (PR 5 said "over the UI").
+- The first frame comes about 1.1 s after the start command, JVM start included (the prototype REPORT: 0.84-0.87 s); under CPU contention (PTY run 2) about 1.8-2.1 s. Not looked into; the keys are fast (26 bytes per key in each run; a quit restores the terminal about 60 ms after the key).
+- `edc3f54` added a Python bytecode file by mistake; fffc7d7 removes it (no amend).
+- The commit trailer is "Co-Authored-By: Claude Opus 5.5": the attribution of the session (as in C3); the task text named "Claude Fable 5.1".
+- C3's P-12 said that the two-counters main comes in T1. It comes in T2: the launchers name a script after the package of its main.
+- `Session.releaseError` (from PR 5) keeps the first error of a release step; nothing reads it in this PR (TerminalIO prints its own first error after the restore).
+- The merge-up (0ed0710) had one conflict: the mark comments under AGENTS.md "What tui4s is" (C3 round 2 and T1 both added one). Both marks stay. The paragraph itself merged without a conflict.
+- R2-6 (refuted) and R3-1 (confirmed) ask for the same line in ci.yml. The line changed under R3-1.
+- `actions/upload-artifact@v7` (R3-2): the tag v7 exists (v7.0.2, 2026-10-07; node24); its inputs `name`, `path` and `if-no-files-found` are the ones used. The step runs only when the job fails, so a green run does not use it.
+- The review fixes found no new problem in the C3 round 2: DispatchTest (12), KyoUiSurfaceTest (2) and TuiRunTest (8) are green after the merge-up, and in the full check.
+- The final contention test run (P-13 run 2): the SettleTest canary cancels itself, as AGENTS.md says ("a 2-CPU JVM under load has one" Kyo worker; the report says `cancelled`, not passed), as in the C2 and C3 contention runs; gate 1 item 3 accepts the self-cancelling canary. The quiet runs and the final check run it: 3 passed.
+- The first try of the contention PTY run read the affinity of one busy loop too early (mask `f`), so it does not prove the contention. The try was green; run 2 was repeated with a checked mask (3 for both loops, before and after) and was green too (P-13).
+- The private[kyo] check 5 (a throwaway file that calls the `private[kyo]` `Element.withAttrs`; the compiler rejects it with E173) was repeated at the tip with a temporary, untracked file. The file was removed after the compile, `git status` was empty after it, and the final clean check ran after it.
+- The final `clean check` removes `examples/target`, so the start scripts are gone after it: run `sbt examples/launchers` (or the PTY kit) again to get `examples/target/bin/counter`.
+
+## Questions for the user
+
+- jatatui 0.31.0 cuts a typed character outside the BMP (an emoji) to 16 bits in its JNI layer. Do you want an issue at oyvindberg/jatatui (a draft first, as for the Kyo issues)?
+
+## Acceptance (plan 6.0 and 6.5, at the tip 0893800)
+
+The final runs were made alone on the machine (4 CPUs, 15 GB, JDK 25.0.4.1, one sbt at a time; `pgrep -x java` empty before each run), with no code change after 0893800. The tree was clean before and after the runs.
+
+- Plan 6.0, every PR: `sbt check` green, run alone, CI mode, 0 warnings: yes (P-13, `t1-final-check.log`; also the fixer's `t1-fix-check.log`). The timing-sensitive suites green in 3 local runs in a row, one under CPU contention: yes, 3 of 3 (the first table in P-13; run 2 is the contention run, with the strict 0 of the glitch leaves). The reviewers' findings fixed or answered, and the skeptics confirm the fixes: the table "Review fixes". `compat.sbt`: no change; the final check prints `Compatibility.None` for the three modules. The CI job `sbt`: after the push.
+- Plan 6.0, from T1 on: the CI job `terminal` (`examples/ptycheck/run.sh`): green locally in 3 runs in a row, one under CPU contention (the second table in P-13; earlier runs: `t1-fix-pty.log` at 0893800, `t1-pty.log`, `t1-pty-tip.log`, `t1-k2-pty.log` at b7ac3ec). The CI job `terminal` green 3 times (K17): after the push.
+- Plan 6.5, this PR: the first local PTY run (`t1-pty.log`); the three bot fixes in own commits with regression tests and negative controls (P-6); the counter Scaladoc names the launchers (thread CounterApp.scala:8): yes (`CounterKyoApp`); EventMappingTest asserts the canonical events (thread Keymap.scala:159): yes (the leaf "canonical events"), and the kit now sends the same canonical events (HeadlessTest, review R1-1); `RecordingControl` and `ScriptedInput` are in the test sources; the review findings are fixed or answered ("Review fixes"), the confirmed ones with a test and a negative control where the behaviour changed.
+- Plan 4.3, the merge-up of the base: yes (0ed0710; `t1-merge-test.log`, then the full check and the final runs).
+
+**The PTY rows** (`examples/ptycheck/run.sh`; the final runs `t1-final-pty-1.log`, `t1-final-pty-contention.log`, `t1-final-pty-3.log`). Each run: 17 of 17 terminal rows (expect) and 16 of 16 screen checks (vt.py and check.py), no row skipped. The runs on this container need `JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64`: the container's `JAVA_HOME` is JDK 21 ("Problems"). run.sh unsets `JAVA_TOOL_OPTIONS` and `JDK_JAVA_OPTIONS` for the app (this container sets `JAVA_TOOL_OPTIONS` for its proxy; on CI they are unset).
+
+| Row (plan 6.5) | Check | Run 1 | Run 2 (contention) | Run 3 |
+| --- | --- | --- | --- | --- |
+| Alternate screen at the start | `ESC[?1049h` before the first frame (expect, and check.py on the segment) | PASS | PASS | PASS |
+| First frame | `Count:` drawn (ms after the start command, JVM start included, for the `q`, Ctrl-C and resize runs); check.py: the first screen shows `Count: 0` | PASS (1083, 1242, 1056) | PASS (1947, 2101, 1784) | PASS (1067, 1105, 1144) |
+| Raw mode while running | `stty -a` of the slave: `-icanon -echo -isig` | PASS | PASS | PASS |
+| Screens after `+`, `+`, `-` | vt.py replay: `Count: 1`, `Count: 2`, `Count: 1` (and `+` in the Ctrl-C run: `Count: 1`) | PASS | PASS | PASS |
+| Partial repaint | each key writes fewer than 200 bytes | PASS (26, 26, 26) | PASS (26, 26, 26) | PASS (26, 26, 26) |
+| `q` ends with exit 0 | `EXIT=0` | PASS | PASS | PASS |
+| Ctrl-C ends with exit 0 | the key (raw mode: no signal), `EXIT=0` | PASS | PASS | PASS |
+| The cursor is shown after | `ESC[?25h` and `ESC[?1049l` after `q` and after Ctrl-C | PASS | PASS | PASS |
+| Nothing stray after the restore | after `ESC[?1049l` the next text is `EXIT=0` (after `q` and after Ctrl-C) | PASS | PASS | PASS |
+| `stty -a` after = before | for the `q` run, the Ctrl-C run, the resize run (review R3-9), the pipe run and the deny run (5 rows) | PASS | PASS | PASS |
+| A pipe as stdin | `echo \| counter`: "stdin/stdout is not a terminal" (`NotATerminal`), exit 1 (only 1 is accepted, review R3-3), no alternate screen | PASS | PASS | PASS |
+| Native access denied | `java --illegal-native-access=deny ...`: "start the JVM with --enable-native-access=ALL-UNNAMED", exit 1 (only 1), no alternate screen | PASS | PASS | PASS |
+| A WINCH resize re-lays out the screen | at 100 columns the help is one line; at 40x20 it wraps inside 40 columns; back at 100x30 it is one line again; exit 0 | PASS | PASS | PASS |
+
+**The grep checks** at the tip (`.work/impl/t1-final-greps.log`). The rule: no `System.err` and no `println` in the core main sources, except the log sink, the output forwarders and the prints after the restore, by design, each with a `// tui4s: allowed` comment. The grep has 36 hits: 14 code lines, each with the marker, and 22 comment or Scaladoc lines; 0 other lines.
+
+```
+$ grep -rn "System.err\|println\|System.out" modules/core/src/main
+36 hits (exit 0), sorted in the log:
+(a) code lines with the marker 'tui4s: allowed': 14
+  internal/OutputCapture.scala:45    if e != null then e else java.lang.System.err.nn // tui4s: allowed   (realErr: the original System.err)
+  internal/OutputCapture.scala:51    if o != null then o else java.lang.System.out.nn // tui4s: allowed   (realOut: the original System.out)
+  internal/OutputCapture.scala:69    val sysOut = java.lang.System.out.nn // tui4s: allowed               (the streams that the forwarders wrap)
+  internal/OutputCapture.scala:70    val sysErr = java.lang.System.err.nn // tui4s: allowed
+  internal/OutputCapture.scala:135   if java.lang.System.out eq out then // tui4s: allowed                (Capture.stop: the streams go back)
+  internal/OutputCapture.scala:137   if java.lang.System.err eq err then // tui4s: allowed
+  internal/TerminalIO.scala:158      err.println(w) // tui4s: allowed                                     (the R3 warning, once, after the restore)
+  internal/TerminalIO.scala:164      err.println(problem) // tui4s: allowed                               ("restoring the terminal failed", after the restore)
+  internal/LogSink.scala:67          else if important then done.println(text) // tui4s: allowed          (the kept lines and the sink's own notes,
+  internal/LogSink.scala:106         err.println(problem) // tui4s: allowed                                after the restore)
+  internal/LogSink.scala:107         if important then err.println(text) // tui4s: allowed
+  internal/LogSink.scala:131         err.println(note) // tui4s: allowed
+  internal/LogSink.scala:132         ring.foreach(err.println) // tui4s: allowed
+  internal/LogSink.scala:135         if p != null then err.println(p) // tui4s: allowed
+(b) comment or Scaladoc lines: 22 (TuiOptions.scala 40, 42, 43, 44; Tui.scala 47; internal/OutputCapture.scala 8, 9, 12, 14,
+    15, 18, 23, 24, 42, 48, 62, 94, 125, 126; internal/TerminalIO.scala 54, 83; internal/LogSink.scala 30)
+(c) other lines (code without the marker): 0
+$ grep -rn jatatui.widgets modules/core
+(no output; exit 1: 0 hits)
+$ grep -rn "getDeclaredField\|setAccessible" modules/core/src/main
+(no output; exit 1: 0 hits)
+$ grep -rn TODO modules/core/src/main examples/src
+the 4 of C2: Runner.scala:101 TODO(#8), 248 TODO(#9), 275 TODO(#9); Mount.scala:77 TODO(#8); no new TODO
+```
+
+The two greps for `jatatui.widgets` and `getDeclaredField\|setAccessible` over `examples/src` also give 0 hits.
+
+**The private[kyo] check** (RR N9; AGENTS.md "the runner calls no `private[kyo]` member"), repeated at the tip with the method of `c3-private-kyo-check.log`, checks 1 to 5:
+
+```
+-- 1. $ grep -rnE "^package kyo" modules examples/src
+(no output; exit 1: 0 hits)
+-- 2. $ grep -rn "private\[kyo\]" modules/core/src/main examples/src
+(no output; exit 1: 0 hits)
+-- 3. $ grep -rnE "getDeclared|setAccessible|java\.lang\.reflect|MethodHandles|\.getMethod\(|\.getField\(" modules/core/src/main examples/src
+(no output; exit 1: 0 hits)
+-- 4. $ grep -rn "private\[kyo\]" <kyo-ui RC7 sources>/kyo/*.scala
+UI.scala and Style.scala (14 hits): UI.frame, Element.frame, withAttrs, jsProp, HtmlChildVal, Attrs, Foreach.applyTyped,
+KeyedChild, TextInputAttrs; the constructors of Style, Color.Hex, Color.Rgb, Color.Rgba, Color.Var.
+Chart, Drag, Selector, Stylesheet and Svg have more; the runner does not name any of their types (0 hits).
+   $ grep -rnE "\.frame\b|\.withAttrs\b|\bjsProp\b|HtmlChildVal|\bAttrs\b|applyTyped|KeyedChild|TextInputAttrs|\bStyle\(|\bHex\(|\bRgb\(|\bRgba\(|\bVar\(" modules/core/src/main examples/src
+5 hits, none a private[kyo] member:
+  internal/Props.scala:172, 174   a type test on kyo.Style.Color.Rgb and its public fields
+                                  (only the constructor is private[kyo]; the runner never calls it)
+  internal/Props.scala:184, 192   jatatui's `JColor.Rgb(`
+  internal/Mount.scala:227        a comment
+  The T1 files (Tui.scala, TuiError.scala, TuiOptions.scala, internal/TerminalIO, Crossterm, Session, EventMapping,
+  OutputCapture, LogSink, TuiLog, InputPort, the Paint.scala change, testkit/Headless.scala) and the example: 0 hits
+-- 5. a throwaway file in package tui4s.internal: def f(e: Element): Element = e.withAttrs(e.attrs)
+   $ sbt -Dsbt.supershell=false core/compile
+[error] -- [E173] Reference Error: .../tui4s/internal/Throwaway.scala:7:35
+[error]   |method withAttrs cannot be accessed as a member of (e : kyo.UI.Ast.Element) from object Throwaway.
+[error]   |  private[kyo] method withAttrs can only be accessed from package kyo.
+(sbt exit 1; the file removed; git status empty)
+```
+
+The reads of the public member `Element.attrs` (Runner, Dispatch, Props; its type `Attrs` is never named, RR N9 a) are as in C3; the log lists them. RESULT: the core main sources and the example call no `private[kyo]` member of kyo-ui; no source is in package kyo; no reflection.
+
+## Logs (`.work/impl/`)
+
+Implementation: `t1-notes.txt`, `t1-step0-build.log`, `t1-carry-verify.py`, `t1-carry-verify.log`, `t1-step2-fmt.log`, `t1-step4a-compile-1.log`, `t1-step4a-test-1.log`, `t1-step4a-fmt.log`, `t1-step3-warnings.log`, `t1-step4b-test-1.log`, `t1-step4b-test-2.log`, `t1-fix1-negative-control.log`, `t1-fix1-test.log`, `t1-fix2-negative-control.log`, `t1-fix2-test.log`, `t1-fix3-negative-control.log`, `t1-fix3-test.log`, `t1-step4f-test.log`, `t1-pty-try-1.log`, `t1-pty-try-2.log`, `t1-pty-try-3.log`, `t1-pty.log`, `t1-pty-session.txt`, `t1-pty-screens.txt`, `t1-step4i-fmt.log`, `t1-check.log`, `t1-greps.log`, `t1-version-order-test.log`, `t1-pty-tip.log`, `t1-r3-api-negative-control.log`, `t1-pty-negative-control.log`, `t1-exhaustivity-negative-control.log`. Skeptic K2: `t1-k2-check.log`, `t1-k2-pty.log`. Probes: `t1-fix-r1-1-probe.log`, `t1-fix-r2-3-probe.log`. Merge-up and review fixes: `t1-merge-test.log`, `t1-fix-r1-1-negative-control.log`, `t1-fix-r1-1-test.log`, `t1-fix-fmt-1.log`, `t1-fix-r2-negative-control.log`, `t1-fix-r2-test.log`, `t1-fix-docs-compile.log`, `t1-fix-fmt-final.log`, `t1-fix-check.log`, `t1-fix-version-order-test.log`, `t1-fix-pty.log`, `t1-fix-greps.log`; the fixer's body: `t1-pr-body-fix.txt`. Final runs: `t1-final-run-1.log`, `t1-final-run-contention.log`, `t1-final-run-3.log`, `t1-final-pty-1.log`, `t1-final-pty-contention-try-1.log`, `t1-final-pty-contention.log`, `t1-final-pty-3.log`, `t1-final-pty-files/` (the raw output and the replayed screens of the 3 PTY runs), `t1-final-greps.log`, `t1-final-check.log`, `t1-final-version-order-test.log`. The implementer's body: `t1-pr-body-impl.txt`. This body: `t1-pr-body.txt`.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+https://claude.ai/code/session_013i7PNgzYKkSSTk4McEPUvn

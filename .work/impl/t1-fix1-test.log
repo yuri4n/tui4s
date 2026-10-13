@@ -1,0 +1,98 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-04-terminal-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/)
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/core)...
+[info] scalafmt: Reformatted 2 Scala sources
+[success] Total time: 4 s, completed Oct 13, 2026, 3:52:07 PM
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/core)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/cats)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/zio)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal)...
+[success] Total time: 0 s, completed Oct 13, 2026, 3:52:07 PM
+[info] compiling 29 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 40 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+[success] Total time: 68 s (0:01:08.0), completed Oct 13, 2026, 3:53:15 PM
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38221 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+[1m=== SessionTest ===[0m
+  [1m[32m[PASS][0m[0m the release leaves the terminal also when the closing thread is interrupted  [2m(112ms)[0m
+  [1m[32m[PASS][0m[0m the input thread maps crossterm events to messages and numbers them  [2m(35ms)[0m
+  [1m[32m[PASS][0m[0m an input failure is kept and ends the run, also when the inbox is full  [2m(10ms)[0m
+  [1m[32m[PASS][0m[0m a failure after the session is built closes the whole session  [2m(4ms)[0m
+  [1m[32m[PASS][0m[0m the release waits for a draw in progress, and a draw after the release writes nothing  [2m(332ms)[0m
+[2m---[0m SessionTest: [32m5 passed[0m, [31m0 failed[0m  [2m(820ms)[0m
+
+Results: [32m5 passed[0m, [31m0 failed[0m  (total: 820ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== TuiRunTest ===[0m
+  [1m[32m[PASS][0m[0m a run starts, a scripted key quits it: the terminal is entered, then left  [2m(626ms)[0m
+  [1m[32m[PASS][0m[0m Ctrl-C quits the run; with ctrlCQuits = false it is a key of the handlers  [2m(94ms)[0m
+  [1m[32m[PASS][0m[0m the quit value that the UI gets ends the run  [2m(237ms)[0m
+  [1m[32m[PASS][0m[0m an interrupted run leaves the terminal  [2m(43ms)[0m
+  [1m[32m[PASS][0m[0m a UI that fails to build leaves the terminal, and its error comes out as it is  [2m(34ms)[0m
+  [1m[32m[PASS][0m[0m the input fails: the run ends with TerminalIO and leaves the terminal  [2m(19ms)[0m
+  [1m[32m[PASS][0m[0m a write to the terminal fails: the run ends with TerminalIO and leaves the terminal  [2m(30ms)[0m
+  [1m[32m[PASS][0m[0m Tui.run and Tui.run(options) take the UI with its quit value  [2m(4ms)[0m
+[2m---[0m TuiRunTest: [32m8 passed[0m, [31m0 failed[0m  [2m(1.1s)[0m
+
+Results: [32m8 passed[0m, [31m0 failed[0m  (total: 1.1s)
+Running 1 suite(s) with parallelism 8
+
+[1m=== TerminalIOTest ===[0m
+  [1m[32m[PASS][0m[0m open and close in order  [2m(63ms)[0m
+  [1m[32m[PASS][0m[0m paste = false: no bracketed paste mode  [2m(31ms)[0m
+  [1m[32m[PASS][0m[0m no terminal: NotATerminal before anything else changes  [2m(5ms)[0m
+  [1m[32m[PASS][0m[0m stdin is not a terminal: NotATerminal before raw mode  [2m(4ms)[0m
+  [1m[32m[PASS][0m[0m a failing UI construction restores the streams too  [2m(31ms)[0m
+  [1m[32m[PASS][0m[0m a native library that cannot load: NativeAccessDenied  [2m(3ms)[0m
+  [1m[32m[PASS][0m[0m a failing mode command: TerminalIO, raw mode is left again  [2m(3ms)[0m
+  [1m[32m[PASS][0m[0m a failing release step does not stop the others; the error is printed  [2m(32ms)[0m
+  [1m[32m[PASS][0m[0m output while the UI is up is printed after the restore  [2m(32ms)[0m
+tui4s test: not captured
+  [1m[32m[PASS][0m[0m captureOutput = false: the output is not taken  [2m(35ms)[0m
+  [1m[32m[PASS][0m[0m Kyo log lines at warn or above are printed after the restore  [2m(86ms)[0m
+  [1m[32m[PASS][0m[0m with a log file, the output and the log go to the file  [2m(38ms)[0m
+  [1m[32m[PASS][0m[0m the Kyo log of the run has the level of the caller's logger  [2m(49ms)[0m
+  [1m[32m[PASS][0m[0m every Kyo log line of the run is in the log file when the run returns  [2m(281ms)[0m
+  [1m[32m[PASS][0m[0m the shutdown hook restores the terminal while the app runs  [2m(41ms)[0m
+  [1m[32m[PASS][0m[0m the UI's quit value ends the run; the screen showed the UI's own writes  [2m(333ms)[0m
+[2m---[0m TerminalIOTest: [32m16 passed[0m, [31m0 failed[0m  [2m(1.0s)[0m
+
+Results: [32m16 passed[0m, [31m0 failed[0m  (total: 1.0s)
+Running 1 suite(s) with parallelism 8
+
+[1m=== HeadlessTest ===[0m
+  [1m[32m[PASS][0m[0m the quit value ends the run; awaitEnd and finished see it  [2m(35ms)[0m
+  [1m[32m[PASS][0m[0m resize: the frame of the resize lays the content out again  [2m(19ms)[0m
+  [1m[32m[PASS][0m[0m resize while a signal writes fast: the runner resizes the backend, so no frame hits a smaller buffer  [2m(214ms)[0m
+  [1m[32m[PASS][0m[0m screen is never a torn frame: a read during a flush sees one value on every row  [2m(1.5s)[0m
+  [1m[32m[PASS][0m[0m start fails fast when the UI fails, with the error  [2m(12ms)[0m
+  [1m[32m[PASS][0m[0m idle: no frame without a change  [2m(1.8s)[0m
+  [1m[32m[PASS][0m[0m awaitScreen: true before the timeout; false after it when nothing changes  [2m(322ms)[0m
+  [1m[32m[PASS][0m[0m after the run has ended, a key, a paste, a resize and nextFrame fail at once; the key that ended it still gets its frame  [2m(18ms)[0m
+  [1m[32m[PASS][0m[0m char: half of a surrogate pair fails and types nothing; typeText types the emoji as one key  [2m(39ms)[0m
+[2m---[0m HeadlessTest: [32m9 passed[0m, [31m0 failed[0m  [2m(4.0s)[0m
+
+Results: [32m9 passed[0m, [31m0 failed[0m  (total: 4.0s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 10 s, completed Oct 13, 2026, 3:53:24 PM

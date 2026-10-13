@@ -1,0 +1,110 @@
+# R2-1, R2-3, R2-4 negative control (fixer, second run): the three new leaves on the main code BEFORE their fixes (main = 7f9cccc)
+# command: SBT_TPOLECAT_CI=1 sbt -Dsbt.supershell=false "core/testOnly tui4s.SessionTest tui4s.NativeLoadErrorTest"
+# date: 2026-10-13T18:17:58+00:00  base: 7f9cccc + uncommitted (tests only): modules/core/src/test/scala/tui4s/NativeLoadErrorTest.scala modules/core/src/test/scala/tui4s/SessionTest.scala   pgrep -x java before: none
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39053 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-04-terminal-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/)
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 3 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39053 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+[1m=== SessionTest ===[0m
+  [1m[32m[PASS][0m[0m the release leaves the terminal also when the closing thread is interrupted  [2m(100ms)[0m
+  [1m[32m[PASS][0m[0m the input thread maps crossterm events to messages and numbers them  [2m(25ms)[0m
+  [1m[32m[PASS][0m[0m an input failure is kept and ends the run, also when the inbox is full  [2m(9ms)[0m
+  [1m[32m[PASS][0m[0m a failure after the session is built closes the whole session  [2m(3ms)[0m
+  [1m[32m[PASS][0m[0m the release waits for a draw in progress, and a draw after the release writes nothing  [2m(329ms)[0m
+  [1m[32m[PASS][0m[0m an acquire that fails after the input thread started stops the thread  [2m(506ms)[0m
+Exception in thread "tui4s-input" java.lang.UnsatisfiedLinkError: 'boolean tui.crossterm.CrosstermJni.poll(tui.crossterm.Duration)'
+	at tui4s.SessionTest$$anon$32.poll(SessionTest.scala:327)
+	at tui4s.internal.InputThread.run(Session.scala:224)
+  [1m[31m[FAIL][0m[0m an input error that NonFatal does not match (UnsatisfiedLinkError) is kept and ends the run too  [2m(5.0s)[0m *** FAILED ***
+
+    assert(false, s"no Quit from the input thread: $other")
+    // message: no Quit from the input thread: Failure(kyo.Timeout: 
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m   [0m [2m│[0m [32m// SessionTest.scala:340:72 tui4s.SessionTest $anonfun[0m
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m339[0m [2m│[0m Abort
+    [2m340[0m [2m│[0m   .run[Closed | Timeout](Async.timeout(5.seconds)(box.take)📍)
+    [2m341[0m [2m│[0m   .map {
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m   [0m [2m│[0m [32m[1m[31m⚠️ KyoException[0m[0m[0m
+    [2m   [0m [2m│[0m [32m[0m
+    [2m   [0m [2m│[0m [32mComputation has timed out after 5.seconds[0m
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    )
+
+  [1m[31m[FAIL][0m[0m a poll interval below 1 ms polls with 1 ms: the input thread does not spin  [2m(211ms)[0m *** FAILED ***
+
+    )
+    // message: List(0, 0, 0, 25, 2147483647, java.lang.ArithmeticException: long overflow)
+
+[2m---[0m SessionTest: [32m6 passed[0m, [31m2 failed[0m  [2m(6.6s)[0m
+FAILURES (2):
+  an input error that NonFatal does not match (UnsatisfiedLinkError) is kept and ends the run too  [FAIL]
+    assert(false, s"no Quit from the input thread: $other")
+    // message: no Quit from the input thread: Failure(kyo.Timeout: 
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m   [0m [2m│[0m [32m// SessionTest.scala:340:72 tui4s.SessionTest $anonfun[0m
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m339[0m [2m│[0m Abort
+    [2m340[0m [2m│[0m   .run[Closed | Timeout](Async.timeout(5.seconds)(box.take)📍)
+    [2m341[0m [2m│[0m   .map {
+    [2m   [0m [2m│[0m [32m[2m──────────────────────────────[0m[0m
+    [2m   [0m [2m│[0m [32m[1m[31m⚠️ KyoException[0m[0m[0m
+    [2m   [0m [2m│[0m [32m[0m
+    [2m   [0m [2m│[0m [32mComputation has timed out after 5.seconds[0m
+    (truncated)
+  a poll interval below 1 ms polls with 1 ms: the input thread does not spin  [FAIL]
+    )
+    // message: List(0, 0, 0, 25, 2147483647, java.lang.ArithmeticException: long overflow)
+
+Results: [32m6 passed[0m, [31m2 failed[0m  (total: 6.6s)
+Running 1 suite(s) with parallelism 8
+
+[1m=== NativeLoadErrorTest ===[0m
+  [1m[32m[PASS][0m[0m a fatal error of the JVM stays as it is  [2m(3ms)[0m
+  [1m[31m[FAIL][0m[0m the message of NativeLoadFailed names the root cause of a wrapped error  [2m(8ms)[0m *** FAILED ***
+
+    assert(wrong.isEmpty, wrong.mkString("\n"))
+    // message: java.lang.ExceptionInInitializerError -> NativeLoadFailed: the native terminal library (crossterm) could not be loaded: java.lang.ExceptionInInitializerError
+    java.lang.NoClassDefFoundError: Could not initialize class tui.crossterm.CrosstermJni -> NativeLoadFailed: the native terminal library (crossterm) could not be loaded: java.lang.NoClassDefFoundError: Could not initialize class tui.crossterm.CrosstermJni
+    java.lang.NoClassDefFoundError: Could not initialize class tui.crossterm.CrosstermJni -> NativeLoadFailed: the native terminal library (crossterm) could not be loaded: java.lang.NoClassDefFoundError: Could not initialize class tui.crossterm.CrosstermJni
+
+  [1m[32m[PASS][0m[0m a JVM that denies native access is NativeAccessDenied, and its message names the flag  [2m(4ms)[0m
+  [1m[32m[PASS][0m[0m a library that cannot be found or linked is NativeLoadFailed, with its cause  [2m(3ms)[0m
+[2m---[0m NativeLoadErrorTest: [32m3 passed[0m, [31m1 failed[0m  [2m(33ms)[0m
+FAILURES (1):
+  the message of NativeLoadFailed names the root cause of a wrapped error  [FAIL]
+    assert(wrong.isEmpty, wrong.mkString("\n"))
+    // message: java.lang.ExceptionInInitializerError -> NativeLoadFailed: the native terminal library (crossterm) could not be loaded: java.lang.ExceptionInInitializerError
+    java.lang.NoClassDefFoundError: Could not initialize class tui.crossterm.CrosstermJni -> NativeLoadFailed: the native terminal library (crossterm) could not be loaded: java.lang.NoClassDefFoundError: Could not initialize class tui.crossterm.CrosstermJni
+    java.lang.NoClassDefFoundError: Could not initialize class tui.crossterm.CrosstermJni -> NativeLoadFailed: the native terminal library (crossterm) could not be loaded: java.lang.NoClassDefFoundError: Could not initialize class tui.crossterm.CrosstermJni
+
+Results: [32m3 passed[0m, [31m1 failed[0m  (total: 33ms)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.NativeLoadErrorTest
+[error] 	tui4s.SessionTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 32 s, completed Oct 13, 2026, 6:18:37 PM
+exit 1

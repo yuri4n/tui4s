@@ -1,0 +1,254 @@
+# T1 final greps at 0893800, 2026-10-13T18:34:54+00:00; tree: 0 changed files; cwd: the T1 worktree
+
+$ grep -rn "System.err\|println\|System.out" modules/core/src/main
+modules/core/src/main/scala/tui4s/TuiOptions.scala:40:  *   while the UI is up in the real terminal, `System.out` and `System.err` go
+modules/core/src/main/scala/tui4s/TuiOptions.scala:42:  *   over the screen. The capture is JVM-wide. Scala's `println` writes to
+modules/core/src/main/scala/tui4s/TuiOptions.scala:43:  *   `scala.Console.out`, which keeps the stream that `System.out` was when
+modules/core/src/main/scala/tui4s/TuiOptions.scala:44:  *   `scala.Console` was first used: when it was used before the run, `println`
+modules/core/src/main/scala/tui4s/Tui.scala:47:      * (with `TuiOptions.captureOutput`) so do `System.out` and `System.err`;
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:8:/** Captures `System.out` and `System.err` while the UI is up
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:9:  * (`TuiOptions.captureOutput`): a stray `println` in user code or in a library
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:12:  * It installs two forwarding streams as `System.out` and `System.err`. While
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:14:  * capture, each line goes to the sink. Scala's `println` writes to
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:15:  * `scala.Console.out`, which keeps the stream that `System.out` was when
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:18:  * `scala.Console` gets `println` always captured (`TuiApp` will do this in its
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:23:// System.out and System.err: the forwarders replace and restore them, by
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:24:// design (the rule "no stderr and no println in core main" of the pull
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:42:    /** The real stderr: `System.err` as it was before tui4s replaced it. */
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:45:      if e != null then e else java.lang.System.err.nn // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:48:    /** The real stdout: `System.out` as it was before tui4s replaced it. */
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:51:      if o != null then o else java.lang.System.out.nn // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:62:    /** Installs the forwarders of the current `System.out` and `System.err`. A
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:69:        val sysOut = java.lang.System.out.nn // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:70:        val sysErr = java.lang.System.err.nn // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:94:      * `println`. False when `scala.Console` was first used before the
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:125:          * and, unless [[install]] installed them for good, `System.out` and
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:126:          * `System.err` are again the streams they were at the start of this
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:135:                  if java.lang.System.out eq out then // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:137:                  if java.lang.System.err eq err then // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:54:  *   true when a capture also takes `scala.Console` (Scala's `println`); see
+modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:83:                // println that the capture cannot take is a warning, in the
+modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:158:              err.println(w) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:164:            err.println(problem) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:30:// stderr and no println in core main" of the pull request T1)
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:67:          else if important then done.println(text) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:106:            err.println(problem) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:107:            if important then err.println(text) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:131:              err.println(note) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:132:          ring.foreach(err.println) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:135:          if p != null then err.println(p) // tui4s: allowed
+(exit 0)
+
+-- the same hits, sorted: (a) a code line with the marker 'tui4s: allowed'; (b) a comment or Scaladoc line (the text after the line number starts with //, * or /*); (c) any other line
+(a) code lines with the marker: 14
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:45:      if e != null then e else java.lang.System.err.nn // tui4s: allowed
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:51:      if o != null then o else java.lang.System.out.nn // tui4s: allowed
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:69:        val sysOut = java.lang.System.out.nn // tui4s: allowed
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:70:        val sysErr = java.lang.System.err.nn // tui4s: allowed
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:135:                  if java.lang.System.out eq out then // tui4s: allowed
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:137:                  if java.lang.System.err eq err then // tui4s: allowed
+    modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:158:              err.println(w) // tui4s: allowed
+    modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:164:            err.println(problem) // tui4s: allowed
+    modules/core/src/main/scala/tui4s/internal/LogSink.scala:67:          else if important then done.println(text) // tui4s: allowed
+    modules/core/src/main/scala/tui4s/internal/LogSink.scala:106:            err.println(problem) // tui4s: allowed
+    modules/core/src/main/scala/tui4s/internal/LogSink.scala:107:            if important then err.println(text) // tui4s: allowed
+    modules/core/src/main/scala/tui4s/internal/LogSink.scala:131:              err.println(note) // tui4s: allowed
+    modules/core/src/main/scala/tui4s/internal/LogSink.scala:132:          ring.foreach(err.println) // tui4s: allowed
+    modules/core/src/main/scala/tui4s/internal/LogSink.scala:135:          if p != null then err.println(p) // tui4s: allowed
+(b) comment or Scaladoc lines: 22
+    modules/core/src/main/scala/tui4s/TuiOptions.scala:40:  *   while the UI is up in the real terminal, `System.out` and `System.err` go
+    modules/core/src/main/scala/tui4s/TuiOptions.scala:42:  *   over the screen. The capture is JVM-wide. Scala's `println` writes to
+    modules/core/src/main/scala/tui4s/TuiOptions.scala:43:  *   `scala.Console.out`, which keeps the stream that `System.out` was when
+    modules/core/src/main/scala/tui4s/TuiOptions.scala:44:  *   `scala.Console` was first used: when it was used before the run, `println`
+    modules/core/src/main/scala/tui4s/Tui.scala:47:      * (with `TuiOptions.captureOutput`) so do `System.out` and `System.err`;
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:8:/** Captures `System.out` and `System.err` while the UI is up
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:9:  * (`TuiOptions.captureOutput`): a stray `println` in user code or in a library
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:12:  * It installs two forwarding streams as `System.out` and `System.err`. While
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:14:  * capture, each line goes to the sink. Scala's `println` writes to
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:15:  * `scala.Console.out`, which keeps the stream that `System.out` was when
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:18:  * `scala.Console` gets `println` always captured (`TuiApp` will do this in its
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:23:// System.out and System.err: the forwarders replace and restore them, by
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:24:// design (the rule "no stderr and no println in core main" of the pull
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:42:    /** The real stderr: `System.err` as it was before tui4s replaced it. */
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:48:    /** The real stdout: `System.out` as it was before tui4s replaced it. */
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:62:    /** Installs the forwarders of the current `System.out` and `System.err`. A
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:94:      * `println`. False when `scala.Console` was first used before the
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:125:          * and, unless [[install]] installed them for good, `System.out` and
+    modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:126:          * `System.err` are again the streams they were at the start of this
+    modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:54:  *   true when a capture also takes `scala.Console` (Scala's `println`); see
+    modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:83:                // println that the capture cannot take is a warning, in the
+    modules/core/src/main/scala/tui4s/internal/LogSink.scala:30:// stderr and no println in core main" of the pull request T1)
+(c) other lines (code without the marker): 0
+
+$ grep -rn "tui4s: allowed" modules/core/src/main | wc -l
+16
+
+$ grep -rn jatatui.widgets modules/core
+(exit 1; 1 = 0 hits)
+$ grep -rn jatatui.widgets examples/src
+(exit 1; 1 = 0 hits)
+
+$ grep -rn "getDeclaredField\|setAccessible" modules/core/src/main
+(exit 1; 1 = 0 hits)
+$ grep -rn "getDeclaredField\|setAccessible" examples/src
+(exit 1; 1 = 0 hits)
+
+== RR N9: the runner calls no private[kyo] member (the method of .work/impl/c3-private-kyo-check.log) ==
+-- 1. no source of the repo is in package kyo (a file in package kyo would get private[kyo] access):
+$ grep -rnE "^package kyo" modules examples/src
+(exit 1; 1 = 0 hits)
+-- 2. no private[kyo] in the core main sources and the example:
+$ grep -rn "private\[kyo\]" modules/core/src/main examples/src
+(exit 1; 1 = 0 hits)
+-- 3. no reflection in the core main sources and the example:
+$ grep -rnE "getDeclared|setAccessible|java\.lang\.reflect|MethodHandles|\.getMethod\(|\.getField\(" modules/core/src/main examples/src
+(exit 1; 1 = 0 hits)
+-- 4. the private[kyo] members of kyo-ui RC7 (sources of the RC7 jar, .work/scratch/kyo-src/kyo-ui):
+kyo-ui/kyo/Chart.scala:19:final case class Chart[A] private[kyo] (
+kyo-ui/kyo/Chart.scala:604:            private[kyo] case Categorical(fn: Any => Style.Color)
+kyo-ui/kyo/Chart.scala:939:        private[kyo] def unset[C]: RuleValue[C]                        = RuleValue.Unset.asInstanceOf[RuleValue[C]]
+kyo-ui/kyo/Chart.scala:970:        final private[kyo] case class Bar[A, X, Y](
+kyo-ui/kyo/Chart.scala:988:        final private[kyo] case class Line[A, X, Y](
+kyo-ui/kyo/Chart.scala:1007:        final private[kyo] case class Area[A, X, Y](
+kyo-ui/kyo/Chart.scala:1029:        final private[kyo] case class Point[A, X, Y](
+kyo-ui/kyo/Chart.scala:1048:        final private[kyo] case class Rule[A](
+kyo-ui/kyo/Chart.scala:1061:        final private[kyo] case class Text[A, X, Y](
+kyo-ui/kyo/Chart.scala:1077:        final private[kyo] case class ErrorBar[A, X, Y](
+kyo-ui/kyo/Chart.scala:1162:        private[kyo] def from(
+kyo-ui/kyo/Chart.scala:1193:        private[kyo] def kind: kyo.internal.Scale.Kind
+kyo-ui/kyo/Chart.scala:1194:        private[kyo] def toDomain(a: A): Maybe[kyo.internal.Domain]
+kyo-ui/kyo/Chart.scala:1220:        private[kyo] val any: Plottable[Any] = categorical(_.toString)
+kyo-ui/kyo/Chart.scala:1233:                private[kyo] def kind: Scale.Kind                     = inner.kind
+kyo-ui/kyo/Chart.scala:1234:                private[kyo] def toDomain(a: Maybe[A]): Maybe[Domain] = a match
+kyo-ui/kyo/Chart.scala:1261:                private[kyo] def kind: Scale.Kind              = Scale.Kind.Band
+kyo-ui/kyo/Chart.scala:1262:                private[kyo] def toDomain(a: A): Maybe[Domain] =
+kyo-ui/kyo/Chart.scala:1308:                private[kyo] def kind: Scale.Kind              = Scale.Kind.Linear
+kyo-ui/kyo/Chart.scala:1309:                private[kyo] def toDomain(a: A): Maybe[Domain] = Present(Domain.Continuous(value(a)))
+kyo-ui/kyo/Chart.scala:1332:                private[kyo] def kind: Scale.Kind              = Scale.Kind.Band
+kyo-ui/kyo/Chart.scala:1333:                private[kyo] def toDomain(a: A): Maybe[Domain] = Present(Domain.Category(lbl(a)))
+kyo-ui/kyo/Chart.scala:1356:                private[kyo] def kind: Scale.Kind              = Scale.Kind.Time
+kyo-ui/kyo/Chart.scala:1357:                private[kyo] def toDomain(a: A): Maybe[Domain] = Present(Domain.Temporal(epochMillis(a)))
+kyo-ui/kyo/Chart.scala:1376:    final private[kyo] case class Encoding[A, C](accessor: A => C, plottable: Plottable[C], tag: ConcreteTag[C])
+kyo-ui/kyo/Chart.scala:1390:    final private[kyo] case class EncodingMaybe[A, C](accessor: A => Maybe[C], plottable: Plottable[C], tag: ConcreteTag[C])
+kyo-ui/kyo/Chart.scala:1415:    final private[kyo] case class Grouping[A](group: Maybe[A => Any], normalize: Boolean)
+kyo-ui/kyo/Chart.scala:1418:        private[kyo] def none[A]: Grouping[A] = Grouping(Absent, false)
+kyo-ui/kyo/Chart.scala:1426:    private[kyo] enum DataSource[A]:
+kyo-ui/kyo/Chart.scala:1439:    private[kyo] object Unset:
+kyo-ui/kyo/Chart.scala:1454:    private[kyo] def positionalTag[C]: ConcreteTag[C] =
+kyo-ui/kyo/Chart.scala:1483:        private[kyo] def equality: CanEqual[C, C]
+kyo-ui/kyo/Chart.scala:1484:        private[kyo] def identity: ConcreteTag[C]
+kyo-ui/kyo/Chart.scala:1499:                private[kyo] def equality: CanEqual[Nothing, Nothing] = CanEqual.derived
+kyo-ui/kyo/Chart.scala:1500:                private[kyo] def identity: ConcreteTag[Nothing]       = summon[ConcreteTag[Nothing]]
+kyo-ui/kyo/Chart.scala:1503:                private[kyo] def equality: CanEqual[C, C] = ceq
+kyo-ui/kyo/Chart.scala:1504:                private[kyo] def identity: ConcreteTag[C] = tag
+kyo-ui/kyo/Chart.scala:1519:        private[kyo] def none[A]: Stack[A] = Grouping.none[A]
+kyo-ui/kyo/Drag.scala:464:        private[kyo] def apply(meta: FileMeta): DroppedFile = meta
+kyo-ui/kyo/Drag.scala:487:        private[kyo] def apply(item: Item.Directory): DroppedDirectory = item
+kyo-ui/kyo/Drag.scala:518:    private[kyo] def acceptsSortablePayload(accept: Accept): Boolean =
+kyo-ui/kyo/Selector.scala:17:final case class Selector private[kyo] (css: String) derives CanEqual:
+kyo-ui/kyo/Style.scala:35:final case class Style private[kyo] (props: Chunk[Style.Prop]) derives CanEqual:
+kyo-ui/kyo/Style.scala:850:        final case class Hex private[kyo] (value: String)                      extends Color
+kyo-ui/kyo/Style.scala:851:        final case class Rgb private[kyo] (r: Int, g: Int, b: Int)             extends Color
+kyo-ui/kyo/Style.scala:852:        final case class Rgba private[kyo] (r: Int, g: Int, b: Int, a: Double) extends Color
+kyo-ui/kyo/Style.scala:854:        final case class Var private[kyo] (name: String)                       extends Color
+kyo-ui/kyo/Stylesheet.scala:34:final case class Stylesheet private[kyo] (entries: Chunk[Stylesheet.Entry]) derives CanEqual:
+kyo-ui/kyo/Stylesheet.scala:141:    final case class Keyframe private[kyo] (percent: Double) derives CanEqual
+kyo-ui/kyo/Stylesheet.scala:159:    final case class MediaQuery private[kyo] (condition: String) derives CanEqual:
+kyo-ui/kyo/Stylesheet.scala:208:    private[kyo] def renderSheet(sheet: Stylesheet)(using Frame): String =
+kyo-ui/kyo/Svg.scala:120:        private[kyo] def svgAttrs: SvgAttrs
+kyo-ui/kyo/Svg.scala:121:        private[kyo] def withSvg(s: SvgAttrs): Self
+kyo-ui/kyo/Svg.scala:142:    /** The `private[kyo]` command ADT backing the opaque `PathData`. */
+kyo-ui/kyo/Svg.scala:143:    private[kyo] enum PathCommand derives CanEqual:
+kyo-ui/kyo/Svg.scala:184:        private[kyo] def commands(p: PathData): Chunk[PathCommand] = p
+kyo-ui/kyo/Svg.scala:224:        private[kyo] def pairs(p: Points): Chunk[(Double, Double)] = p
+kyo-ui/kyo/Svg.scala:254:        private[kyo] def id: String
+kyo-ui/kyo/Svg.scala:375:    final private[kyo] case class SvgAttrs(
+kyo-ui/kyo/Svg.scala:482:    private[kyo] enum Coord derives CanEqual:
+kyo-ui/kyo/Svg.scala:543:    private[kyo] type Paintable = HasFill & HasStroke & HasOpacity
+kyo-ui/kyo/Svg.scala:565:    private[kyo] def liftSvg(cs: Seq[?])(using Frame): Chunk[UI] =
+kyo-ui/kyo/Svg.scala:813:        private[kyo] def id: String                       = svgAttrs.defId.getOrElse(genId(frame))
+kyo-ui/kyo/Svg.scala:834:        private[kyo] def id: String                       = svgAttrs.defId.getOrElse(genId(frame))
+kyo-ui/kyo/Svg.scala:863:        private[kyo] def id: String         = svgAttrs.defId.getOrElse(genId(frame))
+kyo-ui/kyo/Svg.scala:878:        private[kyo] def id: String           = svgAttrs.defId.getOrElse(genId(frame))
+kyo-ui/kyo/Svg.scala:892:        private[kyo] def id: String    = svgAttrs.defId.getOrElse(genId(frame))
+kyo-ui/kyo/Svg.scala:928:        private[kyo] def id: String             = svgAttrs.defId.getOrElse(genId(frame))
+kyo-ui/kyo/Svg.scala:954:        private[kyo] def id: String         = svgAttrs.defId.getOrElse(genId(frame))
+kyo-ui/kyo/Svg.scala:1269:    private[kyo] def genId(frame: Frame): String = s"kyo-${Integer.toHexString(frame.hashCode)}"
+kyo-ui/kyo/UI.scala:42:    private[kyo] def frame: Frame
+kyo-ui/kyo/UI.scala:643:            private[kyo] def frame: Frame
+kyo-ui/kyo/UI.scala:646:            private[kyo] def withAttrs(a: Attrs): Self
+kyo-ui/kyo/UI.scala:735:            private[kyo] def jsProp(name: String, value: String): Self =
+kyo-ui/kyo/UI.scala:964:        final class HtmlChildVal private[kyo] (private[kyo] val value: UI) extends AnyVal
+kyo-ui/kyo/UI.scala:1135:        final private[kyo] case class Attrs(
+kyo-ui/kyo/UI.scala:1218:            private[kyo] def applyTyped[B](k: [T] => (Signal[Chunk[T]], Maybe[T => String], (Int, T) => UI) => B): B =
+kyo-ui/kyo/UI.scala:1227:        private[kyo] case class KeyedChild[C <: UI](key: String, child: UI)(using val frame: Frame) extends UI
+kyo-ui/kyo/UI.scala:1584:        final private[kyo] case class TextInputAttrs(
+   their names in the core main sources and the example (a member selection or a type name):
+$ grep -rnE "\.frame\b|\.withAttrs\b|\bjsProp\b|HtmlChildVal|\bAttrs\b|applyTyped|KeyedChild|TextInputAttrs|\bStyle\(|\bHex\(|\bRgb\(|\bRgba\(|\bVar\(" modules/core/src/main examples/src
+modules/core/src/main/scala/tui4s/internal/Props.scala:172:        case r: kyo.Style.Color.Rgb      => Some(JColor.Rgb(r.r, r.g, r.b))
+modules/core/src/main/scala/tui4s/internal/Props.scala:174:          if r.a < 0.5 then None else Some(JColor.Rgb(r.r, r.g, r.b))
+modules/core/src/main/scala/tui4s/internal/Props.scala:184:                JColor.Rgb(
+modules/core/src/main/scala/tui4s/internal/Props.scala:192:                JColor.Rgb(
+modules/core/src/main/scala/tui4s/internal/Mount.scala:227:             * render (kyo-ui's `applyTyped` is private). */
+(exit 0; 1 = 0 hits)
+   the other kyo-ui files with private[kyo] members (Chart, Drag, Selector, Stylesheet, Svg, Sortable): their types in the core main sources and the example:
+$ grep -rnE "\b(Chart|Drag|Selector|Stylesheet|Svg|Sortable|DroppedFile|DroppedDirectory|PathCommand|SvgAttrs|Keyframe|MediaQuery)\b" modules/core/src/main examples/src
+(exit 1; 1 = 0 hits)
+   the hits of check 4, read one by one: none is a private[kyo] member.
+   Props.scala:172, 174: 'case r: kyo.Style.Color.Rgb' is a type test, and r.r, r.g, r.b, r.a are public case class
+     fields; only the CONSTRUCTOR of Rgb/Rgba is private[kyo], and the runner never calls it (as in C3, Props.scala:166, 168).
+   Props.scala:184, 192: 'JColor.Rgb(' is jatatui's colour. Mount.scala:227 is a comment.
+   The T1 files (Tui.scala, TuiError.scala, TuiOptions.scala, internal/TerminalIO, Crossterm, Session, EventMapping,
+     OutputCapture, LogSink, TuiLog, InputPort, Paint.scala changes, testkit/Headless.scala) and the example have no hit.
+$ grep -rn "\.attrs\b" modules/core/src/main examples/src   (the public member Element.attrs; its type Attrs is private[kyo] and is never named: RR N9 a)
+modules/core/src/main/scala/tui4s/internal/Runner.scala:483:                  case Kind.El(e) => e.attrs.focusAuto.getOrElse(false)
+modules/core/src/main/scala/tui4s/internal/Runner.scala:617:                            e.attrs.identifier.getOrElse(f.showLoc)
+modules/core/src/main/scala/tui4s/internal/Dispatch.scala:113:              targetEl.flatMap(_.attrs.identifier.toOption) match
+modules/core/src/main/scala/tui4s/internal/Dispatch.scala:147:            val handler  = e.attrs.onKeyDown
+modules/core/src/main/scala/tui4s/internal/Dispatch.scala:157:              if declared && !skip && e.attrs.stopPropagation.getOrElse(false)
+modules/core/src/main/scala/tui4s/internal/Dispatch.scala:206:                          )) && e.attrs.focusGroup.nonEmpty =>
+modules/core/src/main/scala/tui4s/internal/Dispatch.scala:210:                          e.attrs.focusGroup.get,
+modules/core/src/main/scala/tui4s/internal/Dispatch.scala:248:                val a        = e.attrs
+modules/core/src/main/scala/tui4s/internal/Dispatch.scala:463:            MouseEvent(e.attrs.identifier, Modifiers.none)
+modules/core/src/main/scala/tui4s/internal/Dispatch.scala:466:                safe("onBlur", run(e.attrs.onBlur)).andThen(
+modules/core/src/main/scala/tui4s/internal/Dispatch.scala:467:                  safe("onBlur", runWith(e.attrs.onBlurEvt, mouseOf(e))),
+modules/core/src/main/scala/tui4s/internal/Dispatch.scala:473:                safe("onFocus", run(e.attrs.onFocus)).andThen(
+modules/core/src/main/scala/tui4s/internal/Dispatch.scala:474:                  safe("onFocus", runWith(e.attrs.onFocusEvt, mouseOf(e))),
+modules/core/src/main/scala/tui4s/internal/Dispatch.scala:487:            case (p, e) if e.attrs.focusTrap.getOrElse(false) => p
+modules/core/src/main/scala/tui4s/internal/Dispatch.scala:506:              case Kind.El(e) => e.attrs.focusGroup.contains(group)
+modules/core/src/main/scala/tui4s/internal/Props.scala:212:      el.attrs.hidden.getOrElse(false) || el.attrs.uiStyle.props.exists {
+modules/core/src/main/scala/tui4s/internal/Props.scala:223:      !isDisabled(el) && !isHidden(el) && (el.attrs.tabIndex match
+modules/core/src/main/scala/tui4s/internal/Props.scala:265:        val withStyle     = applyStyle(base, el.attrs.uiStyle)
+modules/core/src/main/scala/tui4s/internal/Props.scala:266:        val pseudo        = el.attrs.uiStyle.props.foldLeft(withStyle) {
+modules/core/src/main/scala/tui4s/internal/Props.scala:271:        val hasFocusStyle = el.attrs.uiStyle.props.exists {
+modules/core/src/main/scala/tui4s/internal/Layout.scala:864:            case Some(Kind.El(e)) => e.attrs.tabIndex.getOrElse(0)
+(exit 0)
+-- 5. the compiler enforces it: a throwaway file in package tui4s.internal calls the private[kyo] Element.withAttrs
+   (a temporary, untracked file; removed after the compile; 'git status --porcelain' checked after):
+package tui4s.internal
+
+import kyo.*
+import kyo.UI.Ast.*
+
+object Throwaway:
+    def f(e: Element): Element = e.withAttrs(e.attrs)
+$ sbt -Dsbt.supershell=false core/compile   (pgrep -x java before: none)
+[error] -- [E173] Reference Error: /home/user/tui4s/.work/worktrees/feat-kyoui-04-terminal/modules/core/src/main/scala/tui4s/internal/Throwaway.scala:7:35 
+[error] 7 |    def f(e: Element): Element = e.withAttrs(e.attrs)
+[error]   |                                 ^^^^^^^^^^^
+[error]   |method withAttrs cannot be accessed as a member of (e : kyo.UI.Ast.Element) from object Throwaway.
+[error]   |  private[kyo] method withAttrs can only be accessed from package kyo.
+[error] one error found
+[error] (core / Compile / compileIncremental) Compilation failed
+[error] Total time: 4 s, completed Oct 13, 2026, 6:35:14 PM
+(sbt exit 1)
+   throwaway file removed; git status --porcelain: '' (0 changed files)
+RESULT: the core main sources and the example call no private[kyo] member of kyo-ui; no source is in package kyo; no
+reflection. The compiler rejects a direct call (check 5), so the real risks are a 'package kyo' file and reflection (checks 1 and 3).
+
+$ grep -rn TODO modules/core/src/main examples/src   (the 4 of C2: TODO(#8), TODO(#9); no new TODO)
+modules/core/src/main/scala/tui4s/internal/Runner.scala:101:    // TODO(#8): remove the repair tick when the watchers go back to
+modules/core/src/main/scala/tui4s/internal/Runner.scala:248:          // TODO(#9): drop the re-check when Kyo closes the lost-wakeup window
+modules/core/src/main/scala/tui4s/internal/Runner.scala:275:        // TODO(#9): drop the pull check when Kyo closes the lost-wakeup window
+modules/core/src/main/scala/tui4s/internal/Mount.scala:77:    // TODO(#8): go back to `signal.observe` when Kyo fixes the leak of
+(exit 0)

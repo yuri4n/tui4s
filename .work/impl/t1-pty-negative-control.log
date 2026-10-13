@@ -1,0 +1,14 @@
+# negative control of the screen checks (check.py): the session of the first full run (t1-pty-session.txt) with one doctored segment each; 2026-10-13T16:19:25+00:00
+## a-no-leave
+FAIL counter q: leaves the alternate screen and shows the cursor: 'tty-counter-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((7*0))DIFF\r\n\x1b[?2004l\rSTTY_0SAME\r\n\x1b[?2004hPROMPT> stty -a > /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty-\r-full1/stty-ctrlc-before.txt; echo STTY_$((6*7))SAVED\r\n\x1b[?2004l\rSTTY_42SAVED\r\n\x1b[?2004hPROMPT> '
+Screen part: 15 passed, 1 failed (screens: /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty-nc/a-no-leave-screens.txt)
+check.py exit=1
+## b-stray
+FAIL counter q: nothing stray after the restore (the next output is EXIT=0): 'tui4s: a stray line\r\nEXIT=0\r\nPROMPT> stty -a > /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty-\r-full1/stty-counter-after.txt; echo STTY_$((6*7))SAVED\r\n\rSTTY_42SAVED\r\nPROMPT> cmp -s /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty-'
+Screen part: 15 passed, 1 failed (screens: /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty-nc/b-stray-screens.txt)
+check.py exit=1
+## c-wrong-count
+FAIL counter: second + shows 'Count: 2': Counter
+Screen part: 15 passed, 1 failed (screens: /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/pty-nc/c-wrong-count-screens.txt)
+check.py exit=1
+## the expect rows: see t1-pty-try-1.log (JDK 21 in JAVA_HOME: 6 rows FAIL, exit 1) and t1-pty-try-2.log (a pattern that never comes: 9 rows FAIL, exit 1)

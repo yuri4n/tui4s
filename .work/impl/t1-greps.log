@@ -1,0 +1,56 @@
+# T1 greps at b7ac3ec, 2026-10-13T16:16:25+00:00
+$ grep -rnE "System\.err|System\.out|println" modules/core/src/main --include=*.scala | grep -vE "^[^:]+:[0-9]+:\s*(//|\*|/\*)" | grep -v "tui4s: allowed"   (code lines without the marker)
+(exit 1: 1 = 0 hits)
+$ grep -rn "tui4s: allowed" modules/core/src/main   (the allowed lines)
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:42:      if e != null then e else java.lang.System.err.nn // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:48:      if o != null then o else java.lang.System.out.nn // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:66:        val sysOut = java.lang.System.out.nn // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:67:        val sysErr = java.lang.System.err.nn // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:132:                  if java.lang.System.out eq out then // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:134:                  if java.lang.System.err eq err then // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:158:              err.println(w) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:164:            err.println(problem) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:65:          else if important then done.println(text) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:104:            err.println(problem) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:105:            if important then err.println(text) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:129:              err.println(note) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:130:          ring.foreach(err.println) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:133:          if p != null then err.println(p) // tui4s: allowed
+$ grep -rnE "System\.err|System\.out|println" modules/core/src/main --include=*.scala | grep -E "^[^:]+:[0-9]+:\s*(//|\*|/\*)"   (comment lines that name them)
+modules/core/src/main/scala/tui4s/TuiOptions.scala:40:  *   while the UI is up in the real terminal, `System.out` and `System.err` go
+modules/core/src/main/scala/tui4s/TuiOptions.scala:42:  *   over the screen. The capture is JVM-wide. Scala's `println` writes to
+modules/core/src/main/scala/tui4s/TuiOptions.scala:43:  *   `scala.Console.out`, which keeps the stream that `System.out` was when
+modules/core/src/main/scala/tui4s/TuiOptions.scala:44:  *   `scala.Console` was first used: when it was used before the run, `println`
+modules/core/src/main/scala/tui4s/Tui.scala:47:      * (with `TuiOptions.captureOutput`) so do `System.out` and `System.err`;
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:8:/** Captures `System.out` and `System.err` while the UI is up (SPEC 5.10,
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:9:  * `TuiOptions.captureOutput`): a stray `println` in user code or in a library
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:12:  * It installs two forwarding streams as `System.out` and `System.err`. While
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:14:  * capture, each line goes to the sink. Scala's `println` writes to
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:15:  * `scala.Console.out`, which keeps the stream that `System.out` was when
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:18:  * user code runs, so `println` is always captured there; with `Tui.run` it is
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:22:// System.out and System.err: the forwarders replace and restore them, by
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:23:// design (the rule "no stderr and no println in core main" of the pull
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:39:    /** The real stderr: `System.err` as it was before tui4s replaced it. */
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:45:    /** The real stdout: `System.out` as it was before tui4s replaced it. */
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:59:    /** Installs the forwarders of the current `System.out` and `System.err`. A
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:91:      * `println`. False when `scala.Console` was first used before the
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:122:          * and, unless `TuiApp` installed them for good, `System.out` and
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:123:          * `System.err` are again the streams they were at the start of this
+modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:54:  *   true when a capture also takes `scala.Console` (Scala's `println`); see
+modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:83:                // println that the capture cannot take is a warning, in the
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:30:// stderr and no println in core main" of the pull request T1)
+$ grep -rn "jatatui.widgets" modules/core
+(exit 1)
+$ grep -rn "getDeclaredField\|setAccessible" modules/core/src/main
+(exit 1)
+$ grep -rn "^package kyo" modules examples
+(exit 1)
+$ grep -rn "private\[kyo\]" modules/core/src/main
+(exit 1)
+$ grep -rn "TODO" modules/core/src/main examples/src
+modules/core/src/main/scala/tui4s/internal/Runner.scala:101:    // TODO(#8): remove the repair tick when the watchers go back to
+modules/core/src/main/scala/tui4s/internal/Runner.scala:248:          // TODO(#9): drop the re-check when Kyo closes the lost-wakeup window
+modules/core/src/main/scala/tui4s/internal/Runner.scala:275:        // TODO(#9): drop the pull check when Kyo closes the lost-wakeup window
+modules/core/src/main/scala/tui4s/internal/Mount.scala:77:    // TODO(#8): go back to `signal.observe` when Kyo fixes the leak of
+$ grep -rn "com.olvind.tui" build.sbt modules project
+(exit 1)
