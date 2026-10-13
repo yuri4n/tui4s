@@ -2,15 +2,16 @@ package tui4s.fixtures
 
 import kyo.*
 import kyo.UI.*
+import tui4s.Tui
 
 /** The Dashboard in plain kyo-ui: one tab per series, a gauge and a sparkline
   * fed by a 250 ms sampler, a log pane fed by a stream. ArrowLeft and
-  * ArrowRight change the tab, `p` pauses the sampler (the logs go on). A test
-  * can also write `tab` and `paused`.
+  * ArrowRight change the tab, `p` pauses the sampler (the logs go on), `q`
+  * quits. A test can also write `tab` and `paused`.
   */
 // claude 2026-10-12: changed the Scaladoc (review R1-5, R3-7): no key handler
 // after the cut
-// claude 2026-10-13: changed the Scaladoc (C3): the keys are back
+// claude 2026-10-13: changed the Scaladoc (C3): the keys are back, `q` quits
 object Dashboard:
 
     val series = Seq("CPU", "Memory", "Network")
@@ -111,6 +112,8 @@ object Dashboard:
           s.tab.updateAndGet(t => (t + 1) % series.size)
         case KeyboardEvent(Keyboard.Char('p'), _, _)  =>
           s.paused.updateAndGet(!_)
+        // claude 2026-10-13: created (C3): the quit key (Tui.quit)
+        case KeyboardEvent(Keyboard.Char('q'), _, _)  => Tui.quit
         case _                                        => ()
       }(
         div

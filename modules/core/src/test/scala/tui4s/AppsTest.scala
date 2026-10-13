@@ -15,31 +15,35 @@ import tui4s.testkit.Headless
 // back (the leaves "... by keys")
 class AppsTest extends RunnerSuite:
 
-    // claude 2026-10-13: created (C3; the prototype's counter test)
-    "counter by keys: + + - with keys, Tab and Enter on the buttons, nothing happens for an unknown key" in {
+    // claude 2026-10-13: created (C3; the prototype's counter test); changed:
+    // q quits (Tui.quit)
+    "counter by keys: + + - with keys, Tab and Enter on the buttons, nothing happens for an unknown key, q quits" in {
       for
-          h  <- Headless.start(100, 30)(_ => apps.Counter.app)
-          s0 <- h.screen
-          _   = assert(s0.contains("Count: 0"), s0.text)
-          _  <- h.char('+')
-          _  <- h.char('+')
-          _  <- h.char('-')
-          s1 <- h.screen
-          _   = assert(s1.contains("Count: 1"), s1.text)
-          _  <- h.key(Keyboard.Enter) // the first button (+) has the focus
-          s2 <- h.screen
-          _   = assert(s2.contains("Count: 2"), s2.text)
-          _  <- h.key(Keyboard.Tab)   // to (-)
-          _  <- h.key(Keyboard.Space)
-          _  <- h.key(Keyboard.Space)
-          s3 <- h.screen
-          _   = assert(s3.contains("Count: 0"), s3.text)
-          z  <- h.char('z')
-      yield assert(
-        z.cause == FrameCause.Input && (z.repainted, z.flushed, z.updates) ==
-          (0, 0, 0),
-        s"the frame of an unknown key: $z",
-      )
+          h   <- Headless.start(100, 30)(_ => apps.Counter.app)
+          s0  <- h.screen
+          _    = assert(s0.contains("Count: 0"), s0.text)
+          _   <- h.char('+')
+          _   <- h.char('+')
+          _   <- h.char('-')
+          s1  <- h.screen
+          _    = assert(s1.contains("Count: 1"), s1.text)
+          _   <- h.key(Keyboard.Enter) // the first button (+) has the focus
+          s2  <- h.screen
+          _    = assert(s2.contains("Count: 2"), s2.text)
+          _   <- h.key(Keyboard.Tab)   // to (-)
+          _   <- h.key(Keyboard.Space)
+          _   <- h.key(Keyboard.Space)
+          s3  <- h.screen
+          _    = assert(s3.contains("Count: 0"), s3.text)
+          z   <- h.char('z')
+          _    = assert(
+                   z.cause == FrameCause.Input &&
+                     (z.repainted, z.flushed, z.updates) == (0, 0, 0),
+                   s"the frame of an unknown key: $z",
+                 )
+          _   <- h.char('q')
+          fin <- h.awaitEnd(10.seconds)
+      yield assert(fin, "q quits")
     }
 
     // claude 2026-10-13: created (C3; the prototype's two-counters test)
@@ -59,56 +63,58 @@ class AppsTest extends RunnerSuite:
       )
     }
 
-    // claude 2026-10-13: created (C3; the prototype's todo test; its quit key
-    // comes with Tui.quit)
-    "todo by keys: type + Enter adds, Tab to the list, arrows + Space toggle, d deletes, Ctrl-S saves" in {
+    // claude 2026-10-13: created (C3; the prototype's todo test); changed: Esc
+    // quits (Tui.quit)
+    "todo by keys: type + Enter adds, Tab to the list, arrows + Space toggle, d deletes, Ctrl-S saves, Esc quits" in {
       val file = java.nio.file.Files.createTempFile("todo", ".txt")
       java.nio.file.Files
         .writeString(file, "[ ] buy milk\n[x] walk dog\n[ ] write report\n")
       for
-          h  <- Headless.start(100, 30)(_ => apps.Todo.app(file.toString))
-          s0 <- h.screen
-          _   = assert(
-                  s0.contains("2 open / 3") && s0.contains("[x] walk dog"),
-                  s0.text,
-                )
-          _  <- h.typeText("call mom")
-          s1 <- h.screen
-          _   = assert(s1.contains("New: call mom"), s1.text)
-          _  <- h.key(Keyboard.Enter)
-          s2 <- h.screen
-          _   = assert(
-                  s2.contains("[ ] call mom") && s2.contains("3 open / 4"),
-                  s2.text,
-                )
-          t  <- h.key(Keyboard.Tab)
-          _   = assert(t.focus == "list", s"focus after Tab: ${t.focus}")
-          _  <- h.key(Keyboard.ArrowDown)
-          _  <- h.key(Keyboard.Space)
-          s3 <- h.screen
-          _   = assert(
-                  s3.contains("[ ] walk dog") && s3.contains("4 open / 4"),
-                  s3.text,
-                )
-          y   = s3.rows.indexWhere(_.contains("walk dog"))
-          _   = assert(
-                  s3.styleAt(2, y).bg == Some("#6366f1"),
-                  "the selected row has the indigo background",
-                )
-          _  <- h.char('d')
-          s4 <- h.screen
-          _   = assert(
-                  !s4.contains("walk dog") && s4.contains("3 open / 3"),
-                  s4.text,
-                )
-          _  <- h.key(Keyboard.Char('s'), ctrl = true)
-          s5 <- h.screen
-      yield
-          assert(s5.contains("saved 3 items"), s5.text)
-          assert(
-            java.nio.file.Files.readString(file) ==
-              "[ ] buy milk\n[ ] write report\n[ ] call mom\n",
-          )
+          h   <- Headless.start(100, 30)(_ => apps.Todo.app(file.toString))
+          s0  <- h.screen
+          _    = assert(
+                   s0.contains("2 open / 3") && s0.contains("[x] walk dog"),
+                   s0.text,
+                 )
+          _   <- h.typeText("call mom")
+          s1  <- h.screen
+          _    = assert(s1.contains("New: call mom"), s1.text)
+          _   <- h.key(Keyboard.Enter)
+          s2  <- h.screen
+          _    = assert(
+                   s2.contains("[ ] call mom") && s2.contains("3 open / 4"),
+                   s2.text,
+                 )
+          t   <- h.key(Keyboard.Tab)
+          _    = assert(t.focus == "list", s"focus after Tab: ${t.focus}")
+          _   <- h.key(Keyboard.ArrowDown)
+          _   <- h.key(Keyboard.Space)
+          s3  <- h.screen
+          _    = assert(
+                   s3.contains("[ ] walk dog") && s3.contains("4 open / 4"),
+                   s3.text,
+                 )
+          y    = s3.rows.indexWhere(_.contains("walk dog"))
+          _    = assert(
+                   s3.styleAt(2, y).bg == Some("#6366f1"),
+                   "the selected row has the indigo background",
+                 )
+          _   <- h.char('d')
+          s4  <- h.screen
+          _    = assert(
+                   !s4.contains("walk dog") && s4.contains("3 open / 3"),
+                   s4.text,
+                 )
+          _   <- h.key(Keyboard.Char('s'), ctrl = true)
+          s5  <- h.screen
+          _    = assert(s5.contains("saved 3 items"), s5.text)
+          _    = assert(
+                   java.nio.file.Files.readString(file) ==
+                     "[ ] buy milk\n[ ] write report\n[ ] call mom\n",
+                 )
+          _   <- h.key(Keyboard.Escape)
+          fin <- h.awaitEnd(10.seconds)
+      yield assert(fin, "Esc quits")
       end for
     }
 

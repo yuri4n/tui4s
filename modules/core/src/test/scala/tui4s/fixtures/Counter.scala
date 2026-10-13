@@ -2,14 +2,16 @@ package tui4s.fixtures
 
 import kyo.*
 import kyo.UI.*
+import tui4s.Tui
 
-/** The Counter in plain kyo-ui: only kyo-ui's API. `+` and `-` change the count
-  * (a key handler on the root), Tab moves between the buttons, Enter and Space
-  * press them. A test can also write the count.
+/** The Counter in plain kyo-ui: only kyo-ui's API, plus `Tui.quit` for the quit
+  * key. `+` and `-` change the count (a key handler on the root), Tab moves
+  * between the buttons, Enter and Space press them, `q` quits. A test can also
+  * write the count.
   */
 // claude 2026-10-12: changed the Scaladoc (review R1-5, R3-7): no key handler
 // and no `Tui.quit` after the cut
-// claude 2026-10-13: changed the Scaladoc (C3): the keys are back
+// claude 2026-10-13: changed the Scaladoc (C3): the keys are back, `q` quits
 object Counter:
 
     // claude 2026-10-12: created (RC-19): the view over a count that the caller
@@ -22,6 +24,8 @@ object Counter:
           count.updateAndGet(_ + 1)
         case KeyboardEvent(Keyboard.Char('-'), _, _) =>
           count.updateAndGet(_ - 1)
+        // claude 2026-10-13: created (C3): the quit key (Tui.quit)
+        case KeyboardEvent(Keyboard.Char('q'), _, _) => Tui.quit
         case _                                       => ()
       }(
         h1("Counter"),
@@ -55,8 +59,12 @@ object Counter:
       Signal.initRef(0).map(count => counterView(label, count))
 
     // claude 2026-10-12: created (RC-19): the view of two counters
+    // claude 2026-10-13: changed (C3): the quit key of the prototype is back
     def twoCountersView(left: UI, right: UI): UI =
-      div(
+      div.onKeyDown {
+        case KeyboardEvent(Keyboard.Char('q'), _, _) => Tui.quit
+        case _                                       => ()
+      }(
         h1("Two counters"),
         div.style(_.row.gap(2.px))(left, right),
         p("Tab moves between the four buttons, Enter presses, q quits").style(

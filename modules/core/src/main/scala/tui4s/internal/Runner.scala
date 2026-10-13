@@ -82,6 +82,12 @@ final class Runner(
     // runner's quit
     private val dispatch = Dispatch(quit)
 
+    /** Runs `v` with the quit of this run in scope, for [[tui4s.Tui.quit]]: the
+      * construction of the UI, and the fibers that it starts.
+      */
+    // claude 2026-10-13: created (C3, RC-2 part; the prototype's scoped)
+    def scoped[A, S](v: => A < S)(using Frame): A < S = Tui4sQuit.let(quit)(v)
+
     // claude 2026-10-12: created (K29): the repair tick fiber
     private val ticker =
       new java.util.concurrent.atomic.AtomicReference[Option[
@@ -119,8 +125,9 @@ final class Runner(
     // `Sync.ensure` around the run, so an interrupted run stops its watchers
     // too. It does not wait for them: a run-owned Scope (option a) waits for a
     // CPU-bound watcher and breaks the end order (spike S2, gates.md G2).
+    // claude 2026-10-13: changed (C3): the run has the quit Local in scope
     def run(root: UI)(using Frame): Unit < Async =
-      Sync.ensure(stop) {
+      scoped(Sync.ensure(stop) {
         for
             tick <- Fiber.initUnscoped(repairTick)
             _    <- Sync.defer { mount.track(tick); ticker.set(Some(tick)) }
@@ -139,7 +146,7 @@ final class Runner(
             w1   <- frame(w0s, 0L, FrameCause.Initial, t0).map(remember)
             _    <- Loop(w1)(step)
         yield ()
-      }
+      })
 
     private def step(
         w: World,

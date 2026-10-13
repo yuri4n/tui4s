@@ -5,13 +5,15 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import kyo.*
 import kyo.UI.*
+import tui4s.Tui
 
 /** The Todo app in plain kyo-ui. Components are plain functions of signals and
   * actions. Keys: type a text and press Enter to add it; Tab moves between the
   * input and the list; in the list, the arrows (or `k` and `j`) move, Space
-  * toggles, `d` deletes; Ctrl-S saves.
+  * toggles, `d` deletes; Ctrl-S saves; Escape quits (`Tui.quit`).
   */
-// claude 2026-10-13: changed the Scaladoc (C3): the keys are back
+// claude 2026-10-13: changed the Scaladoc (C3): the keys are back, Escape
+// quits
 object Todo:
 
     final case class Item(id: Int, text: String, done: Boolean) derives CanEqual
@@ -202,6 +204,8 @@ object Todo:
         main.onKeyDown {
           case KeyboardEvent(Keyboard.Char('s'), mods, _) if mods.ctrl =>
             saveAll(s)
+          // claude 2026-10-13: created (C3): the quit key (Tui.quit)
+          case KeyboardEvent(Keyboard.Escape, _, _)                    => Tui.quit
           case _                                                       => ()
         }(
           header(count),

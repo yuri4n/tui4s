@@ -209,9 +209,12 @@ end Headless
 object Headless:
     /** Starts a headless run of `ui` on a `width` x `height` screen and returns
       * after its first frame. `ui` gets the quit value: running it ends the run
-      * (D-15). The run ends with the enclosing `Scope` (quit, then a wait for
-      * the run fiber).
+      * (D-15). [[tui4s.Tui.quit]] does the same inside the construction of
+      * `ui`, inside a handler, and inside a fiber that they start. The run ends
+      * with the enclosing `Scope` (quit, then a wait for the run fiber).
       */
+    // claude 2026-10-13: changed (C3, RC-2 part): Tui.quit works inside the UI
+    // construction (runner.scoped)
     def start(width: Int, height: Int, options: TuiOptions = TuiOptions())(
         ui: (Unit < Sync) => UI < (Async & Scope),
     )(using Frame): Headless < (Async & Scope) =
@@ -226,7 +229,7 @@ object Headless:
           canvas  <- Sync.defer(Canvas(backend, knobs.flushSeam))
           runner   = Runner(inbox, canvas, options, Present(frames), knobs)
           seq     <- AtomicLong.init(1L)
-          run     <- Fiber.init(ui(runner.quit).map(runner.run))
+          run     <- Fiber.init(runner.scoped(ui(runner.quit).map(runner.run)))
           h        = Headless(inbox, frames, backend, seq, run, runner)
           // it quits and waits before its scope ends (RC-7)
           _       <- Scope.ensure(h.quit.andThen(h.awaitEnd(5.seconds)))
