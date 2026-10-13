@@ -461,24 +461,33 @@ private[tui4s] final class Runner(
                 val waited = now - frameStart
                 val left   =
                   if waited <= 0L then pendingNanos else pendingNanos - waited
-                if left <= 0L then
-                    Loop.continue(w.copy(pending = Set.empty), 0, now, now)
-                else
-                    Abort
-                      .run[Timeout | Closed](
-                        Async.timeout(Duration.fromNanos(left))(inbox.take),
-                      )
-                      .map {
-                        case Result.Success(m) =>
-                          absorb(w, m).map(w1 =>
-                            nanos.map(t => Loop.continue(w1, 0, t, t)),
-                          )
-                        case _                 =>
-                          nanos.map(t =>
-                            Loop.continue(w.copy(pending = Set.empty), 0, t, t),
-                          )
-                      }
-                end if
+                // claude 2026-10-13: changed (C4, review R2-2): a run that
+                // ends does not wait for the component
+                ending(w).map { end =>
+                  if left <= 0L || end then
+                      Loop.continue(w.copy(pending = Set.empty), 0, now, now)
+                  else
+                      Abort
+                        .run[Timeout | Closed](
+                          Async.timeout(Duration.fromNanos(left))(inbox.take),
+                        )
+                        .map {
+                          case Result.Success(m) =>
+                            absorb(w, m).map(w1 =>
+                              nanos.map(t => Loop.continue(w1, 0, t, t)),
+                            )
+                          case _                 =>
+                            nanos.map(t =>
+                              Loop.continue(
+                                w.copy(pending = Set.empty),
+                                0,
+                                t,
+                                t,
+                              ),
+                            )
+                        }
+                  end if
+                }
               }
           else
               // The order is "probe, THEN drain". A loop that drains first,
@@ -536,6 +545,22 @@ private[tui4s] final class Runner(
         }
       }
     end settle
+
+    /** True when the run ends: a quit (a `Msg.Quit` that the settle took, or
+      * the flag of `quit`), or a Ctrl-C key in the backlog
+      * (`TuiOptions.ctrlCQuits`; inside a settle a key waits in the backlog,
+      * and its step comes after this frame). The wait for a mounting component
+      * ends then: the run does not wait for a UI that it will not show.
+      */
+    // claude 2026-10-13: created (C4, review R2-2)
+    private def ending(w: World)(using Frame): Boolean < Sync =
+      Sync.defer(
+        w.quit || quitRequested.get() ||
+          (options.ctrlCQuits && w.backlog.exists {
+            case Msg.Key(ev, _) => isCtrlC(ev)
+            case _              => false
+          }),
+      )
 
     /** `TuiOptions.pendingTimeout` in nanoseconds: a negative one is zero, and
       * one too long for a count of nanoseconds is `Long.MaxValue`.

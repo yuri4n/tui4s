@@ -574,4 +574,42 @@ class ComponentTest extends ComponentSuite:
         end for
       }
     }
+
+    // claude 2026-10-13: created (C4, review R2-2)
+    "pending frame: a quit inside the wait ends the wait at once: the run ends, and does not wait for the content" in {
+      // pendingTimeout 5 s; the body takes 4 s. The quit (Runner.quit, as
+      // Tui.quit) comes 300 ms after the key, inside the wait. Allowance: the
+      // run ends within 1 s of it (the frame of the key, one settle, the end
+      // of the run), long before the content (4 s).
+      val options = TuiOptions(pendingTimeout = JDuration.ofSeconds(5))
+      for
+          h   <- Headless.start(30, 4, options)(_ => slowApp(4.seconds))
+          _   <- Fiber.initUnscoped(h.char('s'))
+          _   <- Async.sleep(300.millis)
+          _   <- h.quit
+          fin <- h.awaitEnd(1.second)
+      yield assert(
+        fin,
+        "a quit inside the wait for a component did not end the run within 1 s",
+      )
+      end for
+    }
+
+    // claude 2026-10-13: created (C4, review R2-2)
+    "pending frame: a Ctrl-C inside the wait ends the wait at once: the run ends, and does not wait for the content" in {
+      // As above, with a Ctrl-C key (TuiOptions.ctrlCQuits): inside a settle
+      // a key goes to the backlog, so the wait looks at the backlog too.
+      val options = TuiOptions(pendingTimeout = JDuration.ofSeconds(5))
+      for
+          h   <- Headless.start(30, 4, options)(_ => slowApp(4.seconds))
+          _   <- Fiber.initUnscoped(h.char('s'))
+          _   <- Async.sleep(300.millis)
+          _   <- Fiber.initUnscoped(h.key(Keyboard.Char('c'), ctrl = true))
+          fin <- h.awaitEnd(1.second)
+      yield assert(
+        fin,
+        "a Ctrl-C inside the wait for a component did not end the run within 1 s",
+      )
+      end for
+    }
 end ComponentTest
