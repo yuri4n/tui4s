@@ -128,6 +128,23 @@ tui4s.stress.LeakProbe'`. A test run under CPU contention sets
   caller's interrupt wait for the run, and a run that waits for the caller is
   a deadlock. Poll `done` with a bounded wait instead (`Headless.awaitEnd`).
   <!-- claude 2026-10-12: created this item (OS-34) -->
+- Give a Kyo handler value the type `Any < Async` (a function:
+  `KeyboardEvent => Any < Async`), and put a side effect inside `Sync.defer`.
+  Kyo lifts a plain value into `A < S`, so a handler with no type compiles,
+  but its side effect is not in the effect: an untyped `val h = { n += 1 }`
+  given to `onClick` runs once, when the UI is built, and never on the key;
+  an untyped `e => e.key match { ... }` whose cases return effects runs none
+  of them. The compiler gives no warning. `LiftTrapTest` shows the trap (the
+  lift trap, RR O5); when Kyo closes it, that test fails.
+  <!-- claude 2026-10-13: created this item (C3, RR O5) -->
+- The runner calls no `private[kyo]` member of Kyo or kyo-ui (RR N9). The
+  compiler rejects a direct call. Do not get around it with a source file in
+  package `kyo` or with reflection. Read the attributes of an element through
+  the public member `Element.attrs` (its type `Attrs` is `private[kyo]`, so
+  the runner never names it). Where kyo-ui keeps a rule private (the key
+  dispatch, the region walk), the runner copies its semantics (`Dispatch`,
+  `Mount`), and the surface guard (`kyo-ui-surface.txt`) pins what it reads.
+  <!-- claude 2026-10-13: created this item (C3, RR N9) -->
 - The strict flags do not see everything at the Java boundary (spike S6):
   `-Wnonunit-statement` does not see a Java call in statement position;
   `-Wvalue-discard` sees a Java result only in a `Unit` position;
