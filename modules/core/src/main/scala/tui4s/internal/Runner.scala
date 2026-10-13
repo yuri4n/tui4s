@@ -254,9 +254,9 @@ private[tui4s] final class Runner(
 
     /** The verify pass (D-16, armkey; spike S2 section 4.3). After the settle
       * it re-reads `current` of the regions mounted in this step or the step
-      * before, and in an Input step (a key or a resize) also of the regions
-      * whose watcher has not armed yet. A write that landed in the window of a
-      * young watcher (between the mount's read of `current` and the
+      * before, and in an Input step (a key, a paste or a resize) also of the
+      * regions whose watcher has not armed yet. A write that landed in the
+      * window of a young watcher (between the mount's read of `current` and the
       * registration of `nextWith`) reaches this frame, not the repair tick. The
       * regions that a repair mounts are not young: no cascade (a `Reactive`
       * value with closures never compares equal).
@@ -268,7 +268,8 @@ private[tui4s] final class Runner(
       * closures, so two renders never compare equal.
       */
     // claude 2026-10-12: created (RC-9, RC-11)
-    // claude 2026-10-13: changed: the Scaladoc names the keys (C3)
+    // claude 2026-10-13: changed: the Scaladoc names the keys and the paste
+    // (C3)
     private def verify(w: World, input: Boolean)(using Frame): World < Sync =
         val unarmed = if input then mount.unarmedRegions(w) else Set.empty[Loc]
         // TODO(#9): drop the pull check when Kyo closes the lost-wakeup window
