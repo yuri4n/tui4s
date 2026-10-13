@@ -172,6 +172,13 @@ started from the main checkout): it is the user's Metals sbt server.
   NEXT: W4 = C4 feat/kyoui-05-components (worktree created from 0893800), shape 6 + V, Opus except R2/K2; then T2.
   Logs: .work/impl/t1-*; the body t1-pr-body.txt (346 lines, 61.8 KB: just under GitHub's limit).
 
+<!-- claude 2026-10-13: added this item (W4 launched) -->
+- 2026-10-13 18:58 UTC: W4 = C4 launched: workflow wf_f99c07c9-d80 (shape 6 + V: I, R1, R2, K1, K2, F, V; Opus except
+  R2/K2), worktree .work/worktrees/feat-kyoui-05-components from T1 0893800; script
+  tui4s-w4-c4-components-wf_f99c07c9-d80.js in the session workflows dir. A send_later check-in fires at about
+  21:48 UTC. AFTER W4: push, PR against feat/kyoui-04-terminal, subscribe, notes; then W6 = T2
+  (feat/kyoui-06-app-examples: TuiApp, SchedulerDefaults, all examples, all PTY rows; plan 6.6; shape 6).
+
 ## 2026-10-02: DIRECTION CHANGE
 
 The user reviewed the core and said it is not a functional wrapper of jatatui and that the internals are not
