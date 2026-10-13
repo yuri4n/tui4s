@@ -327,4 +327,72 @@ class ComponentTest extends ComponentSuite:
         end for
       }
     }
+
+    // ---- the pending frame (TuiOptions.pendingTimeout) ----
+
+    /** A hook component behind a key: `s` shows it, and its body takes `delay`
+      * before it gives its UI.
+      */
+    def slowApp(delay: Duration)(using Frame): UI < Sync =
+      Signal.initRef(false).map { shown =>
+        div.onKeyDown {
+          case KeyboardEvent(Keyboard.Char('s'), _, _) => shown.set(true)
+          case _                                       => ()
+        }(
+          span("[top]"),
+          when(shown)(component(Async.sleep(delay).andThen(span("[slow]")))),
+          span("[bottom]"),
+        )
+      }
+
+    /** The milliseconds of a frame's step. */
+    def ms(f: FrameStats): Long = f.nanos / 1_000_000
+
+    "pending frame: a component whose first content takes longer than pendingTimeout: the frame comes without it (an empty place), and the content follows in a later frame" in {
+      // The body takes 1.5 s and the frame waits at most 100 ms. Allowance:
+      // the frame of the key comes after at least 90 ms (the wait) and
+      // before 1 s (the wait, one settle, a loaded machine), well before the
+      // content.
+      val options = TuiOptions(pendingTimeout = JDuration.ofMillis(100))
+      for
+          h  <- Headless.start(30, 4, options)(_ => slowApp(1500.millis))
+          f  <- h.char('s')
+          s1 <- h.screen
+          ok <- h.awaitScreen(showing("[slow]"), 5.seconds)
+          fs <- framesUntil(h, 1.second)(f =>
+                  f.cause == FrameCause.Background && f.flushed > 0,
+                )
+      yield
+          java.lang.System.out.println(
+            s"[pending] the frame of the key: ${ms(f)} ms, without the content; then ${fs
+                .count(f => f.cause == FrameCause.Background && f.flushed > 0)} Background frame(s) drew it",
+          )
+          assert(ms(f) >= 90L, s"the frame did not wait: ${ms(f)} ms")
+          assert(
+            ms(f) < 1000L,
+            s"the frame waited for the content: ${ms(f)} ms",
+          )
+          assert(
+            s1.contains("[top]") && s1.contains("[bottom]") &&
+              !s1.contains("[slow]"),
+            s1.text,
+          )
+          assert(ok, "the content did not come in a later frame")
+          assert(
+            fs.exists(f => f.cause == FrameCause.Background && f.flushed > 0),
+            s"no Background frame drew the content: $fs",
+          )
+      end for
+    }
+
+    "pending frame: with a pendingTimeout longer than the body, the frame of the event waits and holds the content" in {
+      val options = TuiOptions(pendingTimeout = JDuration.ofSeconds(5))
+      for
+          h  <- Headless.start(30, 4, options)(_ => slowApp(300.millis))
+          f  <- h.char('s')
+          s1 <- h.screen
+      yield
+          assert(s1.contains("[slow]"), s1.text)
+          assert(ms(f) >= 250L, s"the frame came after ${ms(f)} ms")
+    }
 end ComponentTest
