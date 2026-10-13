@@ -445,4 +445,43 @@ class ComponentTest extends ComponentSuite:
           assert(ok2, "the content did not come in a later frame")
       end for
     }
+
+    "pending frame: a component that mounts and unmounts inside one settle leaves no wait behind" in {
+      // pendingTimeout 3 s; the body takes 2 s. The handler of the key shows
+      // the component and hides it again 50 ms later, so the settle of the
+      // key mounts it and unmounts it. Allowance: the frame of the key comes
+      // before 1 s.
+      val options = TuiOptions(pendingTimeout = JDuration.ofSeconds(3))
+      for
+          h <- Headless.start(30, 4, options)(_ =>
+                 Signal.initRef(false).map { shown =>
+                   div.onKeyDown {
+                     case KeyboardEvent(Keyboard.Char('b'), _, _) =>
+                       shown
+                         .set(true)
+                         .andThen(Async.sleep(50.millis))
+                         .andThen(shown.set(false))
+                     case _                                       => ()
+                   }(
+                     span("[top]"),
+                     when(shown)(
+                       component(Async.sleep(2.seconds).andThen(span("[slow]"))),
+                     ),
+                   )
+                 },
+               )
+          f <- h.char('b')
+          s <- h.screen
+      yield
+          assert(
+            f.updates >= 2,
+            s"the settle of the key did not mount and unmount the component: $f",
+          )
+          assert(
+            ms(f) < 1000L,
+            s"the frame waited for a component that is gone: ${ms(f)} ms",
+          )
+          assert(s.contains("[top]") && !s.contains("[slow]"), s.text)
+      end for
+    }
 end ComponentTest

@@ -509,8 +509,14 @@ private[tui4s] final class Mount(
         }
     end remount
 
-    /** Drops the state of components that are no longer mounted. */
+    /** Drops the state of components that are no longer mounted, and the wait
+      * for the first content of a hook component that is no longer mounted (its
+      * path leaves `pending`: the settle does not wait for it).
+      */
     // claude 2026-10-13: created (C4, the C2 cut back)
+    // claude 2026-10-13: changed (C4, P-6): also the pending paths whose
+    // region is gone (a component that mounted and unmounted in one settle
+    // kept the settle waiting until pendingTimeout)
     def gcComps(w: World): World =
         val live = w.regions.values.collect {
           case RegionState(
@@ -523,7 +529,10 @@ private[tui4s] final class Mount(
               ) =>
             key
         }.toSet
-        w.copy(comps = w.comps.filter((k, _) => live.contains(k)))
+        w.copy(
+          comps = w.comps.filter((k, _) => live.contains(k)),
+          pending = w.pending.filter(w.regions.contains),
+        )
     end gcComps
 
     /** Unmounts every region (end of the run). */
