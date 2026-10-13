@@ -527,12 +527,17 @@ private[tui4s] final class Mount(
 
     /** Drops the state of components that are no longer mounted, and the wait
       * for the first content of a hook component that is no longer mounted (its
-      * path leaves `pending`: the settle does not wait for it).
+      * path leaves `pending`: the settle does not wait for it). A path stays in
+      * `pending` only while its region is a hook component that has no content
+      * yet: another region at that path (a `Reactive`, a `Component`) does not
+      * post the content that the wait is for.
       */
     // claude 2026-10-13: created (C4, the C2 cut back)
     // claude 2026-10-13: changed (C4, P-6): also the pending paths whose
     // region is gone (a component that mounted and unmounted in one settle
     // kept the settle waiting until pendingTimeout)
+    // claude 2026-10-13: changed (C4, review R1-2): also the pending paths
+    // whose region is now another one (the `else` branch of a `render`)
     def gcComps(w: World): World =
         val live = w.regions.values.collect {
           case RegionState(
@@ -547,9 +552,24 @@ private[tui4s] final class Mount(
         }.toSet
         w.copy(
           comps = w.comps.filter((k, _) => live.contains(k)),
-          pending = w.pending.filter(w.regions.contains),
+          pending = w.pending.filter(p => w.regions.get(p).exists(waits)),
         )
     end gcComps
+
+    /** True when `r` is a hook component that waits for its first content. */
+    // claude 2026-10-13: created (C4, review R1-2)
+    private def waits(r: RegionState): Boolean =
+      r match
+          case RegionState(
+                _,
+                Source.Comp(_: ComponentSpec.Hook, _),
+                _,
+                Content.Pending,
+                _,
+                _,
+              ) =>
+            true
+          case _ => false
 
     /** Unmounts every region (end of the run). */
     def unmountAll(w: World)(using Frame): Unit < Sync =

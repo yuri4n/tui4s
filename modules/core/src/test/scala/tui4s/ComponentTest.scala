@@ -612,4 +612,52 @@ class ComponentTest extends ComponentSuite:
       )
       end for
     }
+
+    // claude 2026-10-13: created (C4, review R1-2)
+    "pending frame: a component that mounts and gives its place to another region inside one settle leaves no wait behind" in {
+      // pendingTimeout 3 s; the body takes 2 s. The handler of the key shows
+      // the component and, 200 ms later, puts another `Reactive` region at its
+      // path (the `else` branch of the `render`). Allowance: the frame of the
+      // key (the handler's 200 ms included) comes before 1 s.
+      val options = TuiOptions(pendingTimeout = JDuration.ofSeconds(3))
+      for
+          h <- Headless.start(30, 4, options)(_ =>
+                 for
+                     shown <- Signal.initRef(false)
+                     other <- Signal.initRef(0)
+                 yield div.onKeyDown {
+                   case KeyboardEvent(Keyboard.Char('b'), _, _) =>
+                     shown
+                       .set(true)
+                       .andThen(Async.sleep(200.millis))
+                       .andThen(shown.set(false))
+                   case _                                       => ()
+                 }(
+                   span("[top]"),
+                   shown.render(on =>
+                     if on then
+                         component(
+                           Async.sleep(2.seconds).andThen(span("[slow]")),
+                         )
+                     else other.render(v => span(s"[other=$v]")),
+                   ),
+                 ),
+               )
+          f <- h.char('b')
+          s <- h.screen
+      yield
+          assert(
+            f.updates >= 2,
+            s"the settle of the key did not mount the component and the other region: $f",
+          )
+          assert(
+            ms(f) < 1000L,
+            s"the frame waited for a component whose place another region took: ${ms(f)} ms",
+          )
+          assert(
+            s.contains("[other=0]") && !s.contains("[slow]"),
+            s.text,
+          )
+      end for
+    }
 end ComponentTest
