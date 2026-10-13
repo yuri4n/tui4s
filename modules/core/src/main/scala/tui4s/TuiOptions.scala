@@ -29,8 +29,8 @@ import tui4s.spi.Settle
   *   poll. A shorter interval stops the input thread sooner at the end of the
   *   run (the end waits at most about two intervals for it); a longer one wakes
   *   it less often when nobody types. The keys themselves arrive at once: the
-  *   poll returns as soon as input is ready. A negative interval counts as
-  *   zero.
+  *   poll returns as soon as input is ready. An interval below 1 ms (also zero
+  *   or a negative one) counts as 1 ms.
   * @param inboxCapacity
   *   how many messages (keys, pastes, resizes and the new values of the
   *   signals) can wait for the runner. When the inbox is full, the input thread
@@ -59,6 +59,7 @@ import tui4s.spi.Settle
 // claude 2026-10-13: changed (T1, RC-3 part): pollInterval, inboxCapacity,
 // captureOutput, logFile (the PR 5 option set: pollMillis as a Duration; no
 // fps, mouse, focusEvents, viewport, theme or trace)
+// claude 2026-10-13: changed (T1, review R2-1): pollInterval below 1 ms is 1 ms
 final case class TuiOptions(
     autoFocus: Boolean = true,
     settle: Settle = Settle.Quiescent(Duration.ofMillis(100)),

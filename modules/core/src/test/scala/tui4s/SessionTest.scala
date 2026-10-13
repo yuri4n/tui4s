@@ -352,6 +352,64 @@ class SessionTest extends Test[Any]:
       }
     }
 
+    // claude 2026-10-13: created (T1, review R2-1): a zero interval made the
+    // input thread spin (crossterm's poll(0) returns at once)
+    "a poll interval below 1 ms polls with 1 ms: the input thread does not spin"
+      .timeout(30.seconds) in {
+      import java.time.Duration as JDuration
+      def ms(d: JDuration): Int =
+        Session.pollMillis(TuiOptions(pollInterval = d))
+      val polls                 = java.util.concurrent.atomic.AtomicInteger(0)
+      val shortest              =
+        java.util.concurrent.atomic.AtomicInteger(Int.MaxValue)
+      val port                  = new InputPort:
+          def poll(timeoutMillis: Int): Boolean =
+              val _ = polls.incrementAndGet()
+              val _ = shortest.accumulateAndGet(timeoutMillis, math.min)
+              Thread.sleep(timeoutMillis.max(0).toLong)
+              false
+          def read(): CEvent | Null             = null
+      val opts                  = TuiOptions(pollInterval = JDuration.ZERO)
+      inbox(16).map { box =>
+        Session.open(opts, RecordingControl(10, 2), Some(port), box).map {
+          case Left(e)        => assert(false, s"open failed: $e")
+          case Right(session) =>
+            Sync
+              .defer {
+                import AllowUnsafe.embrace.danger
+                Thread.sleep(200)
+                session.close()
+                (polls.get, shortest.get)
+              }
+              .map { (n, least) =>
+                val millis = Seq(
+                  JDuration.ZERO,
+                  JDuration.ofNanos(500_000),
+                  JDuration.ofMillis(-5),
+                  JDuration.ofMillis(25),
+                  JDuration.ofDays(365L * 100),
+                  JDuration.ofSeconds(Long.MaxValue),
+                ).map(d =>
+                  scala.util.Try(ms(d)).fold(e => e.toString, _.toString),
+                )
+                assert(
+                  millis == Seq(
+                    "1",
+                    "1",
+                    "1",
+                    "25",
+                    s"${Int.MaxValue}",
+                    s"${Int.MaxValue}",
+                  ),
+                  millis.toString,
+                )
+                assert(least >= 1, s"a poll with $least ms")
+                assert(n > 0 && n < 10_000, s"$n polls in 200 ms")
+              }
+        }
+      }
+    }
+
     private def discard(a: Any): Unit =
         val _ = a
 end SessionTest

@@ -181,10 +181,19 @@ private[tui4s] object Session:
               case NonFatal(e) => Left(TuiError.TerminalIO(e))
         }
 
-    /** The poll interval of `opts` in milliseconds (0 to `Int.MaxValue`). */
+    /** The poll interval of `opts` in milliseconds, from 1 to `Int.MaxValue`:
+      * an interval below 1 ms (also zero or a negative one) is 1 ms, so the
+      * input thread never spins on a poll that returns at once.
+      */
     // claude 2026-10-13: created (T1): TuiOptions.pollInterval is a Duration
+    // claude 2026-10-13: changed (T1, review R2-1): at least 1 ms (zero spun);
+    // a very long interval does not overflow
     def pollMillis(opts: TuiOptions): Int =
-      opts.pollInterval.toMillis.max(0L).min(Int.MaxValue.toLong).toInt
+        val d = opts.pollInterval
+        if d.compareTo(java.time.Duration.ofMillis(1)) < 0 then 1
+        else if d.compareTo(java.time.Duration.ofMillis(Int.MaxValue)) >= 0
+        then Int.MaxValue
+        else d.toMillis.toInt
 
     /** Closes the inbox; the messages that were still in it are dropped. */
     // claude 2026-10-13: changed (T1): the runner's inbox has no probes
