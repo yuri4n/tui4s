@@ -42,6 +42,7 @@ class EventMappingTest extends Test[Any]:
           s"$e -> ${mapped(e)}, want $want"
       }
 
+    // claude 2026-10-13: changed (T1): kyo-ui Keyboard
     "every named key code, without modifiers" in {
       val table = Seq[(KeyCode, KeyboardEvent)](
         KeyCode.Enter()     -> kb(Keyboard.Enter),
@@ -66,6 +67,7 @@ class EventMappingTest extends Test[Any]:
       assert(wrong.isEmpty, wrong.mkString("\n"))
     }
 
+    // claude 2026-10-13: changed (T1): kyo-ui KeyboardEvent; META is meta
     "characters: Shift is in the character, Ctrl gives lower case, Alt, Meta" in {
       val table = Seq[(CEvent, KeyboardEvent)](
         key(KeyCode.Char('a'))                 -> kb(Keyboard.Char('a')),
@@ -92,6 +94,7 @@ class EventMappingTest extends Test[Any]:
       assert(wrong.isEmpty, wrong.mkString("\n"))
     }
 
+    // claude 2026-10-13: changed (T1): kyo-ui Modifiers (it was Key.Modified)
     "a named key with modifiers keeps them" in {
       val table = Seq[(CEvent, KeyboardEvent)](
         key(KeyCode.Up(), Shift)                -> kb(Keyboard.ArrowUp, shift),
@@ -109,6 +112,7 @@ class EventMappingTest extends Test[Any]:
       assert(wrong.isEmpty, wrong.mkString("\n"))
     }
 
+    // claude 2026-10-13: created (T1): the canonical events
     // The lesson of the review thread Keymap.scala:159 (old PR 3): a key
     // binding must match what a terminal can send. So the mapping gives ONE
     // form per key: a test that binds `Char('a')` with `shift`, or a
@@ -152,6 +156,7 @@ class EventMappingTest extends Test[Any]:
       assert(tab == Seq(Some(kb(Keyboard.Tab, shift))), tab.toString)
     }
 
+    // claude 2026-10-13: changed (T1): also F13 and half of a surrogate pair
     "a key release, F13, half of a surrogate pair and the keys that the runner does not model are dropped" in {
       val dropped = Seq[CEvent](
         key(KeyCode.Char('a'), kind = Release),
@@ -174,6 +179,7 @@ class EventMappingTest extends Test[Any]:
       assert(kept.isEmpty, kept.mkString("\n"))
     }
 
+    // claude 2026-10-13: changed (T1): dropped (D-30); PR 5 mapped them
     "mouse and focus events are dropped (no mouse and no focus events: D-30)" in {
       val events = Seq[CEvent](
         CEvent.Mouse(
@@ -194,6 +200,8 @@ class EventMappingTest extends Test[Any]:
       assert(kept.isEmpty, kept.mkString("\n"))
     }
 
+    // claude 2026-10-13: changed (T1): Msg.Paste and Msg.Resize with the
+    // sequence number (the focus events are dropped)
     "a paste is Msg.Paste with its text as it is; a resize is Msg.Resize; both get the sequence number" in {
       assert(
         EventMapping(CEvent.Paste("a\nb 😀"), 7L) == Msg.Paste("a\nb 😀", 7L),
@@ -210,6 +218,8 @@ class EventMappingTest extends Test[Any]:
       )
     }
 
+    // claude 2026-10-13: changed (T1): the raw crossterm event (D-21 a); the
+    // input thread maps it
     "CrosstermInput polls, then reads the crossterm event as it is" in {
       val first = key(KeyCode.Char('a'))
       val drop  = key(KeyCode.Up(), kind = Release)

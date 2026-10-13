@@ -55,6 +55,8 @@ class TerminalIOTest extends Test[Any]:
           ): Any < Async
         }("p prints, q quits")
 
+    // claude 2026-10-13: changed (T1): Tui.runWith and the fixture Counter; the
+    // screen shows the count; no SPEC section in the name
     "open and close in order".timeout(30.seconds) in {
       val fake  = FakeCrossterm(events = Seq(char('+'), char('+')))
       val hooks = FakeHooks(fake.log)
@@ -88,6 +90,8 @@ class TerminalIOTest extends Test[Any]:
         }
     }
 
+    // claude 2026-10-13: changed (T1): the leaf of the modes: no inline
+    // viewport, no mouse and no focus mode (D-22, D-30); paste = false
     "paste = false: no bracketed paste mode".timeout(30.seconds) in {
       val fake = FakeCrossterm(events = Seq(char('q')))
       val err  = FakeErr(fake.log)
@@ -110,6 +114,8 @@ class TerminalIOTest extends Test[Any]:
         }
     }
 
+    // claude 2026-10-13: changed (T1): Tui.runWith and the fixture Counter
+    // (TuiRun and CounterApp of PR 5 are not carried)
     "no terminal: NotATerminal before anything else changes".timeout(
       30.seconds,
     ) in {
@@ -140,6 +146,8 @@ class TerminalIOTest extends Test[Any]:
         }
     }
 
+    // claude 2026-10-13: changed (T1): Tui.runWith and the fixture Counter
+    // (TuiRun and CounterApp of PR 5 are not carried)
     "stdin is not a terminal: NotATerminal before raw mode".timeout(
       30.seconds,
     ) in {
@@ -164,6 +172,8 @@ class TerminalIOTest extends Test[Any]:
         }
     }
 
+    // claude 2026-10-13: changed (T1): the UI construction fails (AppFailed is
+    // not carried): the failure comes out as a panic after the restore
     "a failing UI construction restores the streams too".timeout(
       30.seconds,
     ) in {
@@ -199,6 +209,8 @@ class TerminalIOTest extends Test[Any]:
         }
     }
 
+    // claude 2026-10-13: changed (T1): Tui.runWith and the fixture Counter
+    // (TuiRun and CounterApp of PR 5 are not carried)
     "a native library that cannot load: NativeAccessDenied".timeout(
       30.seconds,
     ) in {
@@ -237,6 +249,8 @@ class TerminalIOTest extends Test[Any]:
         }
     }
 
+    // claude 2026-10-13: changed (T1): Tui.runWith and the fixture Counter
+    // (TuiRun and CounterApp of PR 5 are not carried)
     "a failing mode command: TerminalIO, raw mode is left again".timeout(
       30.seconds,
     ) in {
@@ -264,6 +278,8 @@ class TerminalIOTest extends Test[Any]:
         }
     }
 
+    // claude 2026-10-13: changed (T1): Tui.runWith and the fixture Counter
+    // (TuiRun and CounterApp of PR 5 are not carried)
     "a failing release step does not stop the others; the error is printed"
       .timeout(30.seconds) in {
       val fake = FakeCrossterm(failAt = "leave", events = Seq(char('q')))
@@ -292,6 +308,8 @@ class TerminalIOTest extends Test[Any]:
         }
     }
 
+    // claude 2026-10-13: changed (T1): the print is in a key handler of a
+    // kyo-ui UI (keys); Tui.runWith
     "output while the UI is up is printed after the restore".timeout(
       30.seconds,
     ) in {
@@ -317,6 +335,8 @@ class TerminalIOTest extends Test[Any]:
         }
     }
 
+    // claude 2026-10-13: changed (T1): the print is in a key handler of a
+    // kyo-ui UI (keys); Tui.runWith
     "captureOutput = false: the output is not taken".timeout(30.seconds) in {
       val app  = keys(java.lang.System.out.println("tui4s test: not captured"))
       val fake = FakeCrossterm(events = Seq(char('p'), char('q')))
@@ -331,6 +351,8 @@ class TerminalIOTest extends Test[Any]:
         .map(_ => assert(!err.lines.exists(_.contains("not captured"))))
     }
 
+    // claude 2026-10-13: changed (T1): a fiber of the UI logs, then quits (the
+    // sources of the old engine are not carried)
     "Kyo log lines at warn or above are printed after the restore".timeout(
       30.seconds,
     ) in {
@@ -353,6 +375,8 @@ class TerminalIOTest extends Test[Any]:
         }
     }
 
+    // claude 2026-10-13: changed (T1): the print is in a key handler of a
+    // kyo-ui UI (keys); Tui.runWith
     "with a log file, the output and the log go to the file".timeout(
       30.seconds,
     ) in {
@@ -375,6 +399,8 @@ class TerminalIOTest extends Test[Any]:
       }
     }
 
+    // claude 2026-10-13: changed (T1): a fiber of the UI logs, then quits (the
+    // sources of the old engine are not carried)
     "the Kyo log of the run has the level of the caller's logger".timeout(
       30.seconds,
     ) in {
@@ -399,6 +425,8 @@ class TerminalIOTest extends Test[Any]:
       }
     }
 
+    // claude 2026-10-13: changed (T1): a fiber of the UI logs every line, then
+    // quits
     "every Kyo log line of the run is in the log file when the run returns"
       .timeout(30.seconds) in {
       Sync.defer(Files.createTempFile("tui4s-log", ".txt")).map { file =>
@@ -428,6 +456,8 @@ class TerminalIOTest extends Test[Any]:
       }
     }
 
+    // claude 2026-10-13: changed (T1): Tui.runWith; the release closes the
+    // inbox, and the run ends as a quit does (it ended as an interrupt)
     "the shutdown hook restores the terminal while the app runs".timeout(
       30.seconds,
     ) in {
@@ -464,6 +494,8 @@ class TerminalIOTest extends Test[Any]:
         }
     }
 
+    // claude 2026-10-13: changed (T1): replaces the Tui.start leaf of PR 5: a
+    // fiber of the UI sets the count, then quits; the screen shows its writes
     "the UI's quit value ends the run; the screen showed the UI's own writes"
       .timeout(30.seconds) in {
       val fake                                       = FakeCrossterm()

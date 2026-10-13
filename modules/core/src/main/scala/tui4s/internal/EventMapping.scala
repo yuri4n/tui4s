@@ -54,9 +54,8 @@ private[tui4s] object EventMapping:
     /** The runner message for `e`, with the sequence number `seq`; `null` for
       * an event that the runner ignores.
       */
-    /* claude 2026-10-13: changed (T1): Msg with its sequence number; null
-     * checks */
-    // at the Java records (AGENTS.md, the Java boundary)
+    // claude 2026-10-13: changed (T1): Msg with its sequence number; null
+    // checks at the Java records (AGENTS.md, the Java boundary)
     def apply(e: CEvent, seq: Long): Msg | Null = e match
         case k: CEvent.Key         =>
           val ke = k.keyEvent
