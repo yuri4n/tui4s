@@ -55,7 +55,8 @@ private[tui4s] final class Canvas private (
             case _               => ()
         back = Buffer.empty(JRect.of(0, 0, s.w, s.h))
         front = Buffer.empty(JRect.of(0, 0, s.w, s.h))
-        backend.clear()
+        // claude 2026-10-13: changed (T1): a failed write is TerminalIO
+        Canvas.terminalIO(backend.clear())
       }
 
     private def inside(x: Int, y: Int): Boolean =
@@ -143,17 +144,22 @@ private[tui4s] final class Canvas private (
             // other holder of the monitor. With the test seam, the draw goes
             // one row at a time with a spin between the rows.
             backend.synchronized {
-              if flushSeamNanos <= 0L then backend.draw(updates.asJava)
-              else
-                  updates.grouped(back.area.width.max(1)).foreach { chunk =>
-                    backend.draw(chunk.asJava)
-                    val t0 = java.lang.System.nanoTime()
-                    while java.lang.System.nanoTime() - t0 < flushSeamNanos do
-                        (
-                    )
-                  }
-              end if
-              backend.flush()
+              // claude 2026-10-13: changed (T1): a write to the terminal that
+              // fails is TuiError.TerminalIO (the run fails with it)
+              Canvas.terminalIO {
+                if flushSeamNanos <= 0L then backend.draw(updates.asJava)
+                else
+                    updates.grouped(back.area.width.max(1)).foreach { chunk =>
+                      backend.draw(chunk.asJava)
+                      val t0 = java.lang.System.nanoTime()
+                      while java.lang.System.nanoTime() - t0 < flushSeamNanos
+                      do
+                          (
+                      )
+                    }
+                end if
+                backend.flush()
+              }
             }
         end if
         updates.size
@@ -161,6 +167,14 @@ private[tui4s] final class Canvas private (
 end Canvas
 
 private[tui4s] object Canvas:
+    /** Runs `write`, a write to the terminal; an `IOException` becomes
+      * [[tui4s.TuiError.TerminalIO]], which ends the run with that failure.
+      */
+    // claude 2026-10-13: created (T1)
+    def terminalIO(write: => Unit): Unit =
+      try write
+      catch case e: java.io.IOException => throw tui4s.TuiError.TerminalIO(e)
+
     /** @param flushSeam
       *   the test seam `Knobs.flushSeam` (zero in a real run)
       */

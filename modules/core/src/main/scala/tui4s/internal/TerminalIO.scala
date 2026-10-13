@@ -50,6 +50,9 @@ end Hooks
   *   the real stderr, for what is printed after the restore
   * @param restored
   *   called at the end of [[leave]]: the terminal is restored
+  * @param consoleCaptured
+  *   true when a capture also takes `scala.Console` (Scala's `println`); see
+  *   [[OutputCapture.capturesConsole]]
   */
 private[tui4s] final class TerminalIO(
     crossterm: Crossterm,
@@ -57,10 +60,14 @@ private[tui4s] final class TerminalIO(
     hooks: Hooks = Hooks.runtime,
     realErr: () => PrintStream = () => OutputCapture.realErr,
     restored: () => Unit = () => (),
+    // claude 2026-10-13: created (T1, RC-10 part): the R3 check, for the tests
+    consoleCaptured: () => Boolean = () => OutputCapture.capturesConsole,
 ) extends TerminalControl:
     @volatile private var capture: OutputCapture.Capture | Null = null
     @volatile private var hook: Thread | Null                   = null
     @volatile private var inHook                                = false
+    // claude 2026-10-13: created (T1, RC-10 part): the R3 warning of this run
+    @volatile private var consoleWarning: String | Null         = null
 
     private def err: PrintStream = realErr()
 
@@ -72,6 +79,13 @@ private[tui4s] final class TerminalIO(
                 val c = OutputCapture.start(sink)
                 capture = c
                 undo = (() => c.stop()) :: undo
+                // claude 2026-10-13: created (T1, RC-10 part, IR R3): a
+                // println that the capture cannot take is a warning, in the
+                // log now and on stderr after the restore
+                if !consoleCaptured() then
+                    consoleWarning = TerminalIO.ConsoleNotCaptured
+                    sink.line(TerminalIO.ConsoleNotCaptured, important = false)
+            end if
             // crossterm takes /dev/tty when stdin is not a terminal, so raw
             // mode alone does not see a piped or redirected stdin.
             if !crossterm.stdinIsTerminal() then
@@ -134,15 +148,33 @@ private[tui4s] final class TerminalIO(
           val h = hook
           if h != null && !inHook then hooks.remove(h)
         }
+        // claude 2026-10-13: created (T1, RC-10 part): the R3 warning, once.
+        // The two prints below run after the restore, by design: a 'tui4s:
+        // allowed' marker at each
+        step {
+          val w = consoleWarning
+          consoleWarning = null
+          if w != null then
+              err.println(w) // tui4s: allowed
+              err.flush()
+        }
         val e                       = first
         if e != null then
-            err.println(s"tui4s: restoring the terminal failed: $e")
+            val problem = s"tui4s: restoring the terminal failed: $e"
+            err.println(problem) // tui4s: allowed
             err.flush()
         restored()
     end leave
 end TerminalIO
 
 private[tui4s] object TerminalIO:
+    /** The R3 warning: `scala.Console` was in use before the run. */
+    // claude 2026-10-13: created (T1, RC-10 part)
+    val ConsoleNotCaptured: String =
+      "tui4s: scala.Console was in use before the run started, so its " +
+        "output was not captured during the run and could write over the " +
+        "screen. Start the run before the first use of scala.Console."
+
     /** Step 4 of the acquire: the alternate screen (cleared: not every terminal
       * clears it), the hidden cursor, and the bracketed paste mode for
       * `TuiOptions.paste`. No mouse and no focus events (D-30), no inline

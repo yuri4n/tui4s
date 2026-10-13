@@ -142,4 +142,29 @@ class PublicApiTest extends Test[Any]:
           .mkString("\n"),
       )
     }
+    // claude 2026-10-13: created (T1, RC-36): Tui.run and TuiError are
+    // public now, and the terminal code is jatatui and crossterm
+    "no public signature of tui4s, tui4s.spi or tui4s.testkit names a jatatui or crossterm type" in {
+      given Context = reader._1
+      val classes   = List("tui4s", "tui4s.spi", "tui4s.testkit")
+        .flatMap(classesOf)
+        .filterNot(scoped)
+      val leaks     = for
+          c <- classes
+          s <- c.declarations.collect {
+                 case s: TermOrTypeSymbol if !s.isSynthetic && !scoped(s) => s
+               }
+          t  = s match
+                   case t: TermSymbol       => t.declaredType
+                   case t: TypeMemberSymbol => t.typeDef
+                   case other               => other
+          n <- named(t) ++ c.parents.flatMap(named)
+          if n.startsWith("jatatui.") || n.startsWith("tui.crossterm.")
+      yield s"${s.displayFullName} names $n"
+      assert(
+        leaks.distinct.isEmpty,
+        "public signatures that name a jatatui or crossterm type:\n" + leaks.distinct
+          .mkString("\n"),
+      )
+    }
 end PublicApiTest

@@ -6,6 +6,7 @@ import tui4s.internal.Crossterm
 import tui4s.internal.Hooks
 import tui4s.internal.LogSink
 import tui4s.internal.Msg
+import tui4s.internal.NativeCrossterm
 import tui4s.internal.OutputCapture
 import tui4s.internal.Runner
 import tui4s.internal.Session
@@ -13,11 +14,59 @@ import tui4s.internal.TerminalIO
 import tui4s.internal.Tui4sQuit
 import tui4s.internal.TuiLog
 
-/** The entry points of a tui4s app. In this version it has `quit`; `run` (the
-  * real terminal) comes in a later version.
+/** The entry points of a tui4s app: [[run]] runs a kyo-ui UI in the real
+  * terminal, [[quit]] ends it from inside.
   */
 // claude 2026-10-13: created (C3, RC-2 part: the prototype's Tui.quit)
+// claude 2026-10-13: changed (T1, RC-2): Tui.run
 object Tui:
+
+    /** Runs `ui` in the real terminal with the default [[TuiOptions]] until it
+      * quits. See the other `run`.
+      */
+    // claude 2026-10-13: created (T1, RC-2)
+    def run(ui: (Unit < Sync) => UI < (Async & Scope))(using
+        Frame,
+    ): Unit < (Async & Abort[TuiError]) =
+      run(TuiOptions())(ui)
+
+    /** Runs `ui` in the real terminal until it quits, on the calling fiber.
+      *
+      * `ui` gets the quit value: running it ends the run (the same as [[quit]],
+      * which works inside the construction of the UI, inside a handler, and
+      * inside a fiber that they start). The key Ctrl-C ends the run too
+      * (`TuiOptions.ctrlCQuits`). The run ends after the frame of the event
+      * that quit it, and the computation completes with `()`.
+      *
+      * The run puts the terminal in raw mode, enters the alternate screen,
+      * hides the cursor and turns on the bracketed paste mode (with
+      * `TuiOptions.paste`). The terminal is restored before this computation
+      * completes, also when the UI fails and when the fiber is interrupted, and
+      * a JVM shutdown hook restores it when the JVM exits during the run. While
+      * the UI is up, the Kyo log goes to `TuiOptions.logFile` or to memory, and
+      * (with `TuiOptions.captureOutput`) so do `System.out` and `System.err`;
+      * what was kept in memory is printed to stderr after the restore.
+      *
+      * The JVM needs `--enable-native-access=ALL-UNNAMED` (the terminal library
+      * crossterm is native) and a terminal on stdin. Give it the tui4s
+      * scheduler values too: `-Dkyo.scheduler.cycleIntervalNs=10000000
+      * -Dkyo.scheduler.blockingMonitorIntervalNs=20000000
+      * -Dkyo.scheduler.regulator.concurrencyCollectIntervalMs=100` (fewer split
+      * frames under load, less CPU when idle).
+      *
+      * Fails with `TuiError.NotATerminal` when stdin is not a terminal, with
+      * `TuiError.NativeAccessDenied` when the JVM does not allow the native
+      * library (both before the terminal changes), and with
+      * `TuiError.TerminalIO` when the terminal cannot be set up, read or
+      * written. A failure of the UI itself comes out as it is, after the
+      * restore.
+      */
+    // claude 2026-10-13: created (T1, RC-2): the shape of Headless.start (the
+    // quit value, D-15; Tui.quit as the second way)
+    def run(options: TuiOptions)(ui: (Unit < Sync) => UI < (Async & Scope))(
+        using Frame,
+    ): Unit < (Async & Abort[TuiError]) =
+      runWith(options, NativeCrossterm())(ui)
 
     /** Ends the run that runs the caller. A key handler, the construction of
       * the UI, and a fiber that one of them started can call it: the runner
@@ -59,7 +108,15 @@ object Tui:
             )
             // The lines that Kyo has not written yet go to the log file (or
             // to stderr) before the run returns.
-            .map(r => TuiLog.flush(2.seconds).andThen(Abort.get(r))),
+            // claude 2026-10-13: changed (T1): a TuiError that the canvas threw
+            // (a write to the terminal failed) is the failure of the run
+            .map { r =>
+              TuiLog
+                .flush(2.seconds)
+                .andThen(Abort.get(r match
+                    case Result.Panic(e: TuiError) => Result.fail(e)
+                    case other                     => other))
+            },
         )
       }
 

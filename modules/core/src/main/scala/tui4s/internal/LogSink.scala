@@ -25,6 +25,9 @@ import scala.util.control.NonFatal
   * @param capacity
   *   the lines that the ring keeps
   */
+// claude 2026-10-13: changed (T1): a 'tui4s: allowed' marker at each print:
+// each one runs after the terminal is restored, by design (the rule "no
+// stderr and no println in core main" of the pull request T1)
 private[tui4s] final class LogSink(file: Option[Path], val capacity: Int = 200):
     private val ring                         = scala.collection.mutable.ArrayDeque.empty[String]
     private var dropped                      = 0L
@@ -59,7 +62,7 @@ private[tui4s] final class LogSink(file: Option[Path], val capacity: Int = 200):
       if done != null then
           val late = lateFile
           if late != null then appendLate(late, text, important, done)
-          else if important then done.println(text)
+          else if important then done.println(text) // tui4s: allowed
       else
           val w = out
           if w != null then
@@ -97,8 +100,9 @@ private[tui4s] final class LogSink(file: Option[Path], val capacity: Int = 200):
       catch
           case NonFatal(e) =>
             lateFile = null
-            err.println(s"tui4s: writing the log file failed: $e")
-            if important then err.println(text)
+            val problem = s"tui4s: writing the log file failed: $e"
+            err.println(problem) // tui4s: allowed
+            if important then err.println(text) // tui4s: allowed
 
     private def keep(text: String, important: Boolean): Unit =
       if important then
@@ -121,11 +125,12 @@ private[tui4s] final class LogSink(file: Option[Path], val capacity: Int = 200):
               out = null
               lateFile = file.orNull
           if dropped > 0 then
-              err.println(s"tui4s: $dropped earlier output lines are not shown")
-          ring.foreach(err.println)
+              val note = s"tui4s: $dropped earlier output lines are not shown"
+              err.println(note) // tui4s: allowed
+          ring.foreach(err.println) // tui4s: allowed
           ring.clear()
           val p = problem
-          if p != null then err.println(p)
+          if p != null then err.println(p) // tui4s: allowed
           err.flush()
     }
 

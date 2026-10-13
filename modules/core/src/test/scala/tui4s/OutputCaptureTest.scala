@@ -8,10 +8,12 @@ import kyo.*
 import kyo.test.*
 import tui4s.internal.LogSink
 import tui4s.internal.OutputCapture
+import tui4s.internal.TerminalIO
 
 /** SPEC 5.10: the sink of a run and the capture of `System.out` / `err`.
   * Sequential: the capture is JVM-global.
   */
+// claude 2026-10-13: changed (T1, RC-10 part): the R3 check and its warning
 class OutputCaptureTest extends Test[Any]:
     override def config: RunConfig = super.config.sequential
 
@@ -178,10 +180,89 @@ class OutputCaptureTest extends Test[Any]:
       assert(both == (true, false) && still && !first.capturing)
     }
 
+    // claude 2026-10-13: created (T1, RC-10 part, IR R3)
+    "capturesConsole: true when scala.Console has the forwarders, false when it has another stream" in {
+      val sink       = LogSink(None)
+      val capture    = OutputCapture.start(sink)
+      // During a capture System.out and System.err are the forwarders.
+      val ours       = scala.Console.withOut(java.lang.System.out.nn)(
+        scala.Console.withErr(java.lang.System.err.nn)(
+          OutputCapture.capturesConsole,
+        ),
+      )
+      val (_, other) = stream()
+      val foreignOut = scala.Console.withOut(other)(
+        scala.Console.withErr(java.lang.System.err.nn)(
+          OutputCapture.capturesConsole,
+        ),
+      )
+      val foreignErr = scala.Console.withOut(java.lang.System.out.nn)(
+        scala.Console.withErr(other)(OutputCapture.capturesConsole),
+      )
+      capture.stop()
+      assert(
+        ours && !foreignOut && !foreignErr,
+        (ours, foreignOut, foreignErr).toString,
+      )
+    }
+
+    // claude 2026-10-13: created (T1, RC-10 part, IR R3)
+    "scala.Console in use before the run: a warning in the log, printed once after the restore" in {
+      Sync.defer(Files.createTempFile("tui4s-r3", ".log")).map { file =>
+        val opts  = TuiOptions(logFile = Some(file))
+        val fake  = FakeCrossterm()
+        val err   = FakeErr(fake.log)
+        val sink  = LogSink(Some(file))
+        val io    = TerminalIO(
+          fake,
+          sink,
+          FakeHooks(fake.log),
+          () => err.stream,
+          consoleCaptured = () => false,
+        )
+        discard(io.enter(opts))
+        io.leave(opts)
+        io.leave(opts)
+        val text  = Files.readString(file, StandardCharsets.UTF_8)
+        val calls = fake.calls
+        val warn  = "err: " + TerminalIO.ConsoleNotCaptured
+        assert(text.contains(TerminalIO.ConsoleNotCaptured), text)
+        assert(calls.count(_ == warn) == 1, calls.mkString("\n"))
+        assert(
+          calls.indexOf(warn) > calls.indexOf("flush"),
+          calls.mkString("\n"),
+        )
+      }
+    }
+
+    // claude 2026-10-13: created (T1, RC-10 part, IR R3)
+    "scala.Console with the forwarders, or no capture: no warning" in {
+      val quiet = Seq(
+        (TuiOptions(), () => true),
+        (TuiOptions(captureOutput = false), () => false),
+      ).map { (opts, captured) =>
+        val fake = FakeCrossterm()
+        val err  = FakeErr(fake.log)
+        val io   = TerminalIO(
+          fake,
+          LogSink(None),
+          FakeHooks(fake.log),
+          () => err.stream,
+          consoleCaptured = captured,
+        )
+        discard(io.enter(opts))
+        io.leave(opts)
+        err.lines
+      }
+      assert(quiet.forall(_.isEmpty), quiet.toString)
+    }
+
     "after a capture, System.out writes to the real stdout again" in {
       val sink = LogSink(None)
       OutputCapture.start(sink).stop()
       java.lang.System.out.println("tui4s test: not in the sink")
       assert(sink.kept.isEmpty)
     }
+    private def discard(a: Any): Unit =
+        val _ = a
 end OutputCaptureTest

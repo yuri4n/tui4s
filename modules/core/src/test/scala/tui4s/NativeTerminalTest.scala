@@ -9,7 +9,6 @@ import kyo.test.*
 import scala.jdk.OptionConverters.*
 import scala.util.control.NonFatal
 import tui4s.fixtures.*
-import tui4s.internal.NativeCrossterm
 import tui4s.internal.Tty
 
 /** The real crossterm library, where it is safe: `Tui.run` must fail with
@@ -60,10 +59,9 @@ class NativeTerminalTest extends Test[Any]:
         if !unix || (canOpenTty && !Tty.isatty(0).contains(false)) then
             assert(true, "skipped: a terminal is on stdin")
         else
+            // claude 2026-10-13: changed (T1): the public Tui.run
             Abort
-              .run(
-                Tui.runWith(TuiOptions(), NativeCrossterm())(_ => Counter.app),
-              )
+              .run(Tui.run(_ => Counter.app))
               .map { r =>
                 assert(
                   r match

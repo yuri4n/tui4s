@@ -18,6 +18,10 @@ import java.nio.charset.Charset
   * user code runs, so `println` is always captured there; with `Tui.run` it is
   * captured when nothing used `scala.Console` before the first run.
   */
+// claude 2026-10-13: changed (T1): a 'tui4s: allowed' marker at each use of
+// System.out and System.err: the forwarders replace and restore them, by
+// design (the rule "no stderr and no println in core main" of the pull
+// request T1)
 private[tui4s] object OutputCapture:
     private var originalOut: PrintStream | Null = null
     private var originalErr: PrintStream | Null = null
@@ -26,19 +30,22 @@ private[tui4s] object OutputCapture:
     private var forwards: List[Forward]         = Nil
     private var out: PrintStream | Null         = null
     private var err: PrintStream | Null         = null
+    // claude 2026-10-13: created (T1, RC-10 part): every forwarding stream
+    // made so far (scala.Console can hold an older one)
+    private var streams: List[PrintStream]      = Nil
     private var pinned                          = false
     private var active: Capture | Null          = null
 
     /** The real stderr: `System.err` as it was before tui4s replaced it. */
     def realErr: PrintStream = synchronized {
       val e = originalErr
-      if e != null then e else java.lang.System.err.nn
+      if e != null then e else java.lang.System.err.nn // tui4s: allowed
     }
 
     /** The real stdout: `System.out` as it was before tui4s replaced it. */
     def realOut: PrintStream = synchronized {
       val o = originalOut
-      if o != null then o else java.lang.System.out.nn
+      if o != null then o else java.lang.System.out.nn // tui4s: allowed
     }
 
     /** Installs the forwarding streams for good (transparent while no capture
@@ -56,17 +63,21 @@ private[tui4s] object OutputCapture:
       * other in a loop.
       */
     private def installStreams(): Unit =
-        val sysOut = java.lang.System.out.nn
-        val sysErr = java.lang.System.err.nn
+        val sysOut = java.lang.System.out.nn // tui4s: allowed
+        val sysErr = java.lang.System.err.nn // tui4s: allowed
         if out == null || ((sysOut ne out) && (sysOut ne originalOut)) then
             val f = Forward(sysOut, sysOut.charset.nn)
             forwards = f :: forwards
-            out = PrintStream(f, true, sysOut.charset.nn)
+            val p = PrintStream(f, true, sysOut.charset.nn)
+            out = p
+            streams = p :: streams
             originalOut = sysOut
         if err == null || ((sysErr ne err) && (sysErr ne originalErr)) then
             val f = Forward(sysErr, sysErr.charset.nn)
             forwards = f :: forwards
-            err = PrintStream(f, true, sysErr.charset.nn)
+            val p = PrintStream(f, true, sysErr.charset.nn)
+            err = p
+            streams = p :: streams
             originalErr = sysErr
         java.lang.System.setOut(out)
         java.lang.System.setErr(err)
@@ -74,6 +85,19 @@ private[tui4s] object OutputCapture:
         // before.
         discard(scala.Console.out)
     end installStreams
+
+    /** True when `scala.Console.out` and `scala.Console.err` (of the calling
+      * thread) are forwarders of tui4s, so that a capture also takes Scala's
+      * `println`. False when `scala.Console` was first used before the
+      * forwarders were installed: it keeps the streams of that time (RC-10, IR
+      * R3).
+      */
+    // claude 2026-10-13: created (T1, RC-10 part: the start-time check of R3)
+    def capturesConsole: Boolean = synchronized {
+      val o = scala.Console.out
+      val e = scala.Console.err
+      streams.exists(_ eq o) && streams.exists(_ eq e)
+    }
 
     /** Starts capturing into `sink`; the result stops it. A second capture
       * while one runs captures nothing (its stop does nothing).
@@ -105,9 +129,9 @@ private[tui4s] object OutputCapture:
               forwards.foreach(_.drain(s))
               active = null
               if !pinned then
-                  if java.lang.System.out eq out then
+                  if java.lang.System.out eq out then // tui4s: allowed
                       java.lang.System.setOut(originalOut)
-                  if java.lang.System.err eq err then
+                  if java.lang.System.err eq err then // tui4s: allowed
                       java.lang.System.setErr(originalErr)
           end if
         }

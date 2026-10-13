@@ -1,7 +1,12 @@
 package tui4s
 
 import jatatui.core.backend.Backend
+import jatatui.core.backend.ClearType
 import jatatui.core.backend.TestBackend
+import jatatui.core.backend.WindowSize
+import jatatui.core.buffer.BufferUpdate
+import jatatui.core.layout.Position
+import jatatui.core.layout.Size
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import java.nio.charset.StandardCharsets
@@ -21,7 +26,8 @@ import tui4s.testkit.Screen
   *
   * @param failAt
   *   the call that throws: "load", "raw", "enter" (the first `execute`),
-  *   "leave" (the second `execute`), "poll" (the input fails) or "" for none
+  *   "leave" (the second `execute`), "poll" (the input fails), "draw" (a draw
+  *   of the backend fails) or "" for none
   * @param stdinTty
   *   what [[stdinIsTerminal]] says
   */
@@ -101,10 +107,35 @@ final class FakeCrossterm(
         peeked = null
         if p != null then p else queue.take().nn
 
+    // claude 2026-10-13: changed (T1): failAt "draw"
     def backend(): Backend =
         record("backend")
-        backendT
+        if failAt == "draw" then FailingDraw(backendT) else backendT
 end FakeCrossterm
+
+/** `underlying`, whose draw fails with an `IOException` (a terminal that went
+  * away).
+  */
+// claude 2026-10-13: created (T1)
+final class FailingDraw(underlying: TestBackend) extends Backend:
+    def draw(content: java.lang.Iterable[BufferUpdate]): Unit    =
+      throw java.io.IOException("broken pipe")
+    def hideCursor(): Unit                                       = underlying.hideCursor()
+    def showCursor(): Unit                                       = underlying.showCursor()
+    def getCursorPosition(): Position                            = underlying.getCursorPosition()
+    def setCursorPosition(position: Position): Unit              =
+      underlying.setCursorPosition(position)
+    def clear(): Unit                                            = underlying.clear()
+    def clearRegion(clearType: ClearType): Unit                  =
+      underlying.clearRegion(clearType)
+    def size(): Size                                             = underlying.size()
+    def windowSize(): WindowSize                                 = underlying.windowSize()
+    def flush(): Unit                                            = underlying.flush()
+    def scrollRegionUp(start: Int, end: Int, lines: Int): Unit   =
+      underlying.scrollRegionUp(start, end, lines)
+    def scrollRegionDown(start: Int, end: Int, lines: Int): Unit =
+      underlying.scrollRegionDown(start, end, lines)
+end FailingDraw
 
 /** Shutdown hooks that are recorded, not registered with the JVM. */
 final class FakeHooks(log: ConcurrentLinkedQueue[String]) extends Hooks:
