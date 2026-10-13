@@ -30,6 +30,21 @@ abstract class Component:
     // the parameter of the default
     def onMount(@unused state: SignalRef[State]): Any < (Async & Scope) = ()
 
+    /** The key of this component's state at its position. The runner keeps the
+      * state of a component under its position and this key: a component at the
+      * same position with the same key gets the same state, and a component
+      * with another key starts from `initial`. The default is the name of the
+      * class. So a component of another class at the same position does not get
+      * this state, and two instances of one class at one position share it (a
+      * parent that renders again builds new instances, and they keep the
+      * state). Override it when one class shows different things at one
+      * position, for example one state per user:
+      * `override protected def stateKey = s"user:$id"`.
+      */
+    // claude 2026-10-13: created (C4, FC-17, plan 0.2): the overridable state
+    // key
+    protected def stateKey: String = getClass.getName
+
     /** The kyo-ui node of this component. In another kyo-ui runner (DOM,
       * server-push) it still works: the state is then allocated once per node
       * value.
@@ -48,3 +63,10 @@ object Component:
     /** Lets a component be a child: `div(Counter("a"), Counter("b"))`. */
     implicit def componentToChild(c: Component)(using Frame): HtmlChildVal =
       HtmlChildVal.lift(c.ui)
+
+    /** The state key of `c` (its `stateKey`, which is protected), for the
+      * runner.
+      */
+    // claude 2026-10-13: created (C4, FC-17)
+    private[tui4s] def stateKeyOf(c: Component): String = c.stateKey
+end Component

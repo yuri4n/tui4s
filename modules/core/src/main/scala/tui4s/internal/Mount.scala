@@ -4,6 +4,7 @@ package tui4s.internal
 
 import kyo.*
 import kyo.UI.Ast.*
+import tui4s.Component
 
 /** Mounting and unmounting regions. A mount reads the signal's current value
   * synchronously (so the first frame needs no scheduler round trip) and starts
@@ -318,10 +319,11 @@ private[tui4s] final class Mount(
     /** Mounts a component node at `path` (C4).
       *
       * A [[tui4s.Component]] (`ComponentSpec.Instance`): its state is the
-      * `SignalRef` of `w.comps` under its state key (the path and the class),
-      * or a new one with `initial`. `view(state)` gives the content at once.
-      * The effects of the old mount at this path stop, and `onMount(state)`
-      * runs in a new fiber, with a `Scope` that closes when the fiber ends.
+      * `SignalRef` of `w.comps` under its state key (the path and
+      * `Component.stateKey`, by default the class), or a new one with
+      * `initial`. `view(state)` gives the content at once. The effects of the
+      * old mount at this path stop, and `onMount(state)` runs in a new fiber,
+      * with a `Scope` that closes when the fiber ends.
       *
       * A hook component (`ComponentSpec.Hook`, [[tui4s.Hooks.component]]): a
       * region of the same identity in `reclaim` is kept as it is (its fiber,
@@ -341,7 +343,10 @@ private[tui4s] final class Mount(
     )(using Frame): World < Sync =
       spec match
           case ComponentSpec.Instance(c)          =>
-            val key       = s"${path.mkString("/")}|${c.getClass.getName}"
+            // claude 2026-10-13: changed (C4, FC-17): the state key of the
+            // component (`Component.stateKey`, the class name by default)
+            val key       =
+              s"${path.mkString("/")}|${Component.stateKeyOf(c)}"
             val (gen, w1) = w.gen
             for
                 state   <- w1.comps.get(key) match

@@ -13,9 +13,9 @@ import tui4s.spi.Settle
 import tui4s.testkit.Headless
 
 /** The components (C4): R1 for the fibers that a component mount or a hook
-  * starts.
+  * starts; the state key of a `Component`.
   */
-// claude 2026-10-13: created (C4, RC-8)
+// claude 2026-10-13: created (C4, RC-8); changed: the state key (FC-17)
 class ComponentTest extends RunnerSuite:
 
     /** Polls `cond` every 2 ms: the ms until it was true, or -1 after
@@ -211,5 +211,84 @@ class ComponentTest extends RunnerSuite:
           assert(live0 >= 5, s"fibers before the interrupt: $live0")
           assert(ms >= 0L, "effect fibers stay after the interrupt")
       end for
+    }
+
+    // ---- the state key (plan 0.2, FC-17) ----
+
+    /** A counter whose text starts with `name`; `+` (Enter on the button) adds
+      * one.
+      */
+    def counterView(name: String, n: SignalRef[Int])(using Frame): UI =
+      div(
+        span(n.map(v => s"[$name=$v]")),
+        button("+").onClick(n.updateAndGet(_ + 1)),
+      )
+
+    /** Two classes with the same state type and the same initial value. */
+    final class CountA extends Component:
+        type State = Int
+        def initial: Int                = 0
+        def view(n: SignalRef[Int]): UI = counterView("A", n)
+
+    final class CountB extends Component:
+        type State = Int
+        def initial: Int                = 0
+        def view(n: SignalRef[Int]): UI = counterView("B", n)
+
+    /** One class, one state per label: a custom state key. */
+    final class PerLabel(label: String) extends Component:
+        type State = Int
+        def initial: Int                        = 0
+        def view(n: SignalRef[Int]): UI         = counterView(label, n)
+        override protected def stateKey: String = s"PerLabel:$label"
+
+    /** One class, the default state key (the class name). */
+    final class SameKey(label: String) extends Component:
+        type State = Int
+        def initial: Int                = 0
+        def view(n: SignalRef[Int]): UI = counterView(label, n)
+
+    /** Starts `ui` over the signal `which`, adds 3 to the first component, then
+      * switches `which` to `next` and waits for `expect`. The screen after the
+      * switch.
+      */
+    def switchAfter3(which: SignalRef[String], ui: UI, first: String)(
+        next: String,
+        expect: String,
+    )(using Frame, kyo.test.AssertScope): (Boolean, String) < (Async & Scope) =
+      for
+          h  <- Headless.start(40, 6)(_ => ui)
+          _  <- Kyo.foreachDiscard(1 to 3)(_ => h.key(Keyboard.Enter))
+          ok <- h.awaitScreen(showing(s"[$first=3]"), 2.seconds)
+          _   = assert(ok, s"the first component did not count to 3")
+          _  <- which.set(next)
+          ok <- h.awaitScreen(showing(expect), 2.seconds)
+          s  <- h.screen
+      yield (ok, s.text)
+
+    "state key: two Component classes at one position do not share state" in {
+      for
+          which     <- Signal.initRef("A")
+          ui         =
+            div(
+              which.render(w => if w == "A" then CountA().ui else CountB().ui),
+            )
+          (ok, txt) <- switchAfter3(which, ui, "A")("B", "[B=0]")
+      yield assert(ok && !txt.contains("[B=3]"), txt)
+    }
+
+    "state key: a custom stateKey separates two instances of one class at one position; without it they share (the default)" in {
+      for
+          who       <- Signal.initRef("x")
+          custom     = div(who.render(l => PerLabel(l).ui))
+          (ok1, t1) <- switchAfter3(who, custom, "x")("y", "[y=0]")
+          _          = assert(ok1 && !t1.contains("[y=3]"), t1)
+          who2      <- Signal.initRef("x")
+          default    = div(who2.render(l => SameKey(l).ui))
+          (ok2, t2) <- switchAfter3(who2, default, "x")("y", "[y=3]")
+      yield assert(
+        ok2,
+        s"the default key (the class name) shares the state: $t2",
+      )
     }
 end ComponentTest
