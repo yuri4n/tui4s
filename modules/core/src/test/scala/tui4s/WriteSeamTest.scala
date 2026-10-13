@@ -59,14 +59,18 @@ class WriteSeamTest extends RunnerSuite:
         ),
       )
 
-    /** Types "hi" in the input; Space on the checkbox and on the radio; Enter
-      * and ArrowDown on the select. Returns the four values of the refs.
+    /** Types "hi" and pastes "!" in the input; Space on the checkbox and on the
+      * radio; Enter and ArrowDown on the select. Returns the four values of the
+      * refs.
       */
+    // claude 2026-10-13: changed (C3, RC-14 part): the paste writes through
+    // the seam too
     private def drive(h: Headless, r: Refs)(using
         Frame,
     ): (String, Boolean, Boolean, String) < Async =
       for
           _ <- h.typeText("hi")
+          _ <- h.paste("!")
           _ <- h.key(Keyboard.Tab)
           _ <- h.key(Keyboard.Space)
           _ <- h.key(Keyboard.Tab)
@@ -80,7 +84,7 @@ class WriteSeamTest extends RunnerSuite:
           p <- r.pick.get
       yield (t, b, o, p)
 
-    "every bound write (text input, checkbox, radio, select) goes through the seam; the ref is written BEFORE onInput" in {
+    "every bound write (text input: keys and a paste; checkbox, radio, select) goes through the seam; the ref is written BEFORE onInput" in {
       val writes      = new ConcurrentLinkedQueue[(Loc, Any)]()
       val onInputSeen = new ConcurrentLinkedQueue[(String, String)]()
       val hook        = Knobs(onBoundWrite =
@@ -100,16 +104,20 @@ class WriteSeamTest extends RunnerSuite:
                 .map(_._1.showLoc)
                 .distinct} refs=$values onInput=${onInputSeen.asScala.toVector}"
           java.lang.System.out.println(line)
-          assert(seen.size == 6, line)
+          assert(seen.size == 7, line)
           assert(
-            seen.map(_._2) == Vector("h", "hi", true, true, "b", "c"),
+            seen.map(_._2) == Vector("h", "hi", "hi!", true, true, "b", "c"),
             line,
           )
           assert(seen.map(_._1).distinct.size == 4, line)
-          assert(values == ("hi", true, true, "c"), line)
+          assert(values == ("hi!", true, true, "c"), line)
           // A3: onInput reads the ref and sees the new text
           assert(
-            onInputSeen.asScala.toVector == Vector(("h", "h"), ("hi", "hi")),
+            onInputSeen.asScala.toVector == Vector(
+              ("h", "h"),
+              ("hi", "hi"),
+              ("hi!", "hi!"),
+            ),
             line,
           )
       end for
@@ -127,7 +135,7 @@ class WriteSeamTest extends RunnerSuite:
             s"[seam default] hook writes=${writes.size} refs=$values onInput=${onInputSeen.asScala.toVector}"
           java.lang.System.out.println(line)
           assert(writes.isEmpty, line)
-          assert(values == ("hi", true, true, "c"), line)
+          assert(values == ("hi!", true, true, "c"), line)
       end for
     }
 end WriteSeamTest

@@ -173,17 +173,22 @@ final class Runner(
                                    msg,
                                  ).map(remember)
                   t1          <- nanos
-                  // claude 2026-10-13: changed (C3): a key is an Input step
-                  // too, so the verify pass re-reads the unarmed regions
+                  // claude 2026-10-13: changed (C3): a key and a paste are
+                  // Input steps too, so the verify pass re-reads the unarmed
+                  // regions
                   input        = msg match
                                      case Msg.Key(_, _)    => true
+                                     case Msg.Paste(_, _)  => true
                                      case Msg.Resize(_, _) => true
                                      case _                => false
                   w3          <- settleAndVerify(w2, input).map(remember)
                   t2          <- nanos
-                  // claude 2026-10-13: changed (C3): a key gives an Input frame
+                  // claude 2026-10-13: changed (C3): a key and a paste give an
+                  // Input frame
                   (seq, cause) = msg match
                                      case Msg.Key(_, s)    => (s, FrameCause.Input)
+                                     case Msg.Paste(_, s)  =>
+                                       (s, FrameCause.Input)
                                      case Msg.Resize(_, s) =>
                                        (s, FrameCause.Input)
                                      case _                => (0L, FrameCause.Background)
@@ -213,6 +218,9 @@ final class Runner(
           case Msg.Key(ev, _) if options.ctrlCQuits && isCtrlC(ev) =>
             w.copy(quit = true)
           case Msg.Key(ev, _)                                      => dispatch.onKey(w, ev)
+          // claude 2026-10-13: created (C3, RC-14 part): a paste is one edit
+          // of the focused text input
+          case Msg.Paste(text, _)                                  => dispatch.onPaste(w, text)
           case Msg.Resize(size, _)                                 =>
             Sync
               .defer(canvas.resize(size))

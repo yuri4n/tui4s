@@ -259,12 +259,49 @@ class TextEditTest extends RunnerSuite:
       }
     }
 
+    // claude 2026-10-13: created (C3, RC-14 part): the paste cases of the old
+    // TextFieldTest, with the bracketed paste of the kit (Headless.paste)
+    "a paste inserts at the caret as one edit; line breaks and tabs become spaces, control characters are dropped" in {
+      for
+          a     <- field("ad") { (h, ref) =>
+                     for
+                         _  <- h.key(Keyboard.ArrowLeft)
+                         fs <- h.paste("bc")
+                         st <- state(h, ref)
+                     yield (st, fs.size)
+                   }
+          _      = assert(a == (("abcd", 3), 1), s"$a")
+          lines <- field("") { (h, ref) =>
+                     h.paste("one\r\ntwo\nthree\tfour\u0007")
+                       .andThen(state(h, ref))
+                   }
+          _      = assert(lines == ("one two three four", 18), s"$lines")
+          emoji <- field("ab") { (h, ref) =>
+                     h.key(Keyboard.ArrowLeft)
+                       .andThen(h.paste(family))
+                       .andThen(state(h, ref))
+                   }
+          _      = assert(
+                     emoji == ("a" + family + "b", cells("a" + family)),
+                     s"$emoji",
+                   )
+          none  <- field("abc") { (h, ref) =>
+                     for
+                         f1 <- h.paste("")
+                         f2 <- h.paste("\u0007")
+                         st <- state(h, ref)
+                     yield (st, (f1 ++ f2).map(f => (f.repainted, f.updates)))
+                   }
+      yield assert(none == (("abc", 3), Seq((0, 0), (0, 0))), s"$none")
+    }
+
     "readOnly keeps the text; the caret still moves" in {
       field("abc", readOnly = true) { (h, ref) =>
         for
             _ <- h.typeText("x ")
             _ <- h.key(Keyboard.Backspace)
             _ <- h.key(Keyboard.Char('u'), ctrl = true)
+            _ <- h.paste("pasted")
             a <- state(h, ref)
             _  = assert(a == ("abc", 3), s"$a")
             _ <- h.key(Keyboard.ArrowLeft)

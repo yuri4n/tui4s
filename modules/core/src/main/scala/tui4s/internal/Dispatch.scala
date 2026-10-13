@@ -105,6 +105,24 @@ final class Dispatch(quit: Unit < Sync, knobs: Knobs = Knobs.default):
               defaults(w, target, targetEl, ch, ev),
             )
 
+    /** A bracketed paste: ONE edit of the focused text input (a textarea too):
+      * the text goes in at the caret, line breaks and tabs become spaces, other
+      * control characters are dropped ([[TextEdit.paste]]); then the bound
+      * write and `onInput` once. It is never a submit and never runs a key
+      * handler. A paste on any other element does nothing (kyo-ui has no paste
+      * event).
+      */
+    // claude 2026-10-13: created (C3, RC-14 part)
+    def onPaste(w: World, text: String)(using Frame): World < Async =
+      w.focus.flatMap(p => w.laid.nodes.get(p).map(n => (p, n.kind))) match
+          case Some((p, Kind.El(ti: TextInput))) if !Props.isDisabled(ti) =>
+            val value             = currentText(w, p, ti)
+            val caret             = caretOf(w, p, value)
+            val (next, nextCaret) =
+              TextEdit.paste(value, caret, text, ti.readOnly.getOrElse(false))
+            commitText(w, p, ti, value, caret, next, nextCaret)
+          case _                                                          => w
+
     private def bubble(
         ch: List[(Loc, Element)],
         ev: KeyboardEvent,

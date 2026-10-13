@@ -44,6 +44,8 @@ final class Headless private (
     seq: AtomicLong,
     run: Fiber[Unit, Scope],
     runner: Runner,
+    // claude 2026-10-13: created (C3): `paste` reads options.paste
+    options: TuiOptions,
 ):
     /** Ends the run. The same action as the quit value that `start` gave the
       * UI.
@@ -165,6 +167,20 @@ final class Headless private (
     def typeText(s: String)(using Frame): Seq[FrameStats] < Async =
       Kyo.foreach(Headless.keysOf(s))(press).map(_.toSeq)
 
+    /** Pastes `text` as a terminal sends it, and returns the frame of each
+      * event. With `TuiOptions.paste` (the default: bracketed paste) the paste
+      * is ONE event: one edit of the focused text input, one frame; a line
+      * break in it is a space, so it never submits a form. Without it, the text
+      * arrives as single keys, as `typeText` sends them: a line break is an
+      * Enter (it can submit a form) and a tab is a Tab (it moves the focus).
+      */
+    // claude 2026-10-13: created (C3, RC-14 part; the lesson of the review
+    // thread TuiTest.scala:166 of the old PR 3: the kit acts as a real
+    // terminal)
+    def paste(text: String)(using Frame): Seq[FrameStats] < Async =
+      if options.paste then send(n => Msg.Paste(text, n)).map(Seq(_))
+      else typeText(text)
+
     /** Resizes the screen and waits for the frame of the resize. Background
       * frames that come first are consumed. The runner fiber resizes the
       * backend when it handles the message (one fiber touches the backend).
@@ -230,7 +246,7 @@ object Headless:
           runner   = Runner(inbox, canvas, options, Present(frames), knobs)
           seq     <- AtomicLong.init(1L)
           run     <- Fiber.init(runner.scoped(ui(runner.quit).map(runner.run)))
-          h        = Headless(inbox, frames, backend, seq, run, runner)
+          h        = Headless(inbox, frames, backend, seq, run, runner, options)
           // it quits and waits before its scope ends (RC-7)
           _       <- Scope.ensure(h.quit.andThen(h.awaitEnd(5.seconds)))
           _       <- firstFrame(frames, run)
