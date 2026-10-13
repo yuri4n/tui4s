@@ -2,6 +2,7 @@ package tui4s
 
 import kyo.*
 import kyo.UI.Ast.*
+import scala.annotation.unused
 import scala.language.implicitConversions
 import tui4s.internal.ComponentSpec
 
@@ -25,7 +26,9 @@ abstract class Component:
     type State
     def initial: State
     def view(state: SignalRef[State]): UI
-    def onMount(state: SignalRef[State]): Any < (Async & Scope) = ()
+    // claude 2026-10-13: changed (strict-flag fix, as S6 25aab29): @unused on
+    // the parameter of the default
+    def onMount(@unused state: SignalRef[State]): Any < (Async & Scope) = ()
 
     /** The kyo-ui node of this component. In another kyo-ui runner (DOM,
       * server-push) it still works: the state is then allocated once per node
