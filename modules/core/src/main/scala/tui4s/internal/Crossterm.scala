@@ -95,20 +95,32 @@ private[tui4s] object NativeCrossterm:
     /** The [[TuiError]] for a failure to load the native library. The library
       * loads in a static initializer, so its error arrives wrapped in an
       * `ExceptionInInitializerError`, and a second try gives a
-      * `NoClassDefFoundError`.
+      * `NoClassDefFoundError` (its cause is the first error). Only a JVM that
+      * denies native access (an `IllegalCallerException` in the causes, JEP
+      * 472) is `NativeAccessDenied`, whose message names
+      * `--enable-native-access`; every other failure of the load (an
+      * `UnsatisfiedLinkError`, an unknown platform) is `NativeLoadFailed` with
+      * its cause. A fatal error of the JVM stays as it is.
       */
-    def loadError(e: Throwable): Throwable =
-        val cause = e match
-            case i: ExceptionInInitializerError if i.getCause != null =>
-              i.getCause.nn
-            case other                                                => other
-        cause match
-            case _: IllegalCallerException | _: UnsatisfiedLinkError |
-                _: NoClassDefFoundError =>
-              TuiError.NativeAccessDenied(e)
-            case NonFatal(_) | _: LinkageError => TuiError.TerminalIO(e)
-            case fatal                         => fatal
-    end loadError
+    // claude 2026-10-13: changed (T1, the bot fix of the review thread
+    // Crossterm.scala:103): NativeLoadFailed; access denied only for an
+    // IllegalCallerException
+    def loadError(e: Throwable): Throwable = e match
+        case _: VirtualMachineError | _: InterruptedException              => e
+        case _ if causes(e).exists(_.isInstanceOf[IllegalCallerException]) =>
+          TuiError.NativeAccessDenied(e)
+        case NonFatal(_) | _: LinkageError                                 =>
+          TuiError.NativeLoadFailed(e)
+        case fatal                                                         => fatal
+
+    /** `e` and its causes (at most 16). */
+    // claude 2026-10-13: created (T1)
+    private def causes(e: Throwable): List[Throwable] =
+        @annotation.tailrec
+        def walk(t: Throwable | Null, acc: List[Throwable]): List[Throwable] =
+          if t == null || acc.size >= 16 || acc.exists(_ eq t) then acc.reverse
+          else walk(t.getCause, t :: acc)
+        walk(e, Nil)
 end NativeCrossterm
 
 /** `isatty` of the C library, through the foreign function API. It needs the

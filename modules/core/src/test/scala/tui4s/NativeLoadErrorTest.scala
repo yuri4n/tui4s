@@ -1,0 +1,74 @@
+package tui4s
+
+import kyo.test.*
+import tui4s.internal.NativeCrossterm
+
+/** The error of a native library that does not load (the review thread
+  * Crossterm.scala:103 of PR 5): only a JVM that denies native access gives
+  * `NativeAccessDenied`, whose message names `--enable-native-access`; a
+  * library that cannot be found or linked gives `NativeLoadFailed` with its
+  * cause. The library loads in a static initializer, so its error arrives in an
+  * `ExceptionInInitializerError`, and a second try gives a
+  * `NoClassDefFoundError` (whose cause is the first error).
+  */
+// claude 2026-10-13: created (T1, the bot fix of the review thread
+// Crossterm.scala:103). The leaves name the case by its class name, so that
+// they also compile on the code before the fix (the negative control).
+class NativeLoadErrorTest extends Test[Any]:
+
+    private def kind(t: Throwable): String = t.getClass.getSimpleName
+
+    private def secondTry(first: Throwable): Throwable =
+        val e = NoClassDefFoundError(
+          "Could not initialize class tui.crossterm.CrosstermJni",
+        )
+        val _ = e.initCause(ExceptionInInitializerError(first))
+        e
+
+    "a library that cannot be found or linked is NativeLoadFailed, with its cause" in {
+      val link     = UnsatisfiedLinkError(
+        "Native library libnative-x86_64-linux-crossterm.so cannot be found",
+      )
+      val platform = RuntimeException(
+        "Platform detection does not understand os.name = Plan9",
+      )
+      val inputs   = Seq[Throwable](
+        link,
+        ExceptionInInitializerError(link),
+        ExceptionInInitializerError(platform),
+        secondTry(link),
+      )
+      val wrong    = inputs.flatMap { in =>
+        val out = NativeCrossterm.loadError(in)
+        Option.when(
+          kind(out) != "NativeLoadFailed" || !(out.getCause eq in) ||
+            out.getMessage.contains("--enable-native-access"),
+        )(s"$in -> ${kind(out)}: ${out.getMessage}")
+      }
+      assert(wrong.isEmpty, wrong.mkString("\n"))
+    }
+
+    "a JVM that denies native access is NativeAccessDenied, and its message names the flag" in {
+      val denied = IllegalCallerException(
+        "Illegal native access from: unnamed module @1b6d3586",
+      )
+      val inputs = Seq[Throwable](
+        denied,
+        ExceptionInInitializerError(denied),
+        secondTry(denied),
+      )
+      val wrong  = inputs.flatMap { in =>
+        val out = NativeCrossterm.loadError(in)
+        Option.when(
+          !out.isInstanceOf[TuiError.NativeAccessDenied] ||
+            !out.getMessage.contains("--enable-native-access=ALL-UNNAMED"),
+        )(s"$in -> ${kind(out)}: ${out.getMessage}")
+      }
+      assert(wrong.isEmpty, wrong.mkString("\n"))
+    }
+
+    "a fatal error of the JVM stays as it is" in {
+      val oom = OutOfMemoryError("Java heap space")
+      assert(NativeCrossterm.loadError(oom) eq oom)
+    }
+end NativeLoadErrorTest

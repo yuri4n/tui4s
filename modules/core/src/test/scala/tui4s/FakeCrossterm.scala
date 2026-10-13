@@ -18,6 +18,7 @@ import tui.crossterm.Command
 import tui.crossterm.Event as CEvent
 import tui4s.internal.Crossterm
 import tui4s.internal.Hooks
+import tui4s.internal.NativeCrossterm
 import tui4s.testkit.Screen
 
 /** A terminal for the tests of the real-terminal path: it records the native
@@ -25,9 +26,10 @@ import tui4s.testkit.Screen
   * events to the input thread.
   *
   * @param failAt
-  *   the call that throws: "load", "raw", "enter" (the first `execute`),
-  *   "leave" (the second `execute`), "poll" (the input fails), "draw" (a draw
-  *   of the backend fails) or "" for none
+  *   the call that throws: "load" (native access denied), "link" (the library
+  *   cannot be found), "raw", "enter" (the first `execute`), "leave" (the
+  *   second `execute`), "poll" (the input fails), "draw" (a draw of the backend
+  *   fails) or "" for none
   * @param stdinTty
   *   what [[stdinIsTerminal]] says
   */
@@ -62,12 +64,22 @@ final class FakeCrossterm(
     private def record(s: String): Unit =
         val _ = log.add(s)
 
+    // claude 2026-10-13: changed (T1, bot fix Crossterm.scala:103): the
+    // errors that the JVM gives, through NativeCrossterm.loadError
     def load(): Unit =
         record("load")
         if failAt == "load" then
-            throw TuiError.NativeAccessDenied(
+            throw NativeCrossterm.loadError(
+              ExceptionInInitializerError(
+                IllegalCallerException("Illegal native access"),
+              ),
+            )
+        else if failAt == "link" then
+            throw NativeCrossterm.loadError(
               UnsatisfiedLinkError("no crossterm"),
             )
+        end if
+    end load
 
     def stdinIsTerminal(): Boolean = stdinTty
 

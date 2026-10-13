@@ -217,6 +217,26 @@ class TerminalIOTest extends Test[Any]:
         }
     }
 
+    // claude 2026-10-13: created (T1, bot fix Crossterm.scala:103)
+    "a native library that cannot be found: NativeLoadFailed with the cause"
+      .timeout(30.seconds) in {
+      val fake = FakeCrossterm(failAt = "link")
+      Abort
+        .run(Tui.runWith(TuiOptions(), fake, FakeHooks(fake.log))(counter))
+        .map { r =>
+          assert(
+            r match
+                case Result.Failure(e @ TuiError.NativeLoadFailed(_)) =>
+                  e.getMessage.contains("no crossterm") &&
+                  !e.getMessage.contains("--enable-native-access")
+                case _                                                => false
+            ,
+            r.toString,
+          )
+          assert(fake.calls == Seq("load"))
+        }
+    }
+
     "a failing mode command: TerminalIO, raw mode is left again".timeout(
       30.seconds,
     ) in {

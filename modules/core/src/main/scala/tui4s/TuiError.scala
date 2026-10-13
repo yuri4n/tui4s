@@ -29,6 +29,18 @@ enum TuiError(message: String, cause: Throwable | Null)
           error,
         )
 
+    /** The native terminal library could not be loaded: it cannot be found for
+      * this platform, or it does not link. The message has the cause. Nothing
+      * was changed.
+      */
+    // claude 2026-10-13: created (T1, the bot fix of the review thread
+    // Crossterm.scala:103: an UnsatisfiedLinkError is not NativeAccessDenied)
+    case NativeLoadFailed(error: Throwable)
+        extends TuiError(
+          s"the native terminal library (crossterm) could not be loaded: $error",
+          error,
+        )
+
     /** Reading from or writing to the terminal failed (also a terminal mode
       * that could not be set). The terminal is restored as far as possible.
       */
