@@ -309,4 +309,33 @@ class TextEditTest extends RunnerSuite:
         yield assert(b == ("abc", 2), s"$b")
       }
     }
+
+    // claude 2026-10-13: created (review R2-5)
+    "Enter commits the text with onChange; on a readOnly input it runs no onChange (kyo-ui's rule)" in {
+      def commits(readOnly: Boolean)(using
+          Frame,
+      ): Vector[String] < (Async & Scope) =
+        for
+            log <- AtomicRef.init(Vector.empty[String])
+            ref <- Signal.initRef("abc")
+            h   <- Headless.start(40, 3)(_ =>
+                     div(
+                       input
+                         .value(ref)
+                         .readOnly(readOnly)
+                         .onChange(s => log.updateAndGet(_ :+ s))
+                         .style(_.width(30.px)),
+                     ),
+                   )
+            _   <- h.key(Keyboard.Enter)
+            l   <- log.get
+        yield l
+      for
+          editable <- commits(readOnly = false)
+          ro       <- commits(readOnly = true)
+      yield assert(
+        editable == Vector("abc") && ro.isEmpty,
+        s"onChange on an editable input: $editable; on a readOnly input: $ro",
+      )
+    }
 end TextEditTest

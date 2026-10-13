@@ -2,12 +2,17 @@ package tui4s
 
 import kyo.*
 import kyo.UI.*
+import tui4s.internal.Dispatch
+import tui4s.internal.Kind
+import tui4s.internal.Layout
+import tui4s.internal.Size
+import tui4s.internal.World
 import tui4s.testkit.Headless
 
 /** The key routing of the runner (`tui4s.internal.Dispatch`): the quit key, the
   * focus moves, bubbling and `stopPropagation`.
   */
-// claude 2026-10-13: created (C3)
+// claude 2026-10-13: created (C3); changed: the leaf of the review R2-3
 class DispatchTest extends RunnerSuite:
 
     "Ctrl-C ends the run (TuiOptions.ctrlCQuits); with ctrlCQuits = false it is a key for the handlers" in {
@@ -161,5 +166,39 @@ class DispatchTest extends RunnerSuite:
           _    <- h2.key(Keyboard.Enter)
           runs <- n.get
       yield assert(runs == 0, s"handler runs of a disabled element: $runs")
+    }
+
+    // claude 2026-10-13: created (review R2-3)
+    "a disabled key target: its stopPropagation does not stop the bubbling, as its handler does not run (kyo-ui's rule)" in {
+      // The runner never leaves the focus on a disabled element (each layout
+      // step moves it away), so this leaf builds that world for Dispatch.
+      for
+          log   <- AtomicRef.init(Vector.empty[String])
+          ui     = div.onKeyDown(_ => log.updateAndGet(_ :+ "parent"))(
+                     button("d")
+                       .id("d")
+                       .disabled(true)
+                       .onKeyDown(_ => log.updateAndGet(_ :+ "target"))
+                       .stopPropagation(true),
+                   )
+          w0     = World.init(ui, Size(20, 3))
+          laid   = Layout.layoutAll(ui, w0.env)
+          target = laid.nodes.collectFirst {
+                     case (p, n) if (n.kind match
+                             case Kind.El(e) =>
+                               e.attrs.identifier.toOption.contains("d")
+                             case _          => false
+                         ) =>
+                       p
+                   }
+          _     <- Dispatch(Kyo.unit).onKey(
+                     w0.copy(laid = laid, focus = target),
+                     KeyboardEvent(Keyboard.Char('k'), Modifiers.none, Absent),
+                   )
+          l     <- log.get
+      yield assert(
+        target.nonEmpty && l == Vector("parent"),
+        s"target: $target; handlers that ran: $l",
+      )
     }
 end DispatchTest

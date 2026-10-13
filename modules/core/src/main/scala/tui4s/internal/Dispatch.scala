@@ -142,9 +142,12 @@ private[tui4s] final class Dispatch(
             val run      =
               if declared && !skip then safe("onKeyDown", handler.get(ev))
               else Kyo.unit
+            // claude 2026-10-13: changed (review R2-3): a disabled target
+            // whose handler was skipped does not stop the bubbling (kyo-ui's
+            // dispatchToElement keeps bubbling for a disabled target)
             run.andThen(
-              if declared && e.attrs.stopPropagation.getOrElse(false) then
-                  Kyo.unit
+              if declared && !skip && e.attrs.stopPropagation.getOrElse(false)
+              then Kyo.unit
               else bubble(rest, ev, target),
             )
 
@@ -226,7 +229,8 @@ private[tui4s] final class Dispatch(
                 case _                          => ""
 
     /** The key `ev` on the text input at `p`: the grapheme editing of
-      * [[TextEdit]]. Enter runs `onChange` with the text (the commit).
+      * [[TextEdit]]. Enter runs `onChange` with the text (the commit), except
+      * on a read-only input.
       */
     // claude 2026-10-13: changed (C3, OS-11): the grapheme editing of TextEdit
     // replaces the UTF-16 editing of the prototype; the caret is a grapheme
@@ -236,9 +240,11 @@ private[tui4s] final class Dispatch(
     ): World < Async =
         val value             = currentText(w, p, ti)
         val caret             = caretOf(w, p, value)
-        val (next, nextCaret) =
-          TextEdit.key(value, caret, ev, ti.readOnly.getOrElse(false))
-        if next == value && isKey(ev, Keyboard.Enter) then
+        val readOnly          = ti.readOnly.getOrElse(false)
+        val (next, nextCaret) = TextEdit.key(value, caret, ev, readOnly)
+        // claude 2026-10-13: changed (review R2-5): no onChange on a
+        // read-only input (kyo-ui ignores a Change on a read-only target)
+        if next == value && isKey(ev, Keyboard.Enter) && !readOnly then
             safe("onChange", runWith(ti.onChange, value))
               .andThen(moveCaret(w, p, caret, nextCaret))
         else commitText(w, p, ti, value, caret, next, nextCaret)
