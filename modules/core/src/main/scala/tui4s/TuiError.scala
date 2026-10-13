@@ -30,14 +30,19 @@ enum TuiError(message: String, cause: Throwable | Null)
         )
 
     /** The native terminal library could not be loaded: it cannot be found for
-      * this platform, or it does not link. The message has the cause. Nothing
-      * was changed.
+      * this platform, or it does not link. The message names `error` and, when
+      * `error` wraps another error (an `ExceptionInInitializerError`, or the
+      * `NoClassDefFoundError` of a second try), the innermost cause, which says
+      * what failed. Nothing was changed.
       */
     // claude 2026-10-13: created (T1, the bot fix of the review thread
     // Crossterm.scala:103: an UnsatisfiedLinkError is not NativeAccessDenied)
+    // claude 2026-10-13: changed (T1, review R2-3): the message names the
+    // innermost cause
     case NativeLoadFailed(error: Throwable)
         extends TuiError(
-          s"the native terminal library (crossterm) could not be loaded: $error",
+          "the native terminal library (crossterm) could not be loaded: " +
+            TuiError.withRootCause(error),
           error,
         )
 
@@ -46,4 +51,20 @@ enum TuiError(message: String, cause: Throwable | Null)
       */
     case TerminalIO(error: Throwable)
         extends TuiError("terminal I/O failed", error)
+end TuiError
+
+object TuiError:
+    /** `e`, and its innermost cause when it has one (at most 16 levels; a cycle
+      * stops the walk).
+      */
+    // claude 2026-10-13: created (T1, review R2-3)
+    private def withRootCause(e: Throwable): String =
+        @annotation.tailrec
+        def root(t: Throwable, seen: List[Throwable]): Throwable =
+            val c = t.getCause
+            if c == null || seen.size >= 16 || seen.exists(_ eq c) then t
+            else root(c, c :: seen)
+        val r                                                    = root(e, List(e))
+        if r eq e then e.toString else s"$e (cause: $r)"
+    end withRootCause
 end TuiError

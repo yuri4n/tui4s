@@ -14,6 +14,7 @@ import tui4s.internal.NativeCrossterm
 // claude 2026-10-13: created (T1, the bot fix of the review thread
 // Crossterm.scala:103). The leaves name the case by its class name, so that
 // they also compile on the code before the fix (the negative control).
+// claude 2026-10-13: changed (T1, review R2-3): the leaf of the root cause
 class NativeLoadErrorTest extends Test[Any]:
 
     private def kind(t: Throwable): String = t.getClass.getSimpleName
@@ -63,6 +64,41 @@ class NativeLoadErrorTest extends Test[Any]:
           !out.isInstanceOf[TuiError.NativeAccessDenied] ||
             !out.getMessage.contains("--enable-native-access=ALL-UNNAMED"),
         )(s"$in -> ${kind(out)}: ${out.getMessage}")
+      }
+      assert(wrong.isEmpty, wrong.mkString("\n"))
+    }
+
+    // claude 2026-10-13: created (T1, review R2-3): the message named only the
+    // wrapper (an ExceptionInInitializerError, or the NoClassDefFoundError of
+    // a second try), not the error that says what failed
+    "the message of NativeLoadFailed names the root cause of a wrapped error" in {
+      val platform = RuntimeException(
+        "Platform detection does not understand os.name = Plan9",
+      )
+      val link     = UnsatisfiedLinkError(
+        "Native library libnative-x86_64-linux-crossterm.so cannot be found",
+      )
+      // The shape of a second try on JDK 25: the cause is an
+      // ExceptionInInitializerError with the first error's text and no cause.
+      val second   = NoClassDefFoundError(
+        "Could not initialize class tui.crossterm.CrosstermJni",
+      )
+      val _        = second.initCause(
+        ExceptionInInitializerError(
+          "Exception java.lang.UnsatisfiedLinkError: Native library libnative-x86_64-linux-crossterm.so cannot be found [in thread \"main\"]",
+        ),
+      )
+      val cases    = Seq[(Throwable, String)](
+        ExceptionInInitializerError(platform) -> "os.name = Plan9",
+        secondTry(link)                       -> "crossterm.so cannot be found",
+        second                                -> "crossterm.so cannot be found",
+        link                                  -> "crossterm.so cannot be found",
+      )
+      val wrong    = cases.flatMap { (in, text) =>
+        val out = NativeCrossterm.loadError(in)
+        Option.when(!out.getMessage.contains(text))(
+          s"$in -> ${kind(out)}: ${out.getMessage}",
+        )
       }
       assert(wrong.isEmpty, wrong.mkString("\n"))
     }
