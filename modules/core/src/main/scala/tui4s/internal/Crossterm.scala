@@ -46,8 +46,13 @@ private[tui4s] trait Crossterm:
     /** True when an event is ready within `timeoutMillis`. */
     def poll(timeoutMillis: Int): Boolean
 
-    /** The next event. Call only after [[poll]] returned true. */
-    def read(): CEvent
+    /** The next event. Call only after [[poll]] returned true. `null` is
+      * possible at the JNI boundary (a native method returns a reference that
+      * can be null); the input thread drops it.
+      */
+    // claude 2026-10-13: changed (T1, strict flags: the Java boundary rule of
+    // AGENTS.md): the result can be null
+    def read(): CEvent | Null
 
     /** The jatatui backend that draws through this terminal. */
     def backend(): Backend
@@ -80,7 +85,8 @@ private[tui4s] final class NativeCrossterm extends Crossterm:
         val ms = timeoutMillis.max(0)
         native.poll(CDuration(ms / 1000L, (ms % 1000) * 1_000_000))
 
-    def read(): CEvent = native.read()
+    // claude 2026-10-13: changed (T1, strict flags: the Java boundary)
+    def read(): CEvent | Null = native.read()
 
     def backend(): Backend = CrosstermBackend(native)
 end NativeCrossterm
