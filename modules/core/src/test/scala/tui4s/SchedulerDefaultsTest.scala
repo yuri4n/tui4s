@@ -94,14 +94,21 @@ class SchedulerDefaultsTest extends Test[Any]:
       )
     }
 
+    // claude 2026-10-13: changed (T2, review R1-9): without the properties of
+    // the test JVM (its javaOptions set all three), so that the leaf fails
+    // when applyIfUnset sets nothing; a key that the environment sets stays
+    // unset
     "applyIfUnset sets the JVM properties (idempotent)" in {
-      SchedulerDefaults.applyIfUnset()
-      SchedulerDefaults.applyIfUnset()
-      val unset = keys.filter(k =>
-        java.lang.System.getProperty(k) == null &&
-          java.lang.System.getenv(SchedulerDefaults.envName(k)) == null,
+      val after = withoutProperties(None) {
+        SchedulerDefaults.applyIfUnset()
+        SchedulerDefaults.applyIfUnset()
+        keys.map(k => java.lang.System.getProperty(k))
+      }
+      val want  = SchedulerDefaults.defaults.map((k, v) =>
+        if java.lang.System.getenv(SchedulerDefaults.envName(k)) == null then v
+        else null,
       )
-      assert(unset.isEmpty, unset.toString)
+      assert(after == want, after.toString)
     }
 
     // claude 2026-10-13: created (T2, RC-25)

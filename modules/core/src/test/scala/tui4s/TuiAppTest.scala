@@ -19,7 +19,8 @@ import tui4s.internal.TerminalIO
 /** A main class for the tests: a counter that shows its arguments, plus a key
   * that throws, a key that prints, and a key that blocks its thread as
   * `System.exit` does (until [[gate]] opens; an interrupt does not stop the
-  * wait). [[failUi]] makes the construction of the UI fail.
+  * wait). [[failUi]] makes the construction of the UI fail, [[failExit]] makes
+  * `onExit` fail.
   */
 // claude 2026-10-13: changed (T2, RC-27 part): a kyo-ui app (PR 5 had a
 // TuiApp[Int] of the old model with a Keymap)
@@ -30,6 +31,8 @@ object MainCounter extends TuiApp:
     @volatile var gate: CountDownLatch                      = CountDownLatch(0)
     val blocked: AtomicBoolean                              = AtomicBoolean(false)
     @volatile var failUi: Boolean                           = false
+    // claude 2026-10-13: created (T2, review R2-1)
+    @volatile var failExit: Boolean                         = false
     @volatile var opts: TuiOptions                          = TuiOptions()
     // The call log of the current test: onExit writes "onExit" into it.
     @volatile var log: ConcurrentLinkedQueue[String] | Null = null
@@ -39,6 +42,7 @@ object MainCounter extends TuiApp:
         exited.set(-1)
         last.set(0)
         failUi = false
+        failExit = false
         opts = TuiOptions()
         log = l
 
@@ -81,13 +85,20 @@ object MainCounter extends TuiApp:
 
     def seenArgs: Seq[String] = args
 
+    // claude 2026-10-13: changed (T2, review R2-1): fails with failExit
     override protected def onExit: Unit < (Async & Abort[Throwable]) =
-      Sync.defer {
-        exited.set(last.get)
-        val l = log
-        if l != null then
-            val _ = l.add("onExit")
-      }
+      Sync
+        .defer {
+          exited.set(last.get)
+          val l = log
+          if l != null then
+              val _ = l.add("onExit")
+          failExit
+        }
+        .map(fail =>
+          if fail then Abort.fail[Throwable](IllegalStateException("exit boom"))
+          else Kyo.unit,
+        )
 end MainCounter
 
 /** `TuiApp.main` (RC-24, D-24 a) through its seam `runMain`, on a fake
@@ -270,6 +281,39 @@ class TuiAppTest extends Test[Any]:
         assert(
           calls.lastIndexOf("flush") <
             calls.indexOf("err: java.lang.IllegalStateException: boom"),
+          calls.mkString("\n"),
+        )
+        assert(!fake.screen.contains("boom"), fake.screen.text)
+      }
+    }
+
+    // claude 2026-10-13: created (T2, review R2-1)
+    "an onExit that fails: exit code 1, its stack trace after the restore"
+      .timeout(30.seconds) in {
+      val fake = FakeCrossterm()
+      val err  = FakeErr(fake.log)
+      MainCounter.reset(fake.log)
+      MainCounter.failExit = true
+      main(fake, FakeHooks(fake.log), err) {
+        fake.push(char('+'))
+        pushWhen(fake, "Count: 1")('q')
+      }.map { code =>
+        assert(code == 1, err.lines.toString)
+        assert(MainCounter.exited.get == 1, "onExit did not run")
+        val lines = printed(err)
+        assert(
+          lines.headOption.contains(
+            "java.lang.IllegalStateException: exit boom",
+          ),
+          lines.mkString("\n"),
+        )
+        // onExit ran after the restore, and its error was printed after it.
+        val calls = fake.calls
+        val boom  =
+          calls.indexOf("err: java.lang.IllegalStateException: exit boom")
+        assert(
+          calls.lastIndexOf("flush") < calls.indexOf("onExit") &&
+            calls.indexOf("onExit") < boom,
           calls.mkString("\n"),
         )
         assert(!fake.screen.contains("boom"), fake.screen.text)
