@@ -50,7 +50,10 @@ object Dashboard:
           logs    <- Signal.initRef(Chunk.empty[(Int, String)])
       yield State(tab, metrics, paused, logs)
 
-    /** One sampler tick with given values (the bench calls this directly). */
+    /** One sampler tick with given values (a test or a benchmark can call it
+      * directly).
+      */
+    // claude 2026-10-13: changed (T2, review R1-6): there is no bench yet
     def tick(s: State, values: Chunk[Double])(using Frame): Unit < Sync =
       s.metrics
         .updateAndGet(m =>

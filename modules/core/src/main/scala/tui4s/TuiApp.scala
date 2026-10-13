@@ -82,7 +82,14 @@ abstract class TuiApp:
     // exit codes)
     final def main(args: Array[String]): Unit =
         val code = runMain(args, NativeCrossterm(), Hooks.runtime)
+        // claude 2026-10-13: created (T2, review R2-4): when the JVM stops the
+        // app, runMain gives 1 and this System.exit(1) blocks (the JDK's
+        // Shutdown.exit holds its lock while the hooks run) until the JVM halts
+        // with its own code: 128 + the signal, or the code of the app's
+        // System.exit. Never replace it with Runtime.halt: that skips the
+        // restore and gives 1.
         if code != 0 then java.lang.System.exit(code)
+    end main
 
     /** [[main]] without the exit: returns the exit code (1 when the JVM stops
       * the app; the JVM then exits with its own code). The test seam: the
@@ -128,6 +135,9 @@ abstract class TuiApp:
     protected def onExit: Unit < (Async & Abort[Throwable]) = ()
 end TuiApp
 
+// claude 2026-10-13: changed (T2, review R1-10): `block` takes a type
+// parameter `A` (PR 5: the state `S`); its Scaladoc no longer says that
+// `onExit` runs after the restore (`runMain` runs it)
 private[tui4s] object TuiApp:
     /** Runs `program` on a fiber and blocks until it ends. While it runs, a
       * shutdown hook (SIGTERM, `kill -INT`, `System.exit`) interrupts the

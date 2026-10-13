@@ -73,9 +73,12 @@ capture before the app's own code, and its `main` runs `ui` with `Tui.run`.
 The exit code is 0 after a quit (also the key Ctrl-C) and 1 after a failure
 (printed after the restore); on `kill -TERM`, `kill -INT` or a `System.exit`,
 a shutdown hook interrupts the run and waits at most 2 s for the restore, and
-the JVM exits with its own code (143, 130). The examples (`examples/`) are
-`TuiApp`s, one per package, each with a munit suite on `Headless`.
+the JVM exits with its own code (143, 130). The examples (`examples/`) have
+one main per package. All are `TuiApp`s except `counterkyo`, a `KyoApp` main
+of its own; `widgets` is a library with no main. Each UI has a munit suite on
+`Headless`.
 <!-- claude 2026-10-13: created these lines (T2, RC-24, OS-47 part): TuiApp and the examples -->
+<!-- claude 2026-10-13: changed the last sentence (T2, review R1-4): counterkyo is a KyoApp; widgets has no main -->
 
 ## Toolchain
 
