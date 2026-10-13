@@ -171,9 +171,10 @@ stty_compare "pipe"
 
 # ---- Native access denied (JDK 25: --illegal-native-access=deny forces the
 # error that a JVM without --enable-native-access warns about)
+# claude 2026-10-13: changed (T2): the main class is the TuiApp CounterApp
 stty_save deny before
 mark "deny-start"
-run_app "\${JAVA_HOME:+\$JAVA_HOME/bin/}java --illegal-native-access=deny --sun-misc-unsafe-memory-access=allow -cp \"\$(cat $bin/classpath)\" examples.counter.CounterKyoApp"
+run_app "\${JAVA_HOME:+\$JAVA_HOME/bin/}java --illegal-native-access=deny --sun-misc-unsafe-memory-access=allow -cp \"\$(cat $bin/classpath)\" examples.counter.CounterApp"
 back_at_prompt "native access denied" {1}
 stty_compare "deny"
 

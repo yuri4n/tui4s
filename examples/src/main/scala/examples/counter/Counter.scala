@@ -1,24 +1,27 @@
 package examples.counter
 
-import kyo.*
-import kyo.UI.*
-import tui4s.Tui
-
-/** The Counter in plain kyo-ui: only kyo-ui's API, a `SignalRef` for the count
-  * and key handlers. `+` and `-` change the count (a key handler on the root),
-  * Tab moves between the two buttons, Enter and Space press them, `q` quits
-  * (the quit value that `Tui.run` gives the UI), and so does Ctrl-C
-  * (`TuiOptions.ctrlCQuits`).
-  */
 // claude 2026-10-13: created (T1, RC-33 part): the prototype's
 // apps/Counter.scala (1d100ed) as an example with the quit value
+// claude 2026-10-13: changed (T2, RC-33, OS-48 part): the hooks Counter
+// (`useSignal`) and its TuiApp main `CounterApp`; the KyoApp main moved to
+// examples.counterkyo. README.md "Quick start" shows the lines between the
+// two region lines, and ReadmeSuite checks that they are the same.
+// region: quickstart
+import kyo.*
+import kyo.UI.*
+import tui4s.Hooks.useSignal
+import tui4s.Tui
+import tui4s.TuiApp
+
+/** The Counter: a kyo-ui UI with one piece of state (`useSignal`), key handlers
+  * and two buttons. `+` and `-` change the count, Tab moves between the
+  * buttons, Enter and Space press them, `q` quits (and so does Ctrl-C).
+  */
 object Counter:
 
-    /** The Counter UI; `quit` ends the run. Its state is allocated when the UI
-      * is built.
-      */
-    def ui(quit: Unit < Sync): UI < (Async & Scope) =
-      Signal.initRef(0).map(count => view(count, quit))
+    /** The Counter UI; `quit` ends the run. */
+    def ui(quit: Unit < Sync): UI < Sync =
+      useSignal(0).map(count => view(count, quit))
 
     /** The Counter view over a count that the caller owns. */
     def view(count: SignalRef[Int], quit: Unit < Sync): UI =
@@ -42,23 +45,13 @@ object Counter:
       )
 end Counter
 
-/** Runs the Counter in the real terminal: a plain `KyoApp` whose `main` calls
-  * `Tui.run` (an app with its own `main`).
-  *
-  * Start it in a terminal with the start script, not with `sbt run` (sbt also
-  * reads the keyboard, and gives the app no terminal):
-  *
+/** Runs the Counter in the real terminal. Start it with its start script, not
+  * with `sbt run` (sbt also reads the keyboard):
   * {{{
   * sbt examples/launchers
   * examples/target/bin/counter
   * }}}
-  *
-  * The script gives the JVM the flags that a run needs:
-  * `--enable-native-access=ALL-UNNAMED` (crossterm is a native library),
-  * `--sun-misc-unsafe-memory-access=allow`, `-Xss16m` and the tui4s scheduler
-  * values (see `examples/README.md`).
   */
-// claude 2026-10-13: created (T1, RC-33 part; the lesson of the review thread
-// CounterApp.scala:8 of PR 5: the Scaladoc names the launchers, not sbt run)
-object CounterKyoApp extends KyoApp:
-    run(Tui.run(quit => Counter.ui(quit)))
+object CounterApp extends TuiApp:
+    def ui: UI < (Async & Scope) = Counter.ui(Tui.quit)
+// endregion: quickstart
