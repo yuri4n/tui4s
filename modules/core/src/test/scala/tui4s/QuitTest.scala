@@ -29,9 +29,12 @@ class QuitTest extends RunnerSuite:
           h   <- Headless.start(20, 3)(_ =>
                    div.onKeyDown {
                      case KeyboardEvent(Keyboard.Char('f'), _, _) =>
+                       // claude 2026-10-13: changed (review R1-3): 1 s, well
+                       // above the settle max (100 ms), so the quit cannot
+                       // come before the check of `now` under load
                        Fiber
                          .initUnscoped(
-                           Async.sleep(100.millis).andThen(Tui.quit),
+                           Async.sleep(1.second).andThen(Tui.quit),
                          )
                          .unit
                      case _                                       => ()
