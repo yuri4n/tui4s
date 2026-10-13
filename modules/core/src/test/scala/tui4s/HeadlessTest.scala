@@ -83,6 +83,11 @@ class HeadlessTest extends RunnerSuite:
     // rows); without the backend's monitor the reader then sees torn frames
     // (rows with two values); with it, never. The natural window is
     // microseconds wide.
+    // claude 2026-10-13: changed (C3): 1000 writes, not 300. The reader keeps
+    // the scheduler busy, so each settle runs to its max (100 ms): 300 writes
+    // (about 350 ms) gave 3 or 4 frames, and the check "more than 3 distinct
+    // values" failed in 3 of 5 runs on the C2 code (.work/impl/
+    // c3-torn-compare.log). 1000 writes give about 10 frames.
     "screen is never a torn frame: a read during a flush sees one value on every row" in {
       Knobs.let(Knobs(flushSeam = 100.micros)) {
         for
@@ -96,7 +101,7 @@ class HeadlessTest extends RunnerSuite:
                 ),
               )
             writer <- Fiber.initUnscoped(
-                        Kyo.foreachDiscard(1 to 300)(i =>
+                        Kyo.foreachDiscard(1 to 1000)(i =>
                           n.set(i)
                             .andThen(
                               Clock.let(Clock.live)(Async.sleep(1.millis)),
