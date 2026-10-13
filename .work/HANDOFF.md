@@ -125,6 +125,18 @@ started from the main checkout): it is the user's Metals sbt server.
   NEXT: W5 = T1 feat/kyoui-04-terminal (worktree .work/worktrees/feat-kyoui-04-terminal from f29b9ff; shape 8 + V;
   the script draft is scratchpad/tui4s-w5-t1-terminal.draft.js), then W4 = C4 feat/kyoui-05-components on T1.
 
+<!-- claude 2026-10-13: added this item (C3 round 2 queued) -->
+- 2026-10-13 15:35 UTC: Codex reviewed PR #13 (f29b9ff): three P2 findings in Dispatch.scala (a keyboard click does
+  not bubble to the ancestors' onClick; onSubmitEvt never runs; onFocusEvt/onBlurEvt never run). Checked against
+  kyo-ui RC7 ReactiveUI.dispatchToElement (.work/scratch/kyo-src): the focus/blur rule of kyo-ui itself runs both
+  forms (a real mismatch); the keydown rule runs only the target's plain onClick and only f.onSubmit, but the Click rule
+  bubbles and runs both submit forms, and in a browser Enter on a button IS a click. DECISION: build all three as "a
+  keyboard activation of a button is a click: kyo-ui's Click rule over the chain; every submit and focus change runs
+  both handler forms". The C3 P-12 "deferred (D-30)" for the Evt forms was a stretch (D-30 is mouse and terminal
+  focus events). QUEUED behind W5 (one sbt at a time): the brief is scratchpad/c3-round2-brief.md (copy in
+  .work/impl/c3-round2-brief.md); shape "fix round" (fixer Opus, skeptic Fable), then push C3, merge-up into T1,
+  sbt check there, push T1, open T1's PR. CI is green on #11 (0646343) and #13 (f29b9ff).
+
 ## 2026-10-02: DIRECTION CHANGE
 
 The user reviewed the core and said it is not a functional wrapper of jatatui and that the internals are not
