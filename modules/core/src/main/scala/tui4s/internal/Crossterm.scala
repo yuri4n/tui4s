@@ -1,0 +1,155 @@
+package tui4s.internal
+
+import jatatui.core.backend.Backend
+import jatatui.crossterm.CrosstermBackend
+import java.lang.foreign.FunctionDescriptor
+import java.lang.foreign.Linker
+import java.lang.foreign.ValueLayout
+import scala.jdk.OptionConverters.*
+import scala.util.control.NonFatal
+import tui.crossterm.Command
+import tui.crossterm.CrosstermJni
+import tui.crossterm.Duration as CDuration
+import tui.crossterm.Event as CEvent
+import tui4s.*
+import tui4s.spi.InputPort
+
+/** The native terminal calls that a run makes, so that [[TerminalIO]] can be
+  * tested without a terminal. [[NativeCrossterm]] is the real one.
+  *
+  * The input thread is the only caller of [[poll]] and [[read]]; the render
+  * fiber and the release call the rest.
+  */
+private[tui4s] trait Crossterm:
+    /** Loads the native library. Throws `NativeAccessDenied` when the JVM does
+      * not allow it.
+      */
+    def load(): Unit
+
+    /** False when stdin is not a terminal. crossterm then uses `/dev/tty` for
+      * raw mode and input, so [[enableRawMode]] alone does not see a piped or
+      * redirected stdin. True when it cannot be known (Windows).
+      */
+    def stdinIsTerminal(): Boolean
+
+    /** Raw mode: no line buffering, no echo, no signals from Ctrl-C. */
+    def enableRawMode(): Unit
+
+    /** Leaves raw mode. */
+    def disableRawMode(): Unit
+
+    /** Runs `commands` and writes them out. */
+    def execute(commands: Seq[Command]): Unit
+
+    /** Writes out queued output. */
+    def flush(): Unit
+
+    /** True when an event is ready within `timeoutMillis`. */
+    def poll(timeoutMillis: Int): Boolean
+
+    /** The next event. Call only after [[poll]] returned true. */
+    def read(): CEvent
+
+    /** The jatatui backend that draws through this terminal. */
+    def backend(): Backend
+end Crossterm
+
+/** The real terminal through jatatui's crossterm JNI library. */
+private[tui4s] final class NativeCrossterm extends Crossterm:
+    // Set by `load`; every other call comes after it.
+    @volatile private var jni: CrosstermJni | Null = null
+
+    private def native: CrosstermJni =
+        val j = jni
+        if j == null then throw IllegalStateException("crossterm is not loaded")
+        j
+
+    def load(): Unit =
+      if jni == null then
+          try jni = new CrosstermJni()
+          catch case e: Throwable => throw NativeCrossterm.loadError(e)
+
+    def stdinIsTerminal(): Boolean = Tty.isatty(0).getOrElse(true)
+
+    def enableRawMode(): Unit                 = native.enableRawMode()
+    def disableRawMode(): Unit                = native.disableRawMode()
+    def execute(commands: Seq[Command]): Unit =
+      native.execute(java.util.Arrays.asList(commands*))
+    def flush(): Unit                         = native.flush()
+
+    def poll(timeoutMillis: Int): Boolean =
+        val ms = timeoutMillis.max(0)
+        native.poll(CDuration(ms / 1000L, (ms % 1000) * 1_000_000))
+
+    def read(): CEvent = native.read()
+
+    def backend(): Backend = CrosstermBackend(native)
+end NativeCrossterm
+
+private[tui4s] object NativeCrossterm:
+    /** The [[TuiError]] for a failure to load the native library. The library
+      * loads in a static initializer, so its error arrives wrapped in an
+      * `ExceptionInInitializerError`, and a second try gives a
+      * `NoClassDefFoundError`.
+      */
+    def loadError(e: Throwable): Throwable =
+        val cause = e match
+            case i: ExceptionInInitializerError if i.getCause != null =>
+              i.getCause.nn
+            case other                                                => other
+        cause match
+            case _: IllegalCallerException | _: UnsatisfiedLinkError |
+                _: NoClassDefFoundError =>
+              TuiError.NativeAccessDenied(e)
+            case NonFatal(_) | _: LinkageError => TuiError.TerminalIO(e)
+            case fatal                         => fatal
+    end loadError
+end NativeCrossterm
+
+/** `isatty` of the C library, through the foreign function API. It needs the
+  * same native access as the crossterm library, so call it after that loaded.
+  */
+private[tui4s] object Tty:
+    private lazy val handle: Option[java.lang.invoke.MethodHandle] =
+      if java.lang.System
+            .getProperty("os.name", "")
+            .nn
+            .toLowerCase
+            .nn
+            .contains("win")
+      then None
+      else
+          try
+              val linker = Linker.nativeLinker().nn
+              val int    = ValueLayout.JAVA_INT
+              linker
+                .defaultLookup()
+                .nn
+                .find("isatty")
+                .nn
+                .toScala
+                .map(at =>
+                  linker.downcallHandle(at, FunctionDescriptor.of(int, int)).nn,
+                )
+          catch case NonFatal(_) => None
+
+    /** True when `fd` is a terminal; `None` when this cannot be known. */
+    def isatty(fd: Int): Option[Boolean] =
+      handle.flatMap { h =>
+        try
+            Some(
+              h.invokeWithArguments(Integer.valueOf(fd)) match
+                  case n: Integer => n.intValue == 1
+                  case _          => false,
+            )
+        catch case NonFatal(_) => None
+      }
+end Tty
+
+/** crossterm as the [[InputPort]] of the input thread (SPEC 5.3): `poll` with
+  * the poll timeout, then `read`, mapped by [[EventMapping]].
+  */
+private[tui4s] final class CrosstermInput(crossterm: Crossterm)
+    extends InputPort:
+    def poll(timeoutMillis: Int): Boolean = crossterm.poll(timeoutMillis)
+    def read(): Event | Null              = EventMapping(crossterm.read())
