@@ -128,8 +128,8 @@ end Session
 private[tui4s] object Session:
     /** Opens the terminal through `control`, makes the canvas on its backend,
       * and starts the input thread on `input` (the control's own input for
-      * `None`). A failure leaves the terminal modes again and gives the
-      * [[TuiError]].
+      * `None`). A failure leaves the terminal modes again, stops the input
+      * thread when it started, and gives the [[TuiError]].
       *
       * One step, with no `map` after it: as the acquire of a bracket, its value
       * reaches the bracket with no point in between where an interrupt could
@@ -150,15 +150,21 @@ private[tui4s] object Session:
               var session: Session | Null = null
               try
                   val canvas = Canvas(backend)
-                  val thread = input.orElse(control.input()).map { port =>
-                    val t = InputThread(port, inbox, pollMillis(opts))
-                    t.start()
-                    control.step("input-started")
-                    t
-                  }
+                  // claude 2026-10-13: changed (T1, the bot fix of the review
+                  // thread Session.scala:150 of PR 4): the session exists
+                  // before the input thread starts, so a failure after the
+                  // start closes the session, which stops and joins the
+                  // thread (it leaked before)
+                  val thread = input
+                    .orElse(control.input())
+                    .map(port => InputThread(port, inbox, pollMillis(opts)))
                   val s      =
                     Session(canvas, control, opts, inbox, thread.orNull)
                   session = s
+                  thread.foreach { t =>
+                    t.start()
+                    control.step("input-started")
+                  }
                   control.opened(() => s.close())
                   Right(s)
               catch

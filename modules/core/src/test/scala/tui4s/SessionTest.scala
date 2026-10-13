@@ -252,6 +252,70 @@ class SessionTest extends Test[Any]:
       }
     }
 
+    // claude 2026-10-13: created (T1, the bot fix of the review thread
+    // Session.scala:150 of PR 4): the acquire fails after the input thread
+    // started
+    "an acquire that fails after the input thread started stops the thread"
+      .timeout(30.seconds) in {
+      val steps   = java.util.concurrent.ConcurrentLinkedQueue[String]()
+      val polls   = java.util.concurrent.atomic.AtomicInteger(0)
+      val port    = new InputPort:
+          def poll(timeoutMillis: Int): Boolean =
+              val _ = polls.incrementAndGet()
+              Thread.sleep(timeoutMillis.max(1).toLong)
+              false
+          def read(): CEvent | Null             = null
+      val control = new tui4s.internal.TerminalControl:
+          def enter(opts: TuiOptions): jatatui.core.backend.Backend =
+              val _ = steps.add("enter")
+              jatatui.core.backend.TestBackend(10, 2)
+          override def step(name: String): Unit                     =
+              val _ = steps.add(name)
+              if name == "input-started" then
+                  throw IllegalStateException("the step failed")
+          def leave(opts: TuiOptions): Unit                         =
+              val _ = steps.add("leave")
+      inbox(16).map { box =>
+        Session.open(TuiOptions(), control, Some(port), box).map { r =>
+          Sync
+            .defer {
+              Thread.sleep(200)
+              val before = polls.get
+              Thread.sleep(300)
+              (before, polls.get)
+            }
+            .map { (before, after) =>
+              val all = scala.jdk.CollectionConverters
+                .IteratorHasAsScala(steps.iterator())
+                .asScala
+                .toVector
+              assert(
+                r match
+                    case Left(TuiError.TerminalIO(e)) =>
+                      e.getMessage == "the step failed"
+                    case _                            => false
+                ,
+                r.toString,
+              )
+              assert(
+                after == before,
+                s"the input thread still polls: $before polls, then $after",
+              )
+              assert(
+                all == Seq(
+                  "enter",
+                  "input-started",
+                  "input-stopped",
+                  "input-joined",
+                  "leave",
+                ),
+                all.toString,
+              )
+            }
+        }
+      }
+    }
+
     private def discard(a: Any): Unit =
         val _ = a
 end SessionTest
