@@ -3,6 +3,7 @@ package tui4s
 import kyo.*
 import kyo.UI.*
 import tui4s.internal.Layout
+import tui4s.internal.Paint
 import tui4s.testkit.Headless
 import tui4s.testkit.Screen
 
@@ -167,6 +168,44 @@ class TextEditTest extends RunnerSuite:
                      h.screen.map(s => (s.row(0), caretX(s)))
                    }
       yield assert(wide == ("\u8A9E\u30C6", 4), s"$wide")
+    }
+
+    /** The search that Paint used before `scrollStart`: it sums the cells again
+      * for each start (quadratic in the graphemes before the caret).
+      */
+    // claude 2026-10-13: created (review R2-2)
+    private def scrollReference(
+        ws: Vector[Int],
+        caret: Int,
+        cw: Int,
+        w: Int,
+    ): (Int, Int) =
+        val first = Iterator
+          .iterate(0)(_ + 1)
+          .find(i => i >= caret || ws.slice(i, caret).sum + cw <= w)
+          .getOrElse(caret)
+        (first, ws.slice(first, caret).sum)
+    end scrollReference
+
+    // claude 2026-10-13: created (review R2-2)
+    "the scroll of a field (Paint.scrollStart) is the first start that fits, found in one walk back from the caret" in {
+      val rnd    = scala.util.Random(13)
+      val fields = Vector.fill(5000) {
+        val n     = rnd.nextInt(80)
+        val ws    = Vector.fill(n)(rnd.nextInt(3)) // 0, 1 or 2 cells
+        val caret = rnd.nextInt(n + 1)
+        (ws, caret, ws.lift(caret).getOrElse(1).max(1), rnd.nextInt(16))
+      }
+      val wrong  = fields.filter((ws, c, cw, w) =>
+        Paint.scrollStart(ws, c, cw, w) != scrollReference(ws, c, cw, w),
+      )
+      assert(
+        wrong.isEmpty,
+        s"${wrong.size} fields differ, first: ${wrong.headOption}",
+      )
+      // 200 000 graphemes: the quadratic search needs about 2 * 10^10 additions
+      val long   = Vector.fill(200_000)(1)
+      assert(Paint.scrollStart(long, long.size, 1, 30) == (199_971, 29))
     }
 
     "Ctrl-A and Ctrl-E move to the start and the end" in {

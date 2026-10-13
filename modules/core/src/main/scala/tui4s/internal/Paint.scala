@@ -180,6 +180,30 @@ end Canvas
 /** Paints laid-out nodes into the kept buffer. */
 private[tui4s] object Paint:
 
+    /** The horizontal scroll of a text field `width` cells wide whose graphemes
+      * have the cell widths `widths`: the first grapheme it shows, and the
+      * cells from that grapheme to the caret. The first grapheme is the
+      * smallest index, not after the caret, for which the cells from it to the
+      * caret plus the cell of the cursor (`cursorW`) fit in the field; it is
+      * the caret when nothing before the caret fits. One walk back from the
+      * caret: linear in the graphemes.
+      */
+    // claude 2026-10-13: created (review R2-2: the old search summed the cells
+    // again for each start, quadratic in the graphemes before the caret)
+    def scrollStart(
+        widths: IndexedSeq[Int],
+        caret: Int,
+        cursorW: Int,
+        width: Int,
+    ): (Int, Int) =
+        @annotation.tailrec
+        def back(i: Int, used: Int): (Int, Int) =
+          if i > 0 && used + widths(i - 1) + cursorW <= width then
+              back(i - 1, used + widths(i - 1))
+          else (i, used)
+        back(caret, 0)
+    end scrollStart
+
     /** Applies the damage of one frame. Returns the rectangles to flush and the
       * number of subtrees painted.
       */
@@ -474,13 +498,11 @@ private[tui4s] object Paint:
               val caret     = env.caret(n.path).max(0).min(glyphs.size)
               // the first grapheme shown: the cells from it to the caret, plus
               // the cell of the cursor, fit in the field
+              // claude 2026-10-13: changed (review R2-2): `scrollStart`, one
+              // walk back from the caret
               val cursorW   = widths.lift(caret).getOrElse(1).max(1)
-              val first     = Iterator
-                .iterate(0)(_ + 1)
-                .find(i =>
-                  i >= caret || widths.slice(i, caret).sum + cursorW <= r.w,
-                )
-                .getOrElse(caret)
+              val scroll    = scrollStart(widths, caret, cursorW, r.w)
+              val first     = scroll._1
               val visible   = glyphs
                 .drop(first)
                 .zip(widths.drop(first))
@@ -505,7 +527,7 @@ private[tui4s] object Paint:
               )
               discard(canvas.text(r.x, r.y, text, textStyle, clip))
               if focused then
-                  val cx = r.x + widths.slice(first, caret).sum
+                  val cx = r.x + scroll._2
                   val ch = glyphs.lift(caret).getOrElse(" ")
                   canvas.put(
                     cx,
