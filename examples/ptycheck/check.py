@@ -1,5 +1,5 @@
 """Checks the screens of logs/pty-session.log (written by checklist.exp), replayed with the VT emulator vt.py."""
-# claude 2026-10-03: created: screen checks of the kyoui-runner PTY run; snapshots go to logs/pty-screens.log
+# Screen checks of the kyoui-runner PTY run; snapshots go to logs/pty-screens.log
 import os
 import re
 import sys
@@ -18,28 +18,23 @@ with open(os.path.join(logs, "pty-screens.log"), "w") as f:
 results = []
 
 
-# claude 2026-10-03: created check
 def check(name, ok, detail=""):
     results.append(ok)
     print(("PASS " if ok else "FAIL ") + name + ("" if ok else f": {detail}"))
 
 
-# claude 2026-10-03: created screen
 def screen(mark):
     return by.get(mark, ("", "", False))[1]
 
 
-# claude 2026-10-03: created seg
 def seg(mark):
     return by.get(mark, ("", "", False))[0]
 
 
-# claude 2026-10-03: created nbytes
 def nbytes(mark):
     return len(seg(mark).encode("utf-8"))
 
 
-# claude 2026-10-03: created line_with
 def line_with(mark, text):
     return next((l for l in screen(mark).splitlines() if text in l), None)
 

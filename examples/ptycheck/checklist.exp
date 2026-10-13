@@ -1,5 +1,5 @@
 #!/usr/bin/expect -f
-# claude 2026-10-03: created: real-PTY checklist for the kyoui-runner apps (Counter, Todo), adapted from the desktop
+# Real-PTY checklist for the kyoui-runner apps (Counter, Todo), adapted from the desktop
 # script .work/scratch/pty/checklist.exp. It drives the apps in a pseudo-terminal of 100x30, writes @@MARK name@@ lines
 # into logs/pty-session.log (check.py replays the output between the marks with vt.py), checks raw mode from outside
 # while an app runs, and compares `stty -a` before and after each app.
@@ -11,16 +11,12 @@ set logs [file normalize "$here/../logs"]
 set work $env(PTY_WORK)
 log_user 0
 log_file -a -noappend "$logs/pty-session.log"
-# claude 2026-10-03: changed: results and notes are printed only after the session log is closed. `log_file -a` also
+# Results and notes are printed only after the session log is closed. `log_file -a` also
 # logs send_user output, and vt.py then drew that text onto the replayed screens.
 set results {}
-# claude 2026-10-03: created proc pass
 proc pass {name} { global results; lappend results "PASS $name" }
-# claude 2026-10-03: created proc fail
 proc fail {name why} { global results; lappend results "FAIL $name: $why" }
-# claude 2026-10-03: created proc mark
 proc mark {name} { send_log "\n@@MARK $name@@\n" }
-# claude 2026-10-03: created proc note
 proc note {text} {
     global logs results
     set f [open "$logs/pty-notes.log" a]; puts $f $text; close $f
@@ -34,11 +30,9 @@ send "PS1='PROMPT> '; export TERM=xterm-256color; cd $work\r"
 expect -ex "PROMPT> "
 expect -ex "PROMPT> "
 
-# claude 2026-10-03: created proc wait_prompt
 proc wait_prompt {} { expect -ex "PROMPT> " }
 
 # Read (and so log) everything the app prints for about ms milliseconds.
-# claude 2026-10-03: created proc pump
 proc pump {ms} {
     set end [expr {[clock milliseconds] + $ms}]
     while {[clock milliseconds] < $end} {
@@ -46,7 +40,6 @@ proc pump {ms} {
     }
 }
 
-# claude 2026-10-03: created proc stty_save
 proc stty_save {name when} {
     global logs
     send "stty -a > $logs/pty-stty-$name-$when.log; echo STTY_\$((6*7))SAVED\r"
@@ -54,7 +47,6 @@ proc stty_save {name when} {
     wait_prompt
 }
 
-# claude 2026-10-03: created proc stty_compare
 proc stty_compare {name} {
     global logs
     stty_save $name after
@@ -67,14 +59,12 @@ proc stty_compare {name} {
     wait_prompt
 }
 
-# claude 2026-10-03: created proc run_app
 proc run_app {main {env ""}} {
     global here
     send "$env $here/run.sh $main; echo EXIT=\$?\r"
 }
 
 # The app is ready when it has entered the alternate screen and drawn the text.
-# claude 2026-10-03: created proc first_frame
 proc first_frame {name text} {
     set t0 [clock milliseconds]
     expect {
@@ -89,7 +79,6 @@ proc first_frame {name text} {
 }
 
 # Raw mode, read from outside on the PTY slave while the app runs.
-# claude 2026-10-03: created proc raw_check
 proc raw_check {name} {
     global slave logs
     set modes [exec stty -a < $slave]
@@ -101,7 +90,6 @@ proc raw_check {name} {
     }
 }
 
-# claude 2026-10-03: created proc back_at_prompt
 proc back_at_prompt {name {codes {0}}} {
     expect {
         -re {EXIT=([0-9]+)} {
@@ -113,7 +101,6 @@ proc back_at_prompt {name {codes {0}}} {
     wait_prompt
 }
 
-# claude 2026-10-03: created proc idle_cpu
 proc idle_cpu {name main secs} {
     global here
     set pid [string trim [exec pgrep -f "java.*$main"]]

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# claude 2026-10-03: created: starts one app main of the kyoui-runner assembly jar ($KYOUI_JAR) with the runner's JVM flags.
+# Starts one app main of the kyoui-runner assembly jar ($KYOUI_JAR) with the runner's JVM flags.
 # Extra JVM flags come from $JFLAGS. JAVA_TOOL_OPTIONS (proxy settings of this container) is unset: the JVM would print
 # "Picked up JAVA_TOOL_OPTIONS" into the terminal, and the apps need no network.
 unset JAVA_TOOL_OPTIONS JDK_JAVA_OPTIONS

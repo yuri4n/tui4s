@@ -8,22 +8,18 @@ Colours and other modes (SGR, ?25, ?2004, OSC) are read and ignored.
 
 Usage: python3 vt.py <session.log> [rows cols]   -> prints a snapshot of the screen at each @@MARK name@@ line.
 """
-# claude 2026-10-03: created the minimal VT emulator for the PTY checks of the kyoui-runner prototype
 import re
 import sys
 import unicodedata
 
 
-# claude 2026-10-03: created width
 def width(ch):
     if unicodedata.combining(ch):
         return 0
     return 2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1
 
 
-# claude 2026-10-03: created Screen
 class Screen:
-    # claude 2026-10-03: created __init__
     def __init__(self, rows=30, cols=100):
         self.rows, self.cols = rows, cols
         self.main = self.blank()
@@ -35,29 +31,23 @@ class Screen:
         self.alt_entered = 0
         self.alt_left = 0
 
-    # claude 2026-10-03: created blank
     def blank(self):
         return [[" "] * self.cols for _ in range(self.rows)]
 
     @property
-    # claude 2026-10-03: created buf
     def buf(self):
         return self.alt if self.in_alt else self.main
 
-    # claude 2026-10-03: created lines
     def lines(self):
         return ["".join(c for c in r if c is not None).rstrip() for r in self.buf]
 
-    # claude 2026-10-03: created text
     def text(self):
         return "\n".join(self.lines()).rstrip("\n")
 
-    # claude 2026-10-03: created clamp
     def clamp(self):
         self.row = max(0, min(self.rows - 1, self.row))
         self.col = max(0, min(self.cols - 1, self.col))
 
-    # claude 2026-10-03: created linefeed
     def linefeed(self):
         if self.row == self.rows - 1:
             b = self.buf
@@ -66,7 +56,6 @@ class Screen:
         else:
             self.row += 1
 
-    # claude 2026-10-03: created put
     def put(self, ch):
         w = width(ch)
         if w == 0:
@@ -80,7 +69,6 @@ class Screen:
             b[self.row][self.col + 1] = None  # the right half of a wide character
         self.col += w  # col == cols is the "pending wrap" state: the next printable wraps, a CSI move clamps
 
-    # claude 2026-10-03: created erase_line
     def erase_line(self, mode):
         r = self.buf[self.row]
         rng = {0: range(self.col, self.cols), 1: range(0, self.col + 1), 2: range(0, self.cols)}[mode]
@@ -88,7 +76,6 @@ class Screen:
             if 0 <= x < self.cols:
                 r[x] = " "
 
-    # claude 2026-10-03: created erase_display
     def erase_display(self, mode):
         b = self.buf
         if mode in (2, 3):
@@ -103,11 +90,9 @@ class Screen:
             for y in range(0, self.row):
                 b[y] = [" "] * self.cols
 
-    # claude 2026-10-03: created csi
     def csi(self, private, params, final):
         nums = [int(p) if p.isdigit() else None for p in params.split(";")] if params else []
 
-        # claude 2026-10-03: created n
         def n(i, default=1):
             v = nums[i] if i < len(nums) else None
             return default if v is None or v == 0 else v
@@ -182,7 +167,6 @@ class Screen:
         re.S,
     )
 
-    # claude 2026-10-03: created feed
     def feed(self, s):
         for m in self.TOKEN.finditer(s):
             if m.group(3) is not None:
@@ -223,7 +207,6 @@ class Screen:
 MARK = re.compile(r"\n@@MARK ([A-Za-z0-9_.-]+)@@\n")
 
 
-# claude 2026-10-03: created replay
 def replay(path, rows=30, cols=100):
     """Returns [(mark, raw segment after the mark, alt screen text at the END of the segment, in_alt, Screen)]."""
     raw = open(path, "rb").read().decode("utf-8", "replace")
