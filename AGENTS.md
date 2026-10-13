@@ -25,11 +25,20 @@ modules will let ZIO and Cats Effect users write tui4s apps without Kyo types
 in their code. Today the core renders a kyo-ui value to cells
 (`tui4s.internal.Layout`, `tui4s.internal.Paint`) and follows its signals: a
 `Signal`, a `Foreach` or a bound `SignalRef` drives a region of the screen,
-and each change gives one frame (`tui4s.internal.Runner`). The headless test
-kit `tui4s.testkit.Headless` runs an app without a terminal; a test writes the
-app's `SignalRef`s and reads `testkit.Screen`. The keys, the components and
-the real terminal come in the next pull requests.
+and each change gives one frame (`tui4s.internal.Runner`). Keys reach the UI
+(`tui4s.internal.Dispatch`): `onKeyDown` handlers bubble from the focused
+element up to the root (`stopPropagation` stops them); Tab and Shift-Tab move
+the focus, also inside a focus trap, and the arrows move it inside a focus
+group; Enter and Space press a button, toggle a checkbox or a radio and cycle
+a select; Enter in a form submits it; a text input edits by grapheme clusters
+(Ctrl-A, E, U, K, W too); a bracketed paste is one edit; Ctrl-C and
+`tui4s.Tui.quit` end the run. The headless test kit `tui4s.testkit.Headless`
+runs an app without a terminal: a test sends keys (`press`, `key`, `char`,
+`typeText`, `paste`) or writes the app's `SignalRef`s, and reads
+`testkit.Screen`. The components and the real terminal come in the next pull
+requests.
 <!-- claude 2026-10-12: changed these lines: signals drive the screen; the headless kit (C2) -->
+<!-- claude 2026-10-13: changed these lines: keys reach the UI; the key methods of the kit (C3) -->
 
 ## Toolchain
 
@@ -97,7 +106,10 @@ tests then allow 1 split frame).
   `modules/core/build.sbt` gives the test JVM `-Dtui4s.load=1`: on a loaded
   2-CPU runner, 500 events give about a 5 percent chance of 1 split under the
   SOFT contract, and a real regression gives many. One event is one write
-  (or one key). The runner cannot tell a consequence of the active event from an
+  (or one key). A key is one event: its handlers run inside the runner's
+  step, before the settle, so its Input frame holds their writes and every
+  region that derives from them; a key step also re-reads the regions whose
+  watcher has not armed yet, as a resize does. The runner cannot tell a consequence of the active event from an
   independent write that lands while it settles (a Kyo signal carries no
   cause), so the writes that land inside one settle window share one frame:
   a frame is a batch, and `FrameStats.updates` counts its region values. The
