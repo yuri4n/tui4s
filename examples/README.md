@@ -90,9 +90,11 @@ The rows for the Counter:
 | `q` | The app stops with exit code 0. |
 | Ctrl-C | The app stops with exit code 0 (in raw mode Ctrl-C is a key, not a signal). |
 | Restore | After `q` and after Ctrl-C the app leaves the alternate screen and shows the cursor, and nothing comes before the prompt. `stty -a` after the run is the same as before. |
-| Resize | At 40x20 the screen is laid out again inside 40 columns (the help line wraps); at 100x30 again, the help line is one line. |
+| Resize | At 40x20 the screen is laid out again inside 40 columns (the help line wraps); at 100x30 again, the help line is one line. `stty -a` after the run is the same as before. |
 | Pipe | `echo \| examples/target/bin/counter`: "stdin/stdout is not a terminal", exit code 1, no alternate screen, `stty -a` unchanged. |
-| Native access | `java --illegal-native-access=deny ...`: "start the JVM with --enable-native-access=ALL-UNNAMED", exit code 1, no alternate screen. |
+| Native access | `java --illegal-native-access=deny ...`: "start the JVM with --enable-native-access=ALL-UNNAMED", exit code 1, no alternate screen, `stty -a` unchanged. |
+
+<!-- claude 2026-10-13: changed the rows Resize and Native access (T1, review R3-9): the stty -a comparison -->
 
 A human does the steps that a pseudo-terminal cannot show (colours, real
 window resizes, look and feel) on the terminals of the platform, and writes

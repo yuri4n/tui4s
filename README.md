@@ -51,7 +51,9 @@ object CounterKyoApp extends KyoApp:
     run(Tui.run(quit => Counter.ui(quit)))
 ```
 
-Start it in a terminal (JDK 25 in `JAVA_HOME` or on `PATH`):
+Start it in a terminal. The script uses `$JAVA_HOME/bin/java`, or `java` on
+`PATH` when `JAVA_HOME` is not set: it must be JDK 25.
+<!-- claude 2026-10-13: changed (T1, review R3-6): JAVA_HOME comes first -->
 
 ```sh
 sbt examples/launchers

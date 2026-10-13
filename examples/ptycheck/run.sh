@@ -5,7 +5,8 @@
 # (checklist.exp), sends keys, checks raw mode and `stty -a` from outside,
 # then replays the output in a small terminal emulator (vt.py) and checks the
 # screens (check.py). It exits with 1 when a row fails.
-# Needs expect and python3, and JDK 25 on PATH or in JAVA_HOME.
+# Needs expect and python3, and JDK 25: the start scripts use
+# $JAVA_HOME/bin/java, or java on PATH when JAVA_HOME is not set.
 # Usage, from anywhere: examples/ptycheck/run.sh
 # Environment: PTY_SKIP_BUILD=1 uses the scripts in examples/target/bin as
 # they are (no sbt); PTY_WORK=<dir> keeps the logs there (default: a new
@@ -13,6 +14,9 @@
 # claude 2026-10-13: changed (T1, RC-31 part): the run of the whole kit (the
 # prototype's run.sh started one main of an assembly jar; PR 5's run.sh built
 # the launchers and ran analyze.py, which vt.py and check.py replace)
+# claude 2026-10-13: changed (T1, reviews R3-2, R3-6, R3-9): the end of the
+# launchers log on a failure; JAVA_HOME first; a Java version that is not a
+# number fails the check
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)
@@ -22,8 +26,11 @@ mkdir -p "$work"
 echo "ptycheck: work=$work date=$(date -Is) load=$(cut -d' ' -f1-3 /proc/loadavg 2>/dev/null)"
 if [ "${PTY_SKIP_BUILD:-}" != "1" ]; then
     echo "ptycheck: sbt examples/launchers (log: $work/launchers.log)"
-    sbt -Dsbt.supershell=false examples/launchers > "$work/launchers.log" 2>&1 ||
-        { echo "ptycheck: sbt examples/launchers failed (see $work/launchers.log)"; exit 1; }
+    if ! sbt -Dsbt.supershell=false examples/launchers > "$work/launchers.log" 2>&1; then
+        echo "ptycheck: sbt examples/launchers failed; the end of $work/launchers.log:"
+        tail -n 80 "$work/launchers.log"
+        exit 1
+    fi
 fi
 [ -x examples/target/bin/counter ] || { echo "ptycheck: examples/target/bin/counter is missing"; exit 1; }
 # The start scripts run "$JAVA_HOME/bin/java" (or java on PATH): it must be
@@ -32,7 +39,11 @@ fi
 java_bin="${JAVA_HOME:+$JAVA_HOME/bin/}java"
 java_major=$("$java_bin" -XshowSettings:properties -version 2>&1 |
     sed -n 's/^ *java.specification.version = //p')
-if [ -z "$java_major" ] || [ "$java_major" -lt 25 ] 2>/dev/null; then
+case "$java_major" in
+    '' | *[!0-9]*) java_ok=0 ;;
+    *) if [ "$java_major" -ge 25 ]; then java_ok=1; else java_ok=0; fi ;;
+esac
+if [ "$java_ok" -ne 1 ]; then
     echo "ptycheck: $java_bin is Java ${java_major:-unknown}; the examples need JDK 25 (set JAVA_HOME)"
     exit 1
 fi
