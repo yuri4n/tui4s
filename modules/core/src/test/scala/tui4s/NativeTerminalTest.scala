@@ -9,6 +9,7 @@ import kyo.test.*
 import scala.jdk.OptionConverters.*
 import scala.util.control.NonFatal
 import tui4s.fixtures.*
+import tui4s.internal.NativeCrossterm
 import tui4s.internal.Tty
 
 /** The real crossterm library, where it is safe: `Tui.run` must fail with
@@ -21,6 +22,7 @@ import tui4s.internal.Tty
   * a terminal on stdin: it must never put that terminal into raw mode. The
   * real-TTY checklist in `examples/README.md` covers that case.
   */
+// claude 2026-10-13: changed (T1): the kyo-ui Counter of the fixtures
 class NativeTerminalTest extends Test[Any]:
     private def canOpenTty: Boolean =
       try
@@ -58,15 +60,19 @@ class NativeTerminalTest extends Test[Any]:
         if !unix || (canOpenTty && !Tty.isatty(0).contains(false)) then
             assert(true, "skipped: a terminal is on stdin")
         else
-            Abort.run(Tui.run(CounterApp)).map { r =>
-              assert(
-                r match
-                    case Result.Failure(TuiError.NotATerminal(_)) => true
-                    case _                                        => false
-                ,
-                r.toString,
+            Abort
+              .run(
+                Tui.runWith(TuiOptions(), NativeCrossterm())(_ => Counter.app),
               )
-            }
+              .map { r =>
+                assert(
+                  r match
+                      case Result.Failure(TuiError.NotATerminal(_)) => true
+                      case _                                        => false
+                  ,
+                  r.toString,
+                )
+              }
       check
     }
 

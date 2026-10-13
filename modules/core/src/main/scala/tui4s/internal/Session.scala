@@ -1,22 +1,21 @@
 package tui4s.internal
 
 import jatatui.core.backend.Backend
-import jatatui.core.backend.TestBackend
-import jatatui.core.terminal.Terminal
-import jatatui.core.terminal.TerminalOptions
-import jatatui.core.terminal.Viewport as JViewport
 import java.util.concurrent.atomic.AtomicBoolean
 import kyo.*
 import scala.util.control.NonFatal
 import tui4s.*
-import tui4s.spi.InputPort
 
-/** The terminal side of a run (SPEC 5.9), without the input thread: raw mode,
-  * the alternate screen, the terminal modes, and the backend to draw on. The
-  * real terminal implements it (C5), and so do the headless and recording
-  * controls of the tests. A [[Session]] calls it in this order: [[enter]],
-  * [[step]] for each step of the input thread, [[leave]].
+/** The terminal side of a run, without the input thread: raw mode, the
+  * alternate screen, the terminal modes, and the backend to draw on. The real
+  * terminal implements it ([[TerminalIO]]), and so does the recording control
+  * of the tests. A [[Session]] calls it in this order: [[enter]], [[step]] for
+  * each step of the input thread, [[leave]].
   */
+// claude 2026-10-13: changed (T1, RC-21): no resize (the runner's Canvas
+// resizes a TestBackend) and no jatatui Terminal in `opened` (the runner draws
+// on the Backend through its Canvas); HeadlessControl is not carried (no run
+// uses it: the tests have RecordingControl)
 private[tui4s] trait TerminalControl:
     /** Enters the terminal modes for `opts` and returns the backend to draw on.
       * Throws a [[TuiError]] (`NotATerminal`, `NativeAccessDenied`,
@@ -29,50 +28,32 @@ private[tui4s] trait TerminalControl:
       */
     def step(name: String): Unit = ()
 
-    /** The app has a new size (a folded [[Resize]]); called on the render fiber
-      * before the next draw. A real terminal resizes itself; a test backend
-      * follows the event. The default does nothing.
-      */
-    def resize(width: Int, height: Int): Unit = ()
-
     /** The input of this terminal (the crossterm reader), asked once after
       * [[enter]] when the run has no input of its own. The default has none.
       */
     def input(): Option[InputPort] = None
 
-    /** The session is open: `terminal` draws on the backend of [[enter]], the
+    /** The session is open: the canvas draws on the backend of [[enter]], the
       * input thread runs, and `release` is the synchronous, idempotent release
       * of the whole session (the real terminal runs it from a JVM shutdown
       * hook). The default does nothing.
       */
-    def opened(terminal: Terminal[?], release: () => Unit): Unit = ()
+    def opened(release: () => Unit): Unit = ()
 
     /** Leaves the terminal modes: the last step of the release. Never throws. */
     def leave(opts: TuiOptions): Unit
 end TerminalControl
 
-/** Any jatatui backend, no terminal modes (`spi.Headless`). A [[Resize]] event
-  * resizes a `TestBackend`.
+/** An open terminal: the canvas of the run and the input thread. Built by
+  * [[Session.open]]; [[close]] is the synchronous release.
   */
-private[tui4s] final class HeadlessControl(backend: Backend)
-    extends TerminalControl:
-    def enter(opts: TuiOptions): Backend = backend
-
-    override def resize(width: Int, height: Int): Unit = backend match
-        case t: TestBackend => t.resize(width, height)
-        case _              => ()
-
-    def leave(opts: TuiOptions): Unit = ()
-end HeadlessControl
-
-/** An open terminal: the jatatui terminal and the input thread. Built by
-  * [[Session.open]]; [[close]] is the synchronous release of SPEC 5.9.
-  */
+// claude 2026-10-13: changed (T1, RC-21): the runner's Canvas and inbox
+// (Channel[Msg]) replace the jatatui Terminal and the old engine's inbox
 private[tui4s] final class Session private (
-    val terminal: Terminal[CountingBackend],
+    val canvas: Canvas,
     control: TerminalControl,
     opts: TuiOptions,
-    inbox: Channel[Item],
+    inbox: Channel[Msg],
     thread: InputThread | Null,
 ):
     private val closed = AtomicBoolean(false)
@@ -80,29 +61,36 @@ private[tui4s] final class Session private (
     // The thread that runs `close` was interrupted during the release.
     private var interrupted = false
 
-    /** The first error of the release, if any (the app classes print it after
-      * the restore).
-      */
+    /** The first error of the release, if any. */
     @volatile var releaseError: Throwable | Null = null
 
-    /** The release (SPEC 5.9, G8): stop the input thread and close the inbox (a
-      * put that waits for room ends, so the thread is released), join the
-      * thread, then leave the terminal modes. Synchronous, idempotent, never
-      * throws; every step runs even if an earlier one failed. An interrupt of
-      * the calling thread does not cut the release short: the interrupt flag is
-      * set again after the last step. A second caller (the shutdown hook and
-      * the run's own release) waits until the first one is done. The backend
-      * draws nothing once the release started.
+    /** Why the input thread failed (it then asked the run to end); `null` when
+      * it did not fail.
       */
+    // claude 2026-10-13: created (T1): the run fails with TerminalIO after it
+    def inputFailure: Throwable | Null =
+        val t = thread
+        if t == null then null else t.failure
+
+    /** The release: stop the input thread and close the inbox (a put that waits
+      * for room ends, so the thread is released, and the runner ends at its
+      * next take), join the thread, then leave the terminal modes. Synchronous,
+      * idempotent, never throws; every step runs even if an earlier one failed.
+      * An interrupt of the calling thread does not cut the release short: the
+      * interrupt flag is set again after the last step. A second caller (the
+      * shutdown hook and the run's own release) waits until the first one is
+      * done.
+      */
+    // claude 2026-10-13: changed (T1): the inbox of the runner; the join waits
+    // for two poll intervals
     def close()(using AllowUnsafe, Frame): Unit = synchronized {
       if closed.compareAndSet(false, true) then
-          safely(terminal.backend().close())
           if thread != null then safely(thread.requestStop())
           safely(Session.closeInbox(inbox))
           if thread != null then
               safely(control.step("input-stopped"))
               safely {
-                if join(thread, 2L * opts.pollMillis.max(0) + 50) then
+                if join(thread, 2L * Session.pollMillis(opts) + 50) then
                     control.step("input-joined")
                 else control.step("input-hung")
               }
@@ -133,19 +121,22 @@ private[tui4s] final class Session private (
 end Session
 
 private[tui4s] object Session:
-    /** Opens the terminal through `control` and starts the input thread on
-      * `input` (none for `None`). A failure leaves the terminal modes again and
-      * gives the [[TuiError]].
+    /** Opens the terminal through `control`, makes the canvas on its backend,
+      * and starts the input thread on `input` (the control's own input for
+      * `None`). A failure leaves the terminal modes again and gives the
+      * [[TuiError]].
       *
       * One step, with no `map` after it: as the acquire of a bracket, its value
       * reaches the bracket with no point in between where an interrupt could
       * drop an open session.
       */
+    // claude 2026-10-13: changed (T1, RC-21): the Canvas on the backend, the
+    // runner's inbox; no jatatui Terminal and no inline viewport (D-22)
     def open(
         opts: TuiOptions,
         control: TerminalControl,
         input: Option[InputPort],
-        inbox: Channel[Item],
+        inbox: Channel[Msg],
     )(using Frame): Either[TuiError, Session] < Sync =
       Sync.Unsafe
         .defer {
@@ -153,24 +144,17 @@ private[tui4s] object Session:
               val backend                 = control.enter(opts)
               var session: Session | Null = null
               try
-                  val counting = CountingBackend(backend)
-                  val terminal = opts.viewport match
-                      case Viewport.Fullscreen => Terminal.create(counting)
-                      case Viewport.Inline(h)  =>
-                        Terminal.withOptions(
-                          counting,
-                          TerminalOptions(JViewport.inline(h)),
-                        )
-                  val thread   = input.orElse(control.input()).map { port =>
-                    val t = InputThread(port, inbox, opts.pollMillis)
+                  val canvas = Canvas(backend)
+                  val thread = input.orElse(control.input()).map { port =>
+                    val t = InputThread(port, inbox, pollMillis(opts))
                     t.start()
                     control.step("input-started")
                     t
                   }
-                  val s        =
-                    Session(terminal, control, opts, inbox, thread.orNull)
+                  val s      =
+                    Session(canvas, control, opts, inbox, thread.orNull)
                   session = s
-                  control.opened(terminal, () => s.close())
+                  control.opened(() => s.close())
                   Right(s)
               catch
                   case NonFatal(e) =>
@@ -186,47 +170,58 @@ private[tui4s] object Session:
               case NonFatal(e) => Left(TuiError.TerminalIO(e))
         }
 
-    /** Closes the inbox. The items that were still in it are dropped, except
-      * that a waiting `settle` (a [[Probe]]) is released.
-      */
-    def closeInbox(inbox: Channel[Item])(using AllowUnsafe, Frame): Unit =
-      inbox.unsafe.close().onComplete { r =>
-        r.foreach(_.eval.foreach(_.foreach {
-          case p: Probe =>
-            p.promise.completeDiscard(Result.succeed(Session.noStats))
-          case _        => ()
-        }))
-      }
+    /** The poll interval of `opts` in milliseconds (0 to `Int.MaxValue`). */
+    // claude 2026-10-13: created (T1): TuiOptions.pollInterval is a Duration
+    def pollMillis(opts: TuiOptions): Int =
+      opts.pollInterval.toMillis.max(0L).min(Int.MaxValue.toLong).toInt
 
-    /** The stats of a probe that the app never reached. */
-    val noStats: Stats = Stats(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    /** Closes the inbox; the messages that were still in it are dropped. */
+    // claude 2026-10-13: changed (T1): the runner's inbox has no probes
+    def closeInbox(inbox: Channel[Msg])(using AllowUnsafe, Frame): Unit =
+      discard(inbox.unsafe.close())
 end Session
 
-/** The input thread (SPEC 5.3): a platform daemon thread, so no Kyo worker
-  * waits in a native call. It calls `read` only after `poll` returned true,
-  * reads every event that is already queued (at most 512), and puts them into
-  * the inbox as one batch. It waits while the inbox is full (backpressure);
-  * closing the inbox releases it.
+/** The input thread: a platform daemon thread, so no Kyo worker waits in a
+  * native call. It calls `read` only after `poll` returned true, reads every
+  * event that is already queued (at most 512), maps them to runner messages
+  * ([[EventMapping]], one sequence number per message) and puts them into the
+  * inbox as one batch; the runner still takes them one at a time, one frame per
+  * event. It waits while the inbox is full (backpressure); closing the inbox
+  * releases it. When the input fails, the thread keeps the failure and asks the
+  * run to end ([[Msg.Quit]]).
   */
+// claude 2026-10-13: changed (T1, RC-21, D-21 a): crossterm events, mapped
+// here to Msg; the failure is kept for the run and the run gets Msg.Quit
 private[tui4s] final class InputThread(
     port: InputPort,
-    inbox: Channel[Item],
+    inbox: Channel[Msg],
     pollMillis: Int,
 ) extends java.lang.Thread("tui4s-input"):
     setDaemon(true)
     @volatile private var running = true
+
+    // The sequence number of the next message (only this thread uses it).
+    private var seq = 1L
+
+    /** Why the input failed; `null` while it did not. */
+    @volatile var failure: Throwable | Null = null
 
     override def run(): Unit =
         import AllowUnsafe.embrace.danger
         try
             while running do
                 if port.poll(pollMillis) then
-                    val batch = scala.collection.mutable.ArrayBuffer.empty[Item]
+                    val batch = scala.collection.mutable.ArrayBuffer.empty[Msg]
                     var n     = 0
                     while running && n < 512 && (n == 0 || port.poll(0)) do
                         val e = port.read()
-                        if e != null then batch += e
+                        if e != null then
+                            val m = EventMapping(e, seq)
+                            if m != null then
+                                batch += m
+                                seq += 1
                         n += 1
+                    end while
                     if batch.nonEmpty && running then
                         val accepted = java.util.concurrent.CountDownLatch(1)
                         inbox.unsafe
@@ -238,9 +233,10 @@ private[tui4s] final class InputThread(
         catch
             case _: InterruptedException => ()
             case NonFatal(e)             =>
-              // A put that waits for room (an offer drops the failure when the
+              failure = e
+              // A put that waits for room (an offer drops the message when the
               // inbox is full); closing the inbox ends it.
-              discard(inbox.unsafe.putFiber(Failed(TuiError.TerminalIO(e))))
+              discard(inbox.unsafe.putFiber(Msg.Quit))
         end try
     end run
 

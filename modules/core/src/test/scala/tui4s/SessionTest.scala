@@ -2,22 +2,30 @@ package tui4s
 
 import java.util.concurrent.atomic.AtomicBoolean
 import kyo.*
+import kyo.UI.Keyboard
+import kyo.UI.KeyboardEvent
+import kyo.UI.Modifiers
 import kyo.test.*
-import tui4s.internal.Failed
+import tui.crossterm.Event as CEvent
+import tui.crossterm.KeyCode
+import tui4s.internal.InputPort
 import tui4s.internal.InputThread
-import tui4s.internal.Item
+import tui4s.internal.Msg
 import tui4s.internal.Session
-import tui4s.internal.TokenEmitter
+import tui4s.internal.Size
 import tui4s.testkit.*
 
-/** The terminal session and the inbox at the edges of a run: the release, a
-  * failing input thread, an emit after the end (SPEC 5.3, 5.8, 5.9, 5.12).
+/** The terminal session and the inbox at the edges of a run: the release, the
+  * input thread (it maps crossterm events, D-21 a), a failing input thread.
   */
+// claude 2026-10-13: changed (T1, RC-21): the runner's inbox (Channel[Msg]);
+// the input thread maps crossterm events; the emit leaf of the old engine
+// (TokenEmitter) is not carried
 class SessionTest extends Test[Any]:
     override def config: RunConfig = super.config.sequential
 
-    private def inbox(capacity: Int)(using Frame): Channel[Item] < Sync =
-      Channel.initUnscoped[Item](capacity, Access.MultiProducerSingleConsumer)
+    private def inbox(capacity: Int)(using Frame): Channel[Msg] < Sync =
+      Channel.initUnscoped[Msg](capacity)
 
     "the release leaves the terminal also when the closing thread is interrupted"
       .timeout(30.seconds) in {
@@ -58,49 +66,81 @@ class SessionTest extends Test[Any]:
       }
     }
 
-    "an input failure is reported also when the inbox is full".timeout(
-      30.seconds,
-    ) in {
-      val broken = new spi.InputPort:
-          def poll(timeoutMillis: Int): Boolean =
-            throw java.io.IOException("tty gone")
-          def read(): Event | Null              = null
-      inbox(1).map { box =>
-        box
-          .put(Key.Char('a'))
-          .andThen(Sync.defer {
-            val thread = InputThread(broken, box, 5)
+    // claude 2026-10-13: created (T1, D-21 a): the input-thread test also
+    // tests the mapping
+    "the input thread maps crossterm events to messages and numbers them"
+      .timeout(
+        30.seconds,
+      ) in {
+      val input = ScriptedInput(
+        'a',
+        EventMappingTest
+          .key(KeyCode.Char('a'), kind = EventMappingTest.Release),
+        CEvent.FocusGained(),
+        CEvent.Paste("x y"),
+        CEvent.Resize(50, 20),
+        '\n',
+      )
+      inbox(16).map { box =>
+        Sync
+          .defer {
+            val thread = InputThread(input, box, 5)
             thread.start()
-            thread.join(5000) // it failed and ended while the inbox was full
-          })
-          .andThen(
-            Abort.run[Closed | Timeout](
-              box.take.andThen(Async.timeout(5.seconds)(box.take)),
-            ),
-          )
-          .map {
-            case Result.Success(f: Failed) =>
-              assert(f.error.getCause.getMessage == "tty gone")
-            case other                     => assert(false, s"unexpected: $other")
+            thread
+          }
+          .map { thread =>
+            Kyo
+              .fill(4)(Async.timeout(5.seconds)(box.take))
+              .map { msgs =>
+                Sync.defer {
+                  thread.requestStop()
+                  thread.join(5000)
+                  val none = KeyboardEvent(_, Modifiers.none, Absent)
+                  assert(
+                    msgs.toSeq == Seq(
+                      Msg.Key(none(Keyboard.Char('a')), 1L),
+                      Msg.Paste("x y", 2L),
+                      Msg.Resize(Size(50, 20), 3L),
+                      Msg.Key(none(Keyboard.Enter), 4L),
+                    ),
+                    msgs.toString,
+                  )
+                  assert(!thread.isAlive && thread.failure == null)
+                }
+              }
           }
       }
     }
 
-    "after the end, an emit ends the body instead of returning".timeout(
-      30.seconds,
-    ) in {
-      inbox(4).map { box =>
-        box.close
-          .andThen {
-            val emit = TokenEmitter(box, 1L)
-            Abort.run[Throwable](Loop(0) { i =>
-              if i >= 1000 then Loop.done(i)
-              else emit(()).andThen(Loop.continue(i + 1))
-            })
-          }
-          .map {
-            case Result.Panic(_: Closed) => assert(true)
-            case other                   => assert(false, s"unexpected: $other")
+    "an input failure is kept and ends the run, also when the inbox is full"
+      .timeout(30.seconds) in {
+      val broken = new InputPort:
+          def poll(timeoutMillis: Int): Boolean =
+            throw java.io.IOException("tty gone")
+          def read(): CEvent | Null             = null
+      inbox(1).map { box =>
+        box
+          .put(Msg.Repair)
+          .andThen(Sync.defer {
+            val thread = InputThread(broken, box, 5)
+            thread.start()
+            thread.join(5000) // it failed and ended while the inbox was full
+            thread
+          })
+          .map { thread =>
+            Abort
+              .run[Closed | Timeout](
+                box.take.andThen(Async.timeout(5.seconds)(box.take)),
+              )
+              .map {
+                case Result.Success(Msg.Quit) =>
+                  val f = thread.failure
+                  assert(
+                    f != null && f.getMessage == "tty gone",
+                    String.valueOf(f),
+                  )
+                case other                    => assert(false, s"unexpected: $other")
+              }
           }
       }
     }
@@ -115,10 +155,8 @@ class SessionTest extends Test[Any]:
               jatatui.core.backend.TestBackend(10, 2)
           override def step(name: String): Unit                     =
               val _ = steps.add(name)
-          override def opened(
-              terminal: jatatui.core.terminal.Terminal[?],
-              release: () => Unit,
-          ): Unit                                                   = throw IllegalStateException("no hook")
+          override def opened(release: () => Unit): Unit            =
+            throw IllegalStateException("no hook")
           def leave(opts: TuiOptions): Unit                         =
               val _ = steps.add("leave")
       inbox(16).map { box =>

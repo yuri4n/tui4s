@@ -12,9 +12,9 @@ import scala.jdk.CollectionConverters.*
 import tui4s.*
 import tui4s.internal.TerminalControl
 
-/** A terminal control for tests of the run seams (`Tui.runWith`): it draws on a
-  * `TestBackend` and records the steps of the terminal session in order:
-  * "enter", "input-started", "input-stopped", "input-joined", "leave-raw-mode"
+/** A terminal control for the tests of the session: it draws on a `TestBackend`
+  * and records the steps of the terminal session in order: "enter",
+  * "input-started", "input-stopped", "input-joined", "leave-raw-mode"
   * ("input-hung" when the input thread does not stop).
   *
   * @param width
@@ -22,10 +22,12 @@ import tui4s.internal.TerminalControl
   * @param height
   *   the rows of the test terminal
   */
+// claude 2026-10-13: changed (T1): a test double in the test sources (RC-36);
+// no resize (the runner's Canvas resizes a TestBackend)
 private[tui4s] final class RecordingControl(width: Int = 80, height: Int = 24)
     extends TerminalControl:
-    /** The test terminal. A folded `Resize` resizes it. Only the render fiber
-      * may read it while the app runs.
+    /** The test terminal. The runner's canvas resizes it on a resize. Only the
+      * runner fiber may read it while the app runs.
       */
     val backend: TestBackend = TestBackend(width, height)
 
@@ -49,9 +51,6 @@ private[tui4s] final class RecordingControl(width: Int = 80, height: Int = 24)
         )
 
     override def step(name: String): Unit = record(name)
-
-    override def resize(width: Int, height: Int): Unit =
-      backend.resize(width, height)
 
     def leave(opts: TuiOptions): Unit = record("leave-raw-mode")
 

@@ -305,7 +305,9 @@ object Headless:
       for
           // claude 2026-10-12: changed: the knobs (test seams) reach the runner
           knobs   <- Knobs.get
-          inbox   <- Channel.initUnscoped[Msg](4096)
+          // claude 2026-10-13: changed (T1): the capacity of the options, as in
+          // the real terminal
+          inbox   <- Channel.initUnscoped[Msg](options.inboxCapacity.max(1))
           frames  <- Channel.initUnscoped[FrameStats](1 << 16)
           backend <- Sync.defer(TestBackend(width, height))
           /* claude 2026-10-12: changed (PR #11 review: Codex,

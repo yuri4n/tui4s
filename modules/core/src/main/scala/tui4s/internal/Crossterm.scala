@@ -12,7 +12,6 @@ import tui.crossterm.CrosstermJni
 import tui.crossterm.Duration as CDuration
 import tui.crossterm.Event as CEvent
 import tui4s.*
-import tui4s.spi.InputPort
 
 /** The native terminal calls that a run makes, so that [[TerminalIO]] can be
   * tested without a terminal. [[NativeCrossterm]] is the real one.
@@ -146,10 +145,11 @@ private[tui4s] object Tty:
       }
 end Tty
 
-/** crossterm as the [[InputPort]] of the input thread (SPEC 5.3): `poll` with
-  * the poll timeout, then `read`, mapped by [[EventMapping]].
+/** crossterm as the [[InputPort]] of the input thread: `poll` with the poll
+  * interval, then `read`. The input thread maps the events ([[EventMapping]]).
   */
+// claude 2026-10-13: changed (T1, D-21 a): the crossterm Event, not mapped here
 private[tui4s] final class CrosstermInput(crossterm: Crossterm)
     extends InputPort:
     def poll(timeoutMillis: Int): Boolean = crossterm.poll(timeoutMillis)
-    def read(): Event | Null              = EventMapping(crossterm.read())
+    def read(): CEvent | Null             = crossterm.read()

@@ -21,7 +21,7 @@ import tui4s.testkit.Screen
   *
   * @param failAt
   *   the call that throws: "load", "raw", "enter" (the first `execute`),
-  *   "leave" (the second `execute`) or "" for none
+  *   "leave" (the second `execute`), "poll" (the input fails) or "" for none
   * @param stdinTty
   *   what [[stdinIsTerminal]] says
   */
@@ -43,8 +43,12 @@ final class FakeCrossterm(
     /** The calls so far, in order. */
     def calls: Seq[String] = log.asScala.toVector
 
-    /** The screen of the test backend. */
-    def screen: Screen = Screen.of(backendT.buffer(), None)
+    /** The screen of the test backend. The read holds the backend's monitor,
+      * which the runner's canvas holds while it draws: never a torn frame.
+      */
+    // claude 2026-10-13: changed (T1): under the backend's monitor
+    def screen: Screen =
+      backendT.synchronized(Screen.of(backendT.buffer(), None))
 
     /** Queues a crossterm event for the input thread. */
     def push(e: CEvent): Unit = queue.put(e)
@@ -79,15 +83,18 @@ final class FakeCrossterm(
 
     def flush(): Unit = record("flush")
 
+    // claude 2026-10-13: changed (T1): failAt "poll"
     def poll(timeoutMillis: Int): Boolean =
-      peeked != null || {
-        val e =
-          queue.poll(timeoutMillis.max(0).toLong, TimeUnit.MILLISECONDS)
-        if e == null then false
-        else
-            peeked = e
-            true
-      }
+      if failAt == "poll" then throw java.io.IOException("tty gone")
+      else
+          peeked != null || {
+            val e =
+              queue.poll(timeoutMillis.max(0).toLong, TimeUnit.MILLISECONDS)
+            if e == null then false
+            else
+                peeked = e
+                true
+          }
 
     def read(): CEvent =
         val p = peeked

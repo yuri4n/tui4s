@@ -1,12 +1,11 @@
 package tui4s.internal
 
 import jatatui.core.backend.Backend
-import jatatui.core.terminal.Terminal
 import java.io.PrintStream
 import scala.util.control.NonFatal
+import tui.crossterm.ClearType
 import tui.crossterm.Command
 import tui4s.*
-import tui4s.spi.InputPort
 
 /** JVM shutdown hooks, so that tests can see them. */
 private[tui4s] trait Hooks:
@@ -25,22 +24,21 @@ private[tui4s] object Hooks:
           catch case _: IllegalStateException => () // shutdown in progress
 end Hooks
 
-/** The real terminal (SPEC 5.9): a [[TerminalControl]] over [[Crossterm]].
+/** The real terminal: a [[TerminalControl]] over [[Crossterm]].
   *
   * `enter` does the first steps of the acquire: (1) load the native library,
   * (2) start the output capture, (3) raw mode (`NotATerminal` when stdin is not
-  * a terminal or raw mode fails), (4) the alternate screen (or not, for an
-  * inline viewport), hide the cursor, and the bracketed paste, mouse and focus
-  * modes that the options ask for. A failing step undoes the earlier ones. The
-  * [[Session]] then creates the jatatui terminal (5), starts the input thread
-  * on [[input]] (6) and calls [[opened]], which registers the shutdown hook
-  * (7).
+  * a terminal or raw mode fails), (4) the alternate screen, clear it, hide the
+  * cursor, and the bracketed paste mode when the options ask for it. A failing
+  * step undoes the earlier ones. The [[Session]] then makes the canvas (5),
+  * starts the input thread on [[input]] (6) and calls [[opened]], which
+  * registers the shutdown hook (7).
   *
   * `leave` is the end of the release, after the input thread stopped: (3) leave
-  * the modes and show the cursor (below an inline viewport), (4) leave raw mode
-  * and flush, (5) stop the output capture and print what it kept, (6) remove
-  * the shutdown hook. Every step runs even if an earlier one failed; the first
-  * error is printed to the real stderr at the end.
+  * the modes and show the cursor, (4) leave raw mode and flush, (5) stop the
+  * output capture and print what it kept, (6) remove the shutdown hook. Every
+  * step runs even if an earlier one failed; the first error is printed to the
+  * real stderr at the end.
   *
   * @param crossterm
   *   the native calls
@@ -62,7 +60,6 @@ private[tui4s] final class TerminalIO(
 ) extends TerminalControl:
     @volatile private var capture: OutputCapture.Capture | Null = null
     @volatile private var hook: Thread | Null                   = null
-    @volatile private var terminal: Terminal[?] | Null          = null
     @volatile private var inHook                                = false
 
     private def err: PrintStream = realErr()
@@ -103,8 +100,9 @@ private[tui4s] final class TerminalIO(
 
     override def input(): Option[InputPort] = Some(CrosstermInput(crossterm))
 
-    override def opened(terminal: Terminal[?], release: () => Unit): Unit =
-        this.terminal = terminal
+    // claude 2026-10-13: changed (T1): no jatatui Terminal (the runner's Canvas
+    // draws on the backend)
+    override def opened(release: () => Unit): Unit =
         val h = Thread(
           () =>
               inHook = true
@@ -116,6 +114,7 @@ private[tui4s] final class TerminalIO(
         hook = h
     end opened
 
+    // claude 2026-10-13: changed (T1): no inline viewport step (D-22)
     def leave(opts: TuiOptions): Unit =
         var first: Throwable | Null = null
         def step(f: => Unit): Unit  =
@@ -124,24 +123,6 @@ private[tui4s] final class TerminalIO(
               case NonFatal(e) =>
                 if first == null then first = e
         step(crossterm.execute(TerminalIO.leaveCommands(opts)))
-        opts.viewport match
-            case Viewport.Inline(_)  =>
-              // The cursor goes to the line after the viewport, so the shell
-              // prompt comes below the last frame.
-              step {
-                val t = terminal
-                if t != null then
-                    val area = t.getFrame().area()
-                    crossterm.execute(
-                      Seq(
-                        Command.MoveTo(0, (area.y + area.height - 1).max(0)),
-                        Command.Print("\r\n"),
-                      ),
-                    )
-                end if
-              }
-            case Viewport.Fullscreen => ()
-        end match
         step(crossterm.disableRawMode())
         step(crossterm.flush())
         step {
@@ -162,27 +143,28 @@ private[tui4s] final class TerminalIO(
 end TerminalIO
 
 private[tui4s] object TerminalIO:
-    /** Step 4 of the acquire. */
+    /** Step 4 of the acquire: the alternate screen (cleared: not every terminal
+      * clears it), the hidden cursor, and the bracketed paste mode for
+      * `TuiOptions.paste`. No mouse and no focus events (D-30), no inline
+      * viewport (D-22).
+      */
+    // claude 2026-10-13: changed (T1): the full screen only; Clear (the
+    // prototype's enter); no mouse and no focus modes
     def enterCommands(opts: TuiOptions): Seq[Command] =
         val b = Seq.newBuilder[Command]
-        if opts.viewport == Viewport.Fullscreen then
-            b += Command.EnterAlternateScreen()
+        b += Command.EnterAlternateScreen()
+        b += Command.Clear(ClearType.All)
         b += Command.Hide()
         if opts.paste then b += Command.EnableBracketedPaste()
-        if opts.mouse then b += Command.EnableMouseCapture()
-        if opts.focusEvents then b += Command.EnableFocusChange()
         b.result()
-    end enterCommands
 
     /** Step 3 of the release: the modes of [[enterCommands]] in reverse. */
+    // claude 2026-10-13: changed (T1): the full screen only; no mouse and no
+    // focus modes
     def leaveCommands(opts: TuiOptions): Seq[Command] =
         val b = Seq.newBuilder[Command]
-        if opts.focusEvents then b += Command.DisableFocusChange()
-        if opts.mouse then b += Command.DisableMouseCapture()
         if opts.paste then b += Command.DisableBracketedPaste()
         b += Command.Show()
-        if opts.viewport == Viewport.Fullscreen then
-            b += Command.LeaveAlternateScreen()
+        b += Command.LeaveAlternateScreen()
         b.result()
-    end leaveCommands
 end TerminalIO

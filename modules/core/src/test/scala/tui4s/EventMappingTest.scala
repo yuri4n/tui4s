@@ -1,9 +1,12 @@
 package tui4s
 
+import kyo.*
+import kyo.UI.Keyboard
+import kyo.UI.KeyboardEvent
+import kyo.UI.Modifiers
 import kyo.test.*
 import tui.crossterm.Event as CEvent
 import tui.crossterm.KeyCode
-import tui.crossterm.KeyEvent
 import tui.crossterm.KeyEventKind
 import tui.crossterm.KeyEventState
 import tui.crossterm.KeyModifiers
@@ -13,87 +16,149 @@ import tui.crossterm.MouseButton
 import tui.crossterm.MouseEvent
 import tui.crossterm.MouseEventKind
 import tui4s.internal.EventMapping
+import tui4s.internal.Msg
+import tui4s.internal.Size
+import tui4s.testkit.ScriptedInput
 
-/** crossterm records to tui4s events (SPEC 2.4), built without the native
-  * library: every key code, modifier and kind.
+/** crossterm records to runner messages, built without the native library:
+  * every key code, modifier and kind; the canonical events; the events that the
+  * runner drops.
   */
+// claude 2026-10-13: changed (T1, RC-22): kyo-ui KeyboardEvent, Msg.Paste,
+// Msg.Resize; the canonical events (the lesson of the review thread
+// Keymap.scala:159 of the old PR 3); no mouse and no focus events (D-30)
 class EventMappingTest extends Test[Any]:
     import EventMappingTest.*
 
+    /** The kyo-ui key that the mapping gives for `e` (`None`: dropped). */
+    private def mapped(e: CEvent): Option[KeyboardEvent] =
+      EventMapping(e, 1L) match
+          case Msg.Key(ev, _) => Some(ev)
+          case _              => None
+
+    private def wrongOf(table: Seq[(CEvent, KeyboardEvent)]): Seq[String] =
+      table.collect {
+        case (e, want) if !mapped(e).contains(want) =>
+          s"$e -> ${mapped(e)}, want $want"
+      }
+
     "every named key code, without modifiers" in {
-      val table = Seq[(KeyCode, Key)](
-        KeyCode.Enter()     -> Key.Enter,
-        KeyCode.Esc()       -> Key.Esc,
-        KeyCode.Tab()       -> Key.Tab,
-        KeyCode.BackTab()   -> Key.BackTab,
-        KeyCode.Backspace() -> Key.Backspace,
-        KeyCode.Delete()    -> Key.Delete,
-        KeyCode.Insert()    -> Key.Insert,
-        KeyCode.Up()        -> Key.Up,
-        KeyCode.Down()      -> Key.Down,
-        KeyCode.Left()      -> Key.Left,
-        KeyCode.Right()     -> Key.Right,
-        KeyCode.Home()      -> Key.Home,
-        KeyCode.End()       -> Key.End,
-        KeyCode.PageUp()    -> Key.PageUp,
-        KeyCode.PageDown()  -> Key.PageDown,
-        KeyCode.F(1)        -> Key.F(1),
-        KeyCode.F(12)       -> Key.F(12),
+      val table = Seq[(KeyCode, KeyboardEvent)](
+        KeyCode.Enter()     -> kb(Keyboard.Enter),
+        KeyCode.Esc()       -> kb(Keyboard.Escape),
+        KeyCode.Tab()       -> kb(Keyboard.Tab),
+        KeyCode.BackTab()   -> kb(Keyboard.Tab, Modifiers(shift = true)),
+        KeyCode.Backspace() -> kb(Keyboard.Backspace),
+        KeyCode.Delete()    -> kb(Keyboard.Delete),
+        KeyCode.Insert()    -> kb(Keyboard.Insert),
+        KeyCode.Up()        -> kb(Keyboard.ArrowUp),
+        KeyCode.Down()      -> kb(Keyboard.ArrowDown),
+        KeyCode.Left()      -> kb(Keyboard.ArrowLeft),
+        KeyCode.Right()     -> kb(Keyboard.ArrowRight),
+        KeyCode.Home()      -> kb(Keyboard.Home),
+        KeyCode.End()       -> kb(Keyboard.End),
+        KeyCode.PageUp()    -> kb(Keyboard.PageUp),
+        KeyCode.PageDown()  -> kb(Keyboard.PageDown),
+        KeyCode.F(1)        -> kb(Keyboard.F1),
+        KeyCode.F(12)       -> kb(Keyboard.F12),
       )
-      val wrong = table.collect {
-        case (code, want) if EventMapping(key(code)) != want =>
-          s"$code -> ${EventMapping(key(code))}, want $want"
-      }
+      val wrong = wrongOf(table.map((c, want) => (key(c), want)))
       assert(wrong.isEmpty, wrong.mkString("\n"))
     }
 
-    "characters: Shift is in the character, Ctrl gives lower case, Alt" in {
-      val table = Seq[(CEvent, Event)](
-        key(KeyCode.Char('a'))                 -> Key.Char('a'),
-        key(KeyCode.Char('A'), Shift)          -> Key.Char('A'),
-        key(KeyCode.Char(' '))                 -> Key.Char(' '),
-        key(KeyCode.Char('+'), Shift)          -> Key.Char('+'),
-        key(KeyCode.Char('é'))                 -> Key.Char('é'),
-        key(KeyCode.Char('s'), Ctrl)           -> Key.Ctrl('s'),
-        key(KeyCode.Char('S'), Ctrl | Shift)   -> Key.Ctrl('s'),
-        key(KeyCode.Char('c'), Ctrl | Alt)     -> Key.Ctrl('c'),
-        key(KeyCode.Char('x'), Alt)            -> Key.Alt('x'),
-        key(KeyCode.Char('X'), Alt | Shift)    -> Key.Alt('X'),
-        key(KeyCode.Char('a'), Super)          -> Key.Char('a'),
-        key(KeyCode.Char('a'), Hyper | Meta)   -> Key.Char('a'),
-        key(KeyCode.BackTab(), Shift)          -> Key.BackTab,
-        key(KeyCode.Char('q'), kind = Repeat)  -> Key.Char('q'),
-        key(KeyCode.Char('q'), state = Keypad) -> Key.Char('q'),
+    "characters: Shift is in the character, Ctrl gives lower case, Alt, Meta" in {
+      val table = Seq[(CEvent, KeyboardEvent)](
+        key(KeyCode.Char('a'))                 -> kb(Keyboard.Char('a')),
+        key(KeyCode.Char('A'), Shift)          -> kb(Keyboard.Char('A'), shift),
+        key(KeyCode.Char(' '))                 -> kb(Keyboard.Space),
+        key(KeyCode.Char('+'), Shift)          -> kb(Keyboard.Char('+'), shift),
+        key(KeyCode.Char('é'))                 -> kb(Keyboard.Char('é')),
+        key(KeyCode.Char('s'), Ctrl)           -> kb(Keyboard.Char('s'), ctrl),
+        key(KeyCode.Char('S'), Ctrl | Shift)   ->
+          kb(Keyboard.Char('s'), Modifiers(ctrl = true, shift = true)),
+        key(KeyCode.Char('c'), Ctrl | Alt)     ->
+          kb(Keyboard.Char('c'), Modifiers(ctrl = true, alt = true)),
+        key(KeyCode.Char('x'), Alt)            -> kb(Keyboard.Char('x'), alt),
+        key(KeyCode.Char('X'), Alt | Shift)    ->
+          kb(Keyboard.Char('X'), Modifiers(alt = true, shift = true)),
+        key(KeyCode.Char('a'), Super)          -> kb(Keyboard.Char('a')),
+        key(KeyCode.Char('a'), Hyper | Meta)   ->
+          kb(Keyboard.Char('a'), Modifiers(meta = true)),
+        key(KeyCode.BackTab(), Shift)          -> kb(Keyboard.Tab, shift),
+        key(KeyCode.Char('q'), kind = Repeat)  -> kb(Keyboard.Char('q')),
+        key(KeyCode.Char('q'), state = Keypad) -> kb(Keyboard.Char('q')),
       )
-      val wrong = table.collect {
-        case (e, want) if EventMapping(e) != want =>
-          s"$e -> ${EventMapping(e)}, want $want"
-      }
+      val wrong = wrongOf(table)
       assert(wrong.isEmpty, wrong.mkString("\n"))
     }
 
-    "a named key with modifiers is Key.Modified" in {
-      val table = Seq[(CEvent, Event)](
-        key(KeyCode.Up(), Shift)                -> Key.Modified(Key.Up, Mods(shift = true)),
-        key(KeyCode.Left(), Ctrl)               -> Key.Modified(Key.Left, Mods(ctrl = true)),
-        key(KeyCode.Enter(), Alt)               -> Key.Modified(Key.Enter, Mods(alt = true)),
+    "a named key with modifiers keeps them" in {
+      val table = Seq[(CEvent, KeyboardEvent)](
+        key(KeyCode.Up(), Shift)                -> kb(Keyboard.ArrowUp, shift),
+        key(KeyCode.Left(), Ctrl)               -> kb(Keyboard.ArrowLeft, ctrl),
+        key(KeyCode.Enter(), Alt)               -> kb(Keyboard.Enter, alt),
         key(KeyCode.Home(), Ctrl | Alt | Shift) ->
-          Key.Modified(Key.Home, Mods(shift = true, ctrl = true, alt = true)),
-        key(KeyCode.F(5), Ctrl)                 -> Key.Modified(Key.F(5), Mods(ctrl = true)),
-        key(KeyCode.Tab(), Ctrl)                -> Key.Modified(Key.Tab, Mods(ctrl = true)),
-        key(KeyCode.Down(), Super)              -> Key.Down,
+          kb(Keyboard.Home, Modifiers(ctrl = true, alt = true, shift = true)),
+        key(KeyCode.F(5), Ctrl)                 -> kb(Keyboard.F5, ctrl),
+        key(KeyCode.Tab(), Ctrl)                -> kb(Keyboard.Tab, ctrl),
+        key(KeyCode.BackTab(), Ctrl | Shift)    ->
+          kb(Keyboard.Tab, Modifiers(ctrl = true, shift = true)),
+        key(KeyCode.Down(), Super)              -> kb(Keyboard.ArrowDown),
       )
-      val wrong = table.collect {
-        case (e, want) if EventMapping(e) != want =>
-          s"$e -> ${EventMapping(e)}, want $want"
-      }
+      val wrong = wrongOf(table)
       assert(wrong.isEmpty, wrong.mkString("\n"))
     }
 
-    "a key release and keys that tui4s does not model are dropped" in {
+    // The lesson of the review thread Keymap.scala:159 (old PR 3): a key
+    // binding must match what a terminal can send. So the mapping gives ONE
+    // form per key: a test that binds `Char('a')` with `shift`, or a
+    // `Keyboard.Unknown("BackTab")`, would bind a key that never comes.
+    "canonical events: Shift gives the upper-case char, Ctrl the lower-case one, BackTab is Shift-Tab" in {
+      val letters = ('a' to 'z') ++ ('A' to 'Z')
+      val bad     = letters.flatMap { c =>
+        val shifted = mapped(key(KeyCode.Char(c), Shift))
+        val ctrled  = mapped(key(KeyCode.Char(c), Ctrl))
+        val both    = mapped(key(KeyCode.Char(c), Ctrl | Shift))
+        Seq(
+          Option.when(
+            !shifted.contains(kb(Keyboard.Char(c.toUpper), shift)),
+          )(s"Shift-$c -> $shifted"),
+          Option.when(!ctrled.contains(kb(Keyboard.Char(c.toLower), ctrl)))(
+            s"Ctrl-$c -> $ctrled",
+          ),
+          Option.when(
+            !both.contains(
+              kb(Keyboard.Char(c.toLower), Modifiers(ctrl = true, shift = true)),
+            ),
+          )(s"Ctrl-Shift-$c -> $both"),
+        ).flatten
+      }
+      // Every printable ASCII key with Shift: the char of the terminal, never
+      // a lower-case letter with `shift`.
+      val ascii   = (33 to 126).map(_.toChar).flatMap { c =>
+        mapped(key(KeyCode.Char(c), Shift)).collect {
+          case KeyboardEvent(Keyboard.Char(got), m, _)
+              if !m.shift || got.isLower =>
+            s"Shift-'$c' -> $got $m"
+        }
+      }
+      val tab     = Seq(
+        key(KeyCode.BackTab()),
+        key(KeyCode.BackTab(), Shift),
+        key(KeyCode.Tab(), Shift),
+      ).map(mapped).distinct
+      assert(bad.isEmpty, bad.mkString("\n"))
+      assert(ascii.isEmpty, ascii.mkString("\n"))
+      assert(tab == Seq(Some(kb(Keyboard.Tab, shift))), tab.toString)
+    }
+
+    "a key release, F13, half of a surrogate pair and the keys that the runner does not model are dropped" in {
       val dropped = Seq[CEvent](
         key(KeyCode.Char('a'), kind = Release),
         key(KeyCode.Enter(), kind = Release),
+        key(KeyCode.F(13)),
+        key(KeyCode.Char('\ud83d')),
+        key(KeyCode.Char('\ude00')),
         key(KeyCode.Null()),
         key(KeyCode.CapsLock()),
         key(KeyCode.ScrollLock()),
@@ -105,61 +170,54 @@ class EventMappingTest extends Test[Any]:
         key(KeyCode.Media(MediaKeyCode.Play)),
         key(KeyCode.Modifier(ModifierKeyCode.LeftShift)),
       )
-      val kept    = dropped.filter(e => EventMapping(e) != null)
+      val kept    = dropped.filter(e => EventMapping(e, 1L) != null)
       assert(kept.isEmpty, kept.mkString("\n"))
     }
 
-    "mouse events: every kind and button, the position and the modifiers" in {
-      def mouse(kind: MouseEventKind, mods: Int = 0): CEvent =
-        CEvent.Mouse(MouseEvent(kind, 7, 3, KeyModifiers(mods)))
-      val table                                              = Seq[(CEvent, Event)](
-        mouse(MouseEventKind.Down(MouseButton.Left))               ->
-          Mouse(MouseKind.Down(Button.Left), 7, 3, Mods(), Nil),
-        mouse(MouseEventKind.Up(MouseButton.Right))                ->
-          Mouse(MouseKind.Up(Button.Right), 7, 3, Mods(), Nil),
-        mouse(MouseEventKind.Drag(MouseButton.Middle))             ->
-          Mouse(MouseKind.Drag(Button.Middle), 7, 3, Mods(), Nil),
-        mouse(MouseEventKind.Moved())                              ->
-          Mouse(MouseKind.Moved, 7, 3, Mods(), Nil),
-        mouse(MouseEventKind.ScrollUp())                           ->
-          Mouse(MouseKind.ScrollUp, 7, 3, Mods(), Nil),
-        mouse(MouseEventKind.ScrollDown())                         ->
-          Mouse(MouseKind.ScrollDown, 7, 3, Mods(), Nil),
-        mouse(MouseEventKind.ScrollLeft())                         ->
-          Mouse(MouseKind.ScrollLeft, 7, 3, Mods(), Nil),
-        mouse(MouseEventKind.ScrollRight())                        ->
-          Mouse(MouseKind.ScrollRight, 7, 3, Mods(), Nil),
-        mouse(MouseEventKind.Down(MouseButton.Left), Ctrl | Shift) ->
-          Mouse(
-            MouseKind.Down(Button.Left),
+    "mouse and focus events are dropped (no mouse and no focus events: D-30)" in {
+      val events = Seq[CEvent](
+        CEvent.Mouse(
+          MouseEvent(
+            MouseEventKind.Down(MouseButton.Left),
             7,
             3,
-            Mods(shift = true, ctrl = true),
-            Nil,
+            KeyModifiers(0),
           ),
+        ),
+        CEvent.Mouse(
+          MouseEvent(MouseEventKind.ScrollUp(), 7, 3, KeyModifiers(0)),
+        ),
+        CEvent.FocusGained(),
+        CEvent.FocusLost(),
       )
-      val wrong                                              = table.collect {
-        case (e, want) if EventMapping(e) != want =>
-          s"$e -> ${EventMapping(e)}, want $want"
-      }
-      assert(wrong.isEmpty, wrong.mkString("\n"))
+      val kept   = events.filter(e => EventMapping(e, 1L) != null)
+      assert(kept.isEmpty, kept.mkString("\n"))
     }
 
-    "paste, resize and focus keep their names" in {
-      assert(EventMapping(CEvent.Paste("a\nb 😀")) == Paste("a\nb 😀"))
-      assert(EventMapping(CEvent.Resize(120, 40)) == Resize(120, 40))
-      assert(EventMapping(CEvent.FocusGained()) == FocusGained)
-      assert(EventMapping(CEvent.FocusLost()) == FocusLost)
+    "a paste is Msg.Paste with its text as it is; a resize is Msg.Resize; both get the sequence number" in {
+      assert(
+        EventMapping(CEvent.Paste("a\nb 😀"), 7L) == Msg.Paste("a\nb 😀", 7L),
+      )
+      assert(
+        EventMapping(CEvent.Resize(120, 40), 8L) == Msg.Resize(
+          Size(120, 40),
+          8L,
+        ),
+      )
+      assert(
+        EventMapping(key(KeyCode.Char('a')), 9L) ==
+          Msg.Key(kb(Keyboard.Char('a')), 9L),
+      )
     }
 
-    "CrosstermInput polls, then reads and maps" in {
-      val fake  = FakeCrossterm(
-        events = Seq(key(KeyCode.Char('a')), key(KeyCode.Up(), kind = Release)),
-      )
+    "CrosstermInput polls, then reads the crossterm event as it is" in {
+      val first = key(KeyCode.Char('a'))
+      val drop  = key(KeyCode.Up(), kind = Release)
+      val fake  = FakeCrossterm(events = Seq(first, drop))
       val input = tui4s.internal.CrosstermInput(fake)
-      val first = input.poll(10) && input.read() == Key.Char('a')
-      val drop  = input.poll(10) && input.read() == null
-      assert(first && drop && !input.poll(10))
+      val one   = input.poll(10) && input.read() == first
+      val two   = input.poll(10) && input.read() == drop
+      assert(one && two && !input.poll(10))
     }
 end EventMappingTest
 
@@ -176,12 +234,19 @@ object EventMappingTest:
     val Release: KeyEventKind = KeyEventKind.Release
     val Keypad: Int           = KeyEventState.KEYPAD
 
+    val shift: Modifiers = Modifiers(shift = true)
+    val ctrl: Modifiers  = Modifiers(ctrl = true)
+    val alt: Modifiers   = Modifiers(alt = true)
+
     /** A crossterm key event. */
     def key(
         code: KeyCode,
         mods: Int = 0,
         kind: KeyEventKind = Press,
         state: Int = 0,
-    ): CEvent =
-      CEvent.Key(KeyEvent(code, KeyModifiers(mods), kind, KeyEventState(state)))
+    ): CEvent = ScriptedInput.key(code, mods, kind, state)
+
+    /** The kyo-ui key event of a terminal key (no target). */
+    def kb(k: Keyboard, m: Modifiers = Modifiers.none): KeyboardEvent =
+      KeyboardEvent(k, m, Absent)
 end EventMappingTest
