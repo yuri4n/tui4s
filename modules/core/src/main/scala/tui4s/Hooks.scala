@@ -2,6 +2,7 @@ package tui4s
 
 import kyo.*
 import tui4s.internal.ComponentSpec
+import tui4s.internal.Tui4sTrack
 
 /** Hook-style helpers. They are plain Kyo effects: a "component" is any
   * function that returns `UI < (Async & Scope)`.
@@ -33,9 +34,11 @@ object Hooks:
         Frame,
         Tag[Emit[Chunk[A]]],
     ): Signal[A] < (Async & Scope) =
+      // claude 2026-10-13: changed (C4, RC-8): the fiber joins the gauge of the
+      // run (R1 option b)
       for
           ref <- Signal.initRef(initial)
-          _   <- Fiber.init(stream.foreach(ref.set))
+          _   <- Fiber.init(stream.foreach(ref.set)).map(Tui4sTrack(_))
       yield ref
 
     /** A signal folding `stream` into a state. */
@@ -46,9 +49,13 @@ object Hooks:
         Frame,
         Tag[Emit[Chunk[A]]],
     ): Signal[S] < (Async & Scope) =
+      // claude 2026-10-13: changed (C4, RC-8): the fiber joins the gauge of the
+      // run (R1 option b)
       for
           ref <- Signal.initRef(initial)
-          _   <- Fiber.init(stream.foreach(a => ref.updateAndGet(s => f(s, a))))
+          _   <- Fiber
+                   .init(stream.foreach(a => ref.updateAndGet(s => f(s, a))))
+                   .map(Tui4sTrack(_))
       yield ref
 
     /** Runs `effect` in a fiber that lives as long as the enclosing `Scope`
@@ -57,7 +64,9 @@ object Hooks:
     def useEffect(effect: => Any < (Async & Scope))(using
         Frame,
     ): Unit < (Async & Scope) =
-      Fiber.init(Scope.run(effect)).unit
+      // claude 2026-10-13: changed (C4, RC-8): the fiber joins the gauge of the
+      // run (R1 option b)
+      Fiber.init(Scope.run(effect)).map(Tui4sTrack(_))
 
     /** Runs `action` every `period` while the enclosing `Scope` is open. */
     def useInterval(period: Duration)(action: => Any < Async)(using

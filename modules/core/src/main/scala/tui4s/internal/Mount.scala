@@ -358,11 +358,15 @@ private[tui4s] final class Mount(
                              .get(path)
                              .flatMap(_.watcher)
                              .fold(Kyo.unit)(_.interrupt.unit)
-                effects <- Fiber.initUnscoped(
-                             Abort
-                               .run[Throwable](Scope.run(c.onMount(state)))
-                               .unit,
-                           )
+                // claude 2026-10-13: changed (C4, RC-8): the fiber joins the
+                // gauge (R1 option b)
+                effects <- Fiber
+                             .initUnscoped(
+                               Abort
+                                 .run[Throwable](Scope.run(c.onMount(state)))
+                                 .unit,
+                             )
+                             .map(f => Sync.defer { track(f); f })
                 region   = RegionState(
                              path,
                              Source.Comp(spec, key),
@@ -404,6 +408,8 @@ private[tui4s] final class Mount(
                       case _                 => w1.copy(pending = w1.pending + path)
                 case _ =>
                   val (gen, w1) = w.gen
+                  // claude 2026-10-13: changed (C4, RC-8): the fiber joins the
+                  // gauge (R1 option b)
                   Fiber
                     .initUnscoped(
                       Abort
@@ -416,6 +422,7 @@ private[tui4s] final class Mount(
                         )
                         .unit,
                     )
+                    .map(f => Sync.defer { track(f); f })
                     .map { fiber =>
                       w1.copy(
                         regions = w1.regions.updated(
@@ -501,3 +508,26 @@ private[tui4s] final class Mount(
           .defer(started.synchronized(started.asScala.toList))
           .map(fs => Kyo.foreachDiscard(fs)(_.interrupt.unit))
 end Mount
+
+/** The live-fiber gauge of the running app, for the fibers that the hooks start
+  * ([[tui4s.Hooks]]: `useEffect`, `useInterval`, `useHold`, `useFold`). A
+  * `Local`, so it reaches the construction of the UI, the bodies of the hook
+  * components, the `onMount` of a [[tui4s.Component]], and the fibers that they
+  * start. Such a fiber joins the gauge of [[Mount]], so the end of the run
+  * interrupts it (`Mount.interruptAll`), also when the `Scope` that owns it
+  * closes later (the kit's) or never closes (an interrupt that lands inside a
+  * step). Outside a run it does nothing.
+  */
+// claude 2026-10-13: created (C4, RC-8: R1 option b for the hooks)
+private[tui4s] object Tui4sTrack:
+    private val local: Local[Fiber[Any, Nothing] => Unit] = Local.init(_ => ())
+
+    def let[A, S](track: Fiber[Any, Nothing] => Unit)(v: A < S)(using
+        Frame,
+    ): A < S =
+      local.let(track)(v)
+
+    /** Adds `f` to the gauge of the run that runs the caller. */
+    def apply(f: Fiber[Any, Nothing])(using Frame): Unit < Sync =
+      local.use(t => Sync.defer(t(f)))
+end Tui4sTrack

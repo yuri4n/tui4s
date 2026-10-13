@@ -85,10 +85,14 @@ private[tui4s] final class Runner(
     private val dispatch = Dispatch(quit, knobs)
 
     /** Runs `v` with the quit of this run in scope, for [[tui4s.Tui.quit]]: the
-      * construction of the UI, and the fibers that it starts.
+      * construction of the UI, and the fibers that it starts. The live-fiber
+      * gauge of this run is in scope too ([[Tui4sTrack]]), so a fiber that a
+      * hook starts ([[tui4s.Hooks]]) joins it and stops when the run ends.
       */
     // claude 2026-10-13: created (C3, RC-2 part; the prototype's scoped)
-    def scoped[A, S](v: => A < S)(using Frame): A < S = Tui4sQuit.let(quit)(v)
+    // claude 2026-10-13: changed (C4, RC-8): the gauge (Tui4sTrack)
+    def scoped[A, S](v: => A < S)(using Frame): A < S =
+      Tui4sQuit.let(quit)(Tui4sTrack.let(mount.track)(v))
 
     // claude 2026-10-12: created (K29): the repair tick fiber
     private val ticker =
