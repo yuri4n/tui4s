@@ -6,11 +6,19 @@ import examples.widgets.Widgets
 import kyo.*
 import kyo.UI.*
 import tui4s.Tui
+import tui4s.TuiApp
 
-/** The Dashboard in plain kyo-ui: tabs (Left / Right), a gauge and a sparkline
-  * fed by a 250 ms sampler, a log pane fed by a stream, `p` pauses the sampler
-  * (logs go on), `q` quits.
+/** The Dashboard in plain kyo-ui: one tab per series (CPU, Memory, Network), a
+  * gauge and a sparkline fed by a sampler (every 250 ms), a log pane fed by a
+  * stream (a line every 400 ms). ArrowLeft and ArrowRight change the tab; the
+  * tabs are buttons in one focus group, so Tab moves to the next tab and Enter
+  * or Space selects it; `p` pauses the sampler (the log goes on); `q` quits.
+  * The widgets (the gauge, the sparkline, the tabs) are in
+  * `examples.widgets.Widgets`.
   */
+// claude 2026-10-13: changed (T2, RC-33): the Scaladoc (the prototype said
+// "tabs (Left / Right)"); the periods of the sampler and of the log are
+// parameters, so that a test can use short ones
 object Dashboard:
 
     val series = Seq("CPU", "Memory", "Network")
@@ -53,10 +61,13 @@ object Dashboard:
         )
         .unit
 
-    /** The sampler: a random walk every 250 ms, skipped while paused. */
-    def sampler(s: State)(using Frame): Unit < Async =
+    /** The sampler: a random walk every `every`, skipped while paused. */
+    // claude 2026-10-13: changed (T2): the period is a parameter
+    def sampler(s: State, every: Duration = 250.millis)(using
+        Frame,
+    ): Unit < Async =
       Loop.forever {
-        Async.sleep(250.millis).andThen(s.paused.get).map { p =>
+        Async.sleep(every).andThen(s.paused.get).map { p =>
           if p then ()
           else
               s.metrics.get.map { m =>
@@ -70,12 +81,15 @@ object Dashboard:
         }
       }
 
-    /** A log stream: one line every 400 ms. */
-    def logStream(using Frame): Stream[String, Async] =
+    /** A log stream: one line every `every`. */
+    // claude 2026-10-13: changed (T2): the period is a parameter
+    def logStream(every: Duration = 400.millis)(using
+        Frame,
+    ): Stream[String, Async] =
       Stream[String, Async] {
         Loop(1) { i =>
           Async
-            .sleep(400.millis)
+            .sleep(every)
             .andThen(
               Emit.valueWith(Chunk(s"event #$i: request served"))(
                 Loop.continue(i + 1),
@@ -125,12 +139,21 @@ object Dashboard:
           .style(_.color(Style.Color.gray)),
       )
 
-    val app: UI < (Async & Scope) =
+    /** The app: the state, the sampler and the log, every `sampleEvery` and
+      * `logEvery` (a test passes short periods). The two fibers end when the
+      * `Scope` of the UI closes, at the end of the run.
+      */
+    // claude 2026-10-13: changed (T2): a def with the two periods (the
+    // prototype's val app with 250 ms and 400 ms)
+    def app(
+        sampleEvery: Duration = 250.millis,
+        logEvery: Duration = 400.millis,
+    ): UI < (Async & Scope) =
       for
           s <- init
-          _ <- Fiber.init(sampler(s))
+          _ <- Fiber.init(sampler(s, sampleEvery))
           _ <- Fiber.init(
-                 logStream.foreach(line =>
+                 logStream(logEvery).foreach(line =>
                    s.logs.updateAndGet(l =>
                      (l :+ (l.lastOption.fold(1)(_._1 + 1), line)).takeRight(6),
                    ),
@@ -139,5 +162,13 @@ object Dashboard:
       yield view(s)
 end Dashboard
 
-// claude 2026-10-13: changed (T2, adapt): the KyoApp main of the prototype
-// (DashboardMain) is cut; the example gets a TuiApp main in its own commit.
+/** Runs the Dashboard in the real terminal. Start it with its start script, not
+  * with `sbt run` (sbt also reads the keyboard):
+  * {{{
+  * sbt examples/launchers
+  * examples/target/bin/dashboard
+  * }}}
+  */
+// claude 2026-10-13: created (T2, RC-33)
+object DashboardApp extends TuiApp:
+    def ui: UI < (Async & Scope) = Dashboard.app()
