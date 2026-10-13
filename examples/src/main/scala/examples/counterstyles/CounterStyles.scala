@@ -7,10 +7,13 @@ import kyo.UI.*
 import tui4s.Component
 import tui4s.Hooks.*
 import tui4s.Tui
+import tui4s.TuiApp
 
 /** Style 1: hooks. A component is a function that returns `UI < Sync` (or
   * `< (Async & Scope)`).
   */
+// claude 2026-10-13: changed (T2): the prototype's `app` and `dynamic` are in
+// CounterStyles.ui (one main per package)
 object CounterHooks:
 
     def counter(label: String): UI < Sync =
@@ -21,36 +24,6 @@ object CounterHooks:
         div.style(_.row.gap(1.px))(
           button("+").onClick(count.updateAndGet(_ + 1)),
           button("-").onClick(count.updateAndGet(_ - 1)),
-        ),
-      )
-
-    /** Sequenced at the top: each call allocates its own state once. */
-    val app: UI < Sync =
-      for
-          left  <- counter("Left")
-          right <- counter("Right")
-      yield div.onKeyDown {
-        case KeyboardEvent(Keyboard.Char('q'), _, _) => Tui.quit
-        case _                                       => ()
-      }(h1("Hooks"), div.style(_.row.gap(2.px))(left, right))
-
-    /** The same, mounted by the runner: `component(...)` runs the effect when
-      * the node mounts. Here the counters live inside a `when`: hiding them
-      * drops their state, showing them again starts from 0.
-      */
-    val dynamic: UI < Sync =
-      for shown <- useSignal(true)
-      yield div.onKeyDown {
-        case KeyboardEvent(Keyboard.Char('h'), _, _) => shown.updateAndGet(!_)
-        case KeyboardEvent(Keyboard.Char('q'), _, _) => Tui.quit
-        case _                                       => ()
-      }(
-        h1("Hooks, mounted by the runner (h hides/shows)"),
-        when(shown)(
-          div.style(_.row.gap(2.px))(
-            component(counter("Left")),
-            component(counter("Right")),
-          ),
         ),
       )
 end CounterHooks
@@ -72,17 +45,50 @@ final class CounterBox(label: String) extends Component:
       )
 end CounterBox
 
-object CounterComponents:
-    val app: UI =
-      div.onKeyDown {
+/** Both styles side by side, in one app. On the left, two hook counters that
+  * the runner mounts (`component`), inside a `when`: `h` hides them (they lose
+  * their state) and shows them again (they start at 0). On the right, two
+  * `Component` counters (`CounterBox`): the runner keeps their state under
+  * their position. Tab moves between the eight buttons, Enter and Space press
+  * them, `q` quits.
+  */
+// claude 2026-10-13: created (T2, RC-33): one UI for the prototype's three
+// apps (CounterHooks.app, CounterHooks.dynamic, CounterComponents.app), so one
+// main and one PTY run show both styles
+object CounterStyles:
+    def ui: UI < Sync =
+      for shown <- useSignal(true)
+      yield div.onKeyDown {
+        case KeyboardEvent(Keyboard.Char('h'), _, _) => shown.updateAndGet(!_)
         case KeyboardEvent(Keyboard.Char('q'), _, _) => Tui.quit
         case _                                       => ()
       }(
-        h1("Components"),
-        div.style(_.row.gap(2.px))(CounterBox("Left"), CounterBox("Right")),
+        h1("Counter styles: h hides the hook counters, q quits"),
+        div.style(_.row.gap(4.px))(
+          div(
+            h2("Hooks"),
+            when(shown)(
+              div.style(_.row.gap(2.px))(
+                component(CounterHooks.counter("Left")),
+                component(CounterHooks.counter("Right")),
+              ),
+            ),
+          ),
+          div(
+            h2("Components"),
+            div.style(_.row.gap(2.px))(CounterBox("Left"), CounterBox("Right")),
+          ),
+        ),
       )
-end CounterComponents
+end CounterStyles
 
-// claude 2026-10-13: changed (T2, adapt): the three KyoApp mains of the
-// prototype are cut; the example gets one TuiApp main in its own commit (one
-// main per package).
+/** Runs both counter styles in the real terminal. Start it with its start
+  * script, not with `sbt run` (sbt also reads the keyboard):
+  * {{{
+  * sbt examples/launchers
+  * examples/target/bin/counterstyles
+  * }}}
+  */
+// claude 2026-10-13: created (T2, RC-33)
+object CounterStylesApp extends TuiApp:
+    def ui: UI < (Async & Scope) = CounterStyles.ui
