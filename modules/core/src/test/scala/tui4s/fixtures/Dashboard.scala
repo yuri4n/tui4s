@@ -4,12 +4,13 @@ import kyo.*
 import kyo.UI.*
 
 /** The Dashboard in plain kyo-ui: one tab per series, a gauge and a sparkline
-  * fed by a 250 ms sampler, a log pane fed by a stream. `tab` and `paused` are
-  * refs that a test writes; the keys (the tabs, the pause, the quit) come in a
-  * later pull request.
+  * fed by a 250 ms sampler, a log pane fed by a stream. ArrowLeft and
+  * ArrowRight change the tab, `p` pauses the sampler (the logs go on). A test
+  * can also write `tab` and `paused`.
   */
 // claude 2026-10-12: changed the Scaladoc (review R1-5, R3-7): no key handler
 // after the cut
+// claude 2026-10-13: changed the Scaladoc (C3): the keys are back
 object Dashboard:
 
     val series = Seq("CPU", "Memory", "Network")
@@ -100,8 +101,18 @@ object Dashboard:
         ul(s.logs.foreachKeyed(_._1.toString)((_, line) => li(line))),
       )
 
+    // claude 2026-10-13: changed (C3): the key handler of the prototype is
+    // back on the root
     def view(s: State): UI =
-      div(
+      div.onKeyDown {
+        case KeyboardEvent(Keyboard.ArrowLeft, _, _)  =>
+          s.tab.updateAndGet(t => (t + series.size - 1) % series.size)
+        case KeyboardEvent(Keyboard.ArrowRight, _, _) =>
+          s.tab.updateAndGet(t => (t + 1) % series.size)
+        case KeyboardEvent(Keyboard.Char('p'), _, _)  =>
+          s.paused.updateAndGet(!_)
+        case _                                        => ()
+      }(
         div
           .style(_.row.gap(2.px))(h1("Dashboard"), Widgets.tabs(s.tab, series)),
         overview(s),

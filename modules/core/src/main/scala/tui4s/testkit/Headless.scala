@@ -2,6 +2,9 @@ package tui4s.testkit
 
 import jatatui.core.backend.TestBackend
 import kyo.*
+import kyo.UI.Keyboard
+import kyo.UI.KeyboardEvent
+import kyo.UI.Modifiers
 import tui4s.FrameCause
 import tui4s.FrameStats
 import tui4s.TuiOptions
@@ -20,13 +23,20 @@ import tui4s.internal.*
   * ended, so no watcher outlives the test.
   *
   * One test fiber drives a `Headless`. Its methods are not for two fibers at
-  * the same time: `resize` and `nextFrame` take frames from one shared channel,
-  * so a second caller can take the frame that the first one waits for.
+  * the same time: `press`, `resize` and `nextFrame` take frames from one shared
+  * channel, so a second caller can take the frame that the first one waits for.
+  *
+  * The keys go to the app as a terminal sends them: `press` sends one
+  * [[kyo.UI.KeyboardEvent]], `key` builds one from a [[kyo.UI.Keyboard]] and
+  * modifiers, `char` and `typeText` type characters. Each key is one event and
+  * waits for its Input frame, which holds all the consequences of the key (the
+  * handlers' writes and the regions that derive from them).
   */
 // claude 2026-10-12: changed (PR #11 review: Codex, Headless.scala:115): the one-driver rule
 // claude 2026-10-12: changed: the final API (RC-7, D-15): the quit value, Screen,
 // awaitScreen, Vector[FrameStats], no TestBackend and no jatatui Cell in the
 // API; the key methods are C3
+// claude 2026-10-13: changed (C3): the key methods press, key, char, typeText
 final class Headless private (
     inbox: Channel[Msg],
     frames: Channel[FrameStats],
@@ -113,17 +123,68 @@ final class Headless private (
       }
     }
 
+    /** Sends one key and waits for its frame (the Input frame of this key).
+      * Background frames that come first are consumed.
+      */
+    // claude 2026-10-13: created (C3; the prototype's press)
+    def press(ev: KeyboardEvent)(using Frame): FrameStats < Async =
+      send(n => Msg.Key(ev, n))
+
+    /** Sends the key `k` with the given modifiers and waits for its frame. */
+    // claude 2026-10-13: created (C3; the prototype's key, with alt)
+    def key(
+        k: Keyboard,
+        ctrl: Boolean = false,
+        shift: Boolean = false,
+        alt: Boolean = false,
+    )(using Frame): FrameStats < Async =
+      press(
+        KeyboardEvent(
+          k,
+          Modifiers(ctrl = ctrl, alt = alt, shift = shift),
+          Absent,
+        ),
+      )
+
+    /** Types the character `c` as one key and waits for its frame: a space is
+      * `Keyboard.Space`, a line break (`\n` or `\r`) is `Keyboard.Enter`, a tab
+      * is `Keyboard.Tab`, any other character is `Keyboard.Char(c)`.
+      */
+    // claude 2026-10-13: created (C3; the prototype's char, with the line
+    // break and the tab)
+    def char(c: Char)(using Frame): FrameStats < Async =
+      press(Headless.keyOf(c.toInt))
+
+    /** Types `s`, one key per character (as [[char]]), and waits for the frame
+      * of each key. A line break `\r\n` is one Enter. A character outside the
+      * Basic Multilingual Plane (an emoji) is one key `Keyboard.Unknown(<the
+      * character>)`, as kyo-ui's `Keyboard.fromString` gives it.
+      */
+    // claude 2026-10-13: created (C3; the prototype's typeText returns Seq,
+    // not kyo.Chunk)
+    def typeText(s: String)(using Frame): Seq[FrameStats] < Async =
+      Kyo.foreach(Headless.keysOf(s))(press).map(_.toSeq)
+
     /** Resizes the screen and waits for the frame of the resize. Background
       * frames that come first are consumed. The runner fiber resizes the
       * backend when it handles the message (one fiber touches the backend).
       */
     // claude 2026-10-12: changed (review R2-4): only the message; the runner
     // resizes the backend
+    // claude 2026-10-13: changed (C3): the wait is the shared `send`
     def resize(w: Int, h: Int)(using Frame): FrameStats < Async =
+      send(n => Msg.Resize(Size(w, h), n))
+
+    /** Posts the Input message that `mk` builds with the next sequence number
+      * and waits for its frame (the Input frame with that number). Background
+      * frames that come first are consumed.
+      */
+    // claude 2026-10-13: created (C3; the wait of the old `resize`)
+    private def send(mk: Long => Msg)(using Frame): FrameStats < Async =
       seq.getAndIncrement
         .map { n =>
           inbox
-            .put(Msg.Resize(Size(w, h), n))
+            .put(mk(n))
             .andThen {
               Loop.foreach {
                 frames.take.map(s =>
@@ -171,6 +232,24 @@ object Headless:
           _       <- Scope.ensure(h.quit.andThen(h.awaitEnd(5.seconds)))
           _       <- firstFrame(frames, run)
       yield h
+
+    /** The key that types the code point `cp` (see `char` and `typeText`). */
+    // claude 2026-10-13: created (C3)
+    private def keyOf(cp: Int): KeyboardEvent =
+        val k =
+          if cp == ' '.toInt then Keyboard.Space
+          else if cp == '\n'.toInt || cp == '\r'.toInt then Keyboard.Enter
+          else if cp == '\t'.toInt then Keyboard.Tab
+          else if Character.isBmpCodePoint(cp) then Keyboard.Char(cp.toChar)
+          else Keyboard.Unknown(String(Character.toChars(cp)))
+        KeyboardEvent(k, Modifiers.none, Absent)
+    end keyOf
+
+    /** The keys that type `s`: one per code point; `\r\n` is one Enter. */
+    // claude 2026-10-13: created (C3)
+    private def keysOf(s: String): Vector[KeyboardEvent] =
+        val cps = s.replace("\r\n", "\n").codePoints().toArray.toVector
+        cps.map(keyOf)
 
     /** Waits for the first frame. When the run ends before it (the UI or the
       * initial mount failed), the run's result surfaces here instead of a hang

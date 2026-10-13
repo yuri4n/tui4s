@@ -3,17 +3,27 @@ package tui4s.fixtures
 import kyo.*
 import kyo.UI.*
 
-/** The Counter in plain kyo-ui: only kyo-ui's API. A test writes the count; the
-  * keys and the quit key come in a later pull request.
+/** The Counter in plain kyo-ui: only kyo-ui's API. `+` and `-` change the count
+  * (a key handler on the root), Tab moves between the buttons, Enter and Space
+  * press them. A test can also write the count.
   */
 // claude 2026-10-12: changed the Scaladoc (review R1-5, R3-7): no key handler
 // and no `Tui.quit` after the cut
+// claude 2026-10-13: changed the Scaladoc (C3): the keys are back
 object Counter:
 
     // claude 2026-10-12: created (RC-19): the view over a count that the caller
     // owns, so that a test can write the ref
+    // claude 2026-10-13: changed (C3): the key handler of the prototype's app
+    // is back on the root
     def view(count: SignalRef[Int]): UI =
-      div(
+      div.onKeyDown {
+        case KeyboardEvent(Keyboard.Char('+'), _, _) =>
+          count.updateAndGet(_ + 1)
+        case KeyboardEvent(Keyboard.Char('-'), _, _) =>
+          count.updateAndGet(_ - 1)
+        case _                                       => ()
+      }(
         h1("Counter"),
         span("Count: ", count.map(_.toString)).id("count"),
         div.style(_.row.gap(1.px))(

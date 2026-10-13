@@ -7,6 +7,9 @@ import kyo.UI.Ast.*
   * ever talk to the runner through these.
   */
 enum Msg:
+    // claude 2026-10-13: created (C3): a key, with the sequence number of its
+    // Input frame
+    case Key(ev: UI.KeyboardEvent, seq: Long)
     case Resize(size: Size, seq: Long)
     case Content(region: Loc, gen: Long, value: Any)
     // claude 2026-10-12: created the two cases below (K29, D-16): a watcher is
