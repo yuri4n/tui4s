@@ -329,6 +329,41 @@ class ComponentTest extends ComponentSuite:
       }
     }
 
+    /** A Component whose `onMount` starts an interval and returns at once. */
+    final class Ticking(ticks: AtomicInteger) extends Component:
+        type State = Int
+        def initial: Int                                               = 0
+        def view(n: SignalRef[Int]): UI                                =
+          span(n.map(v => s"[ticking=$v]"))
+        override def onMount(n: SignalRef[Int]): Any < (Async & Scope) =
+          useInterval(20.millis)(
+            n.updateAndGet(_ + 1).andThen(Sync.defer(ticks.incrementAndGet())),
+          )
+    end Ticking
+
+    "Component.onMount: an effect that it starts lives as long as the mount, also when onMount returns at once; the unmount ends it" in {
+      for
+          ticks <- Sync.defer(AtomicInteger(0))
+          shown <- Signal.initRef(true)
+          h     <- Headless.start(30, 3)(_ => div(when(shown)(Ticking(ticks).ui)))
+          ok    <- h.awaitScreen(
+                     _.rows.exists(_.matches(""".*\[ticking=([5-9]|\d\d+)\].*""")),
+                     3.seconds,
+                   )
+          t1    <- read(ticks)
+          _     <- shown.set(false)
+          gone  <- h.awaitScreen(!_.contains("[ticking="), 2.seconds)
+          still <- stopped(ticks)
+          s     <- h.screen
+      yield
+          assert(
+            ok,
+            s"the interval of onMount stopped when onMount returned: $t1 ticks; ${s.text}",
+          )
+          assert(gone && still, "the interval ticks after the unmount")
+      end for
+    }
+
     // ---- the pending frame (TuiOptions.pendingTimeout) ----
 
     /** A hook component behind a key: `s` shows it, and its body takes `delay`

@@ -468,8 +468,9 @@ private[tui4s] final class Mount(
     end mountComponent
 
     /** Stops the effects of `old` (the region that was at the path) and runs
-      * `c.onMount(state)` in a new fiber, with a `Scope` that closes when the
-      * fiber ends. The fiber joins the gauge.
+      * `c.onMount(state)` in a new fiber, with a `Scope` that stays open after
+      * `onMount` returns and closes when the fiber ends (the unmount, or the
+      * end of the run, interrupts it). The fiber joins the gauge.
       */
     // claude 2026-10-13: created (C4, P-6): the prototype's start of the
     // effects, out of mountComponent; it joins the gauge (RC-8)
@@ -482,8 +483,16 @@ private[tui4s] final class Mount(
         .flatMap(_.watcher)
         .fold(Kyo.unit)(_.interrupt.unit)
         .andThen(
+          // claude 2026-10-13: changed (C4, P-6): the Scope stays open until
+          // the mount ends (an interrupt), as for a hook component: it closed
+          // when onMount returned, so an interval or a resource that onMount
+          // started ended at once
           Fiber.initUnscoped(
-            Abort.run[Throwable](Scope.run(c.onMount(state))).unit,
+            Abort
+              .run[Throwable](
+                Scope.run(c.onMount(state).andThen(Async.never[Unit])),
+              )
+              .unit,
           ),
         )
         .map(f => Sync.defer { track(f); f })
