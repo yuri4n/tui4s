@@ -1,5 +1,7 @@
 package tui4s.internal
 
+// claude 2026-10-13: changed (C3, gate 1 item 1): private[tui4s] on every top-level definition of this file (the seal of tui4s.internal)
+
 import kyo.*
 import kyo.UI.Keyboard
 import kyo.UI.KeyboardEvent
@@ -27,7 +29,10 @@ import kyo.UI.Ast.*
   */
 // claude 2026-10-13: changed (C3, plan 0.3): the knobs (the hook of the write
 // seam)
-final class Dispatch(quit: Unit < Sync, knobs: Knobs = Knobs.default):
+private[tui4s] final class Dispatch(
+    quit: Unit < Sync,
+    knobs: Knobs = Knobs.default,
+):
 
     /** The write seam (plan 0.3): the one place where the dispatcher writes a
       * bound `SignalRef` (the text of a text input or a textarea, the checked
@@ -437,7 +442,7 @@ end Dispatch
 /** The quit action of the running app, for [[tui4s.Tui.quit]]. A `Local`, so it
   * also reaches fibers forked by a handler or by the UI's construction.
   */
-object Tui4sQuit:
+private[tui4s] object Tui4sQuit:
     private val local: Local[Unit < Sync] = Local.init(Kyo.unit)
 
     def let[A, S](quit: Unit < Sync)(v: A < S)(using Frame): A < S =

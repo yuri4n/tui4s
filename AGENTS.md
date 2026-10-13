@@ -177,6 +177,17 @@ rules are early-semver:
 - `Compatibility.None`: the next release must bump the minor version (`0.y` to
   `0.y+1`).
 
+The package `tui4s.internal` is sealed: each of its top-level definitions is
+`private[tui4s]`, so users and Scaladoc do not see it (the test kit and the
+`zio` and `cats` modules are inside `tui4s` and keep the access).
+`PublicApiTest` checks the seal, and also that no public signature of `tui4s`,
+`tui4s.spi` or `tui4s.testkit` names an internal type; the compiler does not
+check this. `private[tui4s]` is public in the bytecode: MiMa and
+`versionPolicyCheck` see the internal types and the `private[tui4s]` seams, so
+a change there can break binary compatibility as a change of the public API
+does.
+<!-- claude 2026-10-13: created this paragraph (C3, gate 1 item 1, RC-36) -->
+
 If a pull request breaks binary compatibility, set the intention of that module
 to `Compatibility.None` in the same pull request. After the release, set it back
 to `Compatibility.BinaryCompatible`. CI runs `versionPolicyCheck` on each pull

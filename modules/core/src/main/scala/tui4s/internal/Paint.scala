@@ -1,5 +1,7 @@
 package tui4s.internal
 
+// claude 2026-10-13: changed (C3, gate 1 item 1): private[tui4s] on every top-level definition of this file (the seal of tui4s.internal)
+
 import jatatui.core.backend.Backend
 import jatatui.core.backend.TestBackend
 import jatatui.core.buffer.Buffer
@@ -21,7 +23,7 @@ import scala.jdk.CollectionConverters.*
   * writes only inside damaged rectangles, and `flush` compares `back` with
   * `front` only inside those rectangles and sends only the cells that differ.
   */
-final class Canvas private (
+private[tui4s] final class Canvas private (
     private var back: Buffer,
     private var front: Buffer,
     val backend: Backend,
@@ -158,7 +160,7 @@ final class Canvas private (
     end flush
 end Canvas
 
-object Canvas:
+private[tui4s] object Canvas:
     /** @param flushSeam
       *   the test seam `Knobs.flushSeam` (zero in a real run)
       */
@@ -176,7 +178,7 @@ object Canvas:
 end Canvas
 
 /** Paints laid-out nodes into the kept buffer. */
-object Paint:
+private[tui4s] object Paint:
 
     /** Applies the damage of one frame. Returns the rectangles to flush and the
       * number of subtrees painted.

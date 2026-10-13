@@ -1,5 +1,7 @@
 package tui4s.internal
 
+// claude 2026-10-13: changed (C3, gate 1 item 1): private[tui4s] on every top-level definition of this file (the seal of tui4s.internal)
+
 import kyo.scheduler.Scheduler
 
 /** Reads the load of Kyo's scheduler through the public `Scheduler.status()`,
@@ -24,7 +26,7 @@ import kyo.scheduler.Scheduler
 // claude 2026-10-12: changed the whole file (D-17 c, RC-11): the public
 // status() probe only; the reflection field, the `tui4s.debugSettle` property
 // and `describe` are gone
-object SchedulerProbe:
+private[tui4s] object SchedulerProbe:
     private val scheduler = Scheduler.get
 
     /** True when nothing but the caller runs or waits in the scheduler: the

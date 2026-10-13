@@ -1,5 +1,7 @@
 package tui4s.internal
 
+// claude 2026-10-13: changed (C3, gate 1 item 1): private[tui4s] on every top-level definition of this file (the seal of tui4s.internal)
+
 import kyo.*
 import kyo.UI.Keyboard
 import tui4s.FrameCause
@@ -19,7 +21,7 @@ import tui4s.TuiOptions
   * event's consequences in it.
   */
 // claude 2026-10-13: changed: the Scaladoc names the dispatcher (C3)
-final class Runner(
+private[tui4s] final class Runner(
     inbox: Channel[Msg],
     canvas: Canvas,
     options: TuiOptions,

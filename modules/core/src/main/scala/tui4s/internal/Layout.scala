@@ -1,5 +1,7 @@
 package tui4s.internal
 
+// claude 2026-10-13: changed (C3, gate 1 item 1): private[tui4s] on every top-level definition of this file (the seal of tui4s.internal)
+
 import jatatui.core.style.Color as JColor
 import jatatui.core.text.Span
 import kyo.*
@@ -9,7 +11,7 @@ import kyo.Style.ListStyle
 import kyo.UI.Ast.*
 
 /** What a region shows now. */
-enum Content:
+private[tui4s] enum Content:
     /** A `Reactive` region: the last UI its signal produced. */
     case Single(ui: UI)
 
@@ -31,20 +33,20 @@ end Content
   * text).
   */
 // claude 2026-10-13: changed the Scaladoc (C3): the caret is a grapheme index
-final case class Scene(
+private[tui4s] final case class Scene(
     content: Loc => Option[Content],
     focus: Option[Loc],
     screen: Size,
     caret: Loc => Int,
 )
 
-enum Kind:
+private[tui4s] enum Kind:
     case Screen
     case El(el: Element)
     case Txt(text: String, wrap: Boolean)
 
 /** One laid-out box. `rect` is the border box; margins are outside. */
-final case class Node(
+private[tui4s] final case class Node(
     path: Loc,
     kind: Kind,
     rect: Rect,
@@ -64,7 +66,10 @@ end Node
 /** The laid-out screen: a flat, immutable index of nodes, plus the container
   * that owns the items of each region.
   */
-final case class Laid(nodes: Map[Loc, Node], regionOwner: Map[Loc, Loc]):
+private[tui4s] final case class Laid(
+    nodes: Map[Loc, Node],
+    regionOwner: Map[Loc, Loc],
+):
     def without(prefix: Loc): Laid =
       Laid(
         nodes.filterNot((p, _) => p.isAtOrUnder(prefix)),
@@ -74,31 +79,31 @@ final case class Laid(nodes: Map[Loc, Node], regionOwner: Map[Loc, Loc]):
       )
 end Laid
 
-object Laid:
+private[tui4s] object Laid:
     val empty: Laid = Laid(Map.empty, Map.empty)
 
 /** A change of the screen that paint must apply: clear a rectangle to a
   * background, or paint a node and its subtree.
   */
-enum Damage:
+private[tui4s] enum Damage:
     case Clear(rect: Rect, bg: Option[JColor])
     case Paint(path: Loc)
 
 /** A flex item of a container: an element or a text, with the regions it is
   * inside (innermost first).
   */
-final case class Item(path: Loc, ui: UI, regions: List[Loc])
+private[tui4s] final case class Item(path: Loc, ui: UI, regions: List[Loc])
 
-final case class Flat(items: Vector[Item], regions: Vector[Loc]):
+private[tui4s] final case class Flat(items: Vector[Item], regions: Vector[Loc]):
     def ++(o: Flat): Flat = Flat(items ++ o.items, regions ++ o.regions)
 
-object Flat:
+private[tui4s] object Flat:
     val empty: Flat = Flat(Vector.empty, Vector.empty)
 
 /** Flexbox in terminal cells, following kyo-ui's base CSS (everything is flex,
   * reactive boundaries are transparent).
   */
-object Layout:
+private[tui4s] object Layout:
 
     // ---- text ----
 
