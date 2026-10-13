@@ -316,6 +316,42 @@ class SessionTest extends Test[Any]:
       }
     }
 
+    // claude 2026-10-13: created (T1, review R2-4): an Error that NonFatal
+    // does not match (a LinkageError of a JNI call) ended the thread and left
+    // the run without keys
+    "an input error that NonFatal does not match (UnsatisfiedLinkError) is kept and ends the run too"
+      .timeout(30.seconds) in {
+      val broken = new InputPort:
+          def poll(timeoutMillis: Int): Boolean =
+            throw UnsatisfiedLinkError(
+              "'boolean tui.crossterm.CrosstermJni.poll(tui.crossterm.Duration)'",
+            )
+          def read(): CEvent | Null             = null
+      inbox(16).map { box =>
+        Sync
+          .defer {
+            val thread = InputThread(broken, box, 5)
+            thread.start()
+            thread.join(5000)
+            thread
+          }
+          .map { thread =>
+            Abort
+              .run[Closed | Timeout](Async.timeout(5.seconds)(box.take))
+              .map {
+                case Result.Success(Msg.Quit) =>
+                  val f = thread.failure
+                  assert(
+                    f.isInstanceOf[UnsatisfiedLinkError],
+                    String.valueOf(f),
+                  )
+                case other                    =>
+                  assert(false, s"no Quit from the input thread: $other")
+              }
+          }
+      }
+    }
+
     private def discard(a: Any): Unit =
         val _ = a
 end SessionTest

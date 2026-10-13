@@ -198,11 +198,13 @@ end Session
   * ([[EventMapping]], one sequence number per message) and puts them into the
   * inbox as one batch; the runner still takes them one at a time, one frame per
   * event. It waits while the inbox is full (backpressure); closing the inbox
-  * releases it. When the input fails, the thread keeps the failure and asks the
-  * run to end ([[Msg.Quit]]).
+  * releases it. When the input fails (any error but a fatal error of the JVM,
+  * also a `LinkageError` of a native call), the thread keeps the failure and
+  * asks the run to end ([[Msg.Quit]]).
   */
 // claude 2026-10-13: changed (T1, RC-21, D-21 a): crossterm events, mapped
 // here to Msg; the failure is kept for the run and the run gets Msg.Quit
+// claude 2026-10-13: changed (T1, review R2-4): the Scaladoc names the errors
 private[tui4s] final class InputThread(
     port: InputPort,
     inbox: Channel[Msg],
@@ -243,7 +245,12 @@ private[tui4s] final class InputThread(
             end while
         catch
             case _: InterruptedException => ()
-            case NonFatal(e)             =>
+            // claude 2026-10-13: changed (T1, review R2-4): every error that is
+            // not fatal to the JVM is the failure of the input, also a
+            // LinkageError of a native call (NonFatal does not match it): the
+            // thread ended, and q and Ctrl-C were dead keys
+            case e: VirtualMachineError  => throw e
+            case e: Throwable            =>
               failure = e
               // A put that waits for room (an offer drops the message when the
               // inbox is full); closing the inbox ends it.
