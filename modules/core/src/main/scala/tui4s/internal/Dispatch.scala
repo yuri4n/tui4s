@@ -21,8 +21,28 @@ import kyo.UI.Ast.*
   *
   * Handlers run on the runner fiber, one event at a time. A handler that fails
   * is logged and the event goes on.
+  *
+  * Every write of a bound `SignalRef` goes through one function, [[writeBound]]
+  * (plan 0.3).
   */
-final class Dispatch(quit: Unit < Sync):
+// claude 2026-10-13: changed (C3, plan 0.3): the knobs (the hook of the write
+// seam)
+final class Dispatch(quit: Unit < Sync, knobs: Knobs = Knobs.default):
+
+    /** The write seam (plan 0.3): the one place where the dispatcher writes a
+      * bound `SignalRef` (the text of a text input or a textarea, the checked
+      * flag of a checkbox or a radio, the value of a select). It calls the test
+      * hook `knobs.onBoundWrite`, then writes the Kyo ref. Not public API. The
+      * runner writes the ref BEFORE it runs `onInput` or `onChange`, so a
+      * handler that reads the ref sees the new value. A later version can send
+      * the write to another primary (a ZIO or Cats Effect ref) or keep the
+      * runner's own text for the focused field here.
+      */
+    // claude 2026-10-13: created (C3, plan 0.3)
+    private[tui4s] def writeBound[A](path: Loc, ref: SignalRef[A], value: A)(
+        using Frame,
+    ): Unit < Sync =
+      knobs.onBoundWrite(path, value).andThen(ref.set(value))
 
     private def safe(label: String, v: => Any < Async)(using
         Frame,
@@ -227,8 +247,9 @@ final class Dispatch(quit: Unit < Sync):
                   )
             val w2                 =
               w1.copy(regions = w1.regions.updated(p, stored)).markNode(p)
+            // claude 2026-10-13: changed (C3, plan 0.3): the write seam
             val write: Unit < Sync = ti.value match
-                case Present(UI.Bound.Ref(ref)) => ref.set(next)
+                case Present(UI.Bound.Ref(ref)) => writeBound(p, ref, next)
                 case _                          => Kyo.unit
             write
               .andThen(safe("onInput", runWith(ti.onInput, next)))
@@ -250,8 +271,9 @@ final class Dispatch(quit: Unit < Sync):
         val next               = bi match
             case _: Radio => true
             case _        => !now
+        // claude 2026-10-13: changed (C3, plan 0.3): the write seam
         val write: Unit < Sync = bi.checked match
-            case Present(UI.Bound.Ref(ref)) => ref.set(next)
+            case Present(UI.Bound.Ref(ref)) => writeBound(p, ref, next)
             case _                          => Kyo.unit
         val stored             = w.regions.get(p) match
             case Some(r) => r.copy(content = Content.Value(next))
@@ -287,8 +309,9 @@ final class Dispatch(quit: Unit < Sync):
             val next               = values(
               (i + (if forward then 1 else -1) + values.size) % values.size,
             )
+            // claude 2026-10-13: changed (C3, plan 0.3): the write seam
             val write: Unit < Sync = s.value match
-                case Present(UI.Bound.Ref(ref)) => ref.set(next)
+                case Present(UI.Bound.Ref(ref)) => writeBound(p, ref, next)
                 case _                          => Kyo.unit
             val stored             = w.regions.get(p) match
                 case Some(r) => r.copy(content = Content.Value(next))

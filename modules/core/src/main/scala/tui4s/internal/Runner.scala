@@ -79,8 +79,8 @@ final class Runner(
         .andThen(Abort.run[Closed](inbox.offer(Msg.Quit)).unit)
 
     // claude 2026-10-13: created (C3): the key routing; its handlers get the
-    // runner's quit
-    private val dispatch = Dispatch(quit)
+    // runner's quit; the knobs carry the hook of the write seam
+    private val dispatch = Dispatch(quit, knobs)
 
     /** Runs `v` with the quit of this run in scope, for [[tui4s.Tui.quit]]: the
       * construction of the UI, and the fibers that it starts.
