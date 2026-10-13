@@ -103,9 +103,14 @@ private[tui4s] final class TerminalIO(
             crossterm.backend()
         catch
             case e: Throwable =>
+              // claude 2026-10-13: changed (PR #14 review: Codex,
+              // TerminalIO.scala:138): an undo step that fails with any error
+              // but a fatal JVM error does not stop the other undo steps
               undo.foreach(step =>
                 try step()
-                catch case NonFatal(_) => (),
+                catch
+                    case e: VirtualMachineError => throw e
+                    case _: Throwable           => (),
               )
               sink.finish(err)
               throw e
@@ -131,10 +136,17 @@ private[tui4s] final class TerminalIO(
     // claude 2026-10-13: changed (T1): no inline viewport step (D-22)
     def leave(opts: TuiOptions): Unit =
         var first: Throwable | Null = null
+        /* claude 2026-10-13: changed (PR #14 review: Codex,
+         * TerminalIO.scala:138): */
+        // every error but a fatal JVM error is kept and the next steps still
+        // run, also a LinkageError of a native call (NonFatal does not match
+        // it); as the input thread does. Before, a LinkageError in the first
+        // step skipped disableRawMode and left the shell in raw mode.
         def step(f: => Unit): Unit  =
           try f
           catch
-              case NonFatal(e) =>
+              case e: VirtualMachineError => throw e
+              case e: Throwable           =>
                 if first == null then first = e
         step(crossterm.execute(TerminalIO.leaveCommands(opts)))
         step(crossterm.disableRawMode())

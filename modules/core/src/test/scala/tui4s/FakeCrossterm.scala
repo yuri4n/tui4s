@@ -98,6 +98,12 @@ final class FakeCrossterm(
         if (failAt == "enter" && executes == 1) ||
             (failAt == "leave" && executes == 2)
         then throw RuntimeException("IO error: broken pipe")
+        /* claude 2026-10-13: created (PR #14 review: Codex,
+         * TerminalIO.scala:138): */
+        // a LinkageError of the native call at the leave commands
+        if failAt == "leave-link" && executes == 2 then
+            throw UnsatisfiedLinkError("no crossterm at leave")
+    end execute
 
     def flush(): Unit = record("flush")
 

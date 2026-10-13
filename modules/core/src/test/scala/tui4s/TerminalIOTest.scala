@@ -308,6 +308,38 @@ class TerminalIOTest extends Test[Any]:
         }
     }
 
+    // claude 2026-10-13: created (PR #14 review: Codex, TerminalIO.scala:138)
+    "a LinkageError in a release step does not stop the others either: raw mode ends, the hook goes, the error is printed"
+      .timeout(30.seconds) in {
+      val fake = FakeCrossterm(failAt = "leave-link", events = Seq(char('q')))
+      val err  = FakeErr(fake.log)
+      Tui
+        .runWith(TuiOptions(), fake, FakeHooks(fake.log), () => err.stream)(
+          counter,
+        )
+        .map { _ =>
+          val calls = fake.calls
+          assert(
+            calls.containsSlice(
+              Seq(
+                leaveDefault,
+                "raw-mode-off",
+                "flush",
+                "hook-removed tui4s-restore",
+              ),
+            ),
+            calls.mkString("\n"),
+          )
+          assert(
+            err.lines.exists(l =>
+              l.contains("restoring the terminal failed") &&
+                l.contains("UnsatisfiedLinkError"),
+            ),
+            err.lines.mkString("\n"),
+          )
+        }
+    }
+
     // claude 2026-10-13: changed (T1): the print is in a key handler of a
     // kyo-ui UI (keys); Tui.runWith
     "output while the UI is up is printed after the restore".timeout(
