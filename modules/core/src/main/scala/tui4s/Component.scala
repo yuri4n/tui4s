@@ -1,17 +1,18 @@
 package tui4s
 
-// claude 2026-10-09: created (carried from .work/proto/kyoui-runner/src/tui4s/kyoui/Component.scala lines 39-74; new path and package only)
-
 import kyo.*
 import kyo.UI.Ast.*
 import scala.language.implicitConversions
 import tui4s.internal.ComponentSpec
 
-/** A component with a type member for its state (the second style the user asked for).
+/** A component with a type member for its state (the second style the user
+  * asked for).
   *
-  * The runner allocates `SignalRef[State]` with `initial` when the component mounts, keeps it while a component of the
-  * same class stays at the same position (keyed lists: the same key), and drops it when the component unmounts. `view`
-  * is pure: it only builds a kyo-ui value. `onMount` runs effects (timers, streams) for the mount's lifetime.
+  * The runner allocates `SignalRef[State]` with `initial` when the component
+  * mounts, keeps it while a component of the same class stays at the same
+  * position (keyed lists: the same key), and drops it when the component
+  * unmounts. `view` is pure: it only builds a kyo-ui value. `onMount` runs
+  * effects (timers, streams) for the mount's lifetime.
   *
   * {{{
   * final class Counter(label: String) extends Component:
@@ -26,20 +27,21 @@ abstract class Component:
     def view(state: SignalRef[State]): UI
     def onMount(state: SignalRef[State]): Any < (Async & Scope) = ()
 
-    /** The kyo-ui node of this component. In another kyo-ui runner (DOM, server-push) it still works: the state is then
-      * allocated once per node value.
+    /** The kyo-ui node of this component. In another kyo-ui runner (DOM,
+      * server-push) it still works: the state is then allocated once per node
+      * value.
       */
     final def ui(using Frame): Reactive[UI] =
-        ComponentSpec.node(
-            ComponentSpec.Instance(this), {
-                import AllowUnsafe.embrace.danger
-                given CanEqual[State, State] = CanEqual.derived
-                view(Signal.SignalRef.Unsafe.init[State](initial).safe)
-            }
-        )
+      ComponentSpec.node(
+        ComponentSpec.Instance(this), {
+          import AllowUnsafe.embrace.danger
+          given CanEqual[State, State] = CanEqual.derived
+          view(Signal.SignalRef.Unsafe.init[State](initial).safe)
+        },
+      )
 end Component
 
 object Component:
     /** Lets a component be a child: `div(Counter("a"), Counter("b"))`. */
-    implicit def componentToChild(c: Component)(using Frame): HtmlChildVal = HtmlChildVal.lift(c.ui)
-end Component
+    implicit def componentToChild(c: Component)(using Frame): HtmlChildVal =
+      HtmlChildVal.lift(c.ui)
