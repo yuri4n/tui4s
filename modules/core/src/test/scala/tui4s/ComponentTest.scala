@@ -660,4 +660,42 @@ class ComponentTest extends ComponentSuite:
           )
       end for
     }
+
+    /** A body that fails. */
+    def boom(): UI = throw RuntimeException("the body of the component fails")
+
+    // claude 2026-10-13: created (C4, review R2-5)
+    "pending frame: a hook component whose body fails ends the wait at once; its place stays empty" in {
+      // pendingTimeout 3 s; the body fails after 50 ms. Allowance: the frame
+      // of the key comes before 1 s.
+      val options = TuiOptions(pendingTimeout = JDuration.ofSeconds(3))
+      for
+          h <- Headless.start(30, 4, options)(_ =>
+                 Signal.initRef(false).map { shown =>
+                   div.onKeyDown {
+                     case KeyboardEvent(Keyboard.Char('s'), _, _) =>
+                       shown.set(true)
+                     case _                                       => ()
+                   }(
+                     span("[top]"),
+                     when(shown)(
+                       component(
+                         Async.sleep(50.millis).andThen(Sync.defer(boom())),
+                       ),
+                     ),
+                     span("[bottom]"),
+                   )
+                 },
+               )
+          f <- h.char('s')
+          s <- h.screen
+      yield
+          assert(f.updates > 0, s"the key did not reach its handler: $f")
+          assert(
+            ms(f) < 1000L,
+            s"the frame waited for a component whose body failed: ${ms(f)} ms",
+          )
+          assert(s.contains("[top]") && s.contains("[bottom]"), s.text)
+      end for
+    }
 end ComponentTest

@@ -96,9 +96,11 @@ object Hooks:
       * the mount goes on (its state, its effects and its UI stay, and `body`
       * does not run again). Give a `key` when one call site shows different
       * things at one position (for example `component(user.id)(...)`): another
-      * key mounts fresh. In another kyo-ui runner, the node is empty.
+      * key mounts fresh. When `body` fails, the node stays empty. In another
+      * kyo-ui runner, the node is empty.
       */
     // claude 2026-10-13: changed (C4): the Scaladoc (the identity and the key)
+    // claude 2026-10-13: changed (C4, review R2-5): a body that fails
     def component(
         key: String,
     )(body: => UI < (Async & Scope))(using frame: Frame): UI =

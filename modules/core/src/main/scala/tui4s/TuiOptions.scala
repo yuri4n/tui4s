@@ -62,7 +62,8 @@ import tui4s.spi.Settle
   *   frames between do not wait for it again. A negative value counts as zero.
   *   After the wait, the frame settles as usual: the `max` of `settle` counts
   *   from the end of the wait. A quit (`Tui.quit`, or Ctrl-C with `ctrlCQuits`)
-  *   ends the wait at once.
+  *   ends the wait at once, and so does a body that fails (the component's
+  *   place stays empty).
   */
 // claude 2026-10-12: changed: Kyo-free (java.time.Duration, D-14 a), CanEqual,
 // Scaladoc (RC-3)
@@ -78,6 +79,8 @@ import tui4s.spi.Settle
 // pendingTimeout: the settle after the wait
 // claude 2026-10-13: changed (C4, review R2-2): the Scaladoc of
 // pendingTimeout: a quit ends the wait
+// claude 2026-10-13: changed (C4, review R2-5): the Scaladoc of
+// pendingTimeout: a body that fails ends the wait
 final case class TuiOptions(
     autoFocus: Boolean = true,
     settle: Settle = Settle.Quiescent(Duration.ofMillis(100)),
