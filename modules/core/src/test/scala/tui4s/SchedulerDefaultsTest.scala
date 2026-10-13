@@ -1,12 +1,46 @@
 package tui4s
 
+import kyo.*
 import kyo.test.*
 import scala.collection.mutable
 import tui4s.spi.SchedulerDefaults
 
-/** SPEC 5.14: the scheduler settings are set only where the user set nothing. */
+/** The scheduler values (RC-25) are set only where the user set nothing, and
+  * the constructor of `TuiApp` sets them before the app's own fields.
+  * Sequential: two leaves change the JVM's properties for a moment (and put
+  * them back).
+  */
+// claude 2026-10-13: changed (T2, RC-25, RC-10 part): sequential; the
+// Scaladoc names no SPEC section; two leaves on the JVM's properties
 class SchedulerDefaultsTest extends Test[Any]:
+    override def config: RunConfig = super.config.sequential
+
     private val keys = SchedulerDefaults.defaults.map(_._1)
+
+    /** Runs `f` with the scheduler properties removed (and the opt-out set to
+      * `optOut`, when given), then puts every property back as it was.
+      */
+    // claude 2026-10-13: created (T2)
+    private def withoutProperties[A](optOut: Option[String])(f: => A): A =
+        val all   = SchedulerDefaults.OptOut +: keys
+        val saved = all.map(k => k -> java.lang.System.getProperty(k))
+        try
+            keys.foreach(java.lang.System.clearProperty)
+            optOut match
+                case Some(v) =>
+                  val _ =
+                    java.lang.System.setProperty(SchedulerDefaults.OptOut, v)
+                case None    =>
+                  val _ =
+                    java.lang.System.clearProperty(SchedulerDefaults.OptOut)
+            f
+        finally
+            saved.foreach {
+              case (k, null) => val _ = java.lang.System.clearProperty(k)
+              case (k, v)    => val _ = java.lang.System.setProperty(k, v)
+            }
+        end try
+    end withoutProperties
 
     /** Runs `applyTo` on maps; returns (set keys, the properties after). */
     private def applyOn(
@@ -69,4 +103,28 @@ class SchedulerDefaultsTest extends Test[Any]:
       )
       assert(unset.isEmpty, unset.toString)
     }
+
+    // claude 2026-10-13: created (T2, RC-25)
+    "-Dtui4s.schedulerDefaults=false: applyIfUnset leaves the JVM properties alone" in {
+      val after = withoutProperties(Some("false")) {
+        SchedulerDefaults.applyIfUnset()
+        keys.map(k => k -> java.lang.System.getProperty(k))
+      }
+      assert(after.forall(_._2 == null), after.toString)
+    }
+
+    // claude 2026-10-13: created (T2, RC-10 part, RC-24)
+    "the constructor of TuiApp sets the values before the app's own fields" in {
+      val seen = withoutProperties(None)(SchedulerProbeApp.seen)
+      assert(seen == SchedulerDefaults.defaults.map(_._2), seen.toString)
+    }
 end SchedulerDefaultsTest
+
+/** A `TuiApp` whose field reads the scheduler properties when the object is
+  * made: the constructor of `TuiApp` has set them by then.
+  */
+// claude 2026-10-13: created (T2, RC-10 part)
+object SchedulerProbeApp extends TuiApp:
+    val seen: Seq[String | Null] =
+      SchedulerDefaults.defaults.map((k, _) => java.lang.System.getProperty(k))
+    def ui: UI < (Async & Scope) = UI.div
