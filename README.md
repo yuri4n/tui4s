@@ -11,12 +11,20 @@ Integrations for [ZIO](https://zio.dev) and
 
 > **Status:** under construction, first usable version. `Tui.run` runs a
 > kyo-ui UI in the real terminal: it renders the value, follows its signals
-> and routes keys (focus, handlers, text editing, paste); a headless kit tests
-> it without a terminal. Components and hooks are next. Nothing is published
-> yet.
+> and routes keys (focus, handlers, text editing, paste), and it mounts
+> components in two styles (hooks and a `Component` class); a headless kit
+> tests it without a terminal. Nothing is published yet.
 <!-- claude 2026-10-12: changed the status line (C2) -->
 <!-- claude 2026-10-13: changed the status line (C3): keys -->
 <!-- claude 2026-10-13: changed the status line (T1): the real terminal -->
+<!-- claude 2026-10-13: changed the status line (C4): components and hooks -->
+
+Components come in two styles. Hooks: a function, for example
+`for count <- useSignal(0) yield div(...)`, and `component(key)(body)` for a
+node that the runner mounts. A class: `final class Counter extends Component`
+with `type State = Int`, `initial`, `view(state)` and `onMount(state)`. See
+the Scaladoc of `tui4s.Hooks` and `tui4s.Component`.
+<!-- claude 2026-10-13: created these lines (C4): the two component styles -->
 
 ## Quick start
 

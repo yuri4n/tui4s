@@ -30,6 +30,12 @@ private[tui4s] enum Source:
     case Many(fe: Foreach[Any, UI])
     case Bound(ref: SignalRef[?])
     case Local
+    // claude 2026-10-13: created (C4, the C2 cut back): a component node; `key`
+    // is the state key of a `Component` or the identity of a hook component
+    // claude 2026-10-13: changed (C4, review R2-4): the state key alone (the
+    // path is the region's)
+    case Comp(spec: ComponentSpec, key: String)
+end Source
 
 /** One rendered item of a `Foreach` region. */
 private[tui4s] final case class ItemState(
@@ -72,6 +78,13 @@ private[tui4s] final case class World(
     dirtyRegions: Vector[Loc],
     dirtyNodes: Set[Loc],
     full: Boolean,
+    // claude 2026-10-13: created the two fields below (C4, the C2 cut back):
+    // the state of each mounted `Component`, by its state key; the hook
+    // components that wait for their first content
+    // claude 2026-10-13: changed (C4, review R2-4): `comps` by the path and
+    // the state key (a joined string can be the same for two paths)
+    comps: Map[(Loc, String), SignalRef[Any]],
+    pending: Set[Loc],
     backlog: Vector[Msg],
     updates: Int,
     quit: Boolean,
@@ -116,6 +129,9 @@ private[tui4s] object World:
         Vector.empty,
         Set.empty,
         true,
+        // claude 2026-10-13: changed (C4): the init values of comps and pending
+        Map.empty,
+        Set.empty,
         Vector.empty,
         0,
         false,

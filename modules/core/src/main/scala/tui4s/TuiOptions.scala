@@ -52,6 +52,18 @@ import tui4s.spi.Settle
   *   Kyo logger where the run starts (Kyo's default is warn; set
   *   `-Dkyo.Log.defaultLevel=info`, or bind a logger with `Log.let`, to get
   *   info and debug lines).
+  * @param pendingTimeout
+  *   how long a frame waits for a mounting component's first content. A hook
+  *   component ([[tui4s.Hooks.component]]) runs its body when it mounts, and
+  *   the frame of that event waits for the UI that the body gives, at most this
+  *   long in all (other values that arrive meanwhile do not make the wait
+  *   longer). When the body takes longer, the frame comes without it (the
+  *   component's place is empty), and its content comes in a later frame; the
+  *   frames between do not wait for it again. A negative value counts as zero.
+  *   After the wait, the frame settles as usual: the `max` of `settle` counts
+  *   from the end of the wait. A quit (`Tui.quit`, or Ctrl-C with `ctrlCQuits`)
+  *   ends the wait at once, and so does a body that fails (the component's
+  *   place stays empty).
   */
 // claude 2026-10-12: changed: Kyo-free (java.time.Duration, D-14 a), CanEqual,
 // Scaladoc (RC-3)
@@ -60,6 +72,15 @@ import tui4s.spi.Settle
 // captureOutput, logFile (the PR 5 option set: pollMillis as a Duration; no
 // fps, mouse, focusEvents, viewport, theme or trace)
 // claude 2026-10-13: changed (T1, review R2-1): pollInterval below 1 ms is 1 ms
+// claude 2026-10-13: changed (C4, the C2 cut back): pendingTimeout (D-14 a: a
+// java.time.Duration; the prototype's default, 2 s); changed (C4, P-6): the
+// bound is in total, and only the frame of the mount waits
+// claude 2026-10-13: changed (C4, review R1-1, R2-1): the Scaladoc of
+// pendingTimeout: the settle after the wait
+// claude 2026-10-13: changed (C4, review R2-2): the Scaladoc of
+// pendingTimeout: a quit ends the wait
+// claude 2026-10-13: changed (C4, review R2-5): the Scaladoc of
+// pendingTimeout: a body that fails ends the wait
 final case class TuiOptions(
     autoFocus: Boolean = true,
     settle: Settle = Settle.Quiescent(Duration.ofMillis(100)),
@@ -69,4 +90,5 @@ final case class TuiOptions(
     inboxCapacity: Int = 1024,
     captureOutput: Boolean = true,
     logFile: Option[java.nio.file.Path] = None,
+    pendingTimeout: Duration = Duration.ofMillis(2000),
 ) derives CanEqual

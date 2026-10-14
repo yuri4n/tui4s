@@ -17,6 +17,9 @@
 #   method of kyo.internal.ReactiveUI that Dispatch or Mount copies; js: the hash of a rule fragment of the client JS
 #   (keydown, click, focusAuto). The hashes are the same as the spike S3 guard's (the same algorithm, shape mode).
 # claude 2026-10-13: changed: the C3 part (the last 84 lines)
+# C4 part: pin K3: kyo.Signal and kyo.Signal.SignalRef (kyo-core) declare no equals and no hashCode; the
+#   component registry (internal.ComponentSpec) finds a component node by the identity of its signal.
+# claude 2026-10-13: changed: the C4 part (one pin line)
 ast.type	UI.Ast.Activatable	trait public extends UI,Element
 ast.type	UI.Ast.Anchor	case class public extends UI,Inline,Interactive,Focusable,Activatable,Clickable
 ast.type	UI.Ast.AsHtmlChild	trait public extends 
@@ -232,6 +235,7 @@ keyboard.case	UI.Keyboard.Space	-
 keyboard.case	UI.Keyboard.Tab	-
 keyboard.case	UI.Keyboard.Unknown	(raw:String)
 pin	K2 UI.Ast.Foreach.applyTyped	private[kyo]
+pin	K3 Signal equals and hashCode	Signal: none; SignalRef: none
 rule	internal.ReactiveUI.collectSignalRef	b4879d3afb526f87 n=97
 rule	internal.ReactiveUI.cycleSelectOption	86dc9c43e6801388 n=169
 rule	internal.ReactiveUI.dispatch	f227f4345d0a9579 n=259

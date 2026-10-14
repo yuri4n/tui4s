@@ -43,12 +43,29 @@ backend, and the release restores the terminal in every way that a run ends
 (also from a JVM shutdown hook). The headless test kit
 `tui4s.testkit.Headless` runs an app without a terminal: a test sends keys
 (`press`, `key`, `char`, `typeText`, `paste`) or writes the app's
-`SignalRef`s, and reads `testkit.Screen`. The components come in the next pull
-request.
+`SignalRef`s, and reads `testkit.Screen`. Components come in two styles.
+Hooks (`tui4s.Hooks`): a component is a function that returns `UI < Sync` or
+`UI < (Async & Scope)`, with `useSignal`, `useHold`, `useFold`, `useEffect`
+and `useInterval`; `component(key)(body)` is a node that the runner mounts:
+the body runs at the mount, in a `Scope` that closes at the unmount, and the
+mount goes on while a node of the same call site and key stays at the same
+position. The class style (`tui4s.Component`): a `State` type member,
+`initial`, `view(state)` and `onMount(state)`; the runner keeps the state
+under the position and `stateKey` (the class name by default; override it for
+one state per value), so a parent that renders again keeps the state and the
+effects (`onMount` runs once per mount), and another class at that position
+starts fresh. A component (hook or class) inside a `when` loses its state
+when it is hidden and starts fresh when it comes back. The frame of the event
+that mounts a hook component waits for its first UI at most
+`TuiOptions.pendingTimeout` (2 s, in all), then comes without it; the UI
+comes in a later frame. A component node is a kyo-ui `Reactive` whose signal
+is in a global weak registry (`internal.ComponentSpec`): the AST of kyo-ui is
+sealed.
 <!-- claude 2026-10-12: changed these lines: signals drive the screen; the headless kit (C2) -->
 <!-- claude 2026-10-13: changed these lines: keys reach the UI; the key methods of the kit (C3) -->
 <!-- claude 2026-10-13: changed the button and the event-form sentences (PR #13 review: Codex, Dispatch.scala:180, :204, :401) -->
 <!-- claude 2026-10-13: changed these lines: Tui.run in the real terminal (T1) -->
+<!-- claude 2026-10-13: changed these lines: the two component styles, the state key, `when`, the pending frame (C4) -->
 
 ## Toolchain
 
@@ -146,6 +163,17 @@ tests then allow 1 split frame).
   interrupt (a blocking call in `Sync.defer`) keeps the terminal in raw mode
   until it ends.
   <!-- claude 2026-10-13: changed (T1, review R2-2): the scope closes before the release -->
+- The fibers that a component or a hook starts end with the run: the body of
+  a hook component and `Component.onMount` (started by `internal.Mount`), and
+  the fibers of `useEffect`, `useInterval`, `useHold` and `useFold` (they
+  call `internal.Tui4sTrack`) join the live-fiber gauge of the run, and the
+  end of the run interrupts them (`Mount.interruptAll`), also a fiber of a
+  hook at the top of the app, whose `Scope` closes later. A new hook or a
+  new mount that starts a fiber adds it to the gauge in the same way, and a
+  test checks the gauge after an interrupted run and after a quit
+  (`ComponentTest`). The unmount of a component interrupts its fiber, so its
+  `Scope` closes and its effects stop.
+  <!-- claude 2026-10-13: created this item (C4, RC-8) -->
 - jatatui 0.31.0's JNI cuts a typed character outside the Basic Multilingual
   Plane (an emoji) to 16 bits: such a key arrives wrong. A bracketed paste
   keeps it (`internal.EventMapping` Scaladoc).
@@ -198,8 +226,12 @@ tests then allow 1 split frame).
   the cells did not change, `flushed == 0`; the terminal gets no bytes. Kyo's
   `Signal.observe` repair timer does the same. A test that counts frames
   turns the tick off (`Knobs.let(Knobs(repairInterval = 1.hour))`) or drains
-  these frames first.
+  these frames first. Such a render builds new component nodes: the mount of
+  a component of the same identity (a hook component: the call site and the
+  key; a `Component`: the state key) at the same position goes on, so its
+  state stays and its body or `onMount` does not run again.
   <!-- claude 2026-10-12: created this item (review R2-5) -->
+  <!-- claude 2026-10-13: changed (C4): the component mounts go on -->
 - The test JVM sets the tui4s scheduler values (`modules/core/build.sbt`,
   `Test / javaOptions`): `kyo.scheduler.cycleIntervalNs=10000000`,
   `kyo.scheduler.blockingMonitorIntervalNs=20000000` and
