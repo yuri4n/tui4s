@@ -9,10 +9,11 @@ paints it with [jatatui](https://github.com/oyvindberg/jatatui), a Java port of
 Integrations for [ZIO](https://zio.dev) and
 [Cats Effect](https://typelevel.org/cats-effect/) are planned.
 
-> **Status:** under construction. The core renders a kyo-ui value and follows
-> its signals on a headless screen; keys and the real terminal are next.
-> Nothing is published yet.
+> **Status:** under construction. The core renders a kyo-ui value, follows
+> its signals and routes keys (focus, handlers, text editing, paste) on a
+> headless screen; the real terminal is next. Nothing is published yet.
 <!-- claude 2026-10-12: changed the status line (C2) -->
+<!-- claude 2026-10-13: changed the status line (C3): keys -->
 
 ## Modules
 

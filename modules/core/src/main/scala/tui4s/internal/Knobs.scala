@@ -18,13 +18,20 @@ import kyo.*
   *   a spin between the row chunks of a flush. It holds open the window in
   *   which a reader of the backend can see a torn frame (microseconds wide with
   *   no seam). The torn-screen test of the headless kit uses it.
+  * @param onBoundWrite
+  *   a hook that the write seam of the dispatcher (`Dispatch.writeBound`) calls
+  *   before it writes a bound `SignalRef`, with the path of the element and the
+  *   new value. The default does nothing. The write-seam test counts the writes
+  *   with it.
   */
 // claude 2026-10-12: created (D-16, K29); changed (PR #11 review: Codex,
 // Headless.scala:88): flushSeam
+// claude 2026-10-13: changed (C3, plan 0.3): onBoundWrite
 private[tui4s] final case class Knobs(
     seam: Int => Duration = _ => Duration.Zero,
     repairInterval: Duration = Signal.defaultRepairInterval,
     flushSeam: Duration = Duration.Zero,
+    onBoundWrite: (Loc, Any) => Unit < Sync = (_, _) => Kyo.unit,
 )
 
 private[tui4s] object Knobs:

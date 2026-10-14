@@ -85,4 +85,44 @@ class SeamTest extends RunnerSuite:
         )
       }
     }
+
+    // claude 2026-10-13: created (C3): the R2 key variant
+    "R2 key variant: a key whose handler writes a ref in the arm window reaches THAT key's frame (a key is an Input step: the verify pass re-reads the unarmed regions)" in {
+      // The window of every watcher is open for 2 s after its mount. The first
+      // key ('x', no write) is the first step after the start: it uses up the
+      // "young" re-read of the initial regions, so only the re-read of the
+      // unarmed regions can carry the write of the second key into its frame.
+      val window = Knobs(
+        seam = n => if n == 0 then 2.seconds else Duration.Zero,
+        repairInterval = 1.hour,
+      )
+      Knobs.let(window) {
+        for
+            a     <- Signal.initRef(0)
+            t0    <- now
+            h     <- Headless.start(30, 3)(_ =>
+                       div.onKeyDown {
+                         case KeyboardEvent(Keyboard.Char('+'), _, _) =>
+                           a.updateAndGet(_ + 1)
+                         case _                                       => ()
+                       }(span(a.map(n => s"[a=$n]"))),
+                     )
+            _     <- h.char('x')
+            f     <- h.char('+')
+            t1    <- now
+            s     <- h.screen
+            // when the value is not in the key's frame, when does it come?
+            later <- h.awaitScreen(_.contains("[a=1]"), 5.seconds)
+            t2    <- now
+        yield
+            val line =
+              s"[r2-key] in the key's frame: ${s.contains("[a=1]")} (updates ${f.updates}, ${(t1 - t0) / 1000000} ms after the start); on the screen at all: $later after ${(t2 - t0) / 1000000} ms"
+            java.lang.System.out.println(line)
+            assert(
+              (t1 - t0) < 2.seconds.toNanos,
+              s"the keys came after the window: $line",
+            )
+            assert(s.contains("[a=1]") && f.updates >= 1, line)
+      }
+    }
 end SeamTest

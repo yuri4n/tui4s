@@ -1,5 +1,7 @@
 package tui4s.internal
 
+// claude 2026-10-13: changed (C3, gate 1 item 1): private[tui4s] on every top-level definition of this file (the seal of tui4s.internal)
+
 import jatatui.core.backend.Backend
 import jatatui.core.backend.TestBackend
 import jatatui.core.buffer.Buffer
@@ -21,7 +23,7 @@ import scala.jdk.CollectionConverters.*
   * writes only inside damaged rectangles, and `flush` compares `back` with
   * `front` only inside those rectangles and sends only the cells that differ.
   */
-final class Canvas private (
+private[tui4s] final class Canvas private (
     private var back: Buffer,
     private var front: Buffer,
     val backend: Backend,
@@ -158,7 +160,7 @@ final class Canvas private (
     end flush
 end Canvas
 
-object Canvas:
+private[tui4s] object Canvas:
     /** @param flushSeam
       *   the test seam `Knobs.flushSeam` (zero in a real run)
       */
@@ -176,7 +178,31 @@ object Canvas:
 end Canvas
 
 /** Paints laid-out nodes into the kept buffer. */
-object Paint:
+private[tui4s] object Paint:
+
+    /** The horizontal scroll of a text field `width` cells wide whose graphemes
+      * have the cell widths `widths`: the first grapheme it shows, and the
+      * cells from that grapheme to the caret. The first grapheme is the
+      * smallest index, not after the caret, for which the cells from it to the
+      * caret plus the cell of the cursor (`cursorW`) fit in the field; it is
+      * the caret when nothing before the caret fits. One walk back from the
+      * caret: linear in the graphemes.
+      */
+    // claude 2026-10-13: created (review R2-2: the old search summed the cells
+    // again for each start, quadratic in the graphemes before the caret)
+    def scrollStart(
+        widths: IndexedSeq[Int],
+        caret: Int,
+        cursorW: Int,
+        width: Int,
+    ): (Int, Int) =
+        @annotation.tailrec
+        def back(i: Int, used: Int): (Int, Int) =
+          if i > 0 && used + widths(i - 1) + cursorW <= width then
+              back(i - 1, used + widths(i - 1))
+          else (i, used)
+        back(caret, 0)
+    end scrollStart
 
     /** Applies the damage of one frame. Returns the rectangles to flush and the
       * number of subtrees painted.
@@ -459,19 +485,39 @@ object Paint:
                 ),
               )
             case ti: TextInput  =>
+              // claude 2026-10-13: changed (C3): the caret is a grapheme index
+              // (World.carets); the text scrolls and the cursor lands by cell
+              // widths (a wide character takes two cells), not by UTF-16
+              // chars
               val value     = textValue(env, n.path, ti)
-              val shown     = e match
-                  case _: PasswordInput => "*" * value.length
-                  case _                => value
-              val caret     = env.caret(n.path).max(0).min(shown.length)
-              val offset    = (caret - r.w + 1).max(0)
+              val glyphs    = e match
+                  case _: PasswordInput =>
+                    TextEdit.graphemes(value).map(_ => "*")
+                  case _                => TextEdit.graphemes(value)
+              val widths    = glyphs.map(Layout.textWidth)
+              val caret     = env.caret(n.path).max(0).min(glyphs.size)
+              // the first grapheme shown: the cells from it to the caret, plus
+              // the cell of the cursor, fit in the field
+              // claude 2026-10-13: changed (review R2-2): `scrollStart`, one
+              // walk back from the caret
+              val cursorW   = widths.lift(caret).getOrElse(1).max(1)
+              val scroll    = scrollStart(widths, caret, cursorW, r.w)
+              val first     = scroll._1
+              val visible   = glyphs
+                .drop(first)
+                .zip(widths.drop(first))
+                .scanLeft(("", 0)) { case ((_, used), (g, w)) => (g, used + w) }
+                .drop(1)
+                .takeWhile(_._2 <= r.w)
+                .map(_._1)
+                .mkString
               val field     =
                 style.withAddModifier(jatatui.core.style.Modifier.UNDERLINED)
               val text      =
-                if shown.isEmpty && !focused then ti.placeholder.getOrElse("")
-                else shown.slice(offset, offset + r.w)
+                if glyphs.isEmpty && !focused then ti.placeholder.getOrElse("")
+                else visible
               val textStyle =
-                if shown.isEmpty && !focused then
+                if glyphs.isEmpty && !focused then
                     field
                       .withAddModifier(jatatui.core.style.Modifier.DIM)
                       .withAddModifier(jatatui.core.style.Modifier.ITALIC)
@@ -481,8 +527,8 @@ object Paint:
               )
               discard(canvas.text(r.x, r.y, text, textStyle, clip))
               if focused then
-                  val cx = r.x + caret - offset
-                  val ch = shown.lift(caret).map(_.toString).getOrElse(" ")
+                  val cx = r.x + scroll._2
+                  val ch = glyphs.lift(caret).getOrElse(" ")
                   canvas.put(
                     cx,
                     r.y,

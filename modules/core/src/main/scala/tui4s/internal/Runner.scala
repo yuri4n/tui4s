@@ -1,6 +1,9 @@
 package tui4s.internal
 
+// claude 2026-10-13: changed (C3, gate 1 item 1): private[tui4s] on every top-level definition of this file (the seal of tui4s.internal)
+
 import kyo.*
+import kyo.UI.Keyboard
 import tui4s.FrameCause
 import tui4s.FrameStats
 import tui4s.spi.Settle
@@ -9,14 +12,16 @@ import tui4s.TuiOptions
 /** The runner: one fiber that owns the world and the canvas.
   *
   * Each step takes one message (a key, a resize, or a region's new value),
-  * applies it (handlers run here), then SETTLES: it applies every queued region
-  * value until the settle rule of [[tui4s.spi.Settle]] says that the
-  * consequences are in (default: the Kyo scheduler is quiescent, twice, one hop
-  * apart, each time before an empty drain). Only then does it lay out what
-  * changed, paint it into the kept buffer and flush the changed cells: one
-  * frame per event, with all of that event's consequences in it.
+  * applies it (the key handlers run here, through [[Dispatch]]), then SETTLES:
+  * it applies every queued region value until the settle rule of
+  * [[tui4s.spi.Settle]] says that the consequences are in (default: the Kyo
+  * scheduler is quiescent, twice, one hop apart, each time before an empty
+  * drain). Only then does it lay out what changed, paint it into the kept
+  * buffer and flush the changed cells: one frame per event, with all of that
+  * event's consequences in it.
   */
-final class Runner(
+// claude 2026-10-13: changed: the Scaladoc names the dispatcher (C3)
+private[tui4s] final class Runner(
     inbox: Channel[Msg],
     canvas: Canvas,
     options: TuiOptions,
@@ -75,6 +80,16 @@ final class Runner(
         .defer(quitRequested.set(true))
         .andThen(Abort.run[Closed](inbox.offer(Msg.Quit)).unit)
 
+    // claude 2026-10-13: created (C3): the key routing; its handlers get the
+    // runner's quit; the knobs carry the hook of the write seam
+    private val dispatch = Dispatch(quit, knobs)
+
+    /** Runs `v` with the quit of this run in scope, for [[tui4s.Tui.quit]]: the
+      * construction of the UI, and the fibers that it starts.
+      */
+    // claude 2026-10-13: created (C3, RC-2 part; the prototype's scoped)
+    def scoped[A, S](v: => A < S)(using Frame): A < S = Tui4sQuit.let(quit)(v)
+
     // claude 2026-10-12: created (K29): the repair tick fiber
     private val ticker =
       new java.util.concurrent.atomic.AtomicReference[Option[
@@ -112,8 +127,9 @@ final class Runner(
     // `Sync.ensure` around the run, so an interrupted run stops its watchers
     // too. It does not wait for them: a run-owned Scope (option a) waits for a
     // CPU-bound watcher and breaks the end order (spike S2, gates.md G2).
+    // claude 2026-10-13: changed (C3): the run has the quit Local in scope
     def run(root: UI)(using Frame): Unit < Async =
-      Sync.ensure(stop) {
+      scoped(Sync.ensure(stop) {
         for
             tick <- Fiber.initUnscoped(repairTick)
             _    <- Sync.defer { mount.track(tick); ticker.set(Some(tick)) }
@@ -132,7 +148,7 @@ final class Runner(
             w1   <- frame(w0s, 0L, FrameCause.Initial, t0).map(remember)
             _    <- Loop(w1)(step)
         yield ()
-      }
+      })
 
     private def step(
         w: World,
@@ -159,12 +175,22 @@ final class Runner(
                                    msg,
                                  ).map(remember)
                   t1          <- nanos
+                  // claude 2026-10-13: changed (C3): a key and a paste are
+                  // Input steps too, so the verify pass re-reads the unarmed
+                  // regions
                   input        = msg match
+                                     case Msg.Key(_, _)    => true
+                                     case Msg.Paste(_, _)  => true
                                      case Msg.Resize(_, _) => true
                                      case _                => false
                   w3          <- settleAndVerify(w2, input).map(remember)
                   t2          <- nanos
+                  // claude 2026-10-13: changed (C3): a key and a paste give an
+                  // Input frame
                   (seq, cause) = msg match
+                                     case Msg.Key(_, s)    => (s, FrameCause.Input)
+                                     case Msg.Paste(_, s)  =>
+                                       (s, FrameCause.Input)
                                      case Msg.Resize(_, s) =>
                                        (s, FrameCause.Input)
                                      case _                => (0L, FrameCause.Background)
@@ -183,19 +209,31 @@ final class Runner(
               case _                 => (Msg.Quit, w)
             }
 
+    // claude 2026-10-13: created (C3)
+    private def isCtrlC(ev: UI.KeyboardEvent): Boolean =
+      ev.key == Keyboard.Char('c') && ev.modifiers.ctrl
+
     private def handle(w: World, msg: Msg)(using Frame): World < Async =
       msg match
-          case Msg.Resize(size, _) =>
+          // claude 2026-10-13: created the two cases below (C3): Ctrl-C quits
+          // (TuiOptions.ctrlCQuits); every other key goes to the dispatcher
+          case Msg.Key(ev, _) if options.ctrlCQuits && isCtrlC(ev) =>
+            w.copy(quit = true)
+          case Msg.Key(ev, _)                                      => dispatch.onKey(w, ev)
+          // claude 2026-10-13: created (C3, RC-14 part): a paste is one edit
+          // of the focused text input
+          case Msg.Paste(text, _)                                  => dispatch.onPaste(w, text)
+          case Msg.Resize(size, _)                                 =>
             Sync
               .defer(canvas.resize(size))
               .andThen(w.copy(size = size, full = true))
-          case c: Msg.Content      => apply(w, c)
+          case c: Msg.Content                                      => apply(w, c)
           // claude 2026-10-12: created the two cases below (K29, D-16): a
           // watcher armed: verify its region one time; the repair tick
           // re-reads every region
-          case Msg.Armed(p, g)     => verifyRegion(w, p, Some(g))
-          case Msg.Repair          => repairAll(w)
-          case Msg.Quit            => w.copy(quit = true)
+          case Msg.Armed(p, g)                                     => verifyRegion(w, p, Some(g))
+          case Msg.Repair                                          => repairAll(w)
+          case Msg.Quit                                            => w.copy(quit = true)
 
     /** The settle, the verify pass, and the re-check (D-17 c): when the verify
       * pass repaired a value, its consequences (a remount, the watchers that
@@ -216,7 +254,7 @@ final class Runner(
 
     /** The verify pass (D-16, armkey; spike S2 section 4.3). After the settle
       * it re-reads `current` of the regions mounted in this step or the step
-      * before, and in an Input step (a resize; keys come later) also of the
+      * before, and in an Input step (a key, a paste or a resize) also of the
       * regions whose watcher has not armed yet. A write that landed in the
       * window of a young watcher (between the mount's read of `current` and the
       * registration of `nextWith`) reaches this frame, not the repair tick. The
@@ -230,6 +268,8 @@ final class Runner(
       * closures, so two renders never compare equal.
       */
     // claude 2026-10-12: created (RC-9, RC-11)
+    // claude 2026-10-13: changed: the Scaladoc names the keys and the paste
+    // (C3)
     private def verify(w: World, input: Boolean)(using Frame): World < Sync =
         val unarmed = if input then mount.unarmedRegions(w) else Set.empty[Loc]
         // TODO(#9): drop the pull check when Kyo closes the lost-wakeup window

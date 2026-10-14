@@ -1,5 +1,7 @@
 package tui4s.internal
 
+// claude 2026-10-13: changed (C3, gate 1 item 1): private[tui4s] on every top-level definition of this file (the seal of tui4s.internal)
+
 import jatatui.core.style.Color as JColor
 import jatatui.core.style.Modifier
 import jatatui.core.style.Style as JStyle
@@ -17,13 +19,13 @@ import kyo.Style.TextDecoration
 import kyo.Style.TextTransform
 import kyo.UI.Ast.*
 
-enum Dir:
+private[tui4s] enum Dir:
     case Row, Column
 
 /** Text attributes. Children inherit them, like CSS `color`, `font-weight`,
   * `text-decoration` and `text-align`.
   */
-final case class TextAttrs(
+private[tui4s] final case class TextAttrs(
     fg: Option[JColor],
     bold: Boolean,
     italic: Boolean,
@@ -55,7 +57,7 @@ final case class TextAttrs(
         case TextTransform.none       => text
 end TextAttrs
 
-object TextAttrs:
+private[tui4s] object TextAttrs:
     val default: TextAttrs =
       TextAttrs(
         None,
@@ -71,7 +73,7 @@ object TextAttrs:
 end TextAttrs
 
 /** The box-drawing characters of a border. */
-final case class Glyphs(
+private[tui4s] final case class Glyphs(
     tl: String,
     tr: String,
     bl: String,
@@ -80,17 +82,21 @@ final case class Glyphs(
     v: String,
 )
 
-object Glyphs:
+private[tui4s] object Glyphs:
     val solid: Glyphs   = Glyphs("┌", "┐", "└", "┘", "─", "│")
     val rounded: Glyphs = Glyphs("╭", "╮", "╰", "╯", "─", "│")
     val heavy: Glyphs   = Glyphs("┏", "┓", "┗", "┛", "━", "┃")
     val dashed: Glyphs  = Glyphs("┌", "┐", "└", "┘", "╌", "╎")
     val dotted: Glyphs  = Glyphs("┌", "┐", "└", "┘", "┈", "┊")
 
-final case class Border(sides: Sides, glyphs: Glyphs, fg: Option[JColor])
+private[tui4s] final case class Border(
+    sides: Sides,
+    glyphs: Glyphs,
+    fg: Option[JColor],
+)
 
 /** The resolved layout and paint properties of one element in the terminal. */
-final case class Props(
+private[tui4s] final case class Props(
     dir: Dir,
     /** `rowReverse` or `columnReverse`: the items go from the end. */
     reverse: Boolean, /* claude 2026-10-12: created (PR #10 review: Codex,
@@ -119,7 +125,7 @@ final case class Props(
     def insets: Sides = border.fold(Sides.zero)(_.sides) + padding + decoration
 end Props
 
-object Props:
+private[tui4s] object Props:
 
     /** The props of a text node or of the screen: no box, inherited text. */
     def neutral(text: TextAttrs): Props =

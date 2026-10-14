@@ -7,11 +7,138 @@ import tui4s.internal.Knobs
 import tui4s.testkit.Headless
 
 /** The app tests (RC-19): the fixtures on the headless kit, driven by writes to
-  * their `SignalRef`s (keys come in C3). The screen is 100 x 30.
+  * their `SignalRef`s and by keys. The screen is 100 x 30.
   */
 // claude 2026-10-12: created (the prototype's Apps.test.scala, in kyo-test and
 // without keys)
+// claude 2026-10-13: changed (C3): the key-driven cases of the prototype are
+// back (the leaves "... by keys")
 class AppsTest extends RunnerSuite:
+
+    // claude 2026-10-13: created (C3; the prototype's counter test); changed:
+    // q quits (Tui.quit)
+    "counter by keys: + + - with keys, Tab and Enter on the buttons, nothing happens for an unknown key, q quits" in {
+      for
+          h   <- Headless.start(100, 30)(_ => apps.Counter.app)
+          s0  <- h.screen
+          _    = assert(s0.contains("Count: 0"), s0.text)
+          _   <- h.char('+')
+          _   <- h.char('+')
+          _   <- h.char('-')
+          s1  <- h.screen
+          _    = assert(s1.contains("Count: 1"), s1.text)
+          _   <- h.key(Keyboard.Enter) // the first button (+) has the focus
+          s2  <- h.screen
+          _    = assert(s2.contains("Count: 2"), s2.text)
+          _   <- h.key(Keyboard.Tab)   // to (-)
+          _   <- h.key(Keyboard.Space)
+          _   <- h.key(Keyboard.Space)
+          s3  <- h.screen
+          _    = assert(s3.contains("Count: 0"), s3.text)
+          z   <- h.char('z')
+          _    = assert(
+                   z.cause == FrameCause.Input &&
+                     (z.repainted, z.flushed, z.updates) == (0, 0, 0),
+                   s"the frame of an unknown key: $z",
+                 )
+          _   <- h.char('q')
+          fin <- h.awaitEnd(10.seconds)
+      yield assert(fin, "q quits")
+    }
+
+    // claude 2026-10-13: created (C3; the prototype's two-counters test)
+    "two counters by keys are independent; Tab order is document order" in {
+      for
+          h     <- Headless.start(100, 30)(_ => apps.Counter.twoCounters)
+          _     <- h.key(Keyboard.Enter)                            // Left +
+          _     <- h.key(Keyboard.Tab).andThen(h.key(Keyboard.Tab)) // Right +
+          _     <- h.key(Keyboard.Enter).andThen(h.key(Keyboard.Enter))
+          _     <- h.key(Keyboard.Tab, shift = true)                // back to Left -
+          _     <- h.key(Keyboard.Enter)
+          lines <- h.lines
+          row    = lines.find(_.contains("Count:")).getOrElse("")
+      yield assert(
+        row.matches(""".*Count: 0.*Count: 2.*"""),
+        lines.mkString("\n"),
+      )
+    }
+
+    // claude 2026-10-13: created (C3; the prototype's todo test); changed: Esc
+    // quits (Tui.quit)
+    "todo by keys: type + Enter adds, Tab to the list, arrows + Space toggle, d deletes, Ctrl-S saves, Esc quits" in {
+      val file = java.nio.file.Files.createTempFile("todo", ".txt")
+      java.nio.file.Files
+        .writeString(file, "[ ] buy milk\n[x] walk dog\n[ ] write report\n")
+      for
+          h   <- Headless.start(100, 30)(_ => apps.Todo.app(file.toString))
+          s0  <- h.screen
+          _    = assert(
+                   s0.contains("2 open / 3") && s0.contains("[x] walk dog"),
+                   s0.text,
+                 )
+          _   <- h.typeText("call mom")
+          s1  <- h.screen
+          _    = assert(s1.contains("New: call mom"), s1.text)
+          _   <- h.key(Keyboard.Enter)
+          s2  <- h.screen
+          _    = assert(
+                   s2.contains("[ ] call mom") && s2.contains("3 open / 4"),
+                   s2.text,
+                 )
+          t   <- h.key(Keyboard.Tab)
+          _    = assert(t.focus == "list", s"focus after Tab: ${t.focus}")
+          _   <- h.key(Keyboard.ArrowDown)
+          _   <- h.key(Keyboard.Space)
+          s3  <- h.screen
+          _    = assert(
+                   s3.contains("[ ] walk dog") && s3.contains("4 open / 4"),
+                   s3.text,
+                 )
+          y    = s3.rows.indexWhere(_.contains("walk dog"))
+          _    = assert(
+                   s3.styleAt(2, y).bg == Some("#6366f1"),
+                   "the selected row has the indigo background",
+                 )
+          _   <- h.char('d')
+          s4  <- h.screen
+          _    = assert(
+                   !s4.contains("walk dog") && s4.contains("3 open / 3"),
+                   s4.text,
+                 )
+          _   <- h.key(Keyboard.Char('s'), ctrl = true)
+          s5  <- h.screen
+          _    = assert(s5.contains("saved 3 items"), s5.text)
+          _    = assert(
+                   java.nio.file.Files.readString(file) ==
+                     "[ ] buy milk\n[ ] write report\n[ ] call mom\n",
+                 )
+          _   <- h.key(Keyboard.Escape)
+          fin <- h.awaitEnd(10.seconds)
+      yield assert(fin, "Esc quits")
+      end for
+    }
+
+    // claude 2026-10-13: created (C3; the prototype's dashboard test)
+    "dashboard by keys: ArrowRight changes the tab, p pauses the sampler" in {
+      // the repair tick is off (see the dashboard leaf below)
+      Knobs.let(Knobs(repairInterval = 1.hour)) {
+        for
+            s  <- apps.Dashboard.init
+            h  <- Headless.start(100, 30)(_ => apps.Dashboard.view(s))
+            _  <- apps.Dashboard.tick(s, Chunk(0.5, 0.25, 1.0))
+            ok <- awaitAll(h, 2.seconds)("CPU usage", " 50%")
+            _   = assert(ok)
+            _  <- h.key(Keyboard.ArrowRight)
+            s1 <- h.screen
+            _   = assert(
+                    s1.contains("Memory usage") && s1.contains(" 25%"),
+                    s1.text,
+                  )
+            _  <- h.char('p')
+            s2 <- h.screen
+        yield assert(s2.contains("sampler PAUSED"), s2.text)
+      }
+    }
 
     "counter: writes to the count reach the screen; the kit's quit ends the run" in {
       for
@@ -228,6 +355,52 @@ class AppsTest extends RunnerSuite:
           val line     =
             s"[glitch] splits=$splits of 500 (events by frame count: $perEvent; events with a settle timeout: ${events
                 .count(_._3)}; not seen in 2 s: ${events.count(!_._1)}; load flag: $underLoad)"
+          java.lang.System.out.println(line)
+          assert(splits <= (if underLoad then 1 else 0), line)
+          assert(
+            s.contains("a=500") && s.contains("b=500") && s.contains(
+              "sum=1000",
+            ) && s.contains("twice=1000"),
+            s.text,
+          )
+      end for
+    }
+
+    // claude 2026-10-13: created (C3; the prototype's glitch test): one key is
+    // one event; its handler writes two refs inside the runner's step
+    "glitch-free by keys: one key whose handler writes two refs updates all 4 dependent regions in its frame (500 keys)" in {
+      // The same SOFT contract and load flag as the leaf above. The frame of
+      // the key is the Input frame that `char` returns: a split is a key frame
+      // with fewer than 4 region values (combineLatest can add an
+      // intermediate value, so 5 is right too).
+      val underLoad =
+        Option(java.lang.System.getProperty("tui4s.load")).exists(_.trim == "1")
+      for
+          a  <- Signal.initRef(0)
+          b  <- Signal.initRef(0)
+          ui  = div.onKeyDown {
+                  case KeyboardEvent(Keyboard.Char('+'), _, _) =>
+                    a.updateAndGet(_ + 1).andThen(b.updateAndGet(_ + 1))
+                  case _                                       => ()
+                }(
+                  span(a.map(n => s"a=$n")),
+                  span(b.map(n => s"b=$n")),
+                  span(a.combineLatest(b).map((x, y) => s"sum=${x + y}")),
+                  span(a.map(n => s"twice=${n * 2}")),
+                )
+          h  <- Headless.start(40, 6)(_ => ui)
+          fs <- Kyo.foreach(1 to 500)(_ => h.char('+'))
+          s  <- h.screen
+      yield
+          val splits = fs.count(_.updates < 4)
+          val line   =
+            s"[glitch-keys] splits=$splits of 500 (key frames by region values: ${fs
+                .groupBy(_.updates)
+                .toSeq
+                .sortBy(_._1)
+                .map((n, f) => s"$n: ${f.size}")
+                .mkString(", ")}; frames with a settle timeout: ${fs
+                .count(_.settleTimeouts > 0)}; load flag: $underLoad)"
           java.lang.System.out.println(line)
           assert(splits <= (if underLoad then 1 else 0), line)
           assert(

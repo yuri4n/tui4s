@@ -2,28 +2,128 @@ package tui4s
 
 import java.io.File
 import java.net.URI
+import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.file.FileSystems
 import java.nio.file.Path
+import java.security.MessageDigest
 import scala.io.Source
 import tastyquery.Classpaths.ClasspathEntry
+import tastyquery.Constants.Constant
 import tastyquery.Contexts.Context
 import tastyquery.Modifiers.Visibility
 import tastyquery.Names.*
 import tastyquery.Symbols.*
+import tastyquery.Trees.*
 import tastyquery.Types.*
 import tastyquery.jdk.ClasspathLoaders
+import tui4s.internal.discard
 
 /** The kyo-ui surface that the runner depends on, read from the TASTy of the
   * kyo-ui jar on the test class path (RC-12): the types of `kyo.UI.Ast` and the
   * cases of `kyo.Style.Prop` (C1); the fields of `UI.Ast.Reactive` and
   * `UI.Ast.Foreach`, the cases of `UI.Bound`, and the two `kyo.Signal` methods
-  * of the watcher loop, read from the kyo-core TASTy (C2). One line per item,
-  * `kind<TAB>name<TAB>detail`, the same format as the spike S3 guard. C3 adds
-  * the hashes of the dispatch rules.
+  * of the watcher loop, read from the kyo-core TASTy (C2); what `Dispatch`
+  * reads (the `Attrs` fields, the members of the input elements, the event
+  * types and the cases of `Keyboard`), the pin that `Foreach.applyTyped` is
+  * still private, and the shape hashes of the kyo-ui rules that `Dispatch` and
+  * `Mount` copy (C3). One line per item, `kind<TAB>name<TAB>detail`, the same
+  * format as the spike S3 guard.
   */
 // claude 2026-10-12: created (from .work/spikes/s3-drift/guard/Guard.scala);
 // changed: the C2 part (ast.fields, bound.case, signal.method)
+// claude 2026-10-13: changed: the C3 part (attrs.field, ui.member, event.fields,
+// keyboard.case, pin, rule, js)
 object KyoUiSurface:
+
+    /** The rules of kyo-ui that the runner copies (K6, K7): the methods of
+      * `kyo.internal.ReactiveUI` and the fragments of the client JS (keydown,
+      * click, focus), the same lists as the spike S3 guard.
+      */
+    // claude 2026-10-13: created (C3, from the S3 guard's RuleNames)
+    object RuleNames:
+        val reactiveUi: Set[String] = Set(
+          "dispatchToElement",
+          "dispatch",
+          "keepBubbling",
+          "isDisabled",
+          "isReadOnly",
+          "isHidden",
+          "readChecked",
+          "toggleChecked",
+          "cycleSelectOption",
+          "targetSatisfies",
+          "isTargetDisabled",
+          "isTargetButton",
+          "isTargetSelect",
+          "normalize",
+          "normalizeAt",
+          "collectSignalRef",
+          "walkStatic",
+          "subscribeScoped",
+          "subscribe",
+          "findAllFocusableIds",
+        )
+
+        /** (label, start regex, end regex) on the normalized client JS. */
+        val jsFragments: List[(String, String, String)] = List(
+          (
+            "keydown rules",
+            """else if\(t==="keydown"\)\{""",
+            """else if\(t==="keyup"""",
+          ),
+          (
+            "click rules",
+            """^\s*if\(t==="click"\)""",
+            """else if\(t==="input"""",
+          ),
+          (
+            "focusAuto seeding",
+            """^\s*function seedFocusAuto""",
+            """^\s*// Unwind""",
+          ),
+          (
+            "sweepFocusAuto (restore)",
+            """^\s*function sweepFocusAuto""",
+            """^\s*// Initial mount""",
+          ),
+        )
+    end RuleNames
+
+    /** The fields of `UI.Ast.Attrs` that `Dispatch` (and the focus order of
+      * `Layout`) read through the public `Element.attrs`.
+      */
+    // claude 2026-10-13: created (C3)
+    val attrsFields: Set[String] = Set(
+      "identifier",
+      "tabIndex",
+      "focusTrap",
+      "focusGroup",
+      "focusAuto",
+      "stopPropagation",
+      "onClick",
+      "onClickEvt",
+      "onClickSelf",
+      "onClickSelfEvt",
+      "onKeyDown",
+      "onFocus",
+      "onFocusEvt",
+      "onBlur",
+      "onBlurEvt",
+    )
+    // claude 2026-10-13: changed (PR #13 review: Codex, Dispatch.scala:401,
+    // :204): the event forms of onFocus, onBlur and Form.onSubmit
+
+    /** The members of the elements that `Dispatch` reads, by owner. */
+    // claude 2026-10-13: created (C3)
+    val elementMembers: Map[String, Set[String]] = Map(
+      "kyo.UI.Ast.Element"      -> Set("attrs", "children"),
+      "kyo.UI.Ast.HasDisabled"  -> Set("disabled"),
+      "kyo.UI.Ast.TextInput"    -> Set("value", "readOnly", "onInput", "onChange"),
+      "kyo.UI.Ast.BooleanInput" -> Set("checked", "onChange"),
+      "kyo.UI.Ast.Select"       -> Set("value", "onChange", "children"),
+      "kyo.UI.Ast.Opt"          -> Set("value"),
+      "kyo.UI.Ast.Form"         -> Set("onSubmit", "onSubmitEvt"),
+    )
 
     /** One surface line. The key is `(kind, name)`; `detail` is what may
       * change.
@@ -138,6 +238,19 @@ object KyoUiSurface:
             case _: WildcardTypeArg => "?"
             case t: TypeParamRef    => nm(t.paramName)
             case t: TermParamRef    => nm(t.paramName) + ".type"
+            // claude 2026-10-13: created the three cases below (C3, as in the
+            // S3 guard): the sort of overloads in a rule hash uses them
+            case t: MethodType      =>
+              t.paramNames
+                .zip(t.paramTypes)
+                .map((n, p) => s"${nm(n)}:${tpe(p)}")
+                .mkString("(", ",", ")") + tpe(t.resultType)
+            case t: PolyType        =>
+              t.paramNames.map(nm).mkString("[", ",", "]") + tpe(t.resultType)
+            case t: TypeLambda      =>
+              t.paramNames.map(nm).mkString("[", ",", "]=>>") + tpe(
+                t.resultType,
+              )
             case t: ThisType        => tpe(t.tref) + ".this"
             case other              => other.getClass.getSimpleName
 
@@ -258,10 +371,291 @@ object KyoUiSurface:
             }
         end propCaseItems
 
+        /** The fields of `UI.Ast.Attrs` that the runner reads, with their types
+          * (the type `Attrs` is `private[kyo]`; its fields are public).
+          */
+        // claude 2026-10-13: created (C3)
+        def attrsFieldItems: List[Item] =
+            val attrs = ctx.findStaticClass("kyo.UI.Ast.Attrs")
+            attrs.declarations.collect {
+              case t: TermSymbol
+                  if t.isParamAccessor && !t.isMethod &&
+                    attrsFields.contains(nm(t.name)) =>
+                Item(
+                  "attrs.field",
+                  s"${full(attrs)}.${nm(t.name)}",
+                  tpe(t.declaredType),
+                )
+            }
+        end attrsFieldItems
+
+        /** The members of the elements that `Dispatch` reads: the accessors
+          * with no parameter list (a field, or a `def` with no parameters),
+          * with their visibility and result type.
+          */
+        // claude 2026-10-13: created (C3)
+        def elementMemberItems: List[Item] =
+          elementMembers.toList.flatMap { (owner, names) =>
+            val c = ctx.findStaticClass(owner)
+            c.declarations.collect {
+              case t: TermSymbol
+                  if names.contains(nm(t.name)) && !t.isSynthetic &&
+                    (t.declaredType match
+                        case _: MethodType | _: PolyType => false
+                        case _ => true) =>
+                Item(
+                  "ui.member",
+                  s"${full(c)}.${nm(t.name)}",
+                  s"${vis(t)} ${tpe(t.declaredType)}",
+                )
+            }
+          }
+
+        /** The fields of the event types that `Dispatch` builds or reads:
+          * `KeyboardEvent`, `MouseEvent` and `Modifiers`.
+          */
+        // claude 2026-10-13: created (C3)
+        def eventItems: List[Item] =
+          List("kyo.UI.KeyboardEvent", "kyo.UI.MouseEvent", "kyo.UI.Modifiers")
+            .map(ctx.findStaticClass)
+            .map(c =>
+              Item("event.fields", full(c), fields(c).mkString("(", ",", ")")),
+            )
+
+        /** The cases of `kyo.UI.Keyboard`, with the fields of a case class. */
+        // claude 2026-10-13: created (C3)
+        def keyboardCaseItems: List[Item] =
+            val kb = ctx.findStaticClass("kyo.UI.Keyboard")
+            kb.companionClass.toList.flatMap(_.declarations).collect {
+              case t: TermSymbol if t.isEnumCase                       =>
+                Item("keyboard.case", s"${full(kb)}.${nm(t.name)}", "-")
+              case c: ClassSymbol if c.isCaseClass && !c.isModuleClass =>
+                Item(
+                  "keyboard.case",
+                  s"${full(kb)}.${nm(c.name)}",
+                  fields(c).mkString("(", ",", ")"),
+                )
+            }
+        end keyboardCaseItems
+
+        /** K2: `Foreach.applyTyped` is still private, so `Mount` casts a
+          * `Foreach[?, ?]` to `Foreach[Any, UI]`. When kyo-ui opens it, this
+          * line changes and the cast can go.
+          */
+        // claude 2026-10-13: created (C3, RC-12 part, K2)
+        def pinItems: List[Item] =
+            val fe = ctx.findStaticClass("kyo.UI.Ast.Foreach")
+            val v  = fe.declarations
+              .collect {
+                case t: TermSymbol if nm(t.name) == "applyTyped" => vis(t)
+              }
+              .distinct
+              .sorted
+            List(
+              Item(
+                "pin",
+                "K2 UI.Ast.Foreach.applyTyped",
+                if v.isEmpty then "MISSING" else v.mkString("|"),
+              ),
+            )
+        end pinItems
+
+        // ---- the shape hashes of the rules (C3, from the S3 guard) ----
+
+        /** True for a tree that the compiler wrote (see `walk`). */
+        private def skipped(t: Tree): Boolean =
+          t.pos.isUnknown || t.pos.isSynthetic || t.pos.isZeroExtent ||
+            t.isInstanceOf[TypeWrapper]
+
+        private def isContextualClosure(dd: DefDef): Boolean =
+            val params = dd.paramLists.collect { case Left(vs) => vs }.flatten
+            params.nonEmpty && params.forall(v =>
+              nm(v.name).startsWith("contextual$"),
+            )
+
+        /** The source-written trees inside a compiler-written node. */
+        private def treesOnly(
+            x: Any,
+            sb: java.lang.StringBuilder,
+            nodes: Array[Int],
+        ): Unit = x match
+            case t: Tree                             => walk(t, sb, nodes)
+            case l: List[?]                          => l.foreach(treesOnly(_, sb, nodes))
+            case o: Option[?]                        => o.foreach(treesOnly(_, sb, nodes))
+            case p: Product if !p.isInstanceOf[Name] =>
+              p.productIterator.foreach(treesOnly(_, sb, nodes))
+            case _                                   => ()
+
+        /** The canonical text of a tree in the "shape" mode of the S3 guard:
+          * node kinds, names and literals of what the source wrote. A node that
+          * the compiler wrote (implicit arguments, conversions,
+          * context-function closures) is transparent, inferred types are
+          * dropped, and a call keeps its name without its erased signature. So
+          * a change in kyo-kernel (a new implicit lift) does not change the
+          * hash of a kyo-ui method whose source did not change.
+          */
+        private def walk(
+            x: Any,
+            sb: java.lang.StringBuilder,
+            nodes: Array[Int],
+        ): Unit = x match
+            case _: TypeWrapper if nodes(0) > 0                        => ()
+            case t: Tree if nodes(0) > 0 && skipped(t)                 =>
+              t.productIterator.foreach(f => treesOnly(f, sb, nodes))
+            case Block(List(dd: DefDef), _: Lambda)
+                if nodes(0) > 0 && isContextualClosure(dd) =>
+              dd.rhs.foreach(walk(_, sb, nodes))
+            case Apply(fun, List(arg)) if nodes(0) > 0 && skipped(fun) =>
+              walk(arg, sb, nodes)
+            case Apply(fun, args)
+                if nodes(0) > 0 && args.nonEmpty && args.forall(skipped) =>
+              walk(fun, sb, nodes)
+            case TypeApply(fun, args)
+                if nodes(0) > 0 && args.nonEmpty && args.forall(skipped) =>
+              walk(fun, sb, nodes)
+            case t: Tree                                               =>
+              nodes(0) += 1
+              discard(sb.append(t.productPrefix).append('('))
+              t.productIterator.foreach { f =>
+                walk(f, sb, nodes)
+                discard(sb.append(','))
+              }
+              discard(sb.append(')'))
+            case l: List[?]                                            =>
+              discard(sb.append('['))
+              l.foreach { e =>
+                walk(e, sb, nodes)
+                discard(sb.append(','))
+              }
+              discard(sb.append(']'))
+            case o: Option[?]                                          => o.foreach(walk(_, sb, nodes))
+            case SignedName(u, _, _)                                   => discard(sb.append(nm(u)))
+            case n: Name                                               => discard(sb.append(nm(n)))
+            case c: Constant                                           =>
+              c.value match
+                  case s: String =>
+                    discard(sb.append('"').append(s).append('"'))
+                  case t: Type   =>
+                    discard(
+                      sb.append("classOf[")
+                        .append(tpe(t))
+                        .append(']')
+                        .append('#')
+                        .append(c.tag),
+                    )
+                  case v         =>
+                    discard(
+                      sb.append(String.valueOf(v)).append('#').append(c.tag),
+                    )
+            case _: Symbol                                             => discard(sb.append('$'))
+            case _: TypeMappable                                       => discard(sb.append('~'))
+            case p: Product                                            =>
+              discard(sb.append(p.productPrefix).append('('))
+              p.productIterator.foreach { f =>
+                walk(f, sb, nodes)
+                discard(sb.append(','))
+              }
+              discard(sb.append(')'))
+            case other                                                 => discard(sb.append(String.valueOf(other)))
+
+        /** The first 8 bytes of the SHA-256, in hex. */
+        private def sha(s: String): String =
+          MessageDigest
+            .getInstance("SHA-256")
+            .digest(s.getBytes(UTF_8))
+            .take(8)
+            .map(b => f"${b & 0xff}%02x")
+            .mkString
+
+        /** "<sha256 prefix> n=<node count>" of the trees of `syms`. */
+        private def fingerprint(syms: List[TermSymbol]): String =
+            val sb    = new java.lang.StringBuilder
+            val nodes = Array(0)
+            syms.flatMap(_.tree).foreach { t =>
+              nodes(0) = 0
+              walk(t, sb, nodes)
+              discard(sb.append('\n'))
+            }
+            if sb.length == 0 then "NO-TREE"
+            else s"${sha(sb.toString)} n=${nodes(0)}"
+        end fingerprint
+
+        /** The shape hash of each rule method of `kyo.internal.ReactiveUI` that
+          * the runner copies (the bubbling and activation rules of `Dispatch`,
+          * the region walk of `Mount`).
+          */
+        // claude 2026-10-13: created (C3, the `rule` items of the S3 guard)
+        def ruleItems: List[Item] =
+            val ui = ctx.findStaticModuleClass("kyo.internal.ReactiveUI")
+            ui.declarations
+              .collect {
+                case t: TermSymbol
+                    if !t.isSynthetic && !t.isParamAccessor &&
+                      RuleNames.reactiveUi(nm(t.name)) =>
+                  t
+              }
+              .groupBy(t => nm(t.name))
+              .toList
+              .map((name, syms) =>
+                Item(
+                  "rule",
+                  s"${full(ui)}.$name",
+                  fingerprint(syms.sortBy(s => tpe(s.declaredType))),
+                ),
+              )
+        end ruleItems
+
+        /** The hash of each client-JS fragment whose rules `Dispatch` copies
+          * (keydown: Tab, the focus trap and group, Enter and Space; click; the
+          * focusAuto seeding and its restore).
+          */
+        // claude 2026-10-13: created (C3, the `js` items of the S3 guard,
+        // without the hash of the whole script)
+        def jsItems: List[Item] =
+            val renderer                         =
+              ctx.findStaticModuleClass("kyo.internal.HtmlRenderer")
+            val syms                             = renderer.declarations.collect {
+              case t: TermSymbol if nm(t.name) == "clientJs" => t
+            }
+            val parts                            = List.newBuilder[String]
+            def lits(x: Any): Unit               = x match
+                case Literal(c) if c.value.isInstanceOf[String] =>
+                  discard(parts += c.value.asInstanceOf[String])
+                case t: Tree                                    => t.productIterator.foreach(lits)
+                case l: List[?]                                 => l.foreach(lits)
+                case o: Option[?]                               => o.foreach(lits)
+                case p: Product if !p.isInstanceOf[Name]        =>
+                  p.productIterator.foreach(lits)
+                case _                                          => ()
+            syms.flatMap(_.tree).foreach(lits)
+            val lines                            = parts
+              .result()
+              .mkString("\u0000")
+              .split("\n")
+              .toList
+              .map(_.replaceFirst("""^\s*\|""", ""))
+            def normal(ls: List[String]): String =
+              ls.filterNot(_.trim.startsWith("//"))
+                .mkString("\n")
+                .replaceAll("""\s+""", " ")
+                .replaceAll("""\s*([(){}\[\],;=:|&+<>])\s*""", "$1")
+            RuleNames.jsFragments.map { (label, start, end) =>
+              val s = lines.indexWhere(l => start.r.findFirstIn(l).isDefined)
+              if s < 0 then Item("js", label, "MISSING")
+              else
+                  val e    =
+                    lines.indexWhere(l => end.r.findFirstIn(l).isDefined, s + 1)
+                  val frag = lines.slice(s, if e < 0 then lines.size else e + 1)
+                  Item("js", label, s"${sha(normal(frag))} lines=${frag.size}")
+            }
+        end jsItems
+
         // claude 2026-10-12: changed: the C2 items
+        // claude 2026-10-13: changed: the C3 items
         def all: List[Item] =
           (astTypeItems ++ propCaseItems ++ astFieldItems ++ boundCaseItems ++
-            signalMethodItems)
+            signalMethodItems ++ attrsFieldItems ++ elementMemberItems ++
+            eventItems ++ keyboardCaseItems ++ pinItems ++ ruleItems ++ jsItems)
             .distinctBy(_.key)
             .sortBy(i => (i.kind, i.name))
     end Reader
