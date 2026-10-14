@@ -250,6 +250,21 @@ started from the main checkout): it is the user's Metals sbt server.
   phase (spike SZ first, gate Z with the thirteenth-round questions). The local worktrees of the merged branches are
   stale; delete them before the next workflow (`git worktree remove`).
 
+<!-- claude 2026-10-14: added this item (the local session starts here) -->
+- 2026-10-14 16:40 UTC: LOCAL SESSION HANDOFF (the user starts a session on the Mac). State: main = 2d5354d holds the
+  whole kyo-ui stack (C1-C4, T1, T2); nothing is published; no rulesets on the repo (the user removed them); the
+  notes are on wip/handoff (`git archive origin/wip/handoff .work | tar x` to get them locally; never merge it).
+  OPEN ISSUE on the Mac: `sbt` runs on Java 21 and fails with `UnsupportedClassVersionError: kyo/kernel/Isolate...
+  class file version 69.0` (Kyo 1.0.0-RC7 needs JDK 25; AGENTS.md "Toolchain"). The user ran
+  `mise use java@temurin-25` (mise.toml now in the repo, untracked) and `mise install`, but `java -version` still
+  shows 21: mise is not activated in that shell, or a later `JAVA_HOME` export (jenv, sdkman, .zshrc) wins. Fix:
+  `eval "$(mise activate zsh)"` at the end of ~/.zshrc (or `mise exec -- sbt ...`), check `mise which java` and
+  `echo $JAVA_HOME`, then `sbt examples/launchers` and `examples/target/bin/todo`. The start scripts use
+  `$JAVA_HOME/bin/java`, so JAVA_HOME must be the JDK 25 too. Decide whether `mise.toml` is committed (then AGENTS.md
+  "Toolchain" names it) or ignored. The cloud session's limits do not apply on the Mac: the Mac has its own JDK 25
+  path, no proxy, `gh` may exist; but the rules of AGENTS.md (one sbt at a time, never `sbt run` for a TUI) do.
+  NEXT candidates: the bot author workflow (open-pr.yml); P1, L1, L2, D; the ZIO phase (spike SZ).
+
 ## 2026-10-02: DIRECTION CHANGE
 
 The user reviewed the core and said it is not a functional wrapper of jatatui and that the internals are not
