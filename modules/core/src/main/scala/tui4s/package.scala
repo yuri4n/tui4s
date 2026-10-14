@@ -10,12 +10,16 @@
   * [[tui4s.FrameStats]] describes a frame). Keys reach the UI: the handlers of
   * the focused element and its ancestors run, Tab moves the focus, a text input
   * edits by grapheme clusters, a bracketed paste is one edit, and
-  * [[tui4s.Tui.quit]] ends the run. The headless test kit
-  * [[tui4s.testkit.Headless]] runs an app without a terminal and sends it keys.
-  * The components and the real terminal are not in this version yet.
+  * [[tui4s.Tui.quit]] ends the run. [[tui4s.Tui.run]] runs a UI in the real
+  * terminal (raw mode, the alternate screen, an input thread for the keys),
+  * restores the terminal when the run ends, and fails with a [[tui4s.TuiError]]
+  * when it cannot start. The headless test kit [[tui4s.testkit.Headless]] runs
+  * an app without a terminal and sends it keys. The components are not in this
+  * version yet.
   */
 // claude 2026-10-12: created (OS-13 part): the package Scaladoc; changed:
 // plain words instead of the pull request ids (review R1-4, R2-3); changed:
 // what this version does (signals, the headless kit)
 // claude 2026-10-13: changed: keys, Tui.quit (C3)
+// claude 2026-10-13: changed: Tui.run in the real terminal (T1)
 package object tui4s

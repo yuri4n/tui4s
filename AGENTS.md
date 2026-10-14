@@ -35,14 +35,20 @@ or a radio and cycle a select; Enter in a form submits it; a handler in its
 event form (`onClick(e => ...)`, `onFocus(e => ...)`, `onSubmit(e => ...)`)
 runs as its action form does; a text input edits by grapheme clusters
 (Ctrl-A, E, U, K, W too); a bracketed paste is one edit; Ctrl-C and
-`tui4s.Tui.quit` end the run. The headless test kit `tui4s.testkit.Headless`
-runs an app without a terminal: a test sends keys (`press`, `key`, `char`,
-`typeText`, `paste`) or writes the app's `SignalRef`s, and reads
-`testkit.Screen`. The components and the real terminal come in the next pull
-requests.
+`tui4s.Tui.quit` end the run. `tui4s.Tui.run` runs a UI in the real
+terminal: it enters raw mode and the alternate screen (`internal.TerminalIO`,
+`internal.Session`), an input thread maps the crossterm events to kyo-ui keys,
+pastes and resizes (`internal.EventMapping`), the runner draws on a crossterm
+backend, and the release restores the terminal in every way that a run ends
+(also from a JVM shutdown hook). The headless test kit
+`tui4s.testkit.Headless` runs an app without a terminal: a test sends keys
+(`press`, `key`, `char`, `typeText`, `paste`) or writes the app's
+`SignalRef`s, and reads `testkit.Screen`. The components come in the next pull
+request.
 <!-- claude 2026-10-12: changed these lines: signals drive the screen; the headless kit (C2) -->
 <!-- claude 2026-10-13: changed these lines: keys reach the UI; the key methods of the kit (C3) -->
 <!-- claude 2026-10-13: changed the button and the event-form sentences (PR #13 review: Codex, Dispatch.scala:180, :204, :401) -->
+<!-- claude 2026-10-13: changed these lines: Tui.run in the real terminal (T1) -->
 
 ## Toolchain
 
@@ -71,11 +77,28 @@ requests.
 | `bash scripts/version-order-test.sh` | Tests the version order of the release script (CI runs it).   |
 | `sbt versions`                       | Shows the version of each module (released or snapshot).      |
 | `sbt core/test`                      | Runs the tests of one module. The core tests use kyo-test.    |
-| `sbt "examples/runMain <main>"`      | Runs an example in the real terminal (forked JVM).            |
+| `sbt examples/launchers`             | Writes a start script per example: `examples/target/bin/<package>`. |
+| `examples/target/bin/counter`        | Runs the Counter example in the real terminal (its own JVM).  |
+| `examples/ptycheck/run.sh`           | Runs the real-terminal checklist in a pseudo-terminal (CI job `terminal`). |
+
+<!-- claude 2026-10-13: changed (T1): the launchers and the PTY kit replace `sbt "examples/runMain <main>"` -->
 
 <!-- claude 2026-10-09: changed: also run the version order test before each push -->
 Run `sbt fmt`, `sbt check` and `bash scripts/version-order-test.sh` before each
-push.
+push. After a change to the terminal code (`TerminalIO`, `Crossterm`,
+`Session`, `EventMapping`, `OutputCapture`, `Tui.run`, the examples), also run
+`examples/ptycheck/run.sh` (it needs `expect` and `python3`).
+<!-- claude 2026-10-13: changed (T1): run the PTY kit after a terminal change -->
+
+Never start a terminal UI with `sbt run` or `sbt runMain`: sbt also reads the
+keyboard, so keys are lost, and the forked JVM gets no terminal on stdin (the
+app stops with `NotATerminal`). Use the start scripts. An agent never starts
+a terminal UI in its own shell: only the PTY kit runs one. The start scripts
+use `$JAVA_HOME/bin/java` (or `java` on `PATH`): it must be JDK 25. When the
+environment sets `JAVA_TOOL_OPTIONS` or `JDK_JAVA_OPTIONS` (a proxy setup),
+the JVM prints a "Picked up ..." line into the terminal before the UI starts;
+`run.sh` unsets them for the app.
+<!-- claude 2026-10-13: created this paragraph (T1, OS-47 part) -->
 
 The stress probes (`tui4s.stress.*`) are ignored in `sbt check`. To run one,
 set `-Dtui4s.stress=<rounds>` in the test JVM and run it alone on the machine:
@@ -89,15 +112,51 @@ tests then allow 1 split frame).
 ## Rules for code
 
 - Do not write to stdout or stderr while a terminal UI runs. The output
-  corrupts the screen. Send logs to a file.
+  corrupts the screen. Send logs to a file. `Tui.run` binds its own Kyo
+  logger (`internal.TuiLog`, to `TuiOptions.logFile` or to memory) and
+  captures `System.out` and `System.err` (`internal.OutputCapture`); what it
+  kept is printed after the restore. The core main sources have no
+  `System.err` and no `println` except the log sink, the output forwarders
+  and the prints after the restore, each with a `// tui4s: allowed` comment:
+  `grep -rnE 'System\.err|System\.out|println' modules/core/src/main` shows
+  only comment lines and lines with that marker.
+  <!-- claude 2026-10-13: changed (T1): the run's logger, the capture, the marker rule -->
 - Do not put `com.olvind.tui` (tui-scala) on the classpath. Its `crossterm`
   jar has the same `tui.crossterm` package as the jatatui `crossterm` jar.
 - Do all drawing on one fiber. jatatui buffers, cells and widget states are
   mutable and are not thread-safe.
 - The native `read()` of crossterm blocks and an interrupt cannot stop it. To
   read input, call `poll(<short timeout>)` in a loop, then call `read()`.
+  Only the input thread of the session (`internal.InputThread`, a platform
+  thread) reads the terminal; it posts messages to the runner's inbox and
+  never draws.
+- A run in the terminal needs the JVM flag
+  `--enable-native-access=ALL-UNNAMED` (crossterm is a JNI library). Without
+  it JDK 25 prints a four-line warning into the terminal before the UI starts
+  (it stays above the prompt after the run); with
+  `--illegal-native-access=deny` the run fails with
+  `TuiError.NativeAccessDenied` before the terminal changes. A library that
+  does not load for another reason is `TuiError.NativeLoadFailed`.
+- The release of the terminal (`Session.close`) closes the canvas first: it
+  waits for a draw in progress (the backend's monitor), and nothing is drawn
+  after it. It runs once, from the end of the run or from the JVM shutdown
+  hook, whichever comes first. After a quit, `Tui.run` closes the `Scope` of
+  the UI before the release: it interrupts the fibers that the UI started
+  with `Fiber.init` and waits for them. A fiber that does not stop on an
+  interrupt (a blocking call in `Sync.defer`) keeps the terminal in raw mode
+  until it ends.
+  <!-- claude 2026-10-13: changed (T1, review R2-2): the scope closes before the release -->
+- jatatui 0.31.0's JNI cuts a typed character outside the Basic Multilingual
+  Plane (an emoji) to 16 bits: such a key arrives wrong. A bracketed paste
+  keeps it (`internal.EventMapping` Scaladoc).
+  <!-- claude 2026-10-13: created these three items and the input-thread sentence (T1) -->
 - Tests must not need a real terminal. Render into a jatatui `TestBackend` or
-  into a `Buffer`, or run the app on `tui4s.testkit.Headless`.
+  into a `Buffer`, or run the app on `tui4s.testkit.Headless`. A test of the
+  terminal path uses a fake crossterm (`FakeCrossterm` and the run seam
+  `Tui.runWith`); `NativeTerminalTest` loads the real library only when stdin
+  is not a terminal. The real terminal is the job of the PTY kit
+  (`examples/ptycheck`).
+  <!-- claude 2026-10-13: changed (T1): the fake crossterm and the PTY kit -->
 - The frame contract is SOFT (decision D-17 c): one frame per event with all
   of its consequences; 0 split frames with no load, and at most 1 per 10 000
   under load (Kyo 1.0.0-RC7 can lose a wakeup in `Signal.combineLatest`, and
@@ -145,9 +204,12 @@ tests then allow 1 split frame).
   `Test / javaOptions`): `kyo.scheduler.cycleIntervalNs=10000000`,
   `kyo.scheduler.blockingMonitorIntervalNs=20000000` and
   `kyo.scheduler.regulator.concurrencyCollectIntervalMs=100`. Without them the
-  runner gives more split frames under load (spike S1). `TuiApp`, in a later
-  pull request, sets the same values for a real app
-  (`tui4s.spi.SchedulerDefaults`). The settle canary (SettleTest) needs a
+  runner gives more split frames under load (spike S1). The start scripts of
+  the examples give a real app the same values as JVM flags
+  (`examples / run / javaOptions` in `build.sbt`); `TuiApp`, in a later pull
+  request, sets them in code (`tui4s.spi.SchedulerDefaults`).
+  <!-- claude 2026-10-13: changed (T1, D-17 c): the start scripts -->
+  The settle canary (SettleTest) needs a
   second Kyo worker: on a 2-CPU JVM under load the scheduler keeps one, so
   the canary cancels itself there (the report says `cancelled`, not passed).
   <!-- claude 2026-10-12: created this item (D-17 c); changed: the canary on 2 CPUs -->

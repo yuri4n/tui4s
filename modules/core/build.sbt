@@ -71,3 +71,11 @@ Test / javaOptions ++= {
 // suites do).
 // claude 2026-10-12: created
 Test / testForkedParallel := false
+
+// The matches in internal/EventMapping.scala list every case of crossterm's
+// sealed Java types. A case that a jatatui upgrade adds must stop the build
+// also on a developer machine (DevMode): as a warning it would only show at
+// run time, as a MatchError on the input thread.
+// claude 2026-10-13: created (T1, RC-22: the rule of PR 5)
+Compile / scalacOptions +=
+  "-Wconf:msg=match may not be exhaustive&src=.*/EventMapping\\.scala:e"

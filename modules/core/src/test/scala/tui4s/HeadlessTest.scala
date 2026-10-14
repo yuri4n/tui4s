@@ -2,14 +2,18 @@ package tui4s
 
 import kyo.*
 import kyo.UI.*
+import tui4s.internal.EventMapping
 import tui4s.internal.Knobs
+import tui4s.internal.Msg
 import tui4s.testkit.Headless
+import tui4s.testkit.ScriptedInput
 
 /** The headless kit: the quit value, resize, idle, awaitScreen (RC-7, D-15);
   * the waits after the end of the run, `char` and half of a surrogate pair.
   */
 // claude 2026-10-12: created
 // claude 2026-10-13: changed: the leaves of the reviews R1-8, R2-7 and R2-8
+// claude 2026-10-13: changed (T1, review R1-1): the leaf of the typed event
 class HeadlessTest extends RunnerSuite:
 
     "the quit value ends the run; awaitEnd and finished see it" in {
@@ -265,6 +269,62 @@ class HeadlessTest extends RunnerSuite:
               case _                                         => false
           assert(half && t0 == "", s"char: $r; text: $t0")
           assert(fs.size == 1 && t1 == emoji, s"keys: ${fs.size}; text: $t1")
+      end for
+    }
+
+    // claude 2026-10-13: created (T1, review R1-1): the kit types a character
+    // as the terminal sends it. crossterm's parser gives an upper-case
+    // character Shift (a probe with jatatui 0.31.0 in a pseudo-terminal: 'A',
+    // 'É' and 'Z' with SHIFT; 'a', 'é', '+', ' ' and '!' with none).
+    "char and typeText send the event of a terminal: an upper-case letter has shift" in {
+      val typed = (32 to 126).map(_.toChar).mkString + "\u00e9\u00c9"
+      for
+          log <- AtomicRef.init(Vector.empty[(Keyboard, Modifiers)])
+          h   <- Headless.start(20, 3)(_ =>
+                   div.onKeyDown { (e: KeyboardEvent) =>
+                     log.updateAndGet(_ :+ (e.key, e.modifiers)).unit
+                   }("x"),
+                 )
+          _   <- h.typeText(typed)
+          _   <- h.char('Q')
+          got <- log.get
+      yield
+          val chars    = typed :+ 'Q'
+          val kit      = chars.zip(got).toMap
+          // The probe's events, as they are.
+          val shift    = Modifiers(shift = true)
+          val probe    = Seq(
+            'a'      -> (Keyboard.Char('a'), Modifiers.none),
+            'A'      -> (Keyboard.Char('A'), shift),
+            '+'      -> (Keyboard.Char('+'), Modifiers.none),
+            ' '      -> (Keyboard.Space, Modifiers.none),
+            '\u00e9' -> (Keyboard.Char('\u00e9'), Modifiers.none),
+            '\u00c9' -> (Keyboard.Char('\u00c9'), shift),
+            'Z'      -> (Keyboard.Char('Z'), shift),
+            '!'      -> (Keyboard.Char('!'), Modifiers.none),
+            'Q'      -> (Keyboard.Char('Q'), shift),
+          )
+          val notProbe = probe.collect {
+            case (c, w) if !kit.get(c).contains(w) =>
+              s"'$c': kit ${kit.get(c)}, terminal $w"
+          }
+          // Every character: the event that the input thread gives for the
+          // terminal's key.
+          val want     = chars.map { c =>
+            EventMapping(ScriptedInput.typed(c), 1L) match
+                case Msg.Key(ev, _) => (ev.key, ev.modifiers)
+                case other          =>
+                  (Keyboard.Unknown(s"not a key: $other"), Modifiers.none)
+          }
+          val wrong    = chars.zip(want).zip(got).collect {
+            case ((c, w), g) if w != g => s"'$c': kit $g, terminal $w"
+          }
+          assert(
+            got.size == chars.size,
+            s"${got.size} events, ${chars.size} keys",
+          )
+          assert(notProbe.isEmpty, notProbe.mkString("\n"))
+          assert(wrong.isEmpty, wrong.mkString("\n"))
       end for
     }
 end HeadlessTest
