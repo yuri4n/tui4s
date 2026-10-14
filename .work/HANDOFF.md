@@ -254,7 +254,7 @@ started from the main checkout): it is the user's Metals sbt server.
 - 2026-10-14 16:40 UTC: LOCAL SESSION HANDOFF (the user starts a session on the Mac). State: main = 2d5354d holds the
   whole kyo-ui stack (C1-C4, T1, T2); nothing is published; no rulesets on the repo (the user removed them); the
   notes are on wip/handoff (`git archive origin/wip/handoff .work | tar x` to get them locally; never merge it).
-  OPEN ISSUE on the Mac: `sbt` runs on Java 21 and fails with `UnsupportedClassVersionError: kyo/kernel/Isolate...
+  RESOLVED 2026-10-14 (the user: "it works great"): the examples run on the Mac after the JDK 25 fix. WAS: `sbt` runs on Java 21 and fails with `UnsupportedClassVersionError: kyo/kernel/Isolate...
   class file version 69.0` (Kyo 1.0.0-RC7 needs JDK 25; AGENTS.md "Toolchain"). The user ran
   `mise use java@temurin-25` (mise.toml now in the repo, untracked) and `mise install`, but `java -version` still
   shows 21: mise is not activated in that shell, or a later `JAVA_HOME` export (jenv, sdkman, .zshrc) wins. Fix:
