@@ -3,15 +3,16 @@ package tui4s
 import kyo.*
 import kyo.test.*
 
-/** The kyo-ui surface guard (RC-12, C1 part). When kyo-ui changes a type of
-  * `UI.Ast` or a case of `Style.Prop`, this test fails and names the line. Then
-  * read the change, update the runner, and update
-  * `src/test/resources/kyo-ui-surface.txt`.
+/** The kyo-ui surface guard (RC-12). When kyo-ui changes a type of `UI.Ast`, a
+  * case of `Style.Prop`, a field of `Reactive` or `Foreach`, a case of
+  * `UI.Bound`, or when kyo-core changes `Signal.currentWith` or `nextWith`,
+  * this test fails and names the line. Then read the change, update the runner,
+  * and update `src/test/resources/kyo-ui-surface.txt`.
   */
-// claude 2026-10-12: created
+// claude 2026-10-12: created; changed: the C2 items
 class KyoUiSurfaceTest extends Test[Any]:
 
-    "the UI.Ast types and the Style.Prop cases are the checked-in list"
+    "the UI.Ast types, the Style.Prop cases, the region fields, the Bound cases and the Signal methods are the checked-in list"
       .timeout(120.seconds) in {
       val now   = KyoUiSurface.current
       val base  = KyoUiSurface.checkedIn

@@ -5,7 +5,11 @@
 # Format: kind<TAB>name<TAB>detail. Lines that start with # are comments.
 # ast.type: kind, visibility and parents of a class, trait or object of kyo.UI.Ast (a class and its
 #   companion object are one line). enum.case: a case of kyo.Style.Prop with its fields.
-# claude 2026-10-12: created (the reader KyoUiSurface wrote this list from kyo-ui 1.0.0-RC7)
+# ast.fields: the constructor fields of UI.Ast.Reactive and UI.Ast.Foreach (the region nodes that Mount and
+#   Runner match on). bound.case: a case of UI.Bound with its fields (Mount.boundRef matches on Bound.Ref).
+#   signal.method: the two kyo.Signal methods of the watcher loop, from the kyo-core jar (K29).
+# claude 2026-10-12: created (the reader KyoUiSurface wrote this list from kyo-ui 1.0.0-RC7); changed: the
+#   C2 part (ast.fields, bound.case, signal.method: the last 6 lines)
 ast.type	UI.Ast.Activatable	trait public extends UI,Element
 ast.type	UI.Ast.Anchor	case class public extends UI,Inline,Interactive,Focusable,Activatable,Clickable
 ast.type	UI.Ast.AsHtmlChild	trait public extends 
@@ -163,3 +167,9 @@ enum.case	Style.Prop.TranslateProp	(x:Length,y:Length)
 enum.case	Style.Prop.WhiteSpaceProp	(value:WhiteSpace)
 enum.case	Style.Prop.Width	(value:Length)
 enum.case	Style.Prop.ZIndexProp	(value:Int)
+ast.fields	UI.Ast.Foreach	(frame:Frame,key:Maybe[Function1[A,String]],render:Function2[Int,A,UI],signal:Signal[Chunk[A]])
+ast.fields	UI.Ast.Reactive	(frame:Frame,signal:Signal[UI])
+bound.case	UI.Bound.Const	(value:A)
+bound.case	UI.Bound.Ref	(ref:SignalRef[A])
+signal.method	Signal.currentWith	[B,S](f:Function1[A,<[B,S]])(x$#:Frame):<[B,&[S,Sync]]
+signal.method	Signal.nextWith	[B,S](f:Function1[A,<[B,S]])(x$#:Frame):<[B,&[S,Async]]
