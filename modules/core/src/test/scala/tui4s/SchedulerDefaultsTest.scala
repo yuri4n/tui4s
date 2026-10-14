@@ -94,6 +94,22 @@ class SchedulerDefaultsTest extends Test[Any]:
       )
     }
 
+    /* claude 2026-10-14: created (PR #16 review: Codex,
+     * SchedulerDefaults.scala:37) */
+    "the environment names do not depend on the default locale (Turkish i)" in {
+      val saved = java.util.Locale.getDefault.nn
+      try
+          java.util.Locale.setDefault(java.util.Locale.forLanguageTag("tr-TR"))
+          assert(
+            SchedulerDefaults.envName(
+              "kyo.scheduler.blockingMonitorIntervalNs",
+            ) ==
+              "KYO_SCHEDULER_BLOCKINGMONITORINTERVALNS",
+          )
+      finally java.util.Locale.setDefault(saved)
+      end try
+    }
+
     // claude 2026-10-13: changed (T2, review R1-9): without the properties of
     // the test JVM (its javaOptions set all three), so that the leaf fails
     // when applyIfUnset sets nothing; a key that the environment sets stays

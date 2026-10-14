@@ -34,7 +34,12 @@ object SchedulerDefaults:
     /** The environment variable that Kyo also reads for the property `key`:
       * `kyo.scheduler.cycleIntervalNs` is `KYO_SCHEDULER_CYCLEINTERVALNS`.
       */
-    def envName(key: String): String = key.toUpperCase.nn.replace('.', '_').nn
+    /* claude 2026-10-14: changed (PR #16 review: Codex,
+     * SchedulerDefaults.scala:37): */
+    // Locale.ROOT, so that a Turkish default locale does not turn the i of
+    // blockingMonitorIntervalNs into a dotted capital I
+    def envName(key: String): String =
+      key.toUpperCase(java.util.Locale.ROOT).nn.replace('.', '_').nn
 
     /** Sets each property of [[defaults]] that the user did not set, neither as
       * a system property nor as an environment variable. Does nothing when the
