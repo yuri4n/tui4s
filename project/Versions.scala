@@ -6,8 +6,13 @@
   * `modules/<m>/build.sbt`.
   */
 object Versions {
-  val scala   = "3.9.0"     // Scala 3 LTS. Kyo 1.0.0-RC7 is built with 3.9.0.
-  val kyo     = "1.0.0-RC7" // Needs JDK 25. kyo-zio must use the same version.
-  val jatatui = "0.31.0"    // Java port of ratatui 0.30, successor of tui-scala.
-  val munit   = "1.3.6"
+  val scala      = "3.9.0"     // Scala 3 LTS. Kyo 1.0.0-RC7 is built with it.
+  // claude 2026-10-12: changed the comment (D-19: kyo-ui uses this version)
+  val kyo        = "1.0.0-RC7" // Needs JDK 25. kyo-ui and kyo-zio use it too.
+  val jatatui    = "0.31.0"    // Java port of ratatui 0.30; replaces tui-scala.
+  val munit      = "1.3.6"     // zio and cats tests. core: kyo-test.
+  // TASTy reader of the core tests (surface guard). The zio and cats coverage
+  // tests will use it too: that is why it is here and not in core/build.sbt.
+  // claude 2026-10-12: created; changed: the reason (review R1-3, R2-5)
+  val tastyQuery = "1.9.0"
 }
