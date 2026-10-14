@@ -1,5 +1,7 @@
 package tui4s.internal
 
+// claude 2026-10-13: changed (C3, gate 1 item 1): private[tui4s] on every top-level definition of this file (the seal of tui4s.internal)
+
 import kyo.*
 import kyo.UI.Ast.*
 
@@ -8,7 +10,10 @@ import kyo.UI.Ast.*
   * one watcher fiber that posts every later value to the runner's inbox.
   */
 // claude 2026-10-12: changed: `knobs` (the test seams)
-final class Mount(inbox: Channel[Msg], knobs: Knobs = Knobs.default):
+private[tui4s] final class Mount(
+    inbox: Channel[Msg],
+    knobs: Knobs = Knobs.default,
+):
 
     // claude 2026-10-12: created (R1, RC-8): the fibers this run started that
     // have not ended, for the live-fiber gauge of the tests. Weak, so that the

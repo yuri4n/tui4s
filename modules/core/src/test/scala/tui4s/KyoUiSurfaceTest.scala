@@ -5,14 +5,18 @@ import kyo.test.*
 
 /** The kyo-ui surface guard (RC-12). When kyo-ui changes a type of `UI.Ast`, a
   * case of `Style.Prop`, a field of `Reactive` or `Foreach`, a case of
-  * `UI.Bound`, or when kyo-core changes `Signal.currentWith` or `nextWith`,
-  * this test fails and names the line. Then read the change, update the runner,
-  * and update `src/test/resources/kyo-ui-surface.txt`.
+  * `UI.Bound`, a field of `Attrs` or a member of an element that `Dispatch`
+  * reads, an event type, a case of `Keyboard`, the visibility of
+  * `Foreach.applyTyped`, a dispatch or region rule of `ReactiveUI` or a focus
+  * rule of the client JS, or when kyo-core changes `Signal.currentWith` or
+  * `nextWith`, this test fails and names the line. Then read the change, update
+  * the runner, and update `src/test/resources/kyo-ui-surface.txt`.
   */
 // claude 2026-10-12: created; changed: the C2 items
+// claude 2026-10-13: changed: the C3 items
 class KyoUiSurfaceTest extends Test[Any]:
 
-    "the UI.Ast types, the Style.Prop cases, the region fields, the Bound cases and the Signal methods are the checked-in list"
+    "the kyo-ui surface that the runner reads and copies is the checked-in list"
       .timeout(120.seconds) in {
       val now   = KyoUiSurface.current
       val base  = KyoUiSurface.checkedIn

@@ -50,6 +50,19 @@ Test / javaOptions ++= Seq(
   "-Dkyo.scheduler.regulator.concurrencyCollectIntervalMs=100",
 )
 
+// The load flag of the glitch tests (gate 1 item 2). The frame contract is
+// SOFT: at most 1 split frame per 10 000 events under load. A glitch test
+// sends 500 events and asserts 0 split frames; on a loaded 2-CPU CI runner
+// that gives about a 5 percent chance of 1 split, while a real regression
+// gives many. So CI sets TUI4S_LOAD=1 (.github/workflows/ci.yml) and the test
+// JVM gets -Dtui4s.load=1, which allows 1 split in 500 events. Without the
+// variable (a developer machine) the assertion stays 0.
+// claude 2026-10-13: created (C3)
+Test / javaOptions ++= {
+  if (sys.env.get("TUI4S_LOAD").exists(_.trim == "1")) Seq("-Dtui4s.load=1")
+  else Seq.empty
+}
+
 // The suites run one at a time inside the forked JVM: the settle of the
 // runner reads the JVM-wide scheduler, so a suite that runs next to another
 // one sees its load. This is sbt's default for a forked JVM; it is set here

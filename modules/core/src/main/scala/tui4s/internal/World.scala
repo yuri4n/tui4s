@@ -1,12 +1,20 @@
 package tui4s.internal
 
+// claude 2026-10-13: changed (C3, gate 1 item 1): private[tui4s] on every top-level definition of this file (the seal of tui4s.internal)
+
 import kyo.*
 import kyo.UI.Ast.*
 
 /** A message to the runner fiber. Watchers, the input source and handlers only
   * ever talk to the runner through these.
   */
-enum Msg:
+private[tui4s] enum Msg:
+    // claude 2026-10-13: created (C3): a key, with the sequence number of its
+    // Input frame
+    case Key(ev: UI.KeyboardEvent, seq: Long)
+    // claude 2026-10-13: created (C3, RC-14 part): a bracketed paste, one
+    // event, with the sequence number of its Input frame
+    case Paste(text: String, seq: Long)
     case Resize(size: Size, seq: Long)
     case Content(region: Loc, gen: Long, value: Any)
     // claude 2026-10-12: created the two cases below (K29, D-16): a watcher is
@@ -17,20 +25,25 @@ enum Msg:
 end Msg
 
 /** What drives a region. */
-enum Source:
+private[tui4s] enum Source:
     case One(signal: Signal[UI])
     case Many(fe: Foreach[Any, UI])
     case Bound(ref: SignalRef[?])
     case Local
 
 /** One rendered item of a `Foreach` region. */
-final case class ItemState(key: String, index: Int, value: Any, ui: UI)
+private[tui4s] final case class ItemState(
+    key: String,
+    index: Int,
+    value: Any,
+    ui: UI,
+)
 
 /** A mounted region: its source, its generation (a remount gets a new one, so
   * late messages of the old watcher are ignored), what it shows now, and the
   * fiber that watches its signal.
   */
-final case class RegionState(
+private[tui4s] final case class RegionState(
     path: Loc,
     source: Source,
     gen: Long,
@@ -41,8 +54,14 @@ final case class RegionState(
 
 /** The runner's whole state. Immutable; one `World` per step of the runner
   * loop.
+  *
+  * `carets` holds the caret of each text input that a key moved or edited, as a
+  * GRAPHEME index: 0 to the number of grapheme clusters of its text (what a
+  * reader sees as one character), not a UTF-16 index. No entry is the end of
+  * the text. `Paint` turns it into a cell column.
   */
-final case class World(
+// claude 2026-10-13: changed the Scaladoc (C3): carets are grapheme indexes
+private[tui4s] final case class World(
     root: UI,
     regions: Map[Loc, RegionState],
     laid: Laid,
@@ -84,7 +103,7 @@ final case class World(
     def markNode(p: Loc): World   = copy(dirtyNodes = dirtyNodes + p)
 end World
 
-object World:
+private[tui4s] object World:
     def init(root: UI, size: Size): World =
       World(
         root,
