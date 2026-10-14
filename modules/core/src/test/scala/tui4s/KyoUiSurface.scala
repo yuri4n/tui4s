@@ -14,12 +14,15 @@ import tastyquery.Types.*
 import tastyquery.jdk.ClasspathLoaders
 
 /** The kyo-ui surface that the runner depends on, read from the TASTy of the
-  * kyo-ui jar on the test class path (RC-12, C1 part): the types of
-  * `kyo.UI.Ast` and the cases of `kyo.Style.Prop`. One line per item,
-  * `kind<TAB>name<TAB>detail`, the same format as the spike S3 guard. C2 and C3
-  * add the hashes of the dispatch and region rules.
+  * kyo-ui jar on the test class path (RC-12): the types of `kyo.UI.Ast` and the
+  * cases of `kyo.Style.Prop` (C1); the fields of `UI.Ast.Reactive` and
+  * `UI.Ast.Foreach`, the cases of `UI.Bound`, and the two `kyo.Signal` methods
+  * of the watcher loop, read from the kyo-core TASTy (C2). One line per item,
+  * `kind<TAB>name<TAB>detail`, the same format as the spike S3 guard. C3 adds
+  * the hashes of the dispatch rules.
   */
-// claude 2026-10-12: created (from .work/spikes/s3-drift/guard/Guard.scala)
+// claude 2026-10-12: created (from .work/spikes/s3-drift/guard/Guard.scala);
+// changed: the C2 part (ast.fields, bound.case, signal.method)
 object KyoUiSurface:
 
     /** One surface line. The key is `(kind, name)`; `detail` is what may
@@ -177,6 +180,68 @@ object KyoUiSurface:
               .map(c => Item("ast.type", full(c), shape(c)))
         end astTypeItems
 
+        /** The constructor fields of the region nodes that `Mount` and `Runner`
+          * match on: `UI.Ast.Reactive` and `UI.Ast.Foreach`.
+          */
+        // claude 2026-10-12: created (RC-12, C2 part)
+        def astFieldItems: List[Item] =
+            val ast = ctx.findStaticModuleClass("kyo.UI.Ast")
+            allClasses
+              .filter(c =>
+                c.owner == ast && !c.isModuleClass &&
+                  Set("Reactive", "Foreach").contains(c.name.toString),
+              )
+              .map(c =>
+                Item("ast.fields", full(c), fields(c).mkString("(", ",", ")")),
+              )
+        end astFieldItems
+
+        /** The cases of `kyo.UI.Bound` (`Const`, `Ref`), with their fields:
+          * `Mount.boundRef` matches on `UI.Bound.Ref`.
+          */
+        // claude 2026-10-12: created (RC-12, C2 part)
+        def boundCaseItems: List[Item] =
+            val bound = ctx.findStaticModuleClass("kyo.UI.Bound")
+            bound.declarations
+              .collect { case c: ClassSymbol if c.isCaseClass => c }
+              .map(c =>
+                Item("bound.case", full(c), fields(c).mkString("(", ",", ")")),
+              )
+
+        /** A method signature: the parameter lists with their types and the
+          * result, shallow.
+          */
+        private def sig(t: Any): String = t match
+            case m: MethodType =>
+              m.paramNames
+                .zip(m.paramTypes)
+                .map((n, p) => s"${nm(n)}:${tpe(p)}")
+                .mkString("(", ",", ")") + sig(m.resultType)
+            case p: PolyType   =>
+              p.paramNames.map(nm).mkString("[", ",", "]") + sig(p.resultType)
+            case other         => ":" + tpe(other)
+
+        /** The `kyo.Signal` methods that the watcher loop of `Mount` uses
+          * (`currentWith`, `nextWith`), read from the kyo-core jar.
+          */
+        // claude 2026-10-12: created (RC-12, C2 part; K29)
+        def signalMethodItems: List[Item] =
+            val signal = ctx.findStaticClass("kyo.Signal")
+            signal.declarations
+              .collect {
+                case t: TermSymbol
+                    if t.isMethod &&
+                      Set("currentWith", "nextWith").contains(
+                        t.name.toString,
+                      ) =>
+                  Item(
+                    "signal.method",
+                    s"Signal.${nm(t.name)}",
+                    sig(t.declaredType),
+                  )
+              }
+        end signalMethodItems
+
         /** The cases of `kyo.Style.Prop`, with the fields of a case class. */
         def propCaseItems: List[Item] =
             val prop = ctx.findStaticClass("kyo.Style.Prop")
@@ -193,8 +258,10 @@ object KyoUiSurface:
             }
         end propCaseItems
 
+        // claude 2026-10-12: changed: the C2 items
         def all: List[Item] =
-          (astTypeItems ++ propCaseItems)
+          (astTypeItems ++ propCaseItems ++ astFieldItems ++ boundCaseItems ++
+            signalMethodItems)
             .distinctBy(_.key)
             .sortBy(i => (i.kind, i.name))
     end Reader

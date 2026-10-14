@@ -35,3 +35,26 @@ Test / javaOptions ++= Seq(
   "--sun-misc-unsafe-memory-access=allow",
   "--enable-native-access=ALL-UNNAMED",
 )
+
+// The tui4s scheduler values (D-17 c). Kyo reads these properties once, when
+// its scheduler starts. With Kyo's defaults the scheduler cycle runs every
+// 100 us; with 10 ms it finds and drains a stalled worker less often, which
+// costs less CPU when the app is idle and gives fewer split frames under
+// load (spike S1: 0 splits with no load, at most 0.75 per 10 000 under load).
+// The test JVM always sets them. `TuiApp` (a later pull request) brings
+// `tui4s.spi.SchedulerDefaults`, which sets the same values for a real app.
+// claude 2026-10-12: created
+Test / javaOptions ++= Seq(
+  "-Dkyo.scheduler.cycleIntervalNs=10000000",
+  "-Dkyo.scheduler.blockingMonitorIntervalNs=20000000",
+  "-Dkyo.scheduler.regulator.concurrencyCollectIntervalMs=100",
+)
+
+// The suites run one at a time inside the forked JVM: the settle of the
+// runner reads the JVM-wide scheduler, so a suite that runs next to another
+// one sees its load. This is sbt's default for a forked JVM; it is set here
+// so that a change is a visible decision. Inside a suite, kyo-test runs the
+// leaves in parallel unless the suite says `config.sequential` (the runner
+// suites do).
+// claude 2026-10-12: created
+Test / testForkedParallel := false
