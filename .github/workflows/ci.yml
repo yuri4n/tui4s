@@ -62,9 +62,11 @@ jobs:
       # first (the package index of the image can be old); the logs of a
       # failed run are kept as an artifact
       - run: sudo apt-get update && sudo apt-get install -y expect
-      # Starts the Counter example in a pseudo-terminal, sends keys, checks the
-      # screen and that the terminal is restored (examples/README.md). The
-      # runner has no JAVA_TOOL_OPTIONS; run.sh unsets it for the app anyway.
+      # Starts each example in a pseudo-terminal, sends keys and signals,
+      # checks the screens and that the terminal is restored
+      # (examples/README.md). The runner has no JAVA_TOOL_OPTIONS; run.sh
+      # unsets it for the app anyway.
+      # claude 2026-10-13: changed (T2): every example, not only the Counter
       - run: examples/ptycheck/run.sh
         env:
           PTY_WORK: ${{ runner.temp }}/ptycheck

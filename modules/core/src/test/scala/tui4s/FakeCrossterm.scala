@@ -175,6 +175,10 @@ final class FakeHooks(log: ConcurrentLinkedQueue[String]) extends Hooks:
     def remove(hook: Thread): Unit =
         val _ = log.add("hook-removed " + hook.getName)
         val _ = removed.add(hook)
+
+    /** Set by a test before it runs the hooks, as the JVM shuts down. */
+    // claude 2026-10-13: created (T2, RC-24)
+    @volatile var shuttingDown: Boolean = false
 end FakeHooks
 
 /** A stderr for tests: each line it gets is recorded as "err: <line>" in `log`,

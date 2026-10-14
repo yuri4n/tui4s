@@ -123,9 +123,9 @@ lazy val examples = project
     // The tui4s scheduler values (D-17 c), as JVM flags: Kyo reads them once,
     // when its scheduler starts. With them the runner gives fewer split
     // frames under load and uses less CPU when the app is idle (spike S1).
-    // `TuiApp` (a later pull request) sets them in code
-    // (`tui4s.spi.SchedulerDefaults`); an app with its own `main` gives them
-    // as here.
+    // A `TuiApp` also sets them in code (`tui4s.spi.SchedulerDefaults`); an
+    // app with its own `main` (examples.counterkyo) needs them as here.
+    // claude 2026-10-13: changed (T2): TuiApp is here
     run / javaOptions ++= Seq(
       "-Dkyo.scheduler.cycleIntervalNs=10000000",
       "-Dkyo.scheduler.blockingMonitorIntervalNs=20000000",
@@ -159,8 +159,10 @@ lazy val examples = project
       val bin   = target.value / "bin"
       val mains = (Compile / discoveredMainClasses).value
         .filter(_.startsWith("examples."))
-      // The package names the script (examples.counter.CounterKyoApp ->
+      // The package names the script (examples.counter.CounterApp ->
       // counter), so one package has one main.
+      // claude 2026-10-13: changed (T2, review R1-6): the example is
+      // CounterApp (CounterKyoApp is in examples.counterkyo now)
       // claude 2026-10-13: created: two mains in one package stop the task
       val names = mains.map(main => main -> main.split('.').init.last)
       names.groupBy(_._2).foreach { case (name, ms) =>

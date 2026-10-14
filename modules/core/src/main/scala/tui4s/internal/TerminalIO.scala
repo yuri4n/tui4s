@@ -14,6 +14,14 @@ private[tui4s] trait Hooks:
     /** Removes `hook`; does nothing while the JVM shuts down. */
     def remove(hook: Thread): Unit
 
+    /** True when the JVM shuts down: it runs its shutdown hooks (SIGTERM,
+      * SIGINT, `System.exit`) and takes no new hook.
+      */
+    // claude 2026-10-13: created (T2, RC-24): TuiApp prints nothing and skips
+    // onExit when the JVM stops the app
+    def shuttingDown: Boolean
+end Hooks
+
 private[tui4s] object Hooks:
     /** The JVM's own hooks. */
     val runtime: Hooks = new Hooks:
@@ -21,7 +29,20 @@ private[tui4s] object Hooks:
           java.lang.Runtime.getRuntime.nn.addShutdownHook(hook)
         def remove(hook: Thread): Unit =
           try discard(java.lang.Runtime.getRuntime.nn.removeShutdownHook(hook))
-          catch case _: IllegalStateException => () // shutdown in progress
+          catch
+              case _: IllegalStateException => () // shutdown in progress
+        // claude 2026-10-13: created (T2, RC-24): the JVM refuses a new hook
+        // once it runs its hooks; the probe is a thread that does nothing
+        def shuttingDown: Boolean      =
+            val probe = Thread(() => (), "tui4s-probe")
+            try
+                java.lang.Runtime.getRuntime.nn.addShutdownHook(probe)
+                discard(
+                  java.lang.Runtime.getRuntime.nn.removeShutdownHook(probe),
+                )
+                false
+            catch case _: IllegalStateException => true
+        end shuttingDown
 end Hooks
 
 /** The real terminal: a [[TerminalControl]] over [[Crossterm]].

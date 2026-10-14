@@ -82,6 +82,8 @@ object CounterComponents:
 end CounterComponents
 
 // claude 2026-10-13: changed (C4): the three mains of the prototype
-// (CounterHooksMain, CounterHooksDynamicMain, CounterComponentsMain) are cut:
-// the runnable CounterStyles example with its mains and its PTY row comes in
-// T2 (feat/kyoui-06-app-examples). This file is a test fixture.
+// (CounterHooksMain, CounterHooksDynamicMain, CounterComponentsMain) are cut.
+// This file is a test fixture.
+// claude 2026-10-13: changed (T2): the runnable example with one main and its
+// PTY row is examples/src/main/scala/examples/counterstyles (core cannot
+// depend on the examples, so this fixture stays).

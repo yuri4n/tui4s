@@ -43,7 +43,10 @@ import tui4s.spi.Settle
   *   `scala.Console.out`, which keeps the stream that `System.out` was when
   *   `scala.Console` was first used: when it was used before the run, `println`
   *   is not captured, and the run says so in the log and on stderr after the
-  *   terminal is restored. With `false`, nothing is captured.
+  *   terminal is restored. A [[TuiApp]] installs the capture streams in its
+  *   constructor, before the app's own code, so this does not happen to it;
+  *   with `Tui.run` in a main of its own, start the run before the first
+  *   `println`. With `false`, nothing is captured.
   * @param logFile
   *   where the Kyo log of the run and the captured output go (appended). `None`
   *   (the default): no file; the last 200 lines of captured output and of log
@@ -81,6 +84,8 @@ import tui4s.spi.Settle
 // pendingTimeout: a quit ends the wait
 // claude 2026-10-13: changed (C4, review R2-5): the Scaladoc of
 // pendingTimeout: a body that fails ends the wait
+// claude 2026-10-13: changed (T2, review R1-3): the Scaladoc of captureOutput:
+// a TuiApp installs the capture in its constructor
 final case class TuiOptions(
     autoFocus: Boolean = true,
     settle: Settle = Settle.Quiescent(Duration.ofMillis(100)),
