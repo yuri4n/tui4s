@@ -1,0 +1,265 @@
+After the merge, a tui4s app has a main class: `object App extends tui4s.TuiApp` with `def ui: UI < (Async & Scope)` (and `options`, `args`, `onExit`). Its constructor sets the tui4s scheduler values (`tui4s.spi.SchedulerDefaults`) and installs the output capture before the app's own code; its `main` runs the UI with `Tui.run` and gives the exit code of D-24 (a): 0 after a quit or the Ctrl-C key, 1 after a failure (printed after the restore), and on `kill -TERM` or `kill -INT` a shutdown hook interrupts the run, waits at most 2 s for the restore, and the JVM exits with 143 or 130. The examples have one main per package: all are `TuiApp`s except the Counter with a `KyoApp` main of its own (`counterkyo`), and Widgets is a library with no main. Each UI has a munit suite on `Headless`: the hooks Counter (the README quick start, pinned to the file by a test), two counters, both component styles, Todo, Dashboard, a print check. The PTY kit checks every example in a pseudo-terminal: 53 terminal rows and 68 screen checks (kill -TERM 143, kill -INT 130, a println before the run and prints while the UI is up that never reach the screen, Todo typing, paste, save; Dashboard live, pause, tabs, resize; both component styles), and an INFO line with the class-load count of the real Counter launcher (4087 classes). Base: PR #15 (C4, `feat/kyoui-05-components`) at 9047a50.
+
+## P-1 One purpose
+
+A tui4s app is a `TuiApp` main class, and every example runs in the real terminal, checked in a pseudo-terminal.
+
+## P-2 Size
+
+Hand-written main lines, from the format commit 001484c to the tip 4f174ed:
+
+- Scala, core (`git diff --numstat 001484c 4f174ed -- modules/core/src/main`): **+171/-66** (`-w`: +168/-63), 6 files: `TuiApp.scala` +127/-57 (the carried PR 5 file, adapted to kyo-ui), `internal/TerminalIO.scala` +22/-1 (`Hooks.shuttingDown`), `spi/SchedulerDefaults.scala` +7/-3 (Scaladoc only, review R1-5), `TuiOptions.scala` +6/-1 (Scaladoc, review R1-3), `package.scala` +5/-1, `internal/OutputCapture.scala` +4/-3 (Scaladoc).
+- Scala, examples (`git diff --numstat 001484c 4f174ed -- examples/src/main`): **+312/-135** (`-w`: +311/-134), 8 files: `counter/Counter.scala` +20/-27, `counterkyo/CounterKyoApp.scala` +31 (new; moved from `counter`), `counterstyles/CounterStyles.scala` +50/-47, `dashboard/Dashboard.scala` +53/-16, `printing/Printing.scala` +76 (new), `todo/Todo.scala` +53/-12, `twocounters/TwoCounters.scala` +25/-32, `widgets/Widgets.scala` +4/-1.
+- Script, the PTY kit (`git diff --numstat 9047a50 4f174ed -- examples/ptycheck`): **+419/-6**: `check.py` +227/-3, `checklist.exp` +192/-3. `run.sh` and `vt.py` do not change. CI: `ci.yml` +5/-3 (a comment).
+
+So about 483 Scala lines and 419 script lines of hand-written main code (plan estimate: about 650 Scala and 250 script; the Scala is smaller because most of it is carried, the script is larger because the kit has a row for every example). Limit: about 1500; no split.
+
+Carried (P-8): 939 lines at the carry commit b88196c: main 587 (`TuiApp.scala` 136, `spi/SchedulerDefaults.scala` 63, the prototype apps 388: Counter 58, CounterStyles 78, Dashboard 98, Todo 114, Widgets 40), tests 352 (`TuiAppTest.scala` 280, `SchedulerDefaultsTest.scala` 72). Tests (against the base 9047a50): +1410/-14 in 12 files (TuiAppTest 503, SchedulerDefaultsTest 137, the example suites: CounterSuite +44/-11, TwoCountersSuite 57, CounterStylesSuite 77, TodoSuite 159, DashboardSuite 174, WidgetsSuite 55, PrintingSuite 58, ReadmeSuite 137; FakeCrossterm +4; the C4 fixture CounterStyles +5/-3 in a comment). Docs: AGENTS.md +35/-6, README.md +87/-19, examples/README.md +94/-40; build files +9/-6 (comments). Whole PR against its base (`git diff --shortstat 9047a50 4f174ed`): 34 files, +3110/-127.
+
+## P-3 Working base
+
+Base: `feat/kyoui-05-components` at 9047a50 (PR #15, C4: the code tip 46fe338 and the merge-up of T1's round 2 b912d3b; its check after the merge-up: 209 core leaves, 0 warnings, `c4-mergeup-check.log`). C4 stacks on PR #14 `feat/kyoui-04-terminal` b912d3b, PR #13 `feat/kyoui-03-input` a6c4598, PR #11 `feat/kyoui-02-regions` 0646343, PR #10 `feat/kyoui-01-render` f525808, `main` 863db67.
+
+This PR adds 20 commits: 15, then 5 review fixes ("Review fixes"). The check at the tip 4f174ed, alone on the machine (4 CPUs, JDK 25.0.4.1; `pgrep -x java` empty before the run; the tree clean): `sbt fmt` (no change), then `SBT_TPOLECAT_CI=1 sbt -Dsbt.supershell=false clean check`: exit 0, 152 s, 0 `[warn]`, 0 `[error]`; core (kyo-test) 228 passed, 0 failed, 3 ignored (the stress probes), 34 suites; examples (munit) 35 passed, 8 suites; scalafmt checks and `versionPolicyCheck` green (`.work/impl/t2-fix-check.log`; its header has the command, the date, the commit, the tree and the `pgrep` result). `bash scripts/version-order-test.sh`: 55 of 55 (`t2-fix-version-order-test.log`). The PTY kit with its own launchers build: 53 of 53 terminal rows, 68 of 68 screen checks, `ALL ROWS PASSED` (`t2-fix-pty.log`). The check before the review fixes, at 490aea7: `t2-check.log` (227 + 35 passed, 0 warnings), `t2-pty.log` (53 + 65 rows). The 3 final test runs and the 3 PTY runs (one of each under CPU contention) are for the final-runs agent.
+
+## P-4 Final shape first
+
+Public types and members that this PR adds, in their final shape (the full list is in "API review"):
+
+- `abstract class TuiApp` (package `tui4s`): `def ui: UI < (Async & Scope)` (abstract; `Tui.quit` ends the run, so an app whose UI is a function of the quit value passes `Tui.quit` to it), `def options: TuiOptions = TuiOptions()`, `protected final def args: Seq[String]`, `protected def onExit: Unit < (Async & Abort[Throwable]) = ()` (no state parameter: a kyo-ui app keeps its state in its signals), `final def main(args: Array[String]): Unit`. The constructor calls `SchedulerDefaults.applyIfUnset()` and `OutputCapture.install()` first.
+- `object SchedulerDefaults` (package `tui4s.spi`), carried from PR 5 with its code unchanged (its Scaladoc names `TuiApp`, review R1-5): `OptOut`, `defaults`, `envName`, `applyIfUnset()`.
+
+## P-5 Never port the replaced
+
+No file of this PR is replaced by a later PR of the stack. Not ported: PR 5's `TuiApp[S] extends App[S]` shape (`init`, `update`, `view`, `source`, `onExit(state)`, `TuiRun`: the old model; only the main-class part is carried and adapted), PR 5's old-model examples (`CounterApp` with a `Keymap`, `TodoApp`, `DashboardApp`) and their suites (read for the test ideas only: the load, `d` and `q` in the text field, Ctrl-S, a failed load; a sample moves the gauge, pause, the tabs, live samples), `ParitySuite` and `project/FacadeParity.scala` (OS-44), `examples/ptycheck/analyze.py` (vt.py and check.py replace it in T1), `GuardTest` (it tests the old `NotForeign`, plan 6.6). Nothing of P1 (no trace writer, no bench) and nothing of the facades.
+
+## P-6 Fix with the code
+
+No known bug of the carried code is open. One defect of the PR 5 design, found while adapting it, is fixed in the commit that brings `TuiApp` (2b3310d), with its tests and negative controls:
+
+| Defect | Fix | Test | Negative control (`.work/impl/`) |
+| --- | --- | --- | --- |
+| On SIGTERM the JVM starts all shutdown hooks at once. The restore hook of the session closes the inbox, and the runner then ends the run as a quit (a closed inbox is `Msg.Quit`), so `onExit` could run, and the main thread could print "interrupted", while the JVM halts: output that races with the exit (PR 5 printed "interrupted" and accepted exit code 1 or 143 in its kill row). | `internal.Hooks.shuttingDown` (the JVM refuses a new hook while it runs its hooks; `FakeHooks` has a flag). When it is true, `runMain` skips `onExit` and prints nothing; the JVM gives the exit code. | TuiAppTest "SIGTERM: both hooks at once ...", "the restore hook first, then the stop hook: nothing printed, no onExit", "System.exit in a handler ..."; the PTY rows `counter kill -TERM` and `counter kill -INT` (the next output after the restore is `EXIT=143` or `EXIT=130`) | without the two `shuttingDown` checks (a temporary edit at the tip 490aea7, restored) the three leaves FAIL with `Vector(interrupted)` (`t2-shuttingdown-negative-control.log`) |
+| The stop hook is the part of `TuiApp` that interrupts the run on a stop by the JVM. | `TuiApp.block` registers `tui4s-stop` (carried). | the same leaves, and the hook calls in "no terminal" and "a run that quits" | without the hook registration 5 leaves FAIL, the SIGTERM leaf with "the stop hook took -1 ms (-1: it did not run)" (`t2-stophook-negative-control.log`) |
+
+The other negative controls are in the table "Negative controls".
+
+## P-7 Commit map
+
+| # | Commit | What |
+| --- | --- | --- |
+| 1 | b88196c carry | 9 files: `666a8e3:modules/core/src/main/scala/tui4s/TuiApp.scala`, `spi/SchedulerDefaults.scala`, `src/test/.../TuiAppTest.scala`, `SchedulerDefaultsTest.scala` at the same paths, byte-identical; the prototype apps `1d100ed:.work/proto/kyoui-runner/apps/{Counter,CounterStyles,Dashboard,Todo,Widgets}.scala` to `examples/src/main/scala/examples/{twocounters/TwoCounters,counterstyles/CounterStyles,dashboard/Dashboard,todo/Todo,widgets/Widgets}.scala`, only the package line changes. The prototype's `Counter.scala` goes to `twocounters`: its single Counter is already `examples/counter/Counter.scala` (T1), so this file brings the two counters. Verified with `t2-carry-verify.py` (a line comparison that ignores blank, package, import and mark lines; RESULT OK, 939 lines; `t2-carry-verify.log`). It does not compile alone (P-7). |
+| 2 | 001484c format | `sbt fmt` only: the five prototype apps (the prototype had 120 columns; this repository wraps at 80), +372/-223, whitespace and line breaks; the four PR 5 files had this repository's format (no change). The `// claude <date>` marks of the carried files: **0 before, 0 after** (the sources had none) (`t2-step2-fmt.log`). It does not compile either: the carried core `TuiApp[S] extends App[S]` (review R1-7). |
+| 4a | 2b3310d TuiApp | `TuiApp` for kyo-ui in its final shape; `internal.Hooks.shuttingDown`; `FakeHooks.shuttingDown`; TuiAppTest as kyo-test leaves on FakeCrossterm (10). It comes BEFORE step 3: the carried `TuiApp[S] extends App[S]` does not compile against the new API. The core compiles and its tests run here; the `examples` project does not compile until 95ae247 (the carried apps still import `tui4s.kyoui`; review R1-7). So the carry commit, the format commit and this commit do not compile all projects; 95ae247 is the first that does: bisect with `--first-parent`. (`t2-step4a-test-2.log`, `core/testOnly` only; the negative control of the hook registration, P-6 row 2: `t2-stophook-negative-control.log`.) |
+| 4a' + 3 | 95ae247 adapt | The carried apps compile on the tui4s API (imports `tui4s.Tui`, `tui4s.Component`, `tui4s.Hooks.*`; the Dashboard imports `examples.widgets.Widgets`; the prototype's seven `KyoApp` mains are cut: each example gets one `TuiApp` main in its own commit). Step 3, strict flags: **0 warnings** on the carried code in CI mode (the carried core files in 4a, the apps here), so **0 lines** changed for the flags (`t2-step3-warnings.log`). |
+| 4b | bb8369d SchedulerDefaults | `spi/SchedulerDefaults.scala` unchanged (RC-25). Its test was already kyo-test with the opt-out leaf; now sequential, +2 leaves on the JVM's own properties (they put them back): the opt-out leaves the properties alone; the `TuiApp` constructor sets them before the app's fields (`t2-step4b-test.log`; negative control `t2-schedulerdefaults-negative-control.log`). |
+| 4c | 80b7518 Counter | `examples.counter.CounterApp` (a `TuiApp`; `Counter.ui` with `useSignal`, the hooks Counter); `CounterKyoApp` moves to `examples.counterkyo`; the native-access row of the kit starts `CounterApp`; the region lines for the README. CounterSuite 6 (+2). PTY kit green with the `TuiApp` counter (`t2-step4c-counter-test.log`, `t2-pty-counter.log`). |
+| 4c | e03171b two counters | `examples.twocounters.TwoCountersApp`; TwoCountersSuite 3. |
+| 4c | ed28584 CounterStyles | `examples.counterstyles.CounterStylesApp`: one main for both styles (see "Examples"); CounterStylesSuite 4. |
+| 4c | c04fd84 Todo | `examples.todo.TodoApp` (the file is the first argument, or `todos.txt`); a file that cannot be read is in the status line; TodoSuite 8. |
+| 4c | 0b4745f Widgets | a library with no main (Scaladoc); WidgetsSuite 4. |
+| 4c | bcb2a8b Dashboard | `examples.dashboard.DashboardApp`; the periods of the sampler and of the log are parameters; DashboardSuite 6. |
+| 4c | 643dfc1 Printing | `examples.printing.PrintingApp`: the kit example for the println row (`--log <file>`: args and options); PrintingSuite 2. All example suites: 33 passed in CI mode (`t2-step4c-test-1.log`). |
+| 4d | b6541ed PTY rows | the rows of all the examples in checklist.exp and check.py; the class-load INFO line; the comment of the CI job (`t2-pty-rows-try-1.log`, `t2-pty-rows-try-2.log`, `t2-pty-negative-control.log`). |
+| 4e | 149fbf6 docs | README quick start with the `ReadmeSuite` that pins the two code blocks to the files; examples/README.md; AGENTS.md; the package Scaladoc; comments in OutputCapture, build.sbt, modules/core/build.sbt and the C4 fixture (`t2-step4e-docs.log`). |
+| 5 | 490aea7 marker | the format of 4a had joined the cause print of `TuiApp.describe` with its `if` and made its marker a wrapped block comment; the print is a line of its own again (found by the marker grep); the Scaladoc of `ui` (`t2-marker-fix-test.log`). A new commit, not an amend (P-9). |
+| R1 | 6dee8dc printing | Review R1-1: `PrintingApp` prints one line before the run (the IR output probe, R3); check.py: that line comes before the alternate screen, no printed line on the screen, after the restore only the two lines of the run and `EXIT=0`, no R3 warning; with `--log`, nothing in the terminal after the alternate screen starts, and the file has only the two lines of the run. Review R1-8: the row name `ctrlc` in examples/README.md (`t2-fix-pty.log`; negative control `t2-fix-pty-negative-control.log`). |
+| R2 | f277276 tests | Review R2-1: TuiAppTest "an onExit that fails" (11 leaves). Review R1-9: the `applyIfUnset` leaf runs without the test JVM's properties (`t2-fix-suites-2.log`; negative controls `t2-fix-negative-controls.log`). |
+| R3 | 0f780f7 Dashboard leaf | Review R1-2: the pause leaf waits for a steady sparkline (the row the same in two screens 300 ms apart, at most 40 times), not a fixed 200 ms (negative control `t2-fix-negative-controls.log`). |
+| R4 | 8f72c57 docs | Reviews R1-3 (`TuiOptions.captureOutput`), R1-4 (AGENTS.md), R1-6 (build.sbt, `Dashboard.tick`), R1-10 (the mark on `TuiApp.block`), R2-4 (a comment at `TuiApp.main`). No code change. |
+| R5 | 4f174ed SchedulerDefaults | Review R1-5: the Scaladoc names `TuiApp` and no SPEC section; the code stays as carried. Alone, so that it can be reverted ("Questions for the user"). |
+
+Every build commit was fmt-clean before it was made (`sbt fmt` ran before each commit, in the same sbt call as the tests); the check at the tip runs `scalafmtCheckAll` and `scalafmtSbtCheck`. The commits that do not compile all projects: b88196c, 001484c, 2b3310d (rows 1, 2, 4a).
+
+## P-8 Delta guide
+
+Sources: `666a8e3` = PR 5 head (`origin/feat/core-3-terminal`); `1d100ed` = the prototype on `origin/wip/handoff` (`.work/proto/kyoui-runner/apps`, byte-identical to the local copy). The carry commit b88196c holds the source blobs; the format commit 001484c is the formatted state; the hand-written delta of a carried file is `git diff 001484c 4f174ed -- <new path>`.
+
+| New file | Source | Delta command |
+| --- | --- | --- |
+| `modules/core/src/main/scala/tui4s/TuiApp.scala` | `666a8e3:modules/core/src/main/scala/tui4s/TuiApp.scala` | `git diff 666a8e3:modules/core/src/main/scala/tui4s/TuiApp.scala 4f174ed:modules/core/src/main/scala/tui4s/TuiApp.scala` (+127/-57) |
+| `modules/core/src/main/scala/tui4s/spi/SchedulerDefaults.scala` | `666a8e3:modules/core/src/main/scala/tui4s/spi/SchedulerDefaults.scala` | `git diff 666a8e3:modules/core/src/main/scala/tui4s/spi/SchedulerDefaults.scala 4f174ed:modules/core/src/main/scala/tui4s/spi/SchedulerDefaults.scala` (+7/-3: the Scaladoc only, review R1-5 in 4f174ed; the code is unchanged: `git diff 666a8e3:modules/core/src/main/scala/tui4s/spi/SchedulerDefaults.scala 490aea7:modules/core/src/main/scala/tui4s/spi/SchedulerDefaults.scala` is empty) |
+| `modules/core/src/test/scala/tui4s/TuiAppTest.scala` | `666a8e3:modules/core/src/test/scala/tui4s/TuiAppTest.scala` | `git diff 666a8e3:modules/core/src/test/scala/tui4s/TuiAppTest.scala 4f174ed:modules/core/src/test/scala/tui4s/TuiAppTest.scala` (+380/-157) |
+| `modules/core/src/test/scala/tui4s/SchedulerDefaultsTest.scala` | `666a8e3:modules/core/src/test/scala/tui4s/SchedulerDefaultsTest.scala` | `git diff 666a8e3:modules/core/src/test/scala/tui4s/SchedulerDefaultsTest.scala 4f174ed:modules/core/src/test/scala/tui4s/SchedulerDefaultsTest.scala` (+72/-7) |
+| `examples/src/main/scala/examples/twocounters/TwoCounters.scala` | `1d100ed:.work/proto/kyoui-runner/apps/Counter.scala` (the `counter` and `twoCounters` part) | `git diff 1d100ed:.work/proto/kyoui-runner/apps/Counter.scala 4f174ed:examples/src/main/scala/examples/twocounters/TwoCounters.scala` |
+| `examples/src/main/scala/examples/counterstyles/CounterStyles.scala` | `1d100ed:.work/proto/kyoui-runner/apps/CounterStyles.scala` | `git diff 1d100ed:.work/proto/kyoui-runner/apps/CounterStyles.scala 4f174ed:examples/src/main/scala/examples/counterstyles/CounterStyles.scala` |
+| `examples/src/main/scala/examples/dashboard/Dashboard.scala` | `1d100ed:.work/proto/kyoui-runner/apps/Dashboard.scala` | `git diff 1d100ed:.work/proto/kyoui-runner/apps/Dashboard.scala 4f174ed:examples/src/main/scala/examples/dashboard/Dashboard.scala` |
+| `examples/src/main/scala/examples/todo/Todo.scala` | `1d100ed:.work/proto/kyoui-runner/apps/Todo.scala` | `git diff 1d100ed:.work/proto/kyoui-runner/apps/Todo.scala 4f174ed:examples/src/main/scala/examples/todo/Todo.scala` |
+| `examples/src/main/scala/examples/widgets/Widgets.scala` | `1d100ed:.work/proto/kyoui-runner/apps/Widgets.scala` | `git diff 1d100ed:.work/proto/kyoui-runner/apps/Widgets.scala 4f174ed:examples/src/main/scala/examples/widgets/Widgets.scala` |
+| `examples/src/main/scala/examples/counter/Counter.scala` (changed, T1's file) | `1d100ed:.work/proto/kyoui-runner/apps/Counter.scala` (T1 wrote it from there) | `git diff 9047a50 4f174ed -- examples/src/main/scala/examples/counter/Counter.scala` |
+| `examples/src/main/scala/examples/counterkyo/CounterKyoApp.scala` (new) | `9047a50:examples/src/main/scala/examples/counter/Counter.scala` (`CounterKyoApp`, lines 45-64) | `git show 9047a50:examples/src/main/scala/examples/counter/Counter.scala \| sed -n 45,64p` against the new file |
+| `examples/src/main/scala/examples/printing/Printing.scala` (new) | none (the IR output probe as a kit example) | `git show 4f174ed:examples/src/main/scala/examples/printing/Printing.scala` |
+| `examples/ptycheck/checklist.exp`, `check.py` (changed) | the Todo rows of `1d100ed:.work/proto/kyoui-runner/pty/checklist.exp` and `check.py`; the kill and Dashboard rows of `666a8e3:examples/ptycheck/checklist.exp` | `git diff 9047a50 4f174ed -- examples/ptycheck` |
+
+## P-9 No rewrite
+
+No amend, no rebase, no force push. The marker line that the format of 4a broke is fixed in a new commit (490aea7). The review fixes are five new commits (6dee8dc to 4f174ed, "Review fixes").
+
+## P-10 Docs true at each merge
+
+- AGENTS.md "What tui4s is": `TuiApp` is the main class of an app (members, the constructor, the exit codes, the stop hook and its 2 s), and the examples have one main per package: all `TuiApp`s except `counterkyo` (a `KyoApp` main of its own), `widgets` is a library with no main, each UI has a munit suite on `Headless` (review R1-4). True: TuiAppTest, SchedulerDefaultsTest, the example suites, the PTY rows.
+- "Daily commands": the row `examples/target/bin/<app>` lists the seven scripts; the PTY-kit rule names `TuiApp` and the JDK of the kit. True: the launchers build of `t2-fix-pty.log` writes the seven scripts.
+- "Rules for code": a `TuiApp` installs the capture in its constructor, so `println` is captured too (true: the PTY rows `printing`: the app prints before the run, and its later prints are still captured; without `install()` in the constructor the rows fail, `t2-fix-pty-negative-control.log`); `TuiApp` sets the scheduler values in code, first in its constructor (the sentence "`TuiApp`, in a later pull request" goes; true: SchedulerDefaultsTest "the constructor of TuiApp ..."); a new item: when the JVM stops a `TuiApp`, the stop hook, the 2 s, no print and no `onExit` (true: TuiAppTest, the kill rows).
+- README: the status line (a `TuiApp` main class); "Quick start" shows the hooks Counter (`useSignal`) with `CounterApp extends TuiApp`, and a `Headless` test of it; both code blocks are the text of the example files (ReadmeSuite); the text names the exit codes, the scheduler values in code, a main of its own, and the other examples.
+- examples/README.md: every app (main class, script, what it shows; Widgets is a library), the run (the exit codes, the scheduler values in code or as flags, program arguments), the tests (one suite per example; ReadmeSuite and its marking), the rows of all the PTY cases (the first column is the start of the row names in the output; `ctrlc` too, review R1-8), the human checklist with kill -TERM, Todo and Dashboard, the known limits (a span that does not wrap).
+- Scaladoc: the package (`TuiApp`), `TuiApp` (the class: an example, the constructor, the exit codes; each member), `internal.Hooks.shuttingDown`, `OutputCapture` (`TuiApp` calls `install`), `TuiOptions.captureOutput` (a `TuiApp` installs the capture in its constructor, review R1-3), `spi.SchedulerDefaults` (`TuiApp` calls it; no SPEC section, review R1-5), every example object and its `*App` (each names its start script, never `sbt run`: the lesson of the PR 5 thread CounterApp.scala:8), `PrintingApp` (the println before the run), `Todo` and `Dashboard` (their keys), `Dashboard.tick` (no bench yet, review R1-6), `Widgets` (a library). Comments: `build.sbt` (the launchers example is `CounterApp`, review R1-6), `modules/core/build.sbt` (TuiApp is here), `TuiApp.main` (during a stop by the JVM, `System.exit(1)` blocks until the JVM halts with its own code, review R2-4), the C4 fixture CounterStyles (the runnable example is in examples).
+
+## P-11 WIP limit
+
+The eleventh round of DECISIONS (`origin/wip/handoff:.work/DECISIONS.md`) lifted the WIP limit until the terminal PR is open; T1 (PR #14) is open. PRs #10, #11, #13, #14 and #15 are open; this PR (T2) is the sixth above `main`. The order is C3 -> T1 -> C4 -> T2 (eleventh round); this branch is `feat/kyoui-06-app-examples`, as the plan's 6.6 says.
+
+## P-12 Not in this PR
+
+- The trace writer and the bench (`BurstProbe`, the JMH benches): P1 (`feat/kyoui-07-trace-bench`).
+- The ZIO and Cats Effect facades (their `TuiApp` forms, their DSLs, their kit rows): the ZIO phase and the Cats phase (F1 to F4), after spike SZ.
+- A scroll of long content (content below the screen): L1 (`feat/kyoui-08-scroll`).
+- A `span` that wraps its text (the Dashboard's header and help line are cut at 40 columns): a small layout gap, L2 (`feat/kyoui-09-layout-polish`) can take it ("Problems").
+- The CI job `terminal` green 3 times, and the 3 final test runs and 3 PTY runs in a row (one of each under CPU contention): the final-runs agent, then the push.
+- A PTY row for the two counters: their suite covers them; the kit has rows for every other app.
+- Kyo's signal handling of a `KyoApp` main (`counterkyo`) on `kill -TERM`: seen in T1 (143 and 130), not a row (the rows are for the `TuiApp` Counter).
+
+## P-13 Zero warnings
+
+**0 warnings.** `SBT_TPOLECAT_CI=1 sbt -Dsbt.supershell=false clean check` (`-Werror` on) at the tip 4f174ed, alone: exit 0, 152 s, 0 `[warn]`, 0 `[error]` (`.work/impl/t2-fix-check.log`). Core (kyo-test), 228 passed, 0 failed, 3 ignored, 34 suites: AppsTest 14, ComponentTest 17, DispatchTest 12, EventMappingTest 8, GoldenScreenTest 27, HeadlessTest 10, HooksTest 8, KyoUiSurfaceTest 2, LiftTrapTest 2, NameClashTest 2, NativeLoadErrorTest 4, NativeTerminalTest 2, OutputCaptureTest 15, PasteTest 4, PublicApiTest 3, QuitTest 6, RelayoutTest 1, RenderTest 2, **SchedulerDefaultsTest 8 (new)**, ScreenTest 5, SeamTest 3, SessionTest 8, SettleTest 3, StrictEqualityTest 1, TerminalIOTest 18, TextEditTest 13, **TuiAppTest 11 (new)**, TuiOptionsTest 4, TuiRunTest 8, WatcherTest 5, WriteSeamTest 2; LeakProbe, ObserveLeakProbe, SplitProbe ignored. C4 after its merge-up had 209; this PR adds 19. Examples (munit), 35 passed: CounterSuite 6, TwoCountersSuite 3, CounterStylesSuite 4, TodoSuite 8, DashboardSuite 6, WidgetsSuite 4, PrintingSuite 2, ReadmeSuite 2. The glitch lines: `[glitch] splits=0 of 500 (... load flag: false)` and `[glitch-keys] splits=0 of 500 (...)`; `[pending]` 105 ms. Each step compiled and ran its suites in CI mode with 0 warnings (the step logs in P-7). The dev-mode compile of the launchers build in the PTY run gives 0 `[warn]` (`t2-fix-pty-files/launchers.log`). The review fixes ran their suites in CI mode with 0 warnings (`t2-fix-suites-1.log`, `t2-fix-suites-2.log`).
+
+## P-14 New sbt projects
+
+None. `examples` keeps its settings (core only, munit, the launchers task, `publish / skip := true`); it gets new packages and suites. No `version`, no `publishTo`. `versionPolicyCheck` stays green (`Compatibility.None` for the three modules); `compat.sbt` does not change.
+
+## API review (RC-36, at the tip 4f174ed)
+
+PUBLIC, package `tui4s`, added:
+
+- `abstract class TuiApp`: `def ui: UI < (Async & Scope)` (abstract); `def options: TuiOptions` (default `TuiOptions()`); `protected final def args: Seq[String]`; `protected def onExit: Unit < (Async & Abort[Throwable])` (default `()`); `final def main(args: Array[String]): Unit`. The constructor runs `SchedulerDefaults.applyIfUnset()` and `OutputCapture.install()` before the subclass's fields. Scaladoc: an example, the constructor, the three exit codes, each member. The class has no type parameter (PR 5's `TuiApp[S] extends App[S]` is the old model).
+
+PUBLIC, package `tui4s.spi`, added (carried; the code unchanged, RC-25; the Scaladoc names `TuiApp` and no SPEC section, review R1-5): `object SchedulerDefaults` with `val OptOut: String` ("tui4s.schedulerDefaults"), `val defaults: Seq[(String, String)]` (the three scheduler properties and the tui4s values), `def envName(key: String): String`, `def applyIfUnset(): Unit`. It touches no Kyo class, so a call never starts the scheduler.
+
+Unchanged: `Tui`, `TuiError`, `TuiOptions` (still Kyo-free, D-14 a; no new field; one Scaladoc sentence on `captureOutput`, review R1-3), `FrameStats`, `FrameCause`, `Component`, `Hooks`, `spi.Settle`, `testkit.Headless`, `testkit.Screen`. The frame contract and the settle do not change.
+
+Kyo types in the new public signatures: `UI`, `<`, `Async`, `Scope`, `Abort` (as `Tui.run`; kyo-ui is the DSL of the app). No jatatui type, no crossterm type, no type of `tui4s.internal` in a public signature: PublicApiTest (3 leaves) is green.
+
+THE SEAL stays: every top-level definition of `tui4s.internal` is `private[tui4s]`; this PR adds no top-level definition there (only the member `shuttingDown` of the `private[tui4s]` trait `Hooks`). PublicApiTest leaf 1 checks it.
+
+`private[tui4s]` SEAMS, new (bytecode-public; MiMa sees them): `TuiApp.runMain(args: Array[String], crossterm: internal.Crossterm, hooks: internal.Hooks, err: => PrintStream = OutputCapture.realErr): Int` (the test seam: `main` without the exit; it runs through `Tui.runWith` and its existing `restored` seam, so `Tui.runWith` does not change); the companion `private[tui4s] object TuiApp` (`block`, `report`); `internal.Hooks.shuttingDown: Boolean` (a new abstract member of the internal trait: `Hooks.runtime` probes the JVM, `FakeHooks` in the test sources has a flag); `spi.SchedulerDefaults.applyTo(property, env, set): Seq[String]` (carried; the test seam of `applyIfUnset`). `compat.sbt`: no change (`Compatibility.None`).
+
+The prints of `TuiApp` run after the restore, each with the `// tui4s: allowed` marker: 3 lines (`TuiApp.scala:195, 201, 203`); with T1's 14, the core main sources have 17 marked lines and 0 unmarked code lines (`t2-fix-greps.log`).
+
+## Examples
+
+| Example | Main class (package) | Script | What it shows | Suite (leaves) | PTY rows |
+| --- | --- | --- | --- | --- | --- |
+| Counter | `examples.counter.CounterApp` | `counter` | the smallest app: a `TuiApp` with one hook (`useSignal`), key handlers, buttons; the README quick start | CounterSuite (6) | `counter`, `counter ctrl-c`, `counter resize`, `counter kill -TERM`, `counter kill -INT`, `class-load` (INFO), `stdin is a pipe`, `native access denied` |
+| Counter with a main of its own | `examples.counterkyo.CounterKyoApp` | `counterkyo` | a `KyoApp` that calls `Tui.run` (the T1 main, moved): it gives the scheduler values as JVM flags | CounterSuite (the same UI) | `counterkyo` |
+| Two counters | `examples.twocounters.TwoCountersApp` | `twocounters` | a counter is a function that allocates its own state | TwoCountersSuite (3) | none |
+| Counter styles | `examples.counterstyles.CounterStylesApp` | `counterstyles` | both component styles side by side: hook counters that the runner mounts in a `when` (`h` hides them, they lose their state), and `Component` counters. The prototype's three mains become ONE main: one run shows both styles, the cheapest row | CounterStylesSuite (4) | `counterstyles` |
+| Todo | `examples.todo.TodoApp` | `todo [file]` | a list in a file (the argument, or `todos.txt` in the working directory); a form input, Enter adds, Tab to the list, Space toggles, `d` deletes, Ctrl-S saves, a paste is one edit (a line break in it is a space), Esc quits; a file that cannot be read is in the status line | TodoSuite (8, a temporary file) | `todo` |
+| Dashboard | `examples.dashboard.DashboardApp` | `dashboard` | tabs, a gauge and a sparkline fed by a sampler (250 ms; a parameter), a log pane fed by a stream (400 ms; a parameter); arrows, Tab with Space or Enter, `p`, `q`; no use for Esc | DashboardSuite (6, periods of 50 ms) | `dashboard` |
+| Printing | `examples.printing.PrintingApp` | `printing [--log file]` | a `println` while the UI is up never reaches the screen, also after a `println` before the run (the app prints one line when its object is made: the IR output probe, R3); `args` and `options` of a `TuiApp`. A kit example, so the Counter stays the smallest app for the README | PrintingSuite (2) | `printing`, `printing --log` |
+| Widgets | none (`examples.widgets`) | none | a library of UI functions (gauge, sparkline, tabs) that the Dashboard uses: no main | WidgetsSuite (4: the pure text functions and the tabs) | (in `dashboard`) |
+| README | - | - | the quick-start code blocks are the text of `Counter.scala` and `CounterSuite.scala` | ReadmeSuite (2) | - |
+
+## Negative controls (all logs in `.work/impl/`)
+
+| Test | Control | Result | Log |
+| --- | --- | --- | --- |
+| TuiAppTest, the stop hook (task: SIGTERM leaf) | `TuiApp.block` does not register `tui4s-stop` (a temporary edit, restored) | 5 of 10 FAIL: SIGTERM "the stop hook took -1 ms (-1: it did not run)", the restore-first and System.exit leaves (-1 ms), and the hook calls of "no terminal" and "a run that quits" | `t2-stophook-negative-control.log` |
+| TuiAppTest, the stop by the JVM prints nothing (P-6 row 1) | `runMain` without the two `Hooks.shuttingDown` checks | 3 FAIL: SIGTERM, restore-first, System.exit, each with `Vector(interrupted)` | `t2-shuttingdown-negative-control.log` |
+| SchedulerDefaultsTest, the constructor sets the values | no `applyIfUnset()` in the `TuiApp` constructor | the leaf FAILS: `List(null, null, null)` | `t2-schedulerdefaults-negative-control.log` |
+| ReadmeSuite | the second leaf runs the check on a README text whose block differs, a marker without a block, a region without an end | the check reports each one (the leaf asserts that it does) | `t2-check.log` (the leaf passes) |
+| The PTY screen checks (check.py) | the session of `t2-pty-rows-try-2.log`, doctored: a line `printing: ...` inside the alternate screen; no `ESC[?1049l` after kill -TERM; one more sparkline cell while paused | the three rows FAIL, exit 1 | `t2-pty-negative-control.log` |
+| The PTY Dashboard resize row | the first form expected the help line to wrap at 40 columns | FAIL: the span is cut, not wrapped (a layout gap, "Problems"); the row now checks the box width | `t2-pty-rows-try-1.log` |
+| The PTY rows `printing` and `printing --log` (review R1-1) | the `TuiApp` constructor without `OutputCapture.install()` (a temporary edit at 4f174ed, restored; the kit with its launchers build) | 1 terminal row and 5 screen checks FAIL: the log file has the R3 warning and not the two lines; the printed lines are on the screen; after the restore comes the R3 warning, not the two lines | `t2-fix-pty-negative-control.log` |
+| TuiAppTest "an onExit that fails" (review R2-1) | `runMain` swallows a failure of `onExit` (`Abort.run(onExit).unit`) | the leaf FAILS: exit code 0 | `t2-fix-negative-controls.log` |
+| SchedulerDefaultsTest "applyIfUnset sets the JVM properties" (review R1-9) | `applyIfUnset` reads every property as set, so it sets nothing | the leaf FAILS: `List(null, null, null)` (before the fix it passed with this control); the constructor leaf FAILS too | `t2-fix-negative-controls.log` |
+| DashboardSuite, the pause leaf (review R1-2) | the sampler ignores `p` | the leaf FAILS: "the sparkline did not stop moving after p" (12.8 s) | `t2-fix-negative-controls.log` (part 3; part 2 shows the first form of the fix, which ended on munit's 30 s timeout) |
+
+## Review fixes (round 1: reviewers R1 and R2, skeptics K1 and K2)
+
+A finding is fixed when its skeptic confirmed it. A refuted finding is not changed. Each fix is a new commit (P-9); a fix that changes a test or a check has a negative control.
+
+| Finding | Severity | Verdict | Fix, or why not |
+| --- | --- | --- | --- |
+| R1-1: no test or PTY row for "an early println under TuiApp" (plan 6.6, the IR output probe, R3); the printing rows passed without `OutputCapture.install()` in the constructor | major | confirmed (K1) | 6dee8dc: `PrintingApp` prints one line when its object is made (before the run). check.py: that line comes before the alternate screen; no printed line on the screen; after the restore only the two lines of the run, then `EXIT=0`, and no R3 warning; with `--log`, nothing in the terminal after the alternate screen starts, and the file has only the two lines of the run. Negative control: without `install()` in the constructor, 1 terminal row and 5 screen checks FAIL (`t2-fix-pty-negative-control.log`). examples/README.md rows and app table. |
+| R1-2: a fixed 200 ms sleep in the DashboardSuite pause leaf | minor | confirmed (K1) | 0f780f7: a steady wait (the sparkline row the same in two screens 300 ms apart, at most 40 times); no resume wait when the sparkline never stopped. Negative control: a sampler that ignores `p` FAILS the leaf (`t2-fix-negative-controls.log`). Under contention: the final-runs agent. |
+| R1-3: the `TuiOptions.captureOutput` Scaladoc is not true for a `TuiApp` | minor | confirmed (K1) | 8f72c57: one sentence (a `TuiApp` installs the capture in its constructor; with `Tui.run` in a main of its own, start the run before the first `println`). |
+| R1-4: AGENTS.md and the body say that every example is a `TuiApp` with its own suite | minor | confirmed (K1) | 8f72c57: AGENTS.md (one main per package; all `TuiApp`s except `counterkyo`; `widgets` has no main; each UI has a suite); this body: the first paragraph and P-10. |
+| R1-5: the public `SchedulerDefaults` Scaladoc names "SPEC 5.14" and the facades' `TuiApp` classes | minor | confirmed (K1: a doc change needs the orchestrator's decision, the task says "carried UNCHANGED") | 4f174ed: the Scaladoc only, in a commit of its own; the code is as carried (`git diff 666a8e3:... 490aea7:...` empty; the delta guide says it). Revert it if RC-25 means byte-identical ("Questions for the user"). |
+| R1-6: build.sbt names `examples.counter.CounterKyoApp`; `Dashboard.tick` says "the bench calls this" | minor | confirmed (K1) | 8f72c57: `examples.counter.CounterApp -> counter`; "a test or a benchmark can call it directly". |
+| R1-7: the body says that only the carry commit does not compile | minor | confirmed (K1) | this body: P-7 rows 2 and 4a, and the line under the table (b88196c, 001484c and 2b3310d do not compile all projects; 95ae247 is the first that does; bisect with `--first-parent`). |
+| R1-8: the README rows table does not name the row `ctrlc` | minor | confirmed (K1) | 6dee8dc: the first column of the row is `counter ctrl-c`, `ctrlc`. |
+| R1-9: the carried leaf "applyIfUnset sets the JVM properties" passes when `applyIfUnset` does nothing (the test JVM's javaOptions set the properties) | minor | confirmed (K1) | f277276: the leaf runs inside `withoutProperties(None)` and compares the values with the defaults (a key that the environment sets stays unset). Negative control: an `applyIfUnset` that sets nothing FAILS the leaf with `List(null, null, null)` (`t2-fix-negative-controls.log`). |
+| R1-10: `TuiApp.block` changed with no mark | minor | confirmed (K1) | 8f72c57: a mark above `object TuiApp` (the type parameter `A`; the Scaladoc without `onExit`). |
+| R2-1: no leaf for an `onExit` that fails | minor | confirmed (K2) | f277276: TuiAppTest "an onExit that fails: exit code 1, its stack trace after the restore" (11 leaves now). Negative control: a `runMain` that swallows the failure FAILS the leaf with code 0 (`t2-fix-negative-controls.log`). |
+| R2-2: the pause leaf counts samples, which saturate at 40 | minor | refuted (K2: the pause stops the growth, so the count is about 3 to 6; measured margins under contention) | not changed as such: the count assertions stay. The R1-2 fix compares the row text in its steady wait for its own reason (a count wait would pass at a full sparkline with a broken pause). |
+| R2-3: the intentional `println` of `Printing.scala` has no marker | minor | refuted (K2: the marker rule is for `modules/core/src/main` only, in AGENTS.md, the task and the plan) | not changed. |
+| R2-4: the 143/130 exit codes rest on a JDK detail (`System.exit(1)` blocks on `Shutdown.class` during a shutdown) that the code does not say | minor | confirmed (K2) | 8f72c57: a comment at `TuiApp.main` (never replace it with `Runtime.halt`). |
+
+The checks after the fixes (alone, at 4f174ed): `clean check` in CI mode 0 warnings, 228 + 35 passed (`t2-fix-check.log`); the PTY kit 53 + 68 rows (`t2-fix-pty.log`); version order 55 of 55.
+
+## Problems and decisions in this PR
+
+- The eleventh to thirteenth rounds are not in the local `.work/DECISIONS.md`; they are read from `wip/handoff:.work/DECISIONS.md` (0a63f3d). The C4 notes and body are in `.work/impl` of that branch.
+- The commit trailer is "Co-Authored-By: Claude Opus 5.5": the attribution of the session (as in C3, T1 and C4); the task text named "Claude Fable 5.1".
+- The carried `TuiApp` (the old model) does not compile against the new API, so 4a (TuiApp) comes before the strict-flag step 3; step 3 needs 0 line changes (0 warnings in CI mode after 4a and the adapt commit).
+- The stop by the JVM: on SIGTERM the restore hook of the session can end the run as a quit (a closed inbox is `Msg.Quit`) before the stop hook interrupts it. PR 5 then ran `onExit` and printed "interrupted" in a race with the halt of the JVM. Now `runMain` asks `internal.Hooks.shuttingDown` (the JVM refuses a new hook while it runs its hooks: a probe hook is added and removed) and then prints nothing and skips `onExit`. `runMain` returns 1 then, and `main`'s `System.exit(1)` blocks until the JVM halts with its own code (143, 130, or the code of a `System.exit` in the app). The PTY kill rows see `EXIT=143` and `EXIT=130` right after the restore, with nothing between. A `Scope.ensure` of the app may not finish before the JVM exits on a signal (the restore is what the stop hook waits for); the Scaladoc of `ui` says that it runs after a quit.
+- The task's leaf "a failing ui or handler -> 1": a UI that fails gives 1 (its stack trace and cause after the restore); a handler that fails does NOT end the run (C3: it is logged and the run goes on), so its leaf checks the log line after the restore and the exit code 0 after `q`.
+- TuiAppTest filters the R3 warning (`TerminalIO.ConsoleNotCaptured`) out of the printed lines: in the test JVM another suite can use `scala.Console` before `MainCounter` installs the forwarders; OutputCaptureTest covers the warning. The print key of the test app uses `System.out.println` (always captured), not Scala's `println`.
+- The Counter is now the hooks Counter (`useSignal`, which is `Signal.initRef`: no change of behaviour), so the README quick start shows the smallest app with its main class. The println row uses a kit example (`examples.printing`), not a flag of the Counter, so that the Counter and the README stay small. The kit example also prints one line before the run (review R1-1, the IR output probe: R3 is the case where a println before the run makes the later prints reach the screen); the rows check that the later prints are still captured, and they fail without the constructor's `OutputCapture.install()`.
+- CounterStyles: one main for both styles (the prototype had three mains: hooks at the top, hooks mounted in a `when`, the class). One run of the kit shows both styles and the loss of the hook state in a `when`. The core test fixture of C4 stays: core cannot depend on the examples.
+- Widgets has no main: it is a library of UI functions; the Dashboard uses it; WidgetsSuite tests the pure text functions and the tabs.
+- Todo quits with Esc (the prototype's key): `q` and `d` in the input are text (PR 5's TodoSuite idea). The task listed "q quits" for the Todo; the kit sends Esc. A paste with a line break: the single-line input gets a space for the line break (`TuiOptions.paste`), and the paste never adds an item; the kit shows it ('tea time and cake').
+- Todo: a file that cannot be read is now in the status line ("could not load <file>: ..."); the prototype said "loaded 0 items". `Todo.load` returns the `Result`.
+- The Dashboard has no use for Esc; Esc is exercised in the Todo row. The "bold tab" check of the PTY kit needs the bold attribute, which vt.py ignores: check.py has a subclass of `vt.Screen` that keeps it (vt.py does not change).
+- A layout gap found by the Dashboard resize row: at 40 columns the `span`s of the header and of the help line are cut at the edge; they do not wrap (in a browser a span in a column flex container is a flex item and wraps). The Counter's `p` wraps. Not fixed here (L2 can take it); the row checks that the boxes are laid out again (40, then 100 wide), and examples/README.md "Known limits" says it.
+- The carried `SchedulerDefaults` Scaladoc named "SPEC 5.14" (a design document that is not in the repository) and "the `TuiApp` classes of tui4s and of its facades" (no facade has one yet). Review R1-5 confirmed it as untrue public Scaladoc (P-10; T1 fixed the same kind of text, its review R1-3). The commit 4f174ed changes the Scaladoc only; the code stays as carried (RC-25). The skeptic K1 said that this needs a decision of the orchestrator, because the task says "carried UNCHANGED": the commit is alone, so that it can be reverted ("Questions for the user"). The test's Scaladoc names no SPEC either.
+- The class-load INFO line counts 4087 classes for the real Counter launcher (start, first frame, q): JDK 1672, Scala 535, Kyo 905 (kyo-ui 206, kyo-http 0, kyo-net 0), jatatui 37, tui4s core 244, examples 5 (`t2-fix-pty.log`; 243 at 490aea7). So no class of kyo-http or kyo-net loads (D-18: the jars stay on the class path). Spike S4 measured the scala-cli assembly; this is the real launcher.
+- The first frame of each app comes about 1.0-1.2 s after the start command, JVM start included (`t2-fix-pty.log`: 1022 to 1158 ms).
+- `grep -rn TODO examples/src` has one hit that is not a TODO: the word `TODO_FILE` in a comment of `Todo.scala` (the prototype's variable).
+- `sbt core/doc` gives only scaladoc's own note "Option -classpath was updated" (`t2-step4e-docs.log`); no link warning.
+- The final `clean check` removes `examples/target`; the PTY run after it builds the scripts again.
+- The review fixes changed no behaviour of the library: `TuiApp`, `Tui`, `Session`, `TerminalIO` and `OutputCapture` have no code change (a comment at `TuiApp.main` and a mark only). The example `PrintingApp` prints one more line; the tests and the kit check more.
+- The DashboardSuite pause leaf (review R1-2) waits for the sparkline row TEXT to stay the same, not its count of samples: a full sparkline (40 samples) keeps its count while it moves, so a count wait would pass with a broken pause. This is the reason of the R1-2 fix; the leaf's count assertions stay, so the refuted R2-2 is not changed as such.
+
+## Questions for the user
+
+- None that blocks this PR. The span-wrap gap (P-12) needs a yes for L2.
+- Review R1-5: the Scaladoc of the public `tui4s.spi.SchedulerDefaults` no longer names "SPEC 5.14" and the facades' `TuiApp` classes (commit 4f174ed, Scaladoc only; the code is as carried). If RC-25 ("0 changes") means a byte-identical file, revert 4f174ed (a new commit).
+
+## Acceptance (plan 6.0 and 6.6, at the tip 4f174ed)
+
+- Plan 6.0: `sbt check` green, alone, CI mode, 0 warnings: yes (P-13). The timing-sensitive suites in 3 local runs (one under CPU contention): the final-runs agent. `compat.sbt`: no change.
+- From T1 on: the CI job `terminal` (`examples/ptycheck/run.sh`): green locally (53 + 68 rows, `t2-fix-pty.log`); the 3 PTY runs with one under contention: the final-runs agent; the CI runs: after the push.
+- Plan 6.6: `TuiApp` (RC-24, OS-6) with the shutdown hook, the exit codes of D-24 (a), the error after the restore, the constructor's two calls (RC-10 part); `SchedulerDefaults` with its code unchanged and the opt-out (RC-25, OS-7); `TuiAppTest` and `SchedulerDefaultsTest` (RC-27 rest; GuardTest drops); the examples (RC-33, OS-18) with munit suites on `Headless` and Scaladoc that names the launchers; all PTY cases (RC-31 rest, OS-19; the early println under `TuiApp`, review R1-1); the README rows (OS-50); the README quick start with the hooks Counter and its test, the same text as the files (OS-48 part); AGENTS.md (OS-47 part); one `-Xlog:class+load` count of the real Counter launcher: 4087 classes (INFO line of every kit run).
+
+**The PTY rows** (`t2-fix-pty.log`, at 4f174ed with its launchers build; 101 s; `t2-fix-pty-files/` has `session.log`, `screens.txt`, the stty files, `todo-pty.txt`, `printing.log`, `classload.log`):
+
+| Rows | Result |
+| --- | --- |
+| `counter` (alternate screen, first frame, raw mode, `+ + -`, partial repaint 26 bytes per key, `q` 0, restore, stty) | PASS |
+| `counter ctrl-c` (exit 0, restore, stty) | PASS |
+| `counter resize` (40x20 and back, stty) | PASS |
+| `counter kill -TERM` (143, alternate screen left, cursor shown, nothing stray, stty) | PASS |
+| `counter kill -INT` (130, the same) | PASS |
+| `printing` (the println before the run before the alternate screen; no printed line on the screen; after the restore the two lines, then `EXIT=0`; no R3 warning; stty) | PASS |
+| `printing --log` (the println before the run before the alternate screen; after it no printed line and no warning in the terminal; the log file has only the two lines of the run; stty) | PASS |
+| `counterkyo` (`+`, `q`, restore, stty) | PASS |
+| `counterstyles` (counts 1 0 0 0, 1 0 1 0, hidden 1 0, shown 0 0 1 0; `q`; stty) | PASS |
+| `todo` (raw mode, typing, Enter, paste of one line, paste with a line break, Enter, Tab, Space, Ctrl-S, Esc, the file, stty) | PASS |
+| `dashboard` (live, pause with the log going on, resume, the arrows and the bold tab, Tab with Space and Enter, resize, `q`, stty) | PASS |
+| `class-load` | INFO: 4087 classes (see "Problems") |
+| `stdin is a pipe` (NotATerminal, exit 1, stty) | PASS |
+| `native access denied` (`examples.counter.CounterApp`, exit 1, stty) | PASS |
+
+Totals: 53 of 53 terminal rows, 68 of 68 screen checks, `ALL ROWS PASSED` (at 490aea7: 53 and 65, `t2-pty.log`; the review fix R1-1 adds 3 screen checks and changes one).
+
+**The grep checks** (`t2-fix-greps.log` at 4f174ed; `t2-greps.log` at 490aea7): `grep -rnE "System\.err|println|System\.out" modules/core/src/main`: 41 hits = 17 code lines with the marker `// tui4s: allowed` (T1's 14 and `TuiApp.scala` 195, 201, 203) + 24 comment or Scaladoc lines (one more: the `TuiOptions.captureOutput` Scaladoc); 0 other lines. `jatatui.widgets` in `modules/core` and `examples/src`: 0. `getDeclaredField\|setAccessible`: 0. The private[kyo] checks 1 to 5 as C3 (at 490aea7; the review fixes add no Kyo access): no source in package kyo, no `private[kyo]`, no reflection; check 4 has only the hits of C2 and C4 (none in a T2 file); check 5: a throwaway file that calls `Element.withAttrs` fails with E173, removed, the tree clean. TODO: the 4 of C2 (#8, #9).
+
+Marks: 117 new `claude 2026-10-13` mark lines (each new or changed fragment; 96 at 490aea7, 21 in the review fixes); the carried files had 0 marks and have only the T2 marks of their changed fragments.
+
+## Logs (`.work/impl/`)
+
+`t2-notes.txt`, `t2-carry-verify.py`, `t2-carry-verify.log`, `t2-step2-fmt.log`, `t2-step4a-test-1.log`, `t2-step4a-test-2.log`, `t2-stophook-negative-control.log`, `t2-step3-warnings.log`, `t2-step4b-test.log`, `t2-schedulerdefaults-negative-control.log`, `t2-step4c-counter-test.log`, `t2-pty-counter.log` (`t2-pty-counter-files/`), `t2-step4c-test-1.log`, `t2-pty-rows-try-1.log`, `t2-pty-rows-try-2.log` (`t2-pty-rows-files/`), `t2-pty-negative-control.log`, `t2-step4e-docs.log`, `t2-marker-fix-test.log`, `t2-check.log`, `t2-greps.log`, `t2-version-order-test.log`, `t2-pty.log` (`t2-pty-files/`), `t2-shuttingdown-negative-control.log`; the review fixes: `t2-fix-suites-1.log`, `t2-fix-suites-2.log`, `t2-fix-negative-controls.log`, `t2-fix-pty.log` (`t2-fix-pty-files/`), `t2-fix-pty-negative-control.log` (`t2-fix-pty-nc-files/`), `t2-fix-check.log`, `t2-fix-version-order-test.log`, `t2-fix-greps.log`. This body: `t2-pr-body.txt` (the body at 490aea7: `t2-pr-body-490aea7.txt`).
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+https://claude.ai/code/session_013i7PNgzYKkSSTk4McEPUvn

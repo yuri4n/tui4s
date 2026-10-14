@@ -1,0 +1,169 @@
+== negative controls of the review fixes (temporary edits, restored after): (1) SchedulerDefaults.applyIfUnset reads every property as set, so it sets nothing (R1-9); (2) TuiApp.runMain swallows a failure of onExit: Abort.run(onExit).unit (R2-1); (3) Dashboard.sampler ignores p (R1-2: the steady wait is not vacuous)
+== command: sbt -Dsbt.supershell=false core/testOnly(SchedulerDefaultsTest TuiAppTest) examples/testOnly(DashboardSuite)  (dev mode: the edits leave an unused value)
+== date: 2026-10-13T22:39:44+00:00; pgrep -x java: none
++          if false then () // NEGATIVE CONTROL: p does not pause
++          .map(stopping => if stopping then Kyo.unit else Abort.run[Throwable](onExit).unit) // NEGATIVE CONTROL
++          _ => "x", // NEGATIVE CONTROL: applyIfUnset sets nothing
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39053 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-06-app-examples-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/)
+[info] compiling 34 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 47 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39053 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+[1m=== SchedulerDefaultsTest ===[0m
+  [1m[32m[PASS][0m[0m with nothing set, all three keys get their defaults  [2m(38ms)[0m
+  [1m[32m[PASS][0m[0m a system property of the user is kept  [2m(2ms)[0m
+  [1m[32m[PASS][0m[0m an environment variable of the user is respected  [2m(2ms)[0m
+  [1m[32m[PASS][0m[0m -Dtui4s.schedulerDefaults=false turns it off  [2m(1ms)[0m
+  [1m[32m[PASS][0m[0m the environment names are Kyo's  [2m(2ms)[0m
+  [1m[31m[FAIL][0m[0m applyIfUnset sets the JVM properties (idempotent)  [2m(20ms)[0m *** FAILED ***
+
+    assert(after == want, after.toString)
+    // message: List(null, null, null)
+
+  [1m[32m[PASS][0m[0m -Dtui4s.schedulerDefaults=false: applyIfUnset leaves the JVM properties alone  [2m(3ms)[0m
+  [1m[31m[FAIL][0m[0m the constructor of TuiApp sets the values before the app's own fields  [2m(7ms)[0m *** FAILED ***
+
+    assert(seen == SchedulerDefaults.defaults.map(_._2), seen.toString)
+    // message: List(null, null, null)
+
+[2m---[0m SchedulerDefaultsTest: [32m6 passed[0m, [31m2 failed[0m  [2m(426ms)[0m
+FAILURES (2):
+  applyIfUnset sets the JVM properties (idempotent)  [FAIL]
+    assert(after == want, after.toString)
+    // message: List(null, null, null)
+  the constructor of TuiApp sets the values before the app's own fields  [FAIL]
+    assert(seen == SchedulerDefaults.defaults.map(_._2), seen.toString)
+    // message: List(null, null, null)
+
+Results: [32m6 passed[0m, [31m2 failed[0m  (total: 426ms)
+Running 1 suite(s) with parallelism 8
+
+[1m=== TuiAppTest ===[0m
+  [1m[32m[PASS][0m[0m no terminal: exit code 1 and the message, printed after the restore  [2m(105ms)[0m
+  [1m[32m[PASS][0m[0m a run that quits: exit code 0, onExit runs after the restore  [2m(344ms)[0m
+  [1m[32m[PASS][0m[0m the Ctrl-C key: exit code 0 and onExit, as a quit  [2m(54ms)[0m
+  [1m[32m[PASS][0m[0m a UI that fails: exit code 1, the stack trace with its cause after the restore  [2m(41ms)[0m
+  [1m[31m[FAIL][0m[0m an onExit that fails: exit code 1, its stack trace after the restore  [2m(43ms)[0m *** FAILED ***
+
+    assert(code == 1, err.lines.toString)
+    // message: Vector()
+
+  [1m[32m[PASS][0m[0m a handler that fails: the run goes on, the error comes after the restore, q gives 0  [2m(69ms)[0m
+  [1m[32m[PASS][0m[0m the arguments reach the app: the UI shows them  [2m(42ms)[0m
+  [1m[32m[PASS][0m[0m the options of the app are used: a print goes to its log file, not to the screen  [2m(47ms)[0m
+  [1m[32m[PASS][0m[0m SIGTERM: both hooks at once interrupt the run and restore the terminal  [2m(31ms)[0m
+  [1m[32m[PASS][0m[0m the restore hook first, then the stop hook: nothing printed, no onExit  [2m(34ms)[0m
+  [1m[32m[PASS][0m[0m System.exit in a handler: the stop hook waits for the restore, not 2 s  [2m(38ms)[0m
+[2m---[0m TuiAppTest: [32m10 passed[0m, [31m1 failed[0m  [2m(863ms)[0m
+FAILURES (1):
+  an onExit that fails: exit code 1, its stack trace after the restore  [FAIL]
+    assert(code == 1, err.lines.toString)
+    // message: Vector()
+
+Results: [32m10 passed[0m, [31m1 failed[0m  (total: 863ms)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.TuiAppTest
+[error] 	tui4s.SchedulerDefaultsTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 95 s (0:01:35.0), completed Oct 13, 2026, 10:41:26 PM
+exit 1
+
+== part 2 (the core failures stopped the chain): sbt -Dsbt.supershell=false examples/testOnly examples.dashboard.DashboardSuite, the same three edits; date: 2026-10-13T22:41:30+00:00; pgrep -x java: none
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39053 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-06-app-examples-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/)
+[info] compiling 8 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/scala-3.9.0/classes ...
+[warn] -- [E198] Unused Symbol Warning: /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/src/main/scala/examples/dashboard/Dashboard.scala:73:55 
+[warn] 73 |        Async.sleep(every).andThen(s.paused.get).map { p =>
+[warn]    |                                                       ^
+[warn]    |                                               unused explicit parameter
+[warn] one warning found
+[info] done compiling
+[info] compiling 8 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39053 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Test run [36mexamples.dashboard.DashboardSuite[0m started
+[91m==> X [0m[91mexamples.dashboard.DashboardSuite[0m.[91mp pauses the sampler (the sparkline stays), the log goes on; p resumes[0m [90m32.83s[0m java.util.concurrent.TimeoutException: test timed out after 30 seconds
+[32mexamples.dashboard.DashboardSuite[0m: finished [90m34.123s[0m
+Test run [36mexamples.dashboard.DashboardSuite[0m finished: [91m1 failed[0m, 0 ignored, 6 total [90m34.139s[0m
+[error] Failed: Total 6, Failed 1, Errors 0, Passed 5
+[error] Failed tests:
+[error] 	examples.dashboard.DashboardSuite
+[error] (examples / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 56 s, completed Oct 13, 2026, 10:42:34 PM
+exit 1
+
+== part 3: the pause leaf ended on munit's 30 s timeout in part 2 (the resume wait of 20 s on a full sparkline); the leaf now skips that wait when the sparkline never stopped. Again: sbt -Dsbt.supershell=false examples/testOnly examples.dashboard.DashboardSuite, the same edits; date: 2026-10-13T22:42:44+00:00; pgrep -x java: none
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39053 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-06-app-examples-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/)
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39053 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Test run [36mexamples.dashboard.DashboardSuite[0m started
+[91m==> X [0m[91mexamples.dashboard.DashboardSuite[0m.[91mp pauses the sampler (the sparkline stays), the log goes on; p resumes[0m [90m12.837s[0m munit.FailException: examples/src/test/scala/examples/dashboard/DashboardSuite.scala:128 the sparkline did not stop moving after p
+127:      assert(help.contains("sampler PAUSED (p resumes)"), help.text)
+[7m128:      assert(steady, "the sparkline did not stop moving after p")[0m
+129:      assert(before >= 3 && before == after, s"paused: $before then $after")
+[90m    at [0m[90mmunit.FunSuite.assert[0m[90m([0m[90mFunSuite.scala[0m:[90m12[0m[90m)[0m
+[1m    at [0m[1mexamples.dashboard.DashboardSuite.$init$$$anonfun$3[0m[1m([0m[1mDashboardSuite.scala[0m:[1m128[0m[1m)[0m
+[32mexamples.dashboard.DashboardSuite[0m: finished [90m14.234s[0m
+Test run [36mexamples.dashboard.DashboardSuite[0m finished: [91m1 failed[0m, 0 ignored, 6 total [90m14.254s[0m
+[error] Failed: Total 6, Failed 1, Errors 0, Passed 5
+[error] Failed tests:
+[error] 	examples.dashboard.DashboardSuite
+[error] (examples / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 26 s, completed Oct 13, 2026, 10:43:17 PM
+exit 1
+restored: 0 files with the NC text

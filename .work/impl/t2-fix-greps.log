@@ -1,0 +1,97 @@
+== grep -rnE 'System\.err|println|System\.out' modules/core/src/main at 4f174ed, 2026-10-13T22:52:18+00:00
+modules/core/src/main/scala/tui4s/TuiApp.scala:33:  * streams that capture `System.out`, `System.err` and Scala's `println` while
+modules/core/src/main/scala/tui4s/TuiApp.scala:195:          err.println(e.getMessage) // tui4s: allowed
+modules/core/src/main/scala/tui4s/TuiApp.scala:201:              err.println(line) // tui4s: allowed
+modules/core/src/main/scala/tui4s/TuiApp.scala:203:          err.println("interrupted") // tui4s: allowed
+modules/core/src/main/scala/tui4s/TuiOptions.scala:40:  *   while the UI is up in the real terminal, `System.out` and `System.err` go
+modules/core/src/main/scala/tui4s/TuiOptions.scala:42:  *   over the screen. The capture is JVM-wide. Scala's `println` writes to
+modules/core/src/main/scala/tui4s/TuiOptions.scala:43:  *   `scala.Console.out`, which keeps the stream that `System.out` was when
+modules/core/src/main/scala/tui4s/TuiOptions.scala:44:  *   `scala.Console` was first used: when it was used before the run, `println`
+modules/core/src/main/scala/tui4s/TuiOptions.scala:49:  *   `println`. With `false`, nothing is captured.
+modules/core/src/main/scala/tui4s/Tui.scala:47:      * (with `TuiOptions.captureOutput`) so do `System.out` and `System.err`;
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:8:/** Captures `System.out` and `System.err` while the UI is up
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:9:  * (`TuiOptions.captureOutput`): a stray `println` in user code or in a library
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:12:  * It installs two forwarding streams as `System.out` and `System.err`. While
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:14:  * capture, each line goes to the sink. Scala's `println` writes to
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:15:  * `scala.Console.out`, which keeps the stream that `System.out` was when
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:18:  * `scala.Console` gets `println` always captured (`TuiApp` does this in its
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:23:// System.out and System.err: the forwarders replace and restore them, by
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:24:// design (the rule "no stderr and no println in core main" of the pull
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:43:    /** The real stderr: `System.err` as it was before tui4s replaced it. */
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:46:      if e != null then e else java.lang.System.err.nn // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:49:    /** The real stdout: `System.out` as it was before tui4s replaced it. */
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:52:      if o != null then o else java.lang.System.out.nn // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:63:    /** Installs the forwarders of the current `System.out` and `System.err`. A
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:70:        val sysOut = java.lang.System.out.nn // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:71:        val sysErr = java.lang.System.err.nn // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:95:      * `println`. False when `scala.Console` was first used before the
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:126:          * and, unless [[install]] installed them for good, `System.out` and
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:127:          * `System.err` are again the streams they were at the start of this
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:136:                  if java.lang.System.out eq out then // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:138:                  if java.lang.System.err eq err then // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:75:  *   true when a capture also takes `scala.Console` (Scala's `println`); see
+modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:104:                // println that the capture cannot take is a warning, in the
+modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:191:              err.println(w) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:197:            err.println(problem) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:30:// stderr and no println in core main" of the pull request T1)
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:67:          else if important then done.println(text) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:106:            err.println(problem) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:107:            if important then err.println(text) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:131:              err.println(note) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:132:          ring.foreach(err.println) // tui4s: allowed
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:135:          if p != null then err.println(p) // tui4s: allowed
+== hits: 41; with the marker '// tui4s: allowed': 17; the other lines are comment or Scaladoc lines:
+modules/core/src/main/scala/tui4s/TuiApp.scala:33:  * streams that capture `System.out`, `System.err` and Scala's `println` while
+modules/core/src/main/scala/tui4s/TuiOptions.scala:40:  *   while the UI is up in the real terminal, `System.out` and `System.err` go
+modules/core/src/main/scala/tui4s/TuiOptions.scala:42:  *   over the screen. The capture is JVM-wide. Scala's `println` writes to
+modules/core/src/main/scala/tui4s/TuiOptions.scala:43:  *   `scala.Console.out`, which keeps the stream that `System.out` was when
+modules/core/src/main/scala/tui4s/TuiOptions.scala:44:  *   `scala.Console` was first used: when it was used before the run, `println`
+modules/core/src/main/scala/tui4s/TuiOptions.scala:49:  *   `println`. With `false`, nothing is captured.
+modules/core/src/main/scala/tui4s/Tui.scala:47:      * (with `TuiOptions.captureOutput`) so do `System.out` and `System.err`;
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:8:/** Captures `System.out` and `System.err` while the UI is up
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:9:  * (`TuiOptions.captureOutput`): a stray `println` in user code or in a library
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:12:  * It installs two forwarding streams as `System.out` and `System.err`. While
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:14:  * capture, each line goes to the sink. Scala's `println` writes to
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:15:  * `scala.Console.out`, which keeps the stream that `System.out` was when
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:18:  * `scala.Console` gets `println` always captured (`TuiApp` does this in its
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:23:// System.out and System.err: the forwarders replace and restore them, by
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:24:// design (the rule "no stderr and no println in core main" of the pull
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:43:    /** The real stderr: `System.err` as it was before tui4s replaced it. */
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:49:    /** The real stdout: `System.out` as it was before tui4s replaced it. */
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:63:    /** Installs the forwarders of the current `System.out` and `System.err`. A
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:95:      * `println`. False when `scala.Console` was first used before the
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:126:          * and, unless [[install]] installed them for good, `System.out` and
+modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:127:          * `System.err` are again the streams they were at the start of this
+modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:75:  *   true when a capture also takes `scala.Console` (Scala's `println`); see
+modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:104:                // println that the capture cannot take is a warning, in the
+modules/core/src/main/scala/tui4s/internal/LogSink.scala:30:// stderr and no println in core main" of the pull request T1)
+== non-comment lines without the marker:
+(none above = 0)
+== jatatui.widgets: 0; getDeclaredField|setAccessible: 0; private[kyo]: 5
+== TODO (without TODO_FILE): 
+modules/core/src/main/scala/tui4s/internal/Runner.scala:105:    // TODO(#8): remove the repair tick when the watchers go back to
+modules/core/src/main/scala/tui4s/internal/Runner.scala:258:            // TODO(#9): drop the re-check when Kyo closes the lost-wakeup
+modules/core/src/main/scala/tui4s/internal/Runner.scala:286:        // TODO(#9): drop the pull check when Kyo closes the lost-wakeup window
+modules/core/src/main/scala/tui4s/internal/Mount.scala:85:    // TODO(#8): go back to `signal.observe` when Kyo fixes the leak of
+== new 'claude 2026-10-13' mark lines: since 9047a50 117; in the review fixes (490aea7..HEAD) 21
+== the 5 private[kyo] hits are in the test sources of C1/C2 (KyoUiSurface.scala:375, a comment; kyo-ui-surface.txt, the surface pin), none in main sources and none in a T2 file:
+modules/core/src/test/scala/tui4s/KyoUiSurface.scala:375:          * (the type `Attrs` is `private[kyo]`; its fields are public).
+modules/core/src/test/resources/kyo-ui-surface.txt:28:ast.type	UI.Ast.Attrs	case class private[kyo] extends 
+modules/core/src/test/resources/kyo-ui-surface.txt:67:ast.type	UI.Ast.KeyedChild	case class private[kyo] extends UI
+modules/core/src/test/resources/kyo-ui-surface.txt:96:ast.type	UI.Ast.TextInputAttrs	case class private[kyo] extends 
+modules/core/src/test/resources/kyo-ui-surface.txt:237:pin	K2 UI.Ast.Foreach.applyTyped	private[kyo]
+== review-fix files touched (490aea7..HEAD):
+ AGENTS.md                                          |  7 ++-
+ build.sbt                                          |  4 +-
+ examples/README.md                                 | 11 ++--
+ examples/ptycheck/check.py                         | 15 +++++-
+ examples/ptycheck/checklist.exp                    |  5 +-
+ .../main/scala/examples/dashboard/Dashboard.scala  |  5 +-
+ .../main/scala/examples/printing/Printing.scala    | 14 ++++++
+ .../scala/examples/dashboard/DashboardSuite.scala  | 52 ++++++++++++++++---
+ modules/core/src/main/scala/tui4s/TuiApp.scala     | 10 ++++
+ modules/core/src/main/scala/tui4s/TuiOptions.scala |  7 ++-
+ .../main/scala/tui4s/spi/SchedulerDefaults.scala   | 10 ++--
+ .../test/scala/tui4s/SchedulerDefaultsTest.scala   | 19 ++++---
+ modules/core/src/test/scala/tui4s/TuiAppTest.scala | 58 +++++++++++++++++++---
+ 13 files changed, 184 insertions(+), 33 deletions(-)

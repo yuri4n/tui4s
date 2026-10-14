@@ -1,0 +1,90 @@
+== command: SBT_TPOLECAT_CI=1 sbt -Dsbt.supershell=false fmt core/testOnly(TuiAppTest SchedulerDefaultsTest) examples/testOnly(DashboardSuite PrintingSuite ReadmeSuite)
+== date: 2026-10-13T22:38:33+00:00; base 490aea7 + uncommitted review fixes; pgrep -x java: none; load: 0.11 0.38 0.47
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39053 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-06-app-examples-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/)
+[info] scalafmt: Formatting 3 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/modules/core)...
+[info] scalafmt: Formatting 1 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/modules/core)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples)...
+[info] scalafmt: Reformatted 1 Scala sources
+[info] scalafmt: Reformatted 2 Scala sources
+[info] scalafmt: Reformatted 1 Scala sources
+[info] scalafmt: Reformatted 1 Scala sources
+[success] Total time: 3 s, completed Oct 13, 2026, 10:38:47 PM
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/modules/core)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/modules/zio)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/modules/cats)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples)...
+[success] Total time: 0 s, completed Oct 13, 2026, 10:38:48 PM
+[info] compiling 34 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 2 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39053 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Running 1 suite(s) with parallelism 8
+
+[1m=== TuiAppTest ===[0m
+  [1m[32m[PASS][0m[0m no terminal: exit code 1 and the message, printed after the restore  [2m(136ms)[0m
+  [1m[32m[PASS][0m[0m a run that quits: exit code 0, onExit runs after the restore  [2m(306ms)[0m
+  [1m[32m[PASS][0m[0m the Ctrl-C key: exit code 0 and onExit, as a quit  [2m(43ms)[0m
+  [1m[32m[PASS][0m[0m a UI that fails: exit code 1, the stack trace with its cause after the restore  [2m(37ms)[0m
+  [1m[32m[PASS][0m[0m an onExit that fails: exit code 1, its stack trace after the restore  [2m(44ms)[0m
+  [1m[32m[PASS][0m[0m a handler that fails: the run goes on, the error comes after the restore, q gives 0  [2m(75ms)[0m
+  [1m[32m[PASS][0m[0m the arguments reach the app: the UI shows them  [2m(43ms)[0m
+  [1m[32m[PASS][0m[0m the options of the app are used: a print goes to its log file, not to the screen  [2m(57ms)[0m
+  [1m[32m[PASS][0m[0m SIGTERM: both hooks at once interrupt the run and restore the terminal  [2m(32ms)[0m
+  [1m[32m[PASS][0m[0m the restore hook first, then the stop hook: nothing printed, no onExit  [2m(32ms)[0m
+  [1m[32m[PASS][0m[0m System.exit in a handler: the stop hook waits for the restore, not 2 s  [2m(38ms)[0m
+[2m---[0m TuiAppTest: [32m11 passed[0m, [31m0 failed[0m  [2m(1.1s)[0m
+
+Results: [32m11 passed[0m, [31m0 failed[0m  (total: 1.1s)
+Running 1 suite(s) with parallelism 8
+
+[1m=== SchedulerDefaultsTest ===[0m
+  [1m[32m[PASS][0m[0m with nothing set, all three keys get their defaults  [2m(3ms)[0m
+  [1m[32m[PASS][0m[0m a system property of the user is kept  [2m(1ms)[0m
+  [1m[32m[PASS][0m[0m an environment variable of the user is respected  [2m(2ms)[0m
+  [1m[32m[PASS][0m[0m -Dtui4s.schedulerDefaults=false turns it off  [2m(1ms)[0m
+  [1m[32m[PASS][0m[0m the environment names are Kyo's  [2m(1ms)[0m
+  [1m[32m[PASS][0m[0m applyIfUnset sets the JVM properties (idempotent)  [2m(2ms)[0m
+  [1m[32m[PASS][0m[0m -Dtui4s.schedulerDefaults=false: applyIfUnset leaves the JVM properties alone  [2m(2ms)[0m
+  [1m[32m[PASS][0m[0m the constructor of TuiApp sets the values before the app's own fields  [2m(2ms)[0m
+[2m---[0m SchedulerDefaultsTest: [32m8 passed[0m, [31m0 failed[0m  [2m(24ms)[0m
+
+Results: [32m8 passed[0m, [31m0 failed[0m  (total: 24ms)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 33 s, completed Oct 13, 2026, 10:39:21 PM
+[info] compiling 8 Scala sources to /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39053 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+Test run [36mexamples.dashboard.DashboardSuite[0m started
+[32mexamples.dashboard.DashboardSuite[0m: finished [90m2.44s[0m
+Test run [36mexamples.dashboard.DashboardSuite[0m finished: 0 failed, 0 ignored, 6 total [90m2.458s[0m
+Test run [36mexamples.printing.PrintingSuite[0m started
+[32mexamples.printing.PrintingSuite[0m: finished [90m0.037s[0m
+Test run [36mexamples.printing.PrintingSuite[0m finished: 0 failed, 0 ignored, 2 total [90m0.037s[0m
+Test run [36mexamples.ReadmeSuite[0m started
+[32mexamples.ReadmeSuite[0m: finished [90m0.019s[0m
+Test run [36mexamples.ReadmeSuite[0m finished: 0 failed, 0 ignored, 2 total [90m0.019s[0m
+[info] Passed: Total 10, Failed 0, Errors 0, Passed 10
+[success] Total time: 9 s, completed Oct 13, 2026, 10:39:31 PM
+exit 0

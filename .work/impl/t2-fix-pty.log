@@ -1,0 +1,145 @@
+== command: JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64 PTY_WORK=/home/user/tui4s/.work/impl/t2-fix-pty-files examples/ptycheck/run.sh
+== date: 2026-10-13T22:45:35+00:00; commit: 4f174ed; tree: 0 changed files; pgrep -x java: none
+ptycheck: work=/home/user/tui4s/.work/impl/t2-fix-pty-files date=2026-10-13T22:45:35+00:00 load=1.76 1.77 1.13
+ptycheck: sbt examples/launchers (log: /home/user/tui4s/.work/impl/t2-fix-pty-files/launchers.log)
+ptycheck: java /usr/lib/jvm/java-25-openjdk-amd64/bin/java (Java 25)
+PASS counter: entered the alternate screen
+PASS counter: first frame drawn (1088 ms after the start command, JVM start included)
+PASS counter: raw mode while running (-icanon -echo -isig)
+PASS counter q: exit code 0
+PASS counter: stty -a after the exit equals stty -a before the start
+PASS counter ctrl-c: entered the alternate screen
+PASS counter ctrl-c: first frame drawn (1022 ms after the start command, JVM start included)
+PASS counter ctrl-c: exit code 0
+PASS ctrlc: stty -a after the exit equals stty -a before the start
+PASS counter resize: entered the alternate screen
+PASS counter resize: first frame drawn (1142 ms after the start command, JVM start included)
+PASS counter resize: exit code 0
+PASS resize: stty -a after the exit equals stty -a before the start
+PASS counter kill -TERM: entered the alternate screen
+PASS counter kill -TERM: first frame drawn (1158 ms after the start command, JVM start included)
+PASS counter kill -TERM: exit code 143
+PASS term: stty -a after the exit equals stty -a before the start
+PASS counter kill -INT: entered the alternate screen
+PASS counter kill -INT: first frame drawn (1066 ms after the start command, JVM start included)
+PASS counter kill -INT: exit code 130
+PASS int: stty -a after the exit equals stty -a before the start
+PASS printing: entered the alternate screen
+PASS printing: first frame drawn (1022 ms after the start command, JVM start included)
+PASS printing: exit code 0
+PASS print: stty -a after the exit equals stty -a before the start
+PASS printing --log: entered the alternate screen
+PASS printing --log: first frame drawn (1023 ms after the start command, JVM start included)
+PASS printing --log: exit code 0
+PASS printlog: stty -a after the exit equals stty -a before the start
+PASS printing --log: the log file has the two printed lines of the run, and nothing more
+PASS counterkyo: entered the alternate screen
+PASS counterkyo: first frame drawn (1082 ms after the start command, JVM start included)
+PASS counterkyo: exit code 0
+PASS kyoapp: stty -a after the exit equals stty -a before the start
+PASS counterstyles: entered the alternate screen
+PASS counterstyles: first frame drawn (1130 ms after the start command, JVM start included)
+PASS counterstyles: exit code 0
+PASS styles: stty -a after the exit equals stty -a before the start
+PASS todo: entered the alternate screen
+PASS todo: first frame drawn (1025 ms after the start command, JVM start included)
+PASS todo: raw mode while running (-icanon -echo -isig)
+PASS todo: exit code 0
+PASS todo: stty -a after the exit equals stty -a before the start
+PASS todo: the saved file has '[x] buy milk' and '[ ] tea time and cake'
+PASS dashboard: entered the alternate screen
+PASS dashboard: first frame drawn (1158 ms after the start command, JVM start included)
+PASS dash: raw mode while running (-icanon -echo -isig)
+PASS dashboard: exit code 0
+PASS dash: stty -a after the exit equals stty -a before the start
+INFO class-load run: exit code 0 (check.py counts /home/user/tui4s/.work/impl/t2-fix-pty-files/classload.log)
+PASS stdin is a pipe: exit code 1
+PASS pipe: stty -a after the exit equals stty -a before the start
+PASS native access denied: exit code 1
+PASS deny: stty -a after the exit equals stty -a before the start
+
+Terminal part: 53 passed, 0 failed
+PASS counter: alt screen entered
+PASS counter: first screen shows 'Count: 0'
+PASS counter: + shows 'Count: 1'
+PASS counter: second + shows 'Count: 2'
+PASS counter: - shows 'Count: 1'
+INFO bytes written for counter-plus1: 26
+INFO bytes written for counter-plus2: 26
+INFO bytes written for counter-minus: 26
+PASS counter: partial repaint (one key writes < 200 bytes)
+PASS counter q: leaves the alternate screen and shows the cursor
+PASS counter q: nothing stray after the restore (the next output is EXIT=0)
+PASS counter ctrl-c: + shows 'Count: 1'
+PASS counter ctrl-c: leaves the alternate screen and shows the cursor
+PASS counter ctrl-c: nothing stray after the restore (the next output is EXIT=0)
+PASS resize: at 100 columns the help is one line
+PASS resize: at 40 columns the screen is laid out again inside 40 columns (the help wraps)
+PASS resize: back at 100 columns the help is one line again
+PASS counter kill -TERM: first screen shows 'Count: 0'
+PASS counter kill -TERM: leaves the alternate screen and shows the cursor
+PASS counter kill -TERM: nothing stray after the restore (the next output is EXIT=143)
+PASS counter kill -INT: first screen shows 'Count: 0'
+PASS counter kill -INT: leaves the alternate screen and shows the cursor
+PASS counter kill -INT: nothing stray after the restore (the next output is EXIT=130)
+PASS printing: the println before the run comes before the alternate screen
+PASS printing: + shows 'Count: 1'
+PASS printing: no printed line on the screen while the UI is up
+PASS printing: after the restore come the two printed lines, then EXIT=0
+PASS printing: no R3 warning (the TuiApp constructor installed the capture)
+PASS printing --log: + shows 'Count: 1'
+PASS printing --log: the println before the run comes before the alternate screen
+PASS printing --log: no printed line in the terminal while the UI is up or after it (they go to the file)
+PASS printing --log: leaves the alternate screen and shows the cursor
+PASS printing --log: nothing stray after the restore (the next output is EXIT=0)
+PASS counterkyo: + shows 'Count: 1'
+PASS counterkyo q: leaves the alternate screen and shows the cursor
+PASS counterkyo q: nothing stray after the restore (the next output is EXIT=0)
+PASS counterstyles: four counters at 0 (counts [0, 0, 0, 0])
+PASS counterstyles: Enter on the + of a hook counter: 1 (counts [1, 0, 0, 0])
+PASS counterstyles: Enter on the + of a Component counter: 1 (counts [1, 0, 1, 0])
+PASS counterstyles: h hides the hook counters (counts [1, 0])
+PASS counterstyles: h shows them again at 0; the Component counter keeps 1 (counts [0, 0, 1, 0])
+PASS counterstyles q: leaves the alternate screen and shows the cursor
+PASS counterstyles q: nothing stray after the restore (the next output is EXIT=0)
+PASS todo: first screen has the title and '0 open / 0'
+PASS todo: the typed text shows in the input ('New: ... buy milk')
+PASS todo: Enter adds '[ ] buy milk', '1 open / 1', and empties the input
+PASS todo: a bracketed paste of one line: the input shows 'tea time', nothing is added
+PASS todo: a paste with a line break: the line break is a space ('tea time and cake'), nothing is added
+PASS todo: Enter adds '[ ] tea time and cake', '2 open / 2'
+PASS todo: Tab moves the focus to the list (its border changes: bytes are written)
+PASS todo: Space toggles to '[x] buy milk', '1 open / 2'
+PASS todo: Ctrl-S shows 'saved 2 items to todo-pty.txt'
+INFO bytes written for todo-typed: 284
+INFO bytes written for todo-enter: 238
+INFO bytes written for todo-paste: 48
+INFO bytes written for todo-paste2: 50
+INFO bytes written for todo-tab: 752
+INFO bytes written for todo-space: 127
+INFO bytes written for todo-ctrls: 85
+PASS todo esc: leaves the alternate screen and shows the cursor
+PASS todo esc: nothing stray after the restore (the next output is EXIT=0)
+PASS dashboard: first screen has the title, 'CPU usage' and 'sampler running'
+PASS dashboard: live: the gauge or the sparkline changes between two screens 1 s apart
+PASS dashboard: p pauses ('sampler PAUSED')
+PASS dashboard: paused: the gauge and the sparkline are the same in two screens 1 s apart
+PASS dashboard: paused: the log goes on
+PASS dashboard: p resumes ('sampler running')
+PASS dashboard: ArrowRight shows 'Memory usage', and the bold tab moves to Memory
+PASS dashboard: ArrowLeft shows 'CPU usage', and CPU is bold again
+PASS dashboard: Tab moves the focus only (still 'CPU usage')
+PASS dashboard: Space on the focused tab selects it ('Memory usage')
+PASS dashboard: Tab, then Enter on the focused tab selects it ('Network usage')
+PASS dashboard: at 40x20 the screen is laid out again inside 40 columns (the boxes are 40 wide)
+PASS dashboard: back at 100x30 the boxes are 100 wide again, and the help line is whole
+PASS dashboard q: leaves the alternate screen and shows the cursor
+PASS dashboard q: nothing stray after the restore (the next output is EXIT=0)
+INFO class-load (examples/target/bin/counter, start, first frame, q): 4087 classes; JDK 1672; Scala 535; Kyo 905 (kyo-ui 206, kyo-http 0, kyo-net 0); jatatui 37; tui4s core 244; examples 5 (/home/user/tui4s/.work/impl/t2-fix-pty-files/classload.log)
+PASS pipe: NotATerminal, its message, and no alternate screen
+PASS native access denied: the message names --enable-native-access=ALL-UNNAMED, no alternate screen
+
+Screen part: 68 passed, 0 failed (screens: /home/user/tui4s/.work/impl/t2-fix-pty-files/screens.txt)
+ptycheck: raw terminal output: /home/user/tui4s/.work/impl/t2-fix-pty-files/session.log; replayed screens: /home/user/tui4s/.work/impl/t2-fix-pty-files/screens.txt
+ptycheck: ALL ROWS PASSED
+exit 0 (101 s)

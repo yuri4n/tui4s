@@ -206,3 +206,21 @@ Eighth round (2026-10-11, gate 0, after W0; recorded by Claude from the user's a
   questions for the user: which part of the CatsFx facade they want gone (the effect bridge or the DSL with the state),
   and whether ZIO is an acceptable dependency for CatsFx users. Goes to gate Z.
 - Name (user, 2026-10-13): "CatsFx" for Cats Effect in the chat and the notes.
+
+## Fourteenth round (2026-10-14; claude)
+
+<!-- claude 2026-10-14: created this section -->
+
+- LEAN MODE (user, 2026-10-14: "Bro I would really like to see this is action. Please use Fable very sparsely and
+  cut curners a little bit (not in the api, behind the scenes)"). Decided: Fable (the session) steers only; every
+  delegable task runs on Opus, also the runtime reviews (R2/K2 were on Fable in W3 to W6). Process cuts from here:
+  workflow shape 4 (implementer, one reviewer, fixer; no skeptics) unless the code is concurrency or terminal-restore
+  code; one final test run and one PTY run, not three; PR bodies of about one screen (P-1 to P-14 in one line each,
+  the numbers that matter, no full row lists); negative controls only for a bug fix; no per-step logs. NOT cut: the
+  public API (final shapes P-4, Scaladoc), the seal of tui4s.internal, 0 warnings, green CI, the merge mechanics
+  (D-4 c), the no-push-without-green rule. The user's rules file (~/.claude/CLAUDE.md on the Mac) gets the same rule.
+- T2 details decided by Claude (no user decision needed): the span-wrap gap of the Dashboard at 40 columns goes to
+  L2; the SchedulerDefaults Scaladoc change of review R1-5 (commit 4f174ed, Scaladoc only) stays.
+- The user wants to SEE the result: after T2 the next step is the user's run of the examples (`sbt examples/launchers`;
+  `examples/target/bin/{counter,twocounters,counterstyles,todo,dashboard}`) on the branch feat/kyoui-06-app-examples,
+  and the merges of the stack (#10, #11, #13, #14, #15, T2). P1 (trace and bench) and L1/L2 wait for the user's word.

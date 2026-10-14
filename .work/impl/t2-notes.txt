@@ -1,0 +1,92 @@
+T2 feat/kyoui-06-app-examples: implementer notes (agent I, 2026-10-13). Plain text, ASD-STE100.
+Worktree: .work/worktrees/feat-kyoui-06-app-examples, branch feat/kyoui-06-app-examples from feat/kyoui-05-components 9047a50.
+
+21:33 Read: PLAN 0, 3.3 (D-24), 6.0, 6.6; DECISIONS eleventh to thirteenth rounds (not in the local .work/DECISIONS.md;
+      read from wip/handoff:.work/DECISIONS.md, 0a63f3d); t1-pr-body.txt, t1-notes.txt; c4-pr-body.txt and c4-notes.txt
+      (in the scratchpad worktree of wip/handoff: .work/impl/ there); inventory RC-10, RC-24, RC-25, RC-27, RC-31, RC-33,
+      OS-6, OS-7, OS-15, OS-18, OS-19, OS-47, OS-48, OS-50; 666a8e3 TuiApp, SchedulerDefaults, TuiAppTest,
+      SchedulerDefaultsTest, examples (TodoSuite, DashboardSuite, checklist.exp); the prototype apps (1d100ed) and the
+      prototype PTY kit (Todo rows); the worktree (Tui.runWith has the seam `restored`, TerminalIO.leave calls it).
+      Facts and choices:
+      - Commit trailer: the session's system reminder says 'Co-Authored-By: Claude Opus 5.5'; the computed task says
+        'Claude Fable 5.1'. As in C3, T1 and C4, the session attribution wins (the task text is script output).
+      - Kyo RC7: only KyoApp (KyoAppInterrupts) installs INT/TERM handlers. TuiApp uses KyoApp.Unsafe.runAndBlock only,
+        so the JVM's own handlers run: SIGTERM -> Shutdown.exit(143), SIGINT -> 130, after the shutdown hooks.
+      - On SIGTERM both hooks start at once. The restore hook closes the inbox, and the runner then quits NORMALLY
+        (a closed inbox is Msg.Quit). So the run can end as a quit during the JVM shutdown. A print of 'interrupted'
+        or an onExit then races with the halt. Plan: runMain checks 'the JVM shuts down' (a new Hooks.shuttingDown:
+        the runtime probe adds a hook; IllegalStateException = shutdown in progress) and then prints nothing and skips
+        onExit. The JVM gives the exit code (143, 130, or the code of System.exit).
+      - SchedulerDefaultsTest of 666a8e3 is already kyo-test, with the opt-out leaf.
+      - Examples: the Counter becomes the hooks Counter (useSignal = Signal.initRef) with CounterApp (TuiApp); the
+        README quick start shows it. CounterKyoApp moves to examples.counterkyo. The println row uses a small kit
+        example examples.printing.PrintingApp (it also shows args and options: --log <file>), so the Counter stays
+        the smallest app for the README.
+21:40 step 4a commit 2b3310d TuiApp + Hooks.shuttingDown + TuiAppTest 10 (t2-step4a-test-2.log, CI mode, 0 warn). NC: hook not registered -> 5 FAIL (t2-stophook-negative-control.log). The carried TuiApp (old model) does not compile, so 4a comes before step 3.
+21:41 adapt + step 3 commit 95ae247: imports, prototype mains cut; examples/compile CI mode 0 warnings (t2-step3-warnings.log); no strict-flag change needed.
+21:44 step 4b commit bb8369d: SchedulerDefaultsTest 8 (+2: opt-out on JVM props, TuiApp constructor); NC: no applyIfUnset in the constructor -> FAIL List(null,null,null) (t2-schedulerdefaults-negative-control.log).
+21:45 4c counter commit 80b7518: CounterApp (TuiApp, useSignal), CounterKyoApp -> examples.counterkyo; CounterSuite 6; PTY 17+16 green with the TuiApp counter (t2-pty-counter.log).
+21:50 4c commits: twocounters e03171b, counterstyles ed28584, todo c04fd84, widgets 0b4745f, dashboard + printing (see git log). examples/test CI mode: 33 passed (Counter 6, Widgets 4, Dashboard 6, Todo 8, TwoCounters 3, Printing 2, CounterStyles 4), 0 warn (t2-step4c-test-1.log).
+21:54 4d commit b6541ed: PTY rows of all examples + class-load INFO; 53/53 terminal + 65/65 screen (t2-pty-rows-try-2.log); NC doctored session 3 FAIL (t2-pty-negative-control.log). Found: the Dashboard's header and help spans are cut at 40 columns (no wrap) -> problems (L2).
+21:57 4e commit 149fbf6: README quick start + ReadmeSuite (2), examples/README, AGENTS.md, Scaladoc; examples/test 35 passed; core/doc only scaladoc's classpath note (t2-step4e-docs.log). md edits via Python: not refused.
+21:58 fix commit 490aea7: the cause print of TuiApp.describe on its own line (the 4a format had made the marker a block comment; the grep showed it as an unmarked line).
+22:00 FINAL at 490aea7: sbt fmt (no change); SBT_TPOLECAT_CI=1 sbt clean check alone: exit 0, 153 s, 0 [warn], 0 [error]; core 227 passed, 0 failed, 3 ignored (34 suites: TuiAppTest 10, SchedulerDefaultsTest 8 new); examples 35 passed (8 suites); glitch 0/500 twice; pending 104 ms; versionPolicyCheck Compatibility.None x3 (t2-check.log). Greps (t2-greps.log): 40 hits = 17 marked code lines (T1's 14 + TuiApp 3) + 23 comment lines, 0 other; jatatui.widgets 0; reflection 0; private[kyo] checks 1-4 as C3 (check 4: the C4/C2 hits only, none in T2 files); TODO: the 4 of C2 (+ the word TODO_FILE in a Todo comment). version-order-test 55/55 (t2-version-order-test.log). PTY kit with its launchers build: 53/53 terminal rows, 65/65 screen checks, ALL ROWS PASSED, 99 s; class load 4087 classes (JDK 1672, Scala 535, Kyo 905: kyo-ui 206, kyo-http 0, kyo-net 0; jatatui 37; tui4s core 243; examples 5) (t2-pty.log, t2-pty-files/).
+22:03 NC of the shuttingDown checks (t2-shuttingdown-negative-control.log): without them 3 leaves FAIL ("interrupted" printed). Restored; tree clean.
+      Sizes: core main from the format commit 001484c +148/-62 (4 files); examples main +294/-134 (8 files); kit +403/-6 (check.py, checklist.exp); ci.yml +5/-3; tests vs base +1319/-14 (12 files); carried 939 lines (main 587, tests 352); docs AGENTS +32/-6, README +87/-19, examples/README +94/-43; whole PR 33 files +2960/-128; 96 added mark lines.
+22:03 private[kyo] check 5 (a throwaway file, E173 'private[kyo] method withAttrs can only be accessed from package kyo'), the file removed, tree clean (t2-greps.log, end). Next: the PR body t2-pr-body.txt.
+22:08 PR body written: t2-pr-body.txt (230 lines). Done: tree clean at 490aea7; no JVM left. The 3 final test runs and 3 PTY runs (one of each under contention) are for the final-runs agent.
+
+== 2026-10-13 22:40 UTC K2 (skeptic of R2) at 490aea7, no file of the PR changed, no commit.
+- Build: SBT_TPOLECAT_CI=1 sbt check (incremental): exit 0, 0 [warn], 0 [error]; core 227 passed / 0 failed in 34 suites; examples 35 passed; scalafmt and versionPolicyCheck green (t2-k2-check.log).
+- examples/testOnly DashboardSuite under CPU contention (taskset -c 0,1 sbt, 2 busy loops pinned, killed by PID): 6 passed, 4.0 s (1.5 s alone) (t2-k2-DashboardSuite.log).
+- PTY kit: 53 + 65 rows PASS, 0 FAIL, exit 0; kill -TERM 143 and kill -INT 130 with ESC[?1049l then EXIT= and nothing between (t2-k2-pty.log, t2-k2-pty-files/).
+- R2-1 (no leaf for a failing onExit): confirmed as a minor test gap; the task's leaf list does not ask for it; the code path gives 1 and the stack trace by reading.
+- R2-2 (pause leaf saturates at 40 samples): refuted as a flake: the pause stops the growth, so samples(s2) is the count at the 'p' (about 3-6), not 18-20; the 2 s of unpaused sampling needs the first 3-sample frame to come 2 s late (0.15-0.3 s alone, 2-2.6x under contention).
+- R2-3 (marker on Printing.scala:26): refuted: the marker rule is scoped to modules/core/src/main in AGENTS.md, the task text and the plan; the print is the example's purpose and its Scaladoc says so.
+- R2-4 (comment on the Shutdown.class stall): confirmed as a comment-only nit; javap of JDK 25 Shutdown.exit agrees; the PTY kill rows guard the behaviour.
+
+== 2026-10-13 (fixer F, start) at 490aea7, tree clean, pgrep -x java empty.
+Plan (confirmed findings; R2-2 and R2-3 refuted by K2: not fixed):
+- R1-1 major: PrintingApp prints once before the run (a field println, after the TuiApp constructor installs the
+  capture); check.py: that line comes before ESC[?1049h; nothing inside the alt screen; after the restore only the
+  two UI lines then EXIT=0 (no R3 warning); --log the same and the file has exactly the two UI lines. Negative
+  control: no OutputCapture.install() in the TuiApp constructor -> the printing rows FAIL (kit run, restored).
+- R1-2: DashboardSuite pause leaf: a steady wait (the sparkline row the same in two screens 300 ms apart, retried,
+  bounded) replaces the fixed 200 ms sleep. The steady wait compares the row text: a count wait would stop at the full
+  sparkline (40 samples) when the pause is broken (vacuous); this is part of the R1-2 fix, not R2-2.
+- R1-3 TuiOptions.captureOutput Scaladoc (TuiApp); R1-4 AGENTS.md + body; R1-5 SchedulerDefaults Scaladoc only (own
+  commit, revertable: RC-25 "0 changes" is about the code); R1-6 build.sbt and Dashboard.tick comments; R1-7 body;
+  R1-8 examples/README ctrlc; R1-9 SchedulerDefaultsTest leaf under withoutProperties; R1-10 mark on TuiApp.block;
+  R2-1 TuiAppTest leaf: a failing onExit gives 1 and its trace after the restore; R2-4 comment at main (System.exit
+  blocks on Shutdown.class during a shutdown).
+22:48 F: suites in CI mode after the fixes: TuiAppTest 11, SchedulerDefaultsTest 8, DashboardSuite 6, PrintingSuite 2, ReadmeSuite 2, 0 [warn] (t2-fix-suites-1.log, t2-fix-suites-2.log).
+      Negative controls (t2-fix-negative-controls.log): applyIfUnset that sets nothing -> 2 FAIL (the R1-9 leaf and the constructor leaf, List(null, null, null));
+      runMain that swallows an onExit failure -> the R2-1 leaf FAILS (code 0); a sampler that ignores p -> the pause leaf FAILS
+      "the sparkline did not stop moving after p" (first form: munit 30 s timeout, because the resume wait of 20 s ran on a full
+      sparkline; the leaf now skips it when the sparkline never stopped). All restored.
+      Commits: 6dee8dc (R1-1, R1-8), f277276 (R2-1, R1-9), 0f780f7 (R1-2), 8f72c57 (R1-3, R1-4, R1-6, R1-10, R2-4), 4f174ed (R1-5).
+      PTY kit at 4f174ed: 53/53 terminal, 68/68 screen (3 new printing checks), ALL ROWS PASSED, 101 s; class-load 4087 (tui4s core 244)
+      (t2-fix-pty.log, t2-fix-pty-files/). NC of R1-1 (no OutputCapture.install() in the constructor): terminal 52+1 FAIL (the log
+      file has the R3 warning), screen 63+5 FAIL (the printed lines on the screen; the warning after the restore), restored, tree clean
+      (t2-fix-pty-negative-control.log).
+22:53 F: final at 4f174ed: sbt fmt (no change); SBT_TPOLECAT_CI=1 sbt clean check alone: exit 0, 152 s, 0 [warn], 0 [error]; core 228 passed
+      (34 suites, 3 ignored; TuiAppTest 11), examples 35 (t2-fix-check.log); version-order 55/55 (t2-fix-version-order-test.log); greps
+      (t2-fix-greps.log): 41 hits = 17 marked + 24 comment lines, 0 other; 117 mark lines (21 new). Body updated: t2-pr-body.txt (the old one:
+      t2-pr-body-490aea7.txt): numbers, P-7 rows (R1-7), delta guide, "Review fixes" table, negative controls, API review, acceptance.
+      Not fixed: R2-2, R2-3 (refuted by K2). R1-5 is a Scaladoc-only commit of its own (revert if RC-25 means byte-identical). Tree clean, no JVM left.
+
+== 2026-10-13T22:54 UTC V (final-runs agent) at 4f174ed, no code change. Plan: 3 test runs (run 2 under contention), 3 PTY runs (run 2 under contention), greps, clean check in CI mode, version-order test, the PR body.
+23:00 V: 3 test runs of 'sbt core/test examples/test' at 4f174ed, alone (pgrep -x java empty before each; tree clean):
+      run 1 quiet: exit 0, 153 s (with the dev-mode compile); core 228 passed / 0 failed / 3 ignored (34 suites); examples 35 passed; 0 [warn]; glitch 0/500 both; pending 104 ms (t2-final-run-1.log).
+      run 2 CONTENTION: busy loops PIDs 24835 24836 (taskset -p after the start: mask 3), taskset -c 0,1 sbt; exit 0, 89 s; core 227 passed / 0 failed / 3 ignored / 1 cancelled (the SettleTest canary cancels itself on a 2-CPU JVM under load, by design as in T1 and C4); examples 35 passed; glitch 0/500 (glitch-keys region values 4: 497, 5: 3; splits 0); pending 109 ms; loops killed by PID, ps shows both gone (t2-final-run-contention.log).
+      run 3 quiet: exit 0, 57 s; core 228 / 0 / 3 ignored; examples 35; glitch 0/500 both; pending 104 ms (t2-final-run-3.log).
+      Greps (t2-final-greps.log): 41 hits = 17 marked + 24 comment lines, 0 other; jatatui.widgets 0; reflection 0; private[kyo] checks 1-4 as C3 (check 4: C2/C4 hits only).
+23:05 V: 3 PTY runs at 4f174ed with JAVA_HOME=JDK 25, each with its own launchers build (0 [warn]), pgrep -x java empty before each, tree clean after each:
+      pty 1 quiet: 53/53 terminal, 68/68 screen, ALL ROWS PASSED, 71 s; first frames 1028-1306 ms; 26 bytes per key; class-load 4090 (t2-final-pty-1.log, -files/).
+      pty 2 CONTENTION: busy loops PIDs 26712 26713 (mask 3), taskset -c 0,1 run.sh (sbt, expect and the apps inherit the mask): 53/53, 68/68, ALL ROWS PASSED, 96 s; first frames 1569-2305 ms; class-load 4085; loops killed by PID, gone (t2-final-pty-contention.log).
+      pty 3 quiet: 53/53, 68/68, ALL ROWS PASSED, 70 s; first frames 1016-1229 ms; class-load 4091 (t2-final-pty-3.log).
+      class-load: the named parts are the same in the 3 runs (JDK 1672, Scala 535, Kyo 905: kyo-ui 206, kyo-http 0, kyo-net 0; jatatui 37; tui4s core 243; examples 5); the 4085-4091 spread is in the generated lambda/LambdaForm classes (679-685 lines). The fixer's run had 4087 and core 244.
+23:05 V: private[kyo] check 5 again at 4f174ed: the throwaway Throwaway.scala calling Element.withAttrs -> E173; removed; tree clean (t2-final-greps.log, end).
+23:08 V: final SBT_TPOLECAT_CI=1 sbt clean check alone: exit 0, 158 s, 0 [warn], 0 [error]; core 228 passed / 0 failed / 3 ignored (34 suites), examples 35 (8 suites); scalafmt and versionPolicyCheck (Compatibility.None x3) green; glitch 0/500 both; pending 104 ms (t2-final-check.log). version-order-test 55/55 (t2-final-version-order-test.log).
+23:15 V: PR body updated (t2-pr-body.txt, 59 732 bytes; the fixer's body kept as t2-pr-body-fix.txt; t2-final-body.py builds it from that file): first paragraph, P-3, P-12, P-13 (the final check, the 3 test runs and the 3 PTY runs with the class-load counts), Problems (canary, class-load and first-frame numbers), Acceptance (the full row list of the final PTY run 1, grouped; the grep output), Logs. To stay under 60 000 bytes: the P-8 delta table states the git diff command once; the Logs list is grouped; two duplicate Problems bullets (R1-5 shortened; the pause-leaf bullet is in the R2-2 row) are shortened or dropped.
+      All green. No code change, no commit; tree clean; no JVM left.

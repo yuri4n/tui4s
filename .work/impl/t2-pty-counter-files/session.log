@@ -1,0 +1,79 @@
+PS1='PROMPT> '; export TERM=xterm-256color; cd /home/user/tui4s/.work/impl/t2-pty-counter-files
+[?2004hbash-5.2# PS1='PROMPT> '; export TERM=xterm-256color; cd /home/user/tui4s/.work/impl/t2-pty-counter-ffiles
+[?2004lstty -a > /home/user/tui4s/.work/impl/t2-pty-counter-files/stty-counter-before.txt; echo STTY_$((6*7))SAVED
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-pty-counter-files/stty-counter-before.txt; echo STTYY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK counter-start@@
+/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/counter; echoo EXIT=$?
+[?2004l[?1049h[2J[?25l[?2004h[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m
+@@MARK counter-plus1@@
+[2;8H1[39m[49m[59m[0m
+@@MARK counter-plus2@@
+[2;8H2[39m[49m[59m[0m
+@@MARK counter-minus@@
+[2;8H1[39m[49m[59m[0m
+@@MARK counter-q@@
+[?2004l[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-pty-counter-files/stty-counter-after.txt; echo STTY__$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-pty-counter-files/stty-counter-before.txt /home/user/tuui4s/.work/impl/t2-pty-counter-files/stty-counter-after.txt && echo STTY_$((7*0))SAME || echo STTY_$(((7*0))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-pty-counter-files/stty-ctrlc-before.txt; echo STTY_$$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK ctrlc-start@@
+/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/counter; echoo EXIT=$?
+[?2004l[?1049h[2J[?25l[?2004h[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m
+@@MARK ctrlc-plus@@
+[2;8H1[39m[49m[59m[0m
+@@MARK ctrlc-key@@
+[?2004l[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-pty-counter-files/stty-ctrlc-after.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-pty-counter-files/stty-ctrlc-before.txt /home/user/tui44s/.work/impl/t2-pty-counter-files/stty-ctrlc-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((7*00))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-pty-counter-files/stty-resize-before.txt; echo STTY__$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK resize-start@@
+/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/counter; echoo EXIT=$?
+[?2004l[?1049h[2J[?25l[?2004h[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m
+@@MARK resize-small@@
+[2J[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter[5;1Hpresses, q quits[39m[49m[59m[0m[2J[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter[5;1Hpresses, q quits[39m[49m[59m[0m
+@@MARK resize-big@@
+[2J[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m[2J[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m
+@@MARK resize-q@@
+[?2004l[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-pty-counter-files/stty-resize-after.txt; echo STTY_$$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-pty-counter-files/stty-resize-before.txt /home/user/tuii4s/.work/impl/t2-pty-counter-files/stty-resize-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((77*0))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-pty-counter-files/stty-pipe-before.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK pipe-start@@
+echo | /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/counteer; echo EXIT=$?
+[?2004lstdin/stdout is not a terminal
+  cause: java.io.IOException: stdin is not a terminal
+EXIT=1
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-pty-counter-files/stty-pipe-after.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-pty-counter-files/stty-pipe-before.txt /home/user/tui4ss/.work/impl/t2-pty-counter-files/stty-pipe-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((7*0)))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-pty-counter-files/stty-deny-before.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK deny-start@@
+${JAVA_HOME:+$JAVA_HOME/bin/}java --illegal-native-access=deny --sun-misc-unsafe-memory-accesss=allow -cp "$(cat /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/cclasspath)" examples.counter.CounterApp; echo EXIT=$?
+[?2004lstart the JVM with --enable-native-access=ALL-UNNAMED
+  cause: java.lang.ExceptionInInitializerError
+EXIT=1
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-pty-counter-files/stty-deny-after.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-pty-counter-files/stty-deny-before.txt /home/user/tui4ss/.work/impl/t2-pty-counter-files/stty-deny-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((7*0)))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> 
+@@MARK end@@
+exit
+[?2004lexit

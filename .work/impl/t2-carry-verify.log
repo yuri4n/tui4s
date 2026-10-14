@@ -1,0 +1,40 @@
+== 21:33 carry check of the working tree (before the carry commit) ==
+SAME modules/core/src/main/scala/tui4s/TuiApp.scala vs 666a8e3:modules/core/src/main/scala/tui4s/TuiApp.scala: byte-identical (136 -> 136 lines)
+  OK   code lines (no blank, package, import or mark line): source 110, carried 110
+       marks (claude 20..): source 0, carried 0
+SAME modules/core/src/main/scala/tui4s/spi/SchedulerDefaults.scala vs 666a8e3:modules/core/src/main/scala/tui4s/spi/SchedulerDefaults.scala: byte-identical (63 -> 63 lines)
+  OK   code lines (no blank, package, import or mark line): source 57, carried 57
+       marks (claude 20..): source 0, carried 0
+SAME modules/core/src/test/scala/tui4s/TuiAppTest.scala vs 666a8e3:modules/core/src/test/scala/tui4s/TuiAppTest.scala: byte-identical (280 -> 280 lines)
+  OK   code lines (no blank, package, import or mark line): source 247, carried 247
+       marks (claude 20..): source 0, carried 0
+SAME modules/core/src/test/scala/tui4s/SchedulerDefaultsTest.scala vs 666a8e3:modules/core/src/test/scala/tui4s/SchedulerDefaultsTest.scala: byte-identical (72 -> 72 lines)
+  OK   code lines (no blank, package, import or mark line): source 59, carried 59
+       marks (claude 20..): source 0, carried 0
+NEW  examples/src/main/scala/examples/twocounters/TwoCounters.scala vs 1d100ed:.work/proto/kyoui-runner/apps/Counter.scala: differs (58 -> 58 lines)
+  OK   code lines (no blank, package, import or mark line): source 47, carried 47
+       frame -package apps
+       frame +package examples.twocounters
+       marks (claude 20..): source 0, carried 0
+NEW  examples/src/main/scala/examples/counterstyles/CounterStyles.scala vs 1d100ed:.work/proto/kyoui-runner/apps/CounterStyles.scala: differs (78 -> 78 lines)
+  OK   code lines (no blank, package, import or mark line): source 62, carried 62
+       frame -package apps
+       frame +package examples.counterstyles
+       marks (claude 20..): source 0, carried 0
+NEW  examples/src/main/scala/examples/dashboard/Dashboard.scala vs 1d100ed:.work/proto/kyoui-runner/apps/Dashboard.scala: differs (98 -> 98 lines)
+  OK   code lines (no blank, package, import or mark line): source 79, carried 79
+       frame -package apps
+       frame +package examples.dashboard
+       marks (claude 20..): source 0, carried 0
+NEW  examples/src/main/scala/examples/todo/Todo.scala vs 1d100ed:.work/proto/kyoui-runner/apps/Todo.scala: differs (114 -> 114 lines)
+  OK   code lines (no blank, package, import or mark line): source 90, carried 90
+       frame -package apps
+       frame +package examples.todo
+       marks (claude 20..): source 0, carried 0
+NEW  examples/src/main/scala/examples/widgets/Widgets.scala vs 1d100ed:.work/proto/kyoui-runner/apps/Widgets.scala: differs (40 -> 40 lines)
+  OK   code lines (no blank, package, import or mark line): source 29, carried 29
+       frame -package apps
+       frame +package examples.widgets
+       marks (claude 20..): source 0, carried 0
+carried lines in all: 939
+RESULT OK

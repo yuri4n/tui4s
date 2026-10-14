@@ -1,0 +1,92 @@
+== 2026-10-13T21:38:38+00:00 NEGATIVE CONTROL of the stop hook: TuiApp.block does not register the hook 'tui4s-stop' (a temporary edit, restored after this run) ==
+The edit (diff against the step 4a file):
+--- TuiApp.scala (step 4a)
++++ TuiApp.scala (negative control)
+@@ -149,7 +149,8 @@
+               .defer {
+                 fiber.unsafe.onComplete(_ => restored.countDown())
+                 val hook = Thread(() => stop(fiber, restored), "tui4s-stop")
+-                hooks.add(hook)
++                // NEGATIVE CONTROL: the stop hook is not registered
++                discard(hook)
+                 hook
+               }
+               .map(hook =>
+== SBT_TPOLECAT_CI=1 sbt core/testOnly tui4s.TuiAppTest ==
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-06-app-examples-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/)
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/modules/core/target/scala-3.9.0/classes ...
+[info] done compiling
+Running 1 suite(s) with parallelism 8
+
+=== TuiAppTest ===
+  [FAIL] no terminal: exit code 1 and the message, printed after the restore  (180ms) *** FAILED ***
+
+    )
+    // message: Vector(load, raw-mode-on, hook-removed tui4s-stop, err: stdin/stdout is not a terminal, err:   cause: java.lang.RuntimeException: IO error: Device not configured (os error 6))
+
+  [FAIL] a run that quits: exit code 0, onExit runs after the restore  (254ms) *** FAILED ***
+
+    )
+    // message: Vector(hook-added tui4s-restore, hook-removed tui4s-restore, hook-removed tui4s-stop)
+
+  [PASS] the Ctrl-C key: exit code 0 and onExit, as a quit  (52ms)
+  [PASS] a UI that fails: exit code 1, the stack trace with its cause after the restore  (39ms)
+  [PASS] a handler that fails: the run goes on, the error comes after the restore, q gives 0  (84ms)
+  [PASS] the arguments reach the app: the UI shows them  (44ms)
+  [PASS] the options of the app are used: a print goes to its log file, not to the screen  (49ms)
+  [FAIL] SIGTERM: both hooks at once interrupt the run and restore the terminal  (10.0s) *** FAILED ***
+
+    )
+    // message: the stop hook took -1 ms (-1: it did not run)
+
+  [FAIL] the restore hook first, then the stop hook: nothing printed, no onExit  (10.0s) *** FAILED ***
+
+    assert(took.get >= 0 && took.get < 1500, s"${took.get} ms")
+    // message: -1 ms
+
+  [FAIL] System.exit in a handler: the stop hook waits for the restore, not 2 s  (10.0s) *** FAILED ***
+
+    assert(took.get >= 0 && took.get < 1500, s"the stop hook took $took ms")
+    // message: the stop hook took -1 ms
+
+--- TuiAppTest: 5 passed, 5 failed  (31.1s)
+FAILURES (5):
+  no terminal: exit code 1 and the message, printed after the restore  [FAIL]
+    )
+    // message: Vector(load, raw-mode-on, hook-removed tui4s-stop, err: stdin/stdout is not a terminal, err:   cause: java.lang.RuntimeException: IO error: Device not configured (os error 6))
+  a run that quits: exit code 0, onExit runs after the restore  [FAIL]
+    )
+    // message: Vector(hook-added tui4s-restore, hook-removed tui4s-restore, hook-removed tui4s-stop)
+  SIGTERM: both hooks at once interrupt the run and restore the terminal  [FAIL]
+    )
+    // message: the stop hook took -1 ms (-1: it did not run)
+  the restore hook first, then the stop hook: nothing printed, no onExit  [FAIL]
+    assert(took.get >= 0 && took.get < 1500, s"${took.get} ms")
+    // message: -1 ms
+  System.exit in a handler: the stop hook waits for the restore, not 2 s  [FAIL]
+    assert(took.get >= 0 && took.get < 1500, s"the stop hook took $took ms")
+    // message: the stop hook took -1 ms
+
+Results: 5 passed, 5 failed  (total: 31.1s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[error] Failed tests:
+[error] 	tui4s.TuiAppTest
+[error] (core / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 41 s, completed Oct 13, 2026, 9:39:26 PM
+exit 1

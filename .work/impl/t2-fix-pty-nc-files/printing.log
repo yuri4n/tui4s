@@ -1,0 +1,1 @@
+tui4s: scala.Console was in use before the run started, so its output was not captured during the run and could write over the screen. Start the run before the first use of scala.Console.

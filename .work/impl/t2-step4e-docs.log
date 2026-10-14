@@ -1,0 +1,61 @@
+== 2026-10-13T21:55:35+00:00 SBT_TPOLECAT_CI=1 sbt fmt examples/test core/doc (4e docs, try 3) ==
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/opt/tools/sbt/sbt-launch.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/root/.sbt/boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Ubuntu Java 25.0.4.1)
+[info] loading settings for project feat-kyoui-06-app-examples-build from plugins.sbt...
+[info] loading project definition from /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project zio from build.sbt, compat.sbt...
+[info] loading settings for project cats from build.sbt, compat.sbt...
+[info] set current project to tui4s (in build file:/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/)
+[info] scalafmt: Formatting 1 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples)...
+[success] Total time: 3 s, completed Oct 13, 2026, 9:55:45 PM
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/modules/core)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/modules/zio)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/modules/cats)...
+[info] scalafmt: Formatting 2 Scala sources (/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples)...
+[success] Total time: 0 s, completed Oct 13, 2026, 9:55:46 PM
+[info] compiling 1 Scala source to /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Test run examples.counter.CounterSuite started
+examples.counter.CounterSuite: finished 1.008s
+Test run examples.counter.CounterSuite finished: 0 failed, 0 ignored, 6 total 1.025s
+Test run examples.ReadmeSuite started
+examples.ReadmeSuite: finished 0.044s
+Test run examples.ReadmeSuite finished: 0 failed, 0 ignored, 2 total 0.044s
+Test run examples.widgets.WidgetsSuite started
+examples.widgets.WidgetsSuite: finished 0.071s
+Test run examples.widgets.WidgetsSuite finished: 0 failed, 0 ignored, 4 total 0.072s
+Test run examples.dashboard.DashboardSuite started
+examples.dashboard.DashboardSuite: finished 1.532s
+Test run examples.dashboard.DashboardSuite finished: 0 failed, 0 ignored, 6 total 1.532s
+Test run examples.todo.TodoSuite started
+examples.todo.TodoSuite: finished 0.325s
+Test run examples.todo.TodoSuite finished: 0 failed, 0 ignored, 8 total 0.325s
+Test run examples.twocounters.TwoCountersSuite started
+examples.twocounters.TwoCountersSuite: finished 0.08s
+Test run examples.twocounters.TwoCountersSuite finished: 0 failed, 0 ignored, 3 total 0.081s
+Test run examples.printing.PrintingSuite started
+examples.printing.PrintingSuite: finished 0.026s
+Test run examples.printing.PrintingSuite finished: 0 failed, 0 ignored, 2 total 0.026s
+Test run examples.counterstyles.CounterStylesSuite started
+examples.counterstyles.CounterStylesSuite: finished 0.175s
+Test run examples.counterstyles.CounterStylesSuite finished: 0 failed, 0 ignored, 4 total 0.175s
+[info] Passed: Total 35, Failed 0, Errors 0, Passed 35
+[success] Total time: 9 s, completed Oct 13, 2026, 9:55:55 PM
+[info] Main Scala API documentation to /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/modules/core/target/scala-3.9.0/api...
+[info] Skipping unused scalacOptions: -Werror, -Wvalue-discard, -Wnonunit-statement, -Wconf, -Xsemanticdb, -Xkind-projector, -Yexplicit-nulls, -semanticdb-target
+[warn] Option -classpath was updated
+[warn] one warning found
+[info] Main Scala API documentation successful.
+[success] Total time: 6 s, completed Oct 13, 2026, 9:56:01 PM
+exit 0

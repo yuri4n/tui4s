@@ -210,6 +210,22 @@ started from the main checkout): it is the user's Metals sbt server.
   line); a ReadmeSuite pins the quick-start blocks to the files. A send_later check-in fires at about 00:20 UTC.
   AFTER W6: push, PR against feat/kyoui-05-components, subscribe, logs and notes; then P1 (W7, shape 4), L1, L2, D.
 
+<!-- claude 2026-10-14: added this item (W6 done, PR #16, lean mode) -->
+- 2026-10-14 12:30 UTC: W6 DONE (wf_cbfa3587-619, 7 agents, 2.26 M tokens, 109 min): T2 tip 4f174ed (20 commits: 15 +
+  5 review fixes; 14 findings: 12 confirmed and fixed, 2 refuted). Final runs all green: clean check CI mode 0
+  warnings, 228 core + 35 example tests, 3 test runs and 3 PTY runs (53 terminal rows + 68 screen checks each), one
+  of each under contention; class-load of the real Counter launcher about 4090 classes. PUSHED; PR #16 `feat(core):
+  TuiApp, every example in the real terminal, the full PTY checklist` against feat/kyoui-05-components (opened by an
+  Opus agent that typed the body from t2-pr-body.txt; a diff check against the file follows); subscribed. Logs
+  .work/impl/t2-*. The design defect found in 4a (SIGTERM: the restore hook ended the run as a quit, so onExit and
+  "interrupted" raced the JVM halt) is fixed with internal.Hooks.shuttingDown. Known gap: a span does not wrap at 40
+  columns (Dashboard header): L2.
+- 2026-10-14 12:10 UTC: LEAN MODE (user): "use Fable very sparsely and cut corners a little bit (not in the api,
+  behind the scenes)". DECISIONS fourteenth round; the user rules file has the same rule. From here: Opus for all
+  delegable work (also R2/K2), shape 4, one final run, one PTY run, one-screen PR bodies, negative controls only for
+  bug fixes. NEXT: the user runs the examples on feat/kyoui-06-app-examples and merges the stack (#10, #11, #13, #14,
+  #15, #16: squash, then Claude merges or rebases the next branch, D-4 c). P1, L1, L2, D wait for the user's word.
+
 ## 2026-10-02: DIRECTION CHANGE
 
 The user reviewed the core and said it is not a functional wrapper of jatatui and that the internals are not
@@ -314,6 +330,7 @@ feat/cats, W4, W5). That stack is parked since the direction change of 2026-10-0
    first usable version), then **W4 = C4 `feat/kyoui-05-components`** (plan 6.4), then T2, P1, L1, L2, D. The WIP limit
    P-11 is lifted until T1 is open (the user wants a usable version first).
    UPDATE 2026-10-13 21:30 UTC: C4 DONE (PR #15, 9047a50); W6 = T2 RUNNING (wf_cbfa3587-619); then P1, L1, L2, D.
+   UPDATE 2026-10-14 12:30 UTC: T2 DONE (PR #16, 4f174ed). LEAN MODE from here (DECISIONS 14). The user merges and runs the demo; P1, L1, L2, D wait for the user's word.
 4. **Merge mechanics (D-4 c):** the user squash-merges; Claude then rebases the next branch of the stack (own branches
    only), runs `sbt check`, pushes. Never rewrite a branch that is not Claude's.
 5. **Tracking:** one GitHub issue per TODO (labels `upstream-kyo`, `todo`). The user creates the GitHub Project with

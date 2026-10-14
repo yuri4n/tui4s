@@ -1,0 +1,1922 @@
+===== after counter-start (bytes written in this step: 335, alt screen active: True)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after counter-plus1 (bytes written in this step: 26, alt screen active: True)
+Counter
+Count: 1
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after counter-plus2 (bytes written in this step: 26, alt screen active: True)
+Counter
+Count: 2
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after counter-minus (bytes written in this step: 26, alt screen active: True)
+Counter
+Count: 1
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after counter-q (bytes written in this step: 625, alt screen active: False)
+Counter
+Count: 1
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after ctrlc-start (bytes written in this step: 335, alt screen active: True)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after ctrlc-plus (bytes written in this step: 26, alt screen active: True)
+Counter
+Count: 1
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after ctrlc-key (bytes written in this step: 620, alt screen active: False)
+Counter
+Count: 1
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after resize-start (bytes written in this step: 335, alt screen active: True)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after resize-small (bytes written in this step: 607, alt screen active: True)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter
+presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after resize-big (bytes written in this step: 398, alt screen active: True)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after resize-q (bytes written in this step: 621, alt screen active: False)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after term-start (bytes written in this step: 335, alt screen active: True)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after term-kill (bytes written in this step: 616, alt screen active: False)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after int-start (bytes written in this step: 335, alt screen active: True)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after int-kill (bytes written in this step: 615, alt screen active: False)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after print-start (bytes written in this step: 286, alt screen active: True)
+Printing
+Count: 0
++ prints a line, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after print-plus (bytes written in this step: 26, alt screen active: True)
+Printing
+Count: 1
++ prints a line, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after print-q (bytes written in this step: 670, alt screen active: False)
+Printing
+Count: 1
++ prints a line, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after printlog-start (bytes written in this step: 305, alt screen active: True)
+Printing
+Count: 0
++ prints a line, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after printlog-plus (bytes written in this step: 26, alt screen active: True)
+Printing
+Count: 1
++ prints a line, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after printlog-q (bytes written in this step: 629, alt screen active: False)
+Printing
+Count: 1
++ prints a line, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after kyoapp-start (bytes written in this step: 338, alt screen active: True)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after kyoapp-plus (bytes written in this step: 26, alt screen active: True)
+Counter
+Count: 1
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after kyoapp-q (bytes written in this step: 623, alt screen active: False)
+Counter
+Count: 1
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after styles-start (bytes written in this step: 1585, alt screen active: True)
+Counter styles: h hides the hook counters, q quits
+Hooks                               Components
+┌─────────────┐  ┌─────────────┐    ┌─────────────┐  ┌─────────────┐
+│ Left        │  │ Right       │    │ Left        │  │ Right       │
+│ Count: 0    │  │ Count: 0    │    │ Count: 0    │  │ Count: 0    │
+│ [ + ] [ - ] │  │ [ + ] [ - ] │    │ [ + ] [ - ] │  │ [ + ] [ - ] │
+└─────────────┘  └─────────────┘    └─────────────┘  └─────────────┘
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after styles-hook (bytes written in this step: 27, alt screen active: True)
+Counter styles: h hides the hook counters, q quits
+Hooks                               Components
+┌─────────────┐  ┌─────────────┐    ┌─────────────┐  ┌─────────────┐
+│ Left        │  │ Right       │    │ Left        │  │ Right       │
+│ Count: 1    │  │ Count: 0    │    │ Count: 0    │  │ Count: 0    │
+│ [ + ] [ - ] │  │ [ + ] [ - ] │    │ [ + ] [ - ] │  │ [ + ] [ - ] │
+└─────────────┘  └─────────────┘    └─────────────┘  └─────────────┘
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after styles-tabs (bytes written in this step: 201, alt screen active: True)
+Counter styles: h hides the hook counters, q quits
+Hooks                               Components
+┌─────────────┐  ┌─────────────┐    ┌─────────────┐  ┌─────────────┐
+│ Left        │  │ Right       │    │ Left        │  │ Right       │
+│ Count: 1    │  │ Count: 0    │    │ Count: 0    │  │ Count: 0    │
+│ [ + ] [ - ] │  │ [ + ] [ - ] │    │ [ + ] [ - ] │  │ [ + ] [ - ] │
+└─────────────┘  └─────────────┘    └─────────────┘  └─────────────┘
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after styles-comp (bytes written in this step: 27, alt screen active: True)
+Counter styles: h hides the hook counters, q quits
+Hooks                               Components
+┌─────────────┐  ┌─────────────┐    ┌─────────────┐  ┌─────────────┐
+│ Left        │  │ Right       │    │ Left        │  │ Right       │
+│ Count: 1    │  │ Count: 0    │    │ Count: 1    │  │ Count: 0    │
+│ [ + ] [ - ] │  │ [ + ] [ - ] │    │ [ + ] [ - ] │  │ [ + ] [ - ] │
+└─────────────┘  └─────────────┘    └─────────────┘  └─────────────┘
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after styles-hide (bytes written in this step: 1208, alt screen active: True)
+Counter styles: h hides the hook counters, q quits
+Hooks    Components
+         ┌─────────────┐  ┌─────────────┐
+         │ Left        │  │ Right       │
+         │ Count: 1    │  │ Count: 0    │
+         │ [ + ] [ - ] │  │ [ + ] [ - ] │
+         └─────────────┘  └─────────────┘
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after styles-show (bytes written in this step: 1533, alt screen active: True)
+Counter styles: h hides the hook counters, q quits
+Hooks                               Components
+┌─────────────┐  ┌─────────────┐    ┌─────────────┐  ┌─────────────┐
+│ Left        │  │ Right       │    │ Left        │  │ Right       │
+│ Count: 0    │  │ Count: 0    │    │ Count: 1    │  │ Count: 0    │
+│ [ + ] [ - ] │  │ [ + ] [ - ] │    │ [ + ] [ - ] │  │ [ + ] [ - ] │
+└─────────────┘  └─────────────┘    └─────────────┘  └─────────────┘
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after styles-q (bytes written in this step: 621, alt screen active: False)
+Counter styles: h hides the hook counters, q quits
+Hooks                               Components
+┌─────────────┐  ┌─────────────┐    ┌─────────────┐  ┌─────────────┐
+│ Left        │  │ Right       │    │ Left        │  │ Right       │
+│ Count: 0    │  │ Count: 0    │    │ Count: 1    │  │ Count: 0    │
+│ [ + ] [ - ] │  │ [ + ] [ - ] │    │ [ + ] [ - ] │  │ [ + ] [ - ] │
+└─────────────┘  └─────────────┘    └─────────────┘  └─────────────┘
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after todo-start (bytes written in this step: 1142, alt screen active: True)
+Todo  0 open / 0
+New:
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                                  │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+loaded 0 items from todo-pty.txt
+Tab: input/list  ↑↓: move  Space: toggle  d: delete  Ctrl-S: save  Esc: quit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after todo-typed (bytes written in this step: 284, alt screen active: True)
+Todo  0 open / 0
+New: buy milk
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                                  │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+loaded 0 items from todo-pty.txt
+Tab: input/list  ↑↓: move  Space: toggle  d: delete  Ctrl-S: save  Esc: quit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after todo-enter (bytes written in this step: 243, alt screen active: True)
+Todo  1 open / 1
+New:
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│[ ] buy milk                                                                                      │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+loaded 0 items from todo-pty.txt
+Tab: input/list  ↑↓: move  Space: toggle  d: delete  Ctrl-S: save  Esc: quit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after todo-paste (bytes written in this step: 48, alt screen active: True)
+Todo  1 open / 1
+New: tea time
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│[ ] buy milk                                                                                      │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+loaded 0 items from todo-pty.txt
+Tab: input/list  ↑↓: move  Space: toggle  d: delete  Ctrl-S: save  Esc: quit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after todo-paste2 (bytes written in this step: 50, alt screen active: True)
+Todo  1 open / 1
+New: tea time and cake
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│[ ] buy milk                                                                                      │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+loaded 0 items from todo-pty.txt
+Tab: input/list  ↑↓: move  Space: toggle  d: delete  Ctrl-S: save  Esc: quit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after todo-enter2 (bytes written in this step: 168, alt screen active: True)
+Todo  2 open / 2
+New:
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│[ ] buy milk                                                                                      │
+│[ ] tea time and cake                                                                             │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+loaded 0 items from todo-pty.txt
+Tab: input/list  ↑↓: move  Space: toggle  d: delete  Ctrl-S: save  Esc: quit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after todo-tab (bytes written in this step: 752, alt screen active: True)
+Todo  2 open / 2
+New: What needs doing? (Enter adds)
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│[ ] buy milk                                                                                      │
+│[ ] tea time and cake                                                                             │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+loaded 0 items from todo-pty.txt
+Tab: input/list  ↑↓: move  Space: toggle  d: delete  Ctrl-S: save  Esc: quit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after todo-space (bytes written in this step: 118, alt screen active: True)
+Todo  1 open / 2
+New: What needs doing? (Enter adds)
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│[x] buy milk                                                                                      │
+│[ ] tea time and cake                                                                             │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+loaded 0 items from todo-pty.txt
+Tab: input/list  ↑↓: move  Space: toggle  d: delete  Ctrl-S: save  Esc: quit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after todo-ctrls (bytes written in this step: 85, alt screen active: True)
+Todo  1 open / 2
+New: What needs doing? (Enter adds)
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│[x] buy milk                                                                                      │
+│[ ] tea time and cake                                                                             │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+saved 2 items to todo-pty.txt
+Tab: input/list  ↑↓: move  Space: toggle  d: delete  Ctrl-S: save  Esc: quit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after todo-esc (bytes written in this step: 615, alt screen active: False)
+Todo  1 open / 2
+New: What needs doing? (Enter adds)
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│[x] buy milk                                                                                      │
+│[ ] tea time and cake                                                                             │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+saved 2 items to todo-pty.txt
+Tab: input/list  ↑↓: move  Space: toggle  d: delete  Ctrl-S: save  Esc: quit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after dash-start (bytes written in this step: 2628, alt screen active: True)
+Dashboard  [ CPU ] [ Memory ] [ Network ]
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CPU usage                                                                                        │
+│ █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   3%                                                              │
+│ ▁▁▁▁▁▁                                                                                           │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Log                                                                                              │
+│ event #1: request served                                                                         │
+│ event #2: request served                                                                         │
+│ event #3: request served                                                                         │
+│ event #4: request served                                                                         │
+│                                                                                                  │
+│                                                                                                  │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+sampler running (p pauses)  ←/→ tabs  q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after dash-live1 (bytes written in this step: 563, alt screen active: True)
+Dashboard  [ CPU ] [ Memory ] [ Network ]
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CPU usage                                                                                        │
+│ █████████░░░░░░░░░░░░░░░░░░░░░  29%                                                              │
+│ ▁▁▁▁▁▁▂▂▂▂▃                                                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Log                                                                                              │
+│ event #1: request served                                                                         │
+│ event #2: request served                                                                         │
+│ event #3: request served                                                                         │
+│ event #4: request served                                                                         │
+│ event #5: request served                                                                         │
+│ event #6: request served                                                                         │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+sampler running (p pauses)  ←/→ tabs  q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after dash-live2 (bytes written in this step: 572, alt screen active: True)
+Dashboard  [ CPU ] [ Memory ] [ Network ]
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CPU usage                                                                                        │
+│ ██████░░░░░░░░░░░░░░░░░░░░░░░░  19%                                                              │
+│ ▁▁▁▁▁▁▂▂▂▂▃▂▃▃▂                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Log                                                                                              │
+│ event #4: request served                                                                         │
+│ event #5: request served                                                                         │
+│ event #6: request served                                                                         │
+│ event #7: request served                                                                         │
+│ event #8: request served                                                                         │
+│ event #9: request served                                                                         │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+sampler running (p pauses)  ←/→ tabs  q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after dash-pause (bytes written in this step: 277, alt screen active: True)
+Dashboard  [ CPU ] [ Memory ] [ Network ]
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CPU usage                                                                                        │
+│ ██████░░░░░░░░░░░░░░░░░░░░░░░░  19%                                                              │
+│ ▁▁▁▁▁▁▂▂▂▂▃▂▃▃▂                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Log                                                                                              │
+│ event #6: request served                                                                         │
+│ event #7: request served                                                                         │
+│ event #8: request served                                                                         │
+│ event #9: request served                                                                         │
+│ event #10: request served                                                                        │
+│ event #11: request served                                                                        │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+sampler PAUSED (p resumes)
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after dash-paused1 (bytes written in this step: 267, alt screen active: True)
+Dashboard  [ CPU ] [ Memory ] [ Network ]
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CPU usage                                                                                        │
+│ ██████░░░░░░░░░░░░░░░░░░░░░░░░  19%                                                              │
+│ ▁▁▁▁▁▁▂▂▂▂▃▂▃▃▂                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Log                                                                                              │
+│ event #9: request served                                                                         │
+│ event #10: request served                                                                        │
+│ event #11: request served                                                                        │
+│ event #12: request served                                                                        │
+│ event #13: request served                                                                        │
+│ event #14: request served                                                                        │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+sampler PAUSED (p resumes)
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after dash-paused2 (bytes written in this step: 233, alt screen active: True)
+Dashboard  [ CPU ] [ Memory ] [ Network ]
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CPU usage                                                                                        │
+│ ██████░░░░░░░░░░░░░░░░░░░░░░░░  19%                                                              │
+│ ▁▁▁▁▁▁▂▂▂▂▃▂▃▃▂                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Log                                                                                              │
+│ event #12: request served                                                                        │
+│ event #13: request served                                                                        │
+│ event #14: request served                                                                        │
+│ event #15: request served                                                                        │
+│ event #16: request served                                                                        │
+│ event #17: request served                                                                        │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+sampler PAUSED (p resumes)
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after dash-resume (bytes written in this step: 427, alt screen active: True)
+Dashboard  [ CPU ] [ Memory ] [ Network ]
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CPU usage                                                                                        │
+│ ███░░░░░░░░░░░░░░░░░░░░░░░░░░░  10%                                                              │
+│ ▁▁▁▁▁▁▂▂▂▂▃▂▃▃▂▁▁▂                                                                               │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Log                                                                                              │
+│ event #13: request served                                                                        │
+│ event #14: request served                                                                        │
+│ event #15: request served                                                                        │
+│ event #16: request served                                                                        │
+│ event #17: request served                                                                        │
+│ event #18: request served                                                                        │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+sampler running (p pauses)  ←/→ tabs  q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after dash-right (bytes written in this step: 648, alt screen active: True)
+Dashboard  [ CPU ] [ Memory ] [ Network ]
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Memory usage                                                                                     │
+│ ██████████████░░░░░░░░░░░░░░░░  48%                                                              │
+│ ▁▁▁▂▁▁▁▂▂▁▁▁▁▁▁▂▃▄▄▄▄                                                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Log                                                                                              │
+│ event #15: request served                                                                        │
+│ event #16: request served                                                                        │
+│ event #17: request served                                                                        │
+│ event #18: request served                                                                        │
+│ event #19: request served                                                                        │
+│ event #20: request served                                                                        │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+sampler running (p pauses)  ←/→ tabs  q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after dash-left (bytes written in this step: 548, alt screen active: True)
+Dashboard  [ CPU ] [ Memory ] [ Network ]
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CPU usage                                                                                        │
+│ █████████████████░░░░░░░░░░░░░  55%                                                              │
+│ ▁▁▁▁▁▁▂▂▂▂▃▂▃▃▂▁▁▂▃▃▄▄▅                                                                          │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Log                                                                                              │
+│ event #16: request served                                                                        │
+│ event #17: request served                                                                        │
+│ event #18: request served                                                                        │
+│ event #19: request served                                                                        │
+│ event #20: request served                                                                        │
+│ event #21: request served                                                                        │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+sampler running (p pauses)  ←/→ tabs  q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after dash-tab (bytes written in this step: 462, alt screen active: True)
+Dashboard  [ CPU ] [ Memory ] [ Network ]
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CPU usage                                                                                        │
+│ ████████████████████░░░░░░░░░░  66%                                                              │
+│ ▁▁▁▁▁▁▂▂▂▂▃▂▃▃▂▁▁▂▃▃▄▄▅▅▆                                                                        │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Log                                                                                              │
+│ event #18: request served                                                                        │
+│ event #19: request served                                                                        │
+│ event #20: request served                                                                        │
+│ event #21: request served                                                                        │
+│ event #22: request served                                                                        │
+│ event #23: request served                                                                        │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+sampler running (p pauses)  ←/→ tabs  q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after dash-space (bytes written in this step: 518, alt screen active: True)
+Dashboard  [ CPU ] [ Memory ] [ Network ]
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Memory usage                                                                                     │
+│ ████████████████████░░░░░░░░░░  68%                                                              │
+│ ▁▁▁▂▁▁▁▂▂▁▁▁▁▁▁▂▃▄▄▄▄▄▄▅▅▅▆                                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Log                                                                                              │
+│ event #19: request served                                                                        │
+│ event #20: request served                                                                        │
+│ event #21: request served                                                                        │
+│ event #22: request served                                                                        │
+│ event #23: request served                                                                        │
+│ event #24: request served                                                                        │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+sampler running (p pauses)  ←/→ tabs  q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after dash-tab2 (bytes written in this step: 483, alt screen active: True)
+Dashboard  [ CPU ] [ Memory ] [ Network ]
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Memory usage                                                                                     │
+│ ████████████████████░░░░░░░░░░  67%                                                              │
+│ ▁▁▁▂▁▁▁▂▂▁▁▁▁▁▁▂▃▄▄▄▄▄▄▅▅▅▆▆▆                                                                    │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Log                                                                                              │
+│ event #21: request served                                                                        │
+│ event #22: request served                                                                        │
+│ event #23: request served                                                                        │
+│ event #24: request served                                                                        │
+│ event #25: request served                                                                        │
+│ event #26: request served                                                                        │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+sampler running (p pauses)  ←/→ tabs  q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after dash-enter (bytes written in this step: 653, alt screen active: True)
+Dashboard  [ CPU ] [ Memory ] [ Network ]
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Network usage                                                                                    │
+│ █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   4%                                                              │
+│ ▁▁▁▁▁▂▂▃▂▂▃▂▂▃▃▃▂▃▃▃▃▃▃▃▃▂▃▂▁▁▁▁                                                                 │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Log                                                                                              │
+│ event #22: request served                                                                        │
+│ event #23: request served                                                                        │
+│ event #24: request served                                                                        │
+│ event #25: request served                                                                        │
+│ event #26: request served                                                                        │
+│ event #27: request served                                                                        │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+sampler running (p pauses)  ←/→ tabs  q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after dash-small (bytes written in this step: 4151, alt screen active: True)
+Dashboard  [ CPU ] [ Memory ] [ Network
+┌──────────────────────────────────────┐
+│ Network usage                        │
+│ ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░   5%  │
+│ ▁▁▁▁▁▂▂▃▂▂▃▂▂▃▃▃▂▃▃▃▃▃▃▃▃▂▃▂▁▁▁▁▁▁▁▁ │
+└──────────────────────────────────────┘
+┌──────────────────────────────────────┐
+│ Log                                  │
+│ event #25: request served            │
+│ event #26: request served            │
+│ event #27: request served            │
+│ event #28: request served            │
+│ event #29: request served            │
+│ event #30: request served            │
+│                                      │
+└──────────────────────────────────────┘
+sampler running (p pauses)  ←/→ tabs  q
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after dash-big (bytes written in this step: 7830, alt screen active: True)
+Dashboard  [ CPU ] [ Memory ] [ Network ]
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Network usage                                                                                    │
+│ ████░░░░░░░░░░░░░░░░░░░░░░░░░░  12%                                                              │
+│ ▁▁▁▂▂▃▂▂▃▂▂▃▃▃▂▃▃▃▃▃▃▃▃▂▃▂▁▁▁▁▁▁▁▁▁▂▂▁▁▂                                                         │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Log                                                                                              │
+│ event #28: request served                                                                        │
+│ event #29: request served                                                                        │
+│ event #30: request served                                                                        │
+│ event #31: request served                                                                        │
+│ event #32: request served                                                                        │
+│ event #33: request served                                                                        │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+sampler running (p pauses)  ←/→ tabs  q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after dash-q (bytes written in this step: 459, alt screen active: False)
+Dashboard  [ CPU ] [ Memory ] [ Network ]
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Network usage                                                                                    │
+│ ████░░░░░░░░░░░░░░░░░░░░░░░░░░  12%                                                              │
+│ ▁▁▁▂▂▃▂▂▃▂▂▃▃▃▂▃▃▃▃▃▃▃▃▂▃▂▁▁▁▁▁▁▁▁▁▂▂▁▁▂                                                         │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Log                                                                                              │
+│ event #28: request served                                                                        │
+│ event #29: request served                                                                        │
+│ event #30: request served                                                                        │
+│ event #31: request served                                                                        │
+│ event #32: request served                                                                        │
+│ event #33: request served                                                                        │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+sampler running (p pauses)  ←/→ tabs  q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after classload-start (bytes written in this step: 643, alt screen active: False)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after pipe-start (bytes written in this step: 801, alt screen active: False)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after deny-start (bytes written in this step: 800, alt screen active: False)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== after end (bytes written in this step: 21, alt screen active: False)
+Counter
+Count: 0
+[ + ] [ - ]
++ / - change it, Tab moves, Enter presses, q quits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

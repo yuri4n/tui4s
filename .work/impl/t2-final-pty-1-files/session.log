@@ -1,0 +1,242 @@
+PS1='PROMPT> '; export TERM=xterm-256color; cd /home/user/tui4s/.work/impl/t2-final-pty-1-files
+[?2004hbash-5.2# PS1='PROMPT> '; export TERM=xterm-256color; cd /home/user/tui4s/.work/impl/t2-final-pty-1-ffiles
+[?2004l[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-counter-before.txt; echo STTYY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK counter-start@@
+/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/counter; echoo EXIT=$?
+[?2004l[?1049h[2J[?25l[?2004h[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m
+@@MARK counter-plus1@@
+[2;8H1[39m[49m[59m[0m
+@@MARK counter-plus2@@
+[2;8H2[39m[49m[59m[0m
+@@MARK counter-minus@@
+[2;8H1[39m[49m[59m[0m
+@@MARK counter-q@@
+[?2004l[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-counter-after.txt; echo STTY__$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-counter-before.txt /home/user/tuui4s/.work/impl/t2-final-pty-1-files/stty-counter-after.txt && echo STTY_$((7*0))SAME || echo STTY_$(((7*0))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-ctrlc-before.txt; echo STTY_$$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK ctrlc-start@@
+/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/counter; echoo EXIT=$?
+[?2004l[?1049h[2J[?25l[?2004h[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m
+@@MARK ctrlc-plus@@
+[2;8H1[39m[49m[59m[0m
+@@MARK ctrlc-key@@
+[?2004l[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-ctrlc-after.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-ctrlc-before.txt /home/user/tui44s/.work/impl/t2-final-pty-1-files/stty-ctrlc-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((7*00))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-resize-before.txt; echo STTY__$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK resize-start@@
+/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/counter; echoo EXIT=$?
+[?2004l[?1049h[2J[?25l[?2004h[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m
+@@MARK resize-small@@
+[2J[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter[5;1Hpresses, q quits[39m[49m[59m[0m[2J[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter[5;1Hpresses, q quits[39m[49m[59m[0m
+@@MARK resize-big@@
+[2J[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m[2J[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m
+@@MARK resize-q@@
+[?2004l[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-resize-after.txt; echo STTY_$$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-resize-before.txt /home/user/tuii4s/.work/impl/t2-final-pty-1-files/stty-resize-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((77*0))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-term-before.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK term-start@@
+/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/counter; echoo EXIT=$?
+[?2004l[?1049h[2J[?25l[?2004h[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m
+@@MARK term-kill@@
+[?2004l[?25h[?1049lEXIT=143
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-term-after.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-term-before.txt /home/user/tui4ss/.work/impl/t2-final-pty-1-files/stty-term-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((7*0)))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-int-before.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK int-start@@
+/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/counter; echoo EXIT=$?
+[?2004l[?1049h[2J[?25l[?2004h[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m
+@@MARK int-kill@@
+[?2004l[?25h[?1049lEXIT=130
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-int-after.txt; echo STTY_$((66*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-int-before.txt /home/user/tui4s//.work/impl/t2-final-pty-1-files/stty-int-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((7*0))DIIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-print-before.txt; echo STTY_$$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK print-start@@
+/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/printing; echho EXIT=$?
+[?2004lprinting: before the run
+[?1049h[2J[?25l[?2004h[1;1H[1m[4mPrinting[2;1H[22m[24mCount:[2;8H0[3;1H[38;2;107;114;128m+ prints a line, q quits[39m[49m[59m[0m
+@@MARK print-plus@@
+[2;8H1[39m[49m[59m[0m
+@@MARK print-q@@
+[?2004l[?25h[?1049lprinting: the UI is built
+printing: + gives 1
+EXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-print-after.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-print-before.txt /home/user/tui44s/.work/impl/t2-final-pty-1-files/stty-print-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((7*00))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-printlog-before.txt; echo STTTY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK printlog-start@@
+/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/printing --loog printing.log; echo EXIT=$?
+[?2004lprinting: before the run
+[?1049h[2J[?25l[?2004h[1;1H[1m[4mPrinting[2;1H[22m[24mCount:[2;8H0[3;1H[38;2;107;114;128m+ prints a line, q quits[39m[49m[59m[0m
+@@MARK printlog-plus@@
+[2;8H1[39m[49m[59m[0m
+@@MARK printlog-q@@
+[?2004l[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-printlog-after.txt; echo STTYY_$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-printlog-before.txt /home/user/ttui4s/.work/impl/t2-final-pty-1-files/stty-printlog-after.txt && echo STTY_$((7*0))SAME || echo STTY__$((7*0))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-kyoapp-before.txt; echo STTY__$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK kyoapp-start@@
+/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/counterkyo; eecho EXIT=$?
+[?2004l[?1049h[2J[?25l[?2004h[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m
+@@MARK kyoapp-plus@@
+[2;8H1[39m[49m[59m[0m
+@@MARK kyoapp-q@@
+[?2004l[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-kyoapp-after.txt; echo STTY_$$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-kyoapp-before.txt /home/user/tuii4s/.work/impl/t2-final-pty-1-files/stty-kyoapp-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((77*0))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-styles-before.txt; echo STTY__$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK styles-start@@
+/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/counterstyless; echo EXIT=$?
+[?2004l[?1049h[2J[?25l[?2004h[1;1H[1m[4mCounter styles: h hides the hook counters, q quits[2;1H[24mHooks[2;37HComponents[3;1H[22m[38;2;100;116;139m┌─────────────┐[3;18H┌─────────────┐[3;37H┌─────────────┐[3;54H┌─────────────┐[4;1H│[4;3H[1m[39mLeft[4;15H[22m[38;2;100;116;139m│[4;18H│[4;20H[1m[39mRight[4;32H[22m[38;2;100;116;139m│[4;37H│[4;39H[1m[39mLeft[4;51H[22m[38;2;100;116;139m│[4;54H│[4;56H[1m[39mRight[4;68H[22m[38;2;100;116;139m│[5;1H│[5;3H[39mCount:[5;10H0[5;15H[38;2;100;116;139m│[5;18H│[5;20H[39mCount:[5;27H0[5;32H[38;2;100;116;139m│[5;37H│[5;39H[39mCount:[5;46H0[5;51H[38;2;100;116;139m│[5;54H│[5;56H[39mCount:[5;63H0[5;68H[38;2;100;116;139m│[6;1H│[6;3H[7m[1m[39m[ + ][6;9H[27m[22m[[6;11H-[6;13H][6;15H[38;2;100;116;139m│[6;18H│[6;20H[39m[[6;22H+[6;24H][6;26H[[6;28H-[6;30H][6;32H[38;2;100;116;139m│[6;37H│[6;39H[39m[[6;41H+[6;43H][6;45H[[6;47H-[6;49H][6;51H[38;2;100;116;139m│[6;54H│[6;56H[39m[[6;58H+[6;60H][6;62H[[6;64H-[6;66H][6;68H[38;2;100;116;139m│[7;1H└─────────────┘[7;18H└─────────────┘[7;37H└─────────────┘[7;54H└─────────────┘[39m[49m[59m[0m
+@@MARK styles-hook@@
+[5;10H1[39m[49m[59m[0m
+@@MARK styles-tabs@@
+[6;3H[ + ][6;9H[7m[1m[ - ][39m[49m[59m[0m[6;9H[ - ][6;20H[7m[1m[ + ][39m[49m[59m[0m[6;20H[ + ][6;26H[7m[1m[ - ][39m[49m[59m[0m[6;26H[ - ][6;39H[7m[1m[ + ][39m[49m[59m[0m
+@@MARK styles-comp@@
+[5;46H1[39m[49m[59m[0m
+@@MARK styles-hide@@
+[2;10H[1mComponents[2;37H[22m          [3;1H         [38;2;100;116;139m┌[3;15H────[3;24H┐[39m  [38;2;100;116;139m┌[3;32H──────[3;41H┐[39m          [3;54H               [4;1H [4;3H    [4;10H[38;2;100;116;139m│[4;12H[1m[39mLeft[4;18H[22m [4;20H    [38;2;100;116;139m│[4;27H│[4;29H[1m[39mRight[4;37H[22m [4;39H  [38;2;100;116;139m│[39m [4;51H [4;54H [4;56H     [4;68H [5;1H [5;3H      [5;10H[38;2;100;116;139m│[5;12H[39mCount: 1    [38;2;100;116;139m│[39m [5;27H[38;2;100;116;139m│[5;29H[39mCount:[5;36H0 [5;39H  [38;2;100;116;139m│[39m   [5;46H [5;51H [5;54H [5;56H      [5;63H [5;68H [6;1H [6;3H [6;5H [6;7H [6;9H [38;2;100;116;139m│[39m [7m[1m[ + ][6;18H[27m[22m[[6;20H-[6;22H][6;24H[38;2;100;116;139m│[6;26H[39m [38;2;100;116;139m│[39m [ + ][6;35H[[6;37H-[6;39H] [38;2;100;116;139m│[39m  [6;45H [6;47H [6;49H [6;51H [6;54H [6;56H [6;58H [6;60H [6;62H [6;64H [6;66H [6;68H [7;1H         [38;2;100;116;139m└[7;15H────[7;24H┘[39m  [38;2;100;116;139m└[7;32H──────[7;41H┘[39m          [7;54H               [39m[49m[59m[0m
+@@MARK styles-show@@
+[2;10H          [2;37H[1mComponents[3;1H[22m[38;2;100;116;139m┌─────────[3;15H┐[39m  [38;2;100;116;139m┌[3;24H────[3;32H┐[39m    [38;2;100;116;139m┌[3;41H──────────┐[3;54H┌─────────────┐[4;1H│[4;3H[1m[39mLeft[4;10H[22m [4;12H   [38;2;100;116;139m│[4;18H│[4;20H[1m[39mRight[4;27H[22m [4;29H   [38;2;100;116;139m│[39m [4;37H[38;2;100;116;139m│[4;39H[1m[39mLeft[4;51H[22m[38;2;100;116;139m│[4;54H│[4;56H[1m[39mRight[4;68H[22m[38;2;100;116;139m│[5;1H│[5;3H[39mCount:[5;10H0[5;12H   [38;2;100;116;139m│[39m  [38;2;100;116;139m│[39m Count:[5;27H0[5;29H   [38;2;100;116;139m│[39m  [5;36H [38;2;100;116;139m│[5;39H[39mCount:[5;46H1[5;51H[38;2;100;116;139m│[5;54H│[5;56H[39mCount:[5;63H0[5;68H[38;2;100;116;139m│[6;1H│[6;3H[39m[[6;5H+[6;7H][6;9H[ - ] [38;2;100;116;139m│[39m [6;18H[38;2;100;116;139m│[6;20H[39m[[6;22H+[6;24H][6;26H[ - ] [38;2;100;116;139m│[39m [6;35H [6;37H[38;2;100;116;139m│[6;39H[7m[1m[39m[ + ][6;45H[27m[22m[[6;47H-[6;49H][6;51H[38;2;100;116;139m│[6;54H│[6;56H[39m[[6;58H+[6;60H][6;62H[[6;64H-[6;66H][6;68H[38;2;100;116;139m│[7;1H└─────────[7;15H┘[39m  [38;2;100;116;139m└[7;24H────[7;32H┘[39m    [38;2;100;116;139m└[7;41H──────────┘[7;54H└─────────────┘[39m[49m[59m[0m
+@@MARK styles-q@@
+[?2004l[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-styles-after.txt; echo STTY_$$((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-styles-before.txt /home/user/tuii4s/.work/impl/t2-final-pty-1-files/stty-styles-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((77*0))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-todo-before.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK todo-start@@
+/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/todo todo-ptyy.txt; echo EXIT=$?
+[?2004l[?1049h[2J[?25l[?2004h[1;1H[1m[4mTodo[1;7H[22m[24m[38;2;107;114;128m0 open / 0[2;1H[39mNew:[2;6H[7m[4m [27m                                       [3;1H[24m[38;2;100;116;139m┌──────────────────────────────────────────────────────────────────────────────────────────────────┐[4;1H│[4;100H│[5;1H│[5;100H│[6;1H└──────────────────────────────────────────────────────────────────────────────────────────────────┘[7;1H[38;2;34;197;94mloaded 0 items from todo-pty.txt[8;1H[38;2;107;114;128mTab: input/list  ↑↓: move  Space: toggle  d: delete  Ctrl-S: save  Esc: quit[39m[49m[59m[0m
+@@MARK todo-typed@@
+[2;6H[4mb[7m [39m[49m[59m[0m[2;7H[4mu[7m [39m[49m[59m[0m[2;8H[4my[7m [39m[49m[59m[0m[2;9H[4m [7m [39m[49m[59m[0m[2;10H[4mm[7m [39m[49m[59m[0m[2;11H[4mi[7m [39m[49m[59m[0m[2;12H[4ml[7m [39m[49m[59m[0m[2;13H[4mk[7m [39m[49m[59m[0m
+@@MARK todo-enter@@
+[1;7H[38;2;107;114;128m1[1;16H1[4;2H[38;2;255;255;255m[48;2;99;102;241m[ ] buy milk[39m                                                                                      [2;6H[7m[4m[49m [27m  [2;10H     [39m[49m[59m[0m
+@@MARK todo-paste@@
+[2;6H[4mtea[2;10Htime[7m [39m[49m[59m[0m
+@@MARK todo-paste2@@
+[2;14H[4m and[2;19Hcake[7m [39m[49m[59m[0m
+@@MARK todo-enter2@@
+[1;7H[38;2;107;114;128m2[1;16H2[5;2H[39m[[5;4H][5;6Htea[5;10Htime[5;15Hand[5;19Hcake[2;6H[7m[4m [27m  [2;10H    [2;15H   [2;19H     [39m[49m[59m[0m
+@@MARK todo-tab@@
+[2;6H[3m[4m[2mWhat needs doing? (Enter adds)[3;1H[22m[23m[24m[38;2;59;130;246m┌──────────────────────────────────────────────────────────────────────────────────────────────────┐[4;1H│[4;100H│[5;1H│[5;100H│[6;1H└──────────────────────────────────────────────────────────────────────────────────────────────────┘[39m[49m[59m[0m
+@@MARK todo-space@@
+[4;3H[38;2;255;255;255m[48;2;99;102;241mx[4;5H[9m[38;2;107;114;128m buy milk[1;7H[29m[49m1[39m[49m[59m[0m
+@@MARK todo-ctrls@@
+[7;1H[38;2;34;197;94msaved 2 items to todo-pty.[7;28Hxt[39m   [39m[49m[59m[0m
+@@MARK todo-esc@@
+[?2004l[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-todo-after.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-todo-before.txt /home/user/tui4ss/.work/impl/t2-final-pty-1-files/stty-todo-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((7*0)))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-dash-before.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK dash-start@@
+/home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/dashboard; eccho EXIT=$?
+[?2004l[?1049h[2J[?25l[?2004h[1;1H[1m[4mDashboard[1;12H[24m[7m[38;2;234;179;8m[ CPU ][1;20H[27m[22m[38;2;107;114;128m[[1;22HMemory[1;29H][1;31H[[1;33HNetwork[1;41H][2;1H[38;2;100;116;139m┌──────────────────────────────────────────────────────────────────────────────────────────────────┐[3;1H│[3;3H[1m[39mCPU usage[3;100H[22m[38;2;100;116;139m│[4;1H│[4;3H[38;2;34;197;94m░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0%[4;100H[38;2;100;116;139m│[5;1H│[5;100H│[6;1H└──────────────────────────────────────────────────────────────────────────────────────────────────┘[7;1H┌──────────────────────────────────────────────────────────────────────────────────────────────────┐[8;1H│[8;3H[1m[3m[39mLog[8;100H[22m[23m[38;2;100;116;139m│[9;1H│[9;100H│[10;1H│[10;100H│[11;1H│[11;100H│[12;1H│[12;100H│[13;1H│[13;100H│[14;1H│[14;100H│[15;1H│[15;100H│[16;1H└──────────────────────────────────────────────────────────────────────────────────────────────────┘[17;1H[38;2;107;114;128msampler running (p pauses)  ←/→ tabs  q quits[39m[49m[59m[0m[4;3H[38;2;34;197;94m█[4;36H4[5;3H[38;2;59;130;246m▁[39m[49m[59m[0m[9;3Hevent[9;9H#1:[9;13Hrequest[9;21Hserved[39m[49m[59m[0m[4;3H[38;2;34;197;94m░[4;36H0[5;4H[38;2;59;130;246m▁[39m[49m[59m[0m[5;5H[38;2;59;130;246m▁[39m[49m[59m[0m[10;3Hevent[10;9H#2:[10;13Hrequest[10;21Hserved[39m[49m[59m[0m[5;6H[38;2;59;130;246m▁[39m[49m[59m[0m[11;3Hevent[11;9H#3:[11;13Hrequest[11;21Hserved[39m[49m[59m[0m[5;7H[38;2;59;130;246m▁[39m[49m[59m[0m[5;8H[38;2;59;130;246m▁[39m[49m[59m[0m[12;3Hevent[12;9H#4:[12;13Hrequest[12;21Hserved[39m[49m[59m[0m
+@@MARK dash-live1@@
+[4;3H[38;2;34;197;94m█[4;36H2[5;9H[38;2;59;130;246m▁[39m[49m[59m[0m[13;3Hevent[13;9H#5:[13;13Hrequest[13;21Hserved[39m[49m[59m[0m[4;4H[38;2;34;197;94m███[4;35H15[5;10H[38;2;59;130;246m▂[39m[49m[59m[0m[4;3H[38;2;34;197;94m░░░░[4;35H 1[5;11H[38;2;59;130;246m▁[39m[49m[59m[0m[14;3Hevent[14;9H#6:[14;13Hrequest[14;21Hserved[39m[49m[59m[0m[4;3H[38;2;34;197;94m██[4;36H8[5;12H[38;2;59;130;246m▂[39m[49m[59m[0m[4;3H[38;2;34;197;94m░░[4;36H0[5;13H[38;2;59;130;246m▁[39m[49m[59m[0m
+@@MARK dash-live2@@
+[9;10H2[10;10H3[11;10H4[12;10H5[13;10H6[14;10H7[39m[49m[59m[0m[4;3H[38;2;34;197;94m██[4;36H6[5;14H[38;2;59;130;246m▁[39m[49m[59m[0m[9;10H3[10;10H4[11;10H5[12;10H6[13;10H7[14;10H8[39m[49m[59m[0m[4;3H[38;2;34;197;94m░░[4;36H0[5;15H[38;2;59;130;246m▁[39m[49m[59m[0m[4;3H[38;2;34;197;94m██[4;36H7[5;16H[38;2;59;130;246m▁[39m[49m[59m[0m[9;10H4[10;10H5[11;10H6[12;10H7[13;10H8[14;10H9[39m[49m[59m[0m[4;5H[38;2;34;197;94m███[4;35H1[5;17H[38;2;59;130;246m▂[39m[49m[59m[0m
+@@MARK dash-pause@@
+[17;9H[38;2;107;114;128mPAUSED (p res[17;23Hm[17;27H[39m                   [39m[49m[59m[0m[9;10H5[10;10H6[11;10H7[12;10H8[13;10H9[14;10H10: request served[39m[49m[59m[0m[9;10H6[10;10H7[11;10H8[12;10H9[13;10H10: request served[14;11H1[39m[49m[59m[0m
+@@MARK dash-paused1@@
+[9;10H7[10;10H8[11;10H9[12;10H10: request served[13;11H1[14;11H2[39m[49m[59m[0m[9;10H8[10;10H9[11;10H10: request served[12;11H1[13;11H2[14;11H3[39m[49m[59m[0m[9;10H9[10;10H10: request served[11;11H1[12;11H2[13;11H3[14;11H4[39m[49m[59m[0m
+@@MARK dash-paused2@@
+[9;10H10: request served[10;11H1[11;11H2[12;11H3[13;11H4[14;11H5[39m[49m[59m[0m[9;11H1[10;11H2[11;11H3[12;11H4[13;11H5[14;11H6[39m[49m[59m[0m[9;11H2[10;11H3[11;11H4[12;11H5[13;11H6[14;11H7[39m[49m[59m[0m
+@@MARK dash-resume@@
+[17;9H[38;2;107;114;128mrunning (p pa[17;23Hs[17;27H  ←/→ tabs  q quits[39m[49m[59m[0m[4;36H[38;2;34;197;94m6[5;18H[38;2;59;130;246m▂[39m[49m[59m[0m[9;11H3[10;11H4[11;11H5[12;11H6[13;11H7[14;11H8[39m[49m[59m[0m[4;8H[38;2;34;197;94m████[4;35H29[5;19H[38;2;59;130;246m▃[39m[49m[59m[0m[4;11H[38;2;34;197;94m░[4;36H7[5;20H[38;2;59;130;246m▃[39m[49m[59m[0m
+@@MARK dash-right@@
+[3;3H[1mMemory usage[4;7H[22m[38;2;34;197;94m░░░░[4;35H13[5;3H[38;2;59;130;246m▂[5;8H▂▂▃▃▃▂[5;15H▂▂[5;20H▂[1;12H[38;2;107;114;128m[[39m [38;2;107;114;128mCPU[39m [38;2;107;114;128m][1;20H[7m[1m[38;2;234;179;8m[ Memory ][39m[49m[59m[0m[9;11H4[10;11H5[11;11H6[12;11H7[13;11H8[14;11H9[39m[49m[59m[0m[4;3H[38;2;34;197;94m░░░░[4;35H 1[5;21H[38;2;59;130;246m▁[39m[49m[59m[0m[9;11H5[10;11H6[11;11H7[12;11H8[13;11H9[14;10H20[39m[49m[59m[0m[4;36H[38;2;34;197;94m0[5;22H[38;2;59;130;246m▁[39m[49m[59m[0m
+@@MARK dash-left@@
+[3;3H[1mCPU usage[22m   [4;3H[38;2;34;197;94m███████[4;35H22[5;3H[38;2;59;130;246m▁[5;8H▁▁▂▁▂▁[5;15H▁▁[5;20H▃▂▃[1;12H[7m[1m[38;2;234;179;8m[ CPU ][1;20H[27m[22m[38;2;107;114;128m[[39m [38;2;107;114;128mMemory[39m [38;2;107;114;128m][39m[49m[59m[0m[4;36H[38;2;34;197;94m5[5;23H[38;2;59;130;246m▃[39m[49m[59m[0m[9;11H6[10;11H7[11;11H8[12;11H9[13;10H20[14;11H1[39m[49m[59m[0m[4;10H[38;2;34;197;94m██[4;35H30[5;24H[38;2;59;130;246m▃[39m[49m[59m[0m
+@@MARK dash-tab@@
+[1;12H[1m[38;2;234;179;8m[[22m[39m [1m[38;2;234;179;8mCPU[22m[39m [1m[38;2;234;179;8m][1;20H[7m[38;2;107;114;128m[ Memory ][39m[49m[59m[0m[4;12H[38;2;34;197;94m█[4;36H2[5;25H[38;2;59;130;246m▃[39m[49m[59m[0m[9;11H7[10;11H8[11;11H9[12;10H20[13;11H1[14;11H2[39m[49m[59m[0m[4;13H[38;2;34;197;94m█[4;36H5[5;26H[38;2;59;130;246m▃[39m[49m[59m[0m
+@@MARK dash-space@@
+[3;3H[1mMemory usage[4;4H[22m[38;2;34;197;94m░░░░░░░░░░[4;35H 3[5;3H[38;2;59;130;246m▂[5;8H▂▂▃▃▃▂[5;15H▂▂[5;20H▂▁▁▁▁▁▁[1;12H[38;2;107;114;128m[[1;14HCPU[1;18H][1;20H[7m[1m[38;2;234;179;8m[ Memory ][39m[49m[59m[0m[9;11H8[10;11H9[11;10H20[12;11H1[13;11H2[14;11H3[39m[49m[59m[0m[4;4H[38;2;34;197;94m██[4;35H10[5;27H[38;2;59;130;246m▂[39m[49m[59m[0m[4;6H[38;2;34;197;94m██[4;36H8[5;28H[38;2;59;130;246m▂[39m[49m[59m[0m
+@@MARK dash-tab2@@
+[1;20H[1m[38;2;234;179;8m[[22m[39m [1m[38;2;234;179;8mMemory[22m[39m [1m[38;2;234;179;8m][1;31H[7m[38;2;107;114;128m[ Network ][39m[49m[59m[0m[9;11H9[10;10H20[11;11H1[12;11H2[13;11H3[14;11H4[39m[49m[59m[0m[4;8H[38;2;34;197;94m█████[4;35H32[5;29H[38;2;59;130;246m▃[39m[49m[59m[0m[9;10H20[10;11H1[11;11H2[12;11H3[13;11H4[14;11H5[39m[49m[59m[0m[4;12H[38;2;34;197;94m░[4;36H0[5;30H[38;2;59;130;246m▃[39m[49m[59m[0m
+@@MARK dash-enter@@
+[3;3H[1mN[3;5Htwork usage[4;5H[22m[38;2;34;197;94m░░░░░░░[4;35H 6[5;3H[38;2;59;130;246m▁▂[5;8H▁▁▂▂[5;13H▄▃[5;16H▃[5;19H▂▃▂[5;23H▂▂▂▂[5;28H▁▂▁[1;20H[38;2;107;114;128m[[1;22HMemory[1;29H][1;31H[7m[1m[38;2;234;179;8m[ Network ][39m[49m[59m[0m[4;5H[38;2;34;197;94m██[4;35H13[5;31H[38;2;59;130;246m▂[39m[49m[59m[0m[9;11H1[10;11H2[11;11H3[12;11H4[13;11H5[14;11H6[39m[49m[59m[0m[4;7H[38;2;34;197;94m████[4;35H27[5;32H[38;2;59;130;246m▃[39m[49m[59m[0m
+@@MARK dash-small@@
+[2J[1;1H[1m[4mDashboard[1;12H[22m[24m[38;2;107;114;128m[[1;14HCPU[1;18H][1;20H[[1;22HMemory[1;29H][1;31H[7m[1m[38;2;234;179;8m[ Network [2;1H[27m[22m[38;2;100;116;139m┌──────────────────────────────────────┐[3;1H│[3;3H[1m[39mNetwork usage[3;40H[22m[38;2;100;116;139m│[4;1H│[4;3H[38;2;34;197;94m████████░░░░░░░░░░░░░░░░░░░░░░  27%[4;40H[38;2;100;116;139m│[5;1H│[5;3H[38;2;59;130;246m▁▂▁▁▁▁▁▂▂▃▄▃▂▃▂▂▂▃▂▁▂▂▂▂▂▁▂▁▂▃[5;40H[38;2;100;116;139m│[6;1H└──────────────────────────────────────┘[7;1H┌──────────────────────────────────────┐[8;1H│[8;3H[1m[3m[39mLog[8;40H[22m[23m[38;2;100;116;139m│[9;1H│[9;3H[39mevent[9;9H#21:[9;14Hrequest[9;22Hserved[9;40H[38;2;100;116;139m│[10;1H│[10;3H[39mevent[10;9H#22:[10;14Hrequest[10;22Hserved[10;40H[38;2;100;116;139m│[11;1H│[11;3H[39mevent[11;9H#23:[11;14Hrequest[11;22Hserved[11;40H[38;2;100;116;139m│[12;1H│[12;3H[39mevent[12;9H#24:[12;14Hrequest[12;22Hserved[12;40H[38;2;100;116;139m│[13;1H│[13;3H[39mevent[13;9H#25:[13;14Hrequest[13;22Hserved[13;40H[38;2;100;116;139m│[14;1H│[14;3H[39mevent[14;9H#26:[14;14Hrequest[14;22Hserved[14;40H[38;2;100;116;139m│[15;1H│[15;40H│[16;1H└──────────────────────────────────────┘[17;1H[38;2;107;114;128msampler running (p pauses)  ←/→ tabs  q [39m[49m[59m[0m[2J[1;1H[1m[4mDashboard[1;12H[22m[24m[38;2;107;114;128m[[1;14HCPU[1;18H][1;20H[[1;22HMemory[1;29H][1;31H[7m[1m[38;2;234;179;8m[ Network [2;1H[27m[22m[38;2;100;116;139m┌──────────────────────────────────────┐[3;1H│[3;3H[1m[39mNetwork usage[3;40H[22m[38;2;100;116;139m│[4;1H│[4;3H[38;2;34;197;94m████████░░░░░░░░░░░░░░░░░░░░░░  27%[4;40H[38;2;100;116;139m│[5;1H│[5;3H[38;2;59;130;246m▁▂▁▁▁▁▁▂▂▃▄▃▂▃▂▂▂▃▂▁▂▂▂▂▂▁▂▁▂▃[5;40H[38;2;100;116;139m│[6;1H└──────────────────────────────────────┘[7;1H┌──────────────────────────────────────┐[8;1H│[8;3H[1m[3m[39mLog[8;40H[22m[23m[38;2;100;116;139m│[9;1H│[9;3H[39mevent[9;9H#21:[9;14Hrequest[9;22Hserved[9;40H[38;2;100;116;139m│[10;1H│[10;3H[39mevent[10;9H#22:[10;14Hrequest[10;22Hserved[10;40H[38;2;100;116;139m│[11;1H│[11;3H[39mevent[11;9H#23:[11;14Hrequest[11;22Hserved[11;40H[38;2;100;116;139m│[12;1H│[12;3H[39mevent[12;9H#24:[12;14Hrequest[12;22Hserved[12;40H[38;2;100;116;139m│[13;1H│[13;3H[39mevent[13;9H#25:[13;14Hrequest[13;22Hserved[13;40H[38;2;100;116;139m│[14;1H│[14;3H[39mevent[14;9H#26:[14;14Hrequest[14;22Hserved[14;40H[38;2;100;116;139m│[15;1H│[15;40H│[16;1H└──────────────────────────────────────┘[17;1H[38;2;107;114;128msampler running (p pauses)  ←/→ tabs  q [39m[49m[59m[0m[4;11H[38;2;34;197;94m█[4;35H30[5;33H[38;2;59;130;246m▃[39m[49m[59m[0m[9;11H2[10;11H3[11;11H4[12;11H5[13;11H6[14;11H7[39m[49m[59m[0m[4;9H[38;2;34;197;94m░░░[4;35H22[5;34H[38;2;59;130;246m▃[39m[49m[59m[0m[9;11H3[10;11H4[11;11H5[12;11H6[13;11H7[14;11H8[39m[49m[59m[0m[4;5H[38;2;34;197;94m░░░░[4;35H 8[5;35H[38;2;59;130;246m▂[39m[49m[59m[0m[4;4H[38;2;34;197;94m░[4;36H4[5;36H[38;2;59;130;246m▁[39m[49m[59m[0m[9;11H4[10;11H5[11;11H6[12;11H7[13;11H8[14;11H9[39m[49m[59m[0m
+@@MARK dash-big@@
+[2J[1;1H[1m[4mDashboard[1;12H[22m[24m[38;2;107;114;128m[[1;14HCPU[1;18H][1;20H[[1;22HMemory[1;29H][1;31H[7m[1m[38;2;234;179;8m[ Network ][2;1H[27m[22m[38;2;100;116;139m┌──────────────────────────────────────────────────────────────────────────────────────────────────┐[3;1H│[3;3H[1m[39mNetwork usage[3;100H[22m[38;2;100;116;139m│[4;1H│[4;3H[38;2;34;197;94m█░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   4%[4;100H[38;2;100;116;139m│[5;1H│[5;3H[38;2;59;130;246m▁▂▁▁▁▁▁▂▂▃▄▃▂▃▂▂▂▃▂▁▂▂▂▂▂▁▂▁▂▃▃▃▂▁[5;100H[38;2;100;116;139m│[6;1H└──────────────────────────────────────────────────────────────────────────────────────────────────┘[7;1H┌──────────────────────────────────────────────────────────────────────────────────────────────────┐[8;1H│[8;3H[1m[3m[39mLog[8;100H[22m[23m[38;2;100;116;139m│[9;1H│[9;3H[39mevent[9;9H#24:[9;14Hrequest[9;22Hserved[9;100H[38;2;100;116;139m│[10;1H│[10;3H[39mevent[10;9H#25:[10;14Hrequest[10;22Hserved[10;100H[38;2;100;116;139m│[11;1H│[11;3H[39mevent[11;9H#26:[11;14Hrequest[11;22Hserved[11;100H[38;2;100;116;139m│[12;1H│[12;3H[39mevent[12;9H#27:[12;14Hrequest[12;22Hserved[12;100H[38;2;100;116;139m│[13;1H│[13;3H[39mevent[13;9H#28:[13;14Hrequest[13;22Hserved[13;100H[38;2;100;116;139m│[14;1H│[14;3H[39mevent[14;9H#29:[14;14Hrequest[14;22Hserved[14;100H[38;2;100;116;139m│[15;1H│[15;100H│[16;1H└──────────────────────────────────────────────────────────────────────────────────────────────────┘[17;1H[38;2;107;114;128msampler running (p pauses)  ←/→ tabs  q quits[39m[49m[59m[0m[2J[1;1H[1m[4mDashboard[1;12H[22m[24m[38;2;107;114;128m[[1;14HCPU[1;18H][1;20H[[1;22HMemory[1;29H][1;31H[7m[1m[38;2;234;179;8m[ Network ][2;1H[27m[22m[38;2;100;116;139m┌──────────────────────────────────────────────────────────────────────────────────────────────────┐[3;1H│[3;3H[1m[39mNetwork usage[3;100H[22m[38;2;100;116;139m│[4;1H│[4;3H[38;2;34;197;94m█░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   4%[4;100H[38;2;100;116;139m│[5;1H│[5;3H[38;2;59;130;246m▁▂▁▁▁▁▁▂▂▃▄▃▂▃▂▂▂▃▂▁▂▂▂▂▂▁▂▁▂▃▃▃▂▁[5;100H[38;2;100;116;139m│[6;1H└──────────────────────────────────────────────────────────────────────────────────────────────────┘[7;1H┌──────────────────────────────────────────────────────────────────────────────────────────────────┐[8;1H│[8;3H[1m[3m[39mLog[8;100H[22m[23m[38;2;100;116;139m│[9;1H│[9;3H[39mevent[9;9H#24:[9;14Hrequest[9;22Hserved[9;100H[38;2;100;116;139m│[10;1H│[10;3H[39mevent[10;9H#25:[10;14Hrequest[10;22Hserved[10;100H[38;2;100;116;139m│[11;1H│[11;3H[39mevent[11;9H#26:[11;14Hrequest[11;22Hserved[11;100H[38;2;100;116;139m│[12;1H│[12;3H[39mevent[12;9H#27:[12;14Hrequest[12;22Hserved[12;100H[38;2;100;116;139m│[13;1H│[13;3H[39mevent[13;9H#28:[13;14Hrequest[13;22Hserved[13;100H[38;2;100;116;139m│[14;1H│[14;3H[39mevent[14;9H#29:[14;14Hrequest[14;22Hserved[14;100H[38;2;100;116;139m│[15;1H│[15;100H│[16;1H└──────────────────────────────────────────────────────────────────────────────────────────────────┘[17;1H[38;2;107;114;128msampler running (p pauses)  ←/→ tabs  q quits[39m[49m[59m[0m[4;4H[38;2;34;197;94m██[4;35H12[5;37H[38;2;59;130;246m▂[39m[49m[59m[0m[9;11H5[10;11H6[11;11H7[12;11H8[13;11H9[14;10H30[4;5H[38;2;34;197;94m░[4;35H 5[5;38H[38;2;59;130;246m▁[39m[49m[59m[0m[4;5H[38;2;34;197;94m███[4;35H17[5;39H[38;2;59;130;246m▂[39m[49m[59m[0m[9;11H6[10;11H7[11;11H8[12;11H9[13;10H30[14;11H1[39m[49m[59m[0m[4;7H[38;2;34;197;94m░[4;36H4[5;40H[38;2;59;130;246m▂[39m[49m[59m[0m[4;7H[38;2;34;197;94m████[4;35H26[5;41H[38;2;59;130;246m▃[39m[49m[59m[0m
+@@MARK dash-q@@
+[?2004l[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-dash-after.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-dash-before.txt /home/user/tui4ss/.work/impl/t2-final-pty-1-files/stty-dash-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((7*0)))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> 
+@@MARK classload-start@@
+JAVA_OPTS=-Xlog:class+load:file=/home/user/tui4s/.work/impl/t2-final-pty-1-files/classload.loog /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/counter; echo EXITT=$?
+[?2004l[?1049h[2J[?25l[?2004h[1;1H[1m[4mCounter[2;1H[22m[24mCount:[2;8H0[3;1H[7m[1m[ + ][3;7H[27m[22m[[3;9H-[3;11H][4;1H[38;2;107;114;128m+ / - change it, Tab moves, Enter presses, q quits[39m[49m[59m[0m[?2004l[?25h[?1049lEXIT=0
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-pipe-before.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK pipe-start@@
+echo | /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/counteer; echo EXIT=$?
+[?2004lstdin/stdout is not a terminal
+  cause: java.io.IOException: stdin is not a terminal
+EXIT=1
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-pipe-after.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-pipe-before.txt /home/user/tui4ss/.work/impl/t2-final-pty-1-files/stty-pipe-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((7*0)))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-deny-before.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> 
+@@MARK deny-start@@
+${JAVA_HOME:+$JAVA_HOME/bin/}java --illegal-native-access=deny --sun-misc-unsafe-memory-accesss=allow -cp "$(cat /home/user/tui4s/.work/worktrees/feat-kyoui-06-app-examples/examples/target/bin/cclasspath)" examples.counter.CounterApp; echo EXIT=$?
+[?2004lstart the JVM with --enable-native-access=ALL-UNNAMED
+  cause: java.lang.ExceptionInInitializerError
+EXIT=1
+[?2004hPROMPT> stty -a > /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-deny-after.txt; echo STTY_$(((6*7))SAVED
+[?2004lSTTY_42SAVED
+[?2004hPROMPT> cmp -s /home/user/tui4s/.work/impl/t2-final-pty-1-files/stty-deny-before.txt /home/user/tui4ss/.work/impl/t2-final-pty-1-files/stty-deny-after.txt && echo STTY_$((7*0))SAME || echo STTY_$((7*0)))DIFF
+[?2004lSTTY_0SAME
+[?2004hPROMPT> 
+@@MARK end@@
+exit
+[?2004lexit
