@@ -4,6 +4,7 @@ package tui4s.internal
 
 import kyo.*
 import kyo.UI.Ast.*
+import tui4s.Component
 
 /** Mounting and unmounting regions. A mount reads the signal's current value
   * synchronously (so the first frame needs no scheduler round trip) and starts
@@ -61,6 +62,13 @@ private[tui4s] final class Mount(
             ),
           )
     end liveFibers
+
+    // claude 2026-10-13: created (C4, the C2 cut back): the hook mount posts
+    // its content with it
+    private def post(path: Loc, gen: Long, v: Any)(using
+        Frame,
+    ): Unit < Async =
+      Abort.run[Closed](inbox.put(Msg.Content(path, gen, v))).unit
 
     // claude 2026-10-12: changed: the watcher joins the gauge and runs the own
     // loop below, not `Signal.observe`
@@ -179,48 +187,55 @@ private[tui4s] final class Mount(
             Kyo.foldLeft(f.children.toSeq.zipWithIndex)(w) {
               case (acc, (c, i)) => walk(c, path :+ i.toString, acc, reclaim)
             }
+          // claude 2026-10-13: changed (C4, the C2 cut back): a `Reactive`
+          // whose signal is in the component registry is a component node
           case r: Reactive[?]     =>
-            reclaim.get(path) match
-                case Some(
-                      old @ RegionState(
-                        _,
-                        Source.One(sig),
-                        _,
-                        Content.Single(c),
-                        _,
-                        _,
-                      ),
-                    ) if sig eq r.signal =>
-                  walk(
-                    c,
-                    path :+ "~",
-                    w.copy(regions = w.regions.updated(path, old)),
-                    reclaim,
-                  )
-                case _ =>
-                  val (gen, w1) = w.gen
-                  for
-                      cur     <- r.signal.current
-                      watcher <- watch(r.signal, path, gen)
-                      region   = RegionState(
-                                   path,
-                                   Source.One(r.signal),
-                                   gen,
-                                   Content.Single(cur),
-                                   Vector.empty,
-                                   Some(watcher),
-                                 )
-                      w2      <- walk(
-                                   cur,
-                                   path :+ "~",
-                                   w1.copy(
-                                     regions = w1.regions.updated(path, region),
-                                     youngNow = w1.youngNow + path,
-                                   ),
-                                   reclaim,
-                                 )
-                  yield w2
-                  end for
+            ComponentSpec.lookup(r.signal) match
+                case Some(spec) => mountComponent(spec, path, w, reclaim)
+                case None       =>
+                  reclaim.get(path) match
+                      case Some(
+                            old @ RegionState(
+                              _,
+                              Source.One(sig),
+                              _,
+                              Content.Single(c),
+                              _,
+                              _,
+                            ),
+                          ) if sig eq r.signal =>
+                        walk(
+                          c,
+                          path :+ "~",
+                          w.copy(regions = w.regions.updated(path, old)),
+                          reclaim,
+                        )
+                      case _ =>
+                        val (gen, w1) = w.gen
+                        for
+                            cur     <- r.signal.current
+                            watcher <- watch(r.signal, path, gen)
+                            region   = RegionState(
+                                         path,
+                                         Source.One(r.signal),
+                                         gen,
+                                         Content.Single(cur),
+                                         Vector.empty,
+                                         Some(watcher),
+                                       )
+                            w2      <- walk(
+                                         cur,
+                                         path :+ "~",
+                                         w1.copy(
+                                           regions =
+                                             w1.regions.updated(path, region),
+                                           youngNow = w1.youngNow + path,
+                                         ),
+                                         reclaim,
+                                       )
+                        yield w2
+                        end for
+                  end match
             end match
           case fe0: Foreach[?, ?] =>
             /* Erasure-forced: a Foreach carries its own A for signal, key and
@@ -301,6 +316,201 @@ private[tui4s] final class Mount(
             }
           case _                  => w
 
+    /** Mounts a component node at `path`.
+      *
+      * A [[tui4s.Component]] (`ComponentSpec.Instance`): its state is the
+      * `SignalRef` of `w.comps` under its path and its state key
+      * (`Component.stateKey`, by default the class), or a new one with
+      * `initial`. `view(state)` of the new instance gives the content at once.
+      * When `reclaim` has a component of the same key at this path, its mount
+      * goes on: the state, the generation and the `onMount` fiber stay.
+      * Otherwise the effects of the old region at this path stop, and
+      * `onMount(state)` runs in a new fiber, with a `Scope` that closes when
+      * the fiber ends (at the unmount: an interrupt).
+      *
+      * A hook component (`ComponentSpec.Hook`, [[tui4s.Hooks.component]]): a
+      * region of the same identity in `reclaim` is kept as it is (its fiber,
+      * its content, its state). Otherwise a new fiber runs `body` in a `Scope`
+      * and posts the UI that it gives; the fiber then waits until the unmount
+      * interrupts it, which closes the `Scope`. Until the content arrives, the
+      * region is `Content.Pending`. A body that fails gives `UI.empty`. A new
+      * mount puts its path in `w.pending`: the settle of this frame waits for
+      * it (`TuiOptions.pendingTimeout`). A reclaimed region does not: a later
+      * frame does not wait for it again.
+      */
+    // claude 2026-10-13: created (C4, the C2 cut back: the prototype's
+    // mountComponent, Mount.scala lines 114-154)
+    // claude 2026-10-13: changed (C4, P-6): the Scaladoc of the Instance form
+    // and of the pending wait
+    // claude 2026-10-13: changed (C4, review R2-5): a body that fails
+    // claude 2026-10-13: changed (C4, review R2-4): `w.comps` is keyed by the
+    // path and the state key
+    // claude 2026-10-13: changed (C4, review R1-5): no PR name in the Scaladoc
+    private def mountComponent(
+        spec: ComponentSpec,
+        path: Loc,
+        w: World,
+        reclaim: Map[Loc, RegionState],
+    )(using Frame): World < Sync =
+      spec match
+          case ComponentSpec.Instance(c)          =>
+            // claude 2026-10-13: changed (C4, FC-17): the state key of the
+            // component (`Component.stateKey`, the class name by default)
+            // claude 2026-10-13: changed (C4, review R2-4): the key of
+            // `w.comps` is the path and the state key, not one string (the
+            // path "0/#a/0" of a keyed item "a/0" and of the first child of
+            // the item "a" was one string)
+            val key       = Component.stateKeyOf(c)
+            // claude 2026-10-13: changed (C4, P-6): a mount of the same key at
+            // this path goes on (its generation and its onMount fiber stay),
+            // so a parent that renders again (also the verify pass and the
+            // repair tick, which render a UI with closures again) does not
+            // run onMount again; only the view is new
+            val mounted   = reclaim.get(path).collect {
+              case RegionState(
+                    _,
+                    Source.Comp(_: ComponentSpec.Instance, k),
+                    g,
+                    _,
+                    _,
+                    Some(f),
+                  ) if k == key =>
+                (g, f)
+            }
+            val (gen, w1) = mounted.fold(w.gen)((g, _) => (g, w))
+            for
+                state   <- w1.comps.get((path, key)) match
+                               case Some(ref) =>
+                                 Kyo.lift(ref.asInstanceOf[SignalRef[c.State]])
+                               case None      =>
+                                 given CanEqual[c.State, c.State] =
+                                   CanEqual.derived
+                                 Signal.initRef[c.State](c.initial)
+                content  = c.view(state)
+                effects <- mounted match
+                               case Some((_, f)) =>
+                                 Kyo.lift[Fiber[Any, Nothing], Sync](f)
+                               case None         =>
+                                 // the effects of the region that was at this
+                                 // path (another key) stop; onMount runs for
+                                 // the new mount
+                                 startEffects(c, state, reclaim.get(path))
+                region   = RegionState(
+                             path,
+                             Source.Comp(spec, key),
+                             gen,
+                             Content.Single(content),
+                             Vector.empty,
+                             Some(effects),
+                           )
+                w2      <- walk(
+                             content,
+                             path :+ "~",
+                             w1.copy(
+                               regions = w1.regions.updated(path, region),
+                               comps = w1.comps.updated(
+                                 (path, key),
+                                 state.asInstanceOf[SignalRef[Any]],
+                               ),
+                             ),
+                             reclaim.removed(path),
+                           )
+            yield w2
+            end for
+          case ComponentSpec.Hook(identity, body) =>
+            reclaim.get(path) match
+                case Some(
+                      old @ RegionState(
+                        _,
+                        Source.Comp(ComponentSpec.Hook(id, _), _),
+                        _,
+                        content,
+                        _,
+                        _,
+                      ),
+                    ) if id == identity =>
+                  val w1 = w.copy(regions = w.regions.updated(path, old))
+                  // claude 2026-10-13: changed (C4, P-6): a reclaimed component
+                  // whose content has not come yet does not go back into
+                  // `pending`: only the frame of its mount waits for it (a
+                  // later render of the parent, as the repair tick, made each
+                  // of its frames wait again)
+                  content match
+                      case Content.Single(c) =>
+                        walk(c, path :+ "~", w1, reclaim)
+                      case _                 => w1
+                case _ =>
+                  val (gen, w1) = w.gen
+                  // claude 2026-10-13: changed (C4, RC-8): the fiber joins the
+                  // gauge (R1 option b)
+                  // claude 2026-10-13: changed (C4, review R2-5): a body that
+                  // fails posts an empty UI, so the frame does not wait for
+                  // content that cannot come (the failure is not logged yet)
+                  Fiber
+                    .initUnscoped(
+                      Abort
+                        .run[Throwable](
+                          Scope.run(
+                            body()
+                              .map(ui => post(path, gen, ui))
+                              .andThen(Async.never[Unit]),
+                          ),
+                        )
+                        .map {
+                          case Result.Success(_) => Kyo.unit
+                          case _                 => post(path, gen, UI.empty)
+                        },
+                    )
+                    .map(f => Sync.defer { track(f); f })
+                    .map { fiber =>
+                      w1.copy(
+                        regions = w1.regions.updated(
+                          path,
+                          RegionState(
+                            path,
+                            Source.Comp(spec, identity),
+                            gen,
+                            Content.Pending,
+                            Vector.empty,
+                            Some(fiber),
+                          ),
+                        ),
+                        pending = w1.pending + path,
+                      )
+                    }
+            end match
+    end mountComponent
+
+    /** Stops the effects of `old` (the region that was at the path) and runs
+      * `c.onMount(state)` in a new fiber, with a `Scope` that stays open after
+      * `onMount` returns and closes when the fiber ends (the unmount, or the
+      * end of the run, interrupts it). The fiber joins the gauge.
+      */
+    // claude 2026-10-13: created (C4, P-6): the prototype's start of the
+    // effects, out of mountComponent; it joins the gauge (RC-8)
+    private def startEffects(
+        c: Component,
+        state: SignalRef[c.State],
+        old: Option[RegionState],
+    )(using Frame): Fiber[Any, Nothing] < Sync =
+      old
+        .flatMap(_.watcher)
+        .fold(Kyo.unit)(_.interrupt.unit)
+        .andThen(
+          // claude 2026-10-13: changed (C4, P-6): the Scope stays open until
+          // the mount ends (an interrupt), as for a hook component: it closed
+          // when onMount returned, so an interval or a resource that onMount
+          // started ended at once
+          Fiber.initUnscoped(
+            Abort
+              .run[Throwable](
+                Scope.run(c.onMount(state).andThen(Async.never[Unit])),
+              )
+              .unit,
+          ),
+        )
+        .map(f => Sync.defer { track(f); f })
+
     /** Replaces the content of the region at `path` (already updated in `w`),
       * mounting the regions in its new content and unmounting the old ones it
       * no longer has.
@@ -320,13 +530,62 @@ private[tui4s] final class Mount(
           val stale = old
             .filterNot((p, r) => w1.regions.get(p).exists(_.gen == r.gen))
             .values
+          // claude 2026-10-13: changed (C4, the C2 cut back): gcComps
           Kyo
             .foreachDiscard(stale.toSeq)(r =>
               r.watcher.fold(Kyo.unit)(_.interrupt.unit),
             )
-            .andThen(w1)
+            .andThen(gcComps(w1))
         }
     end remount
+
+    /** Drops the state of components that are no longer mounted, and the wait
+      * for the first content of a hook component that is no longer mounted (its
+      * path leaves `pending`: the settle does not wait for it). A path stays in
+      * `pending` only while its region is a hook component that has no content
+      * yet: another region at that path (a `Reactive`, a `Component`) does not
+      * post the content that the wait is for.
+      */
+    // claude 2026-10-13: created (C4, the C2 cut back)
+    // claude 2026-10-13: changed (C4, P-6): also the pending paths whose
+    // region is gone (a component that mounted and unmounted in one settle
+    // kept the settle waiting until pendingTimeout)
+    // claude 2026-10-13: changed (C4, review R1-2): also the pending paths
+    // whose region is now another one (the `else` branch of a `render`)
+    // claude 2026-10-13: changed (C4, review R2-4): the live keys are the path
+    // and the state key
+    def gcComps(w: World): World =
+        val live = w.regions.values.collect {
+          case RegionState(
+                path,
+                Source.Comp(_: ComponentSpec.Instance, key),
+                _,
+                _,
+                _,
+                _,
+              ) =>
+            (path, key)
+        }.toSet
+        w.copy(
+          comps = w.comps.filter((k, _) => live.contains(k)),
+          pending = w.pending.filter(p => w.regions.get(p).exists(waits)),
+        )
+    end gcComps
+
+    /** True when `r` is a hook component that waits for its first content. */
+    // claude 2026-10-13: created (C4, review R1-2)
+    private def waits(r: RegionState): Boolean =
+      r match
+          case RegionState(
+                _,
+                Source.Comp(_: ComponentSpec.Hook, _),
+                _,
+                Content.Pending,
+                _,
+                _,
+              ) =>
+            true
+          case _ => false
 
     /** Unmounts every region (end of the run). */
     def unmountAll(w: World)(using Frame): Unit < Sync =
@@ -349,3 +608,26 @@ private[tui4s] final class Mount(
           .defer(started.synchronized(started.asScala.toList))
           .map(fs => Kyo.foreachDiscard(fs)(_.interrupt.unit))
 end Mount
+
+/** The live-fiber gauge of the running app, for the fibers that the hooks start
+  * ([[tui4s.Hooks]]: `useEffect`, `useInterval`, `useHold`, `useFold`). A
+  * `Local`, so it reaches the construction of the UI, the bodies of the hook
+  * components, the `onMount` of a [[tui4s.Component]], and the fibers that they
+  * start. Such a fiber joins the gauge of [[Mount]], so the end of the run
+  * interrupts it (`Mount.interruptAll`), also when the `Scope` that owns it
+  * closes later (the kit's) or never closes (an interrupt that lands inside a
+  * step). Outside a run it does nothing.
+  */
+// claude 2026-10-13: created (C4, RC-8: R1 option b for the hooks)
+private[tui4s] object Tui4sTrack:
+    private val local: Local[Fiber[Any, Nothing] => Unit] = Local.init(_ => ())
+
+    def let[A, S](track: Fiber[Any, Nothing] => Unit)(v: A < S)(using
+        Frame,
+    ): A < S =
+      local.let(track)(v)
+
+    /** Adds `f` to the gauge of the run that runs the caller. */
+    def apply(f: Fiber[Any, Nothing])(using Frame): Unit < Sync =
+      local.use(t => Sync.defer(t(f)))
+end Tui4sTrack

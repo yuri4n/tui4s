@@ -37,4 +37,14 @@ class TuiOptionsTest extends Test[Any]:
           TuiOptions(pollInterval = Duration.ofMillis(5)) != o,
       )
     }
+    // claude 2026-10-13: created (C4): the option of the pending frame
+    "pendingTimeout: a java.time.Duration, 2 s by default (the prototype's value)" in {
+      val o = TuiOptions()
+      assert(o.pendingTimeout.toMillis == 2000L)
+      assert(
+        TuiOptions(pendingTimeout = Duration.ofMillis(50)) != o &&
+          TuiOptions(pendingTimeout = Duration.ofMillis(50)) ==
+          TuiOptions(pendingTimeout = Duration.ofMillis(50)),
+      )
+    }
 end TuiOptionsTest

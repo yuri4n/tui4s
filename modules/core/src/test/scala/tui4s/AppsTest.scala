@@ -140,6 +140,74 @@ class AppsTest extends RunnerSuite:
       }
     }
 
+    // claude 2026-10-13: created (C4; the prototype's hooks test,
+    // Apps.test.scala lines 62-81)
+    // claude 2026-10-13: changed (C4, review R1-6): the mark is one comment
+    // again (the format step had cut it in two)
+    "hooks: top-level sequencing and runner-mounted components (state dropped when hidden)" in {
+      for
+          h  <- Headless.start(100, 30)(_ => apps.CounterHooks.app)
+          _  <- h.key(Keyboard.Enter) // Left +
+          s  <- h.screen
+          _   = assert(
+                  s.rows.exists(_.matches(""".*Count: 1.*Count: 0.*""")),
+                  s.text,
+                )
+          d  <- Headless.start(100, 30)(_ => apps.CounterHooks.dynamic)
+          _  <- d.key(Keyboard.Enter).andThen(d.key(Keyboard.Enter))
+          s1 <- d.screen
+          _   = assert(
+                  s1.rows.exists(_.matches(""".*Count: 2.*Count: 0.*""")),
+                  s1.text,
+                )
+          _  <- d.char('h')           // hide: the two components unmount
+          s2 <- d.screen
+          _   = assert(!s2.contains("Count:"), s2.text)
+          _  <- d.char('h')           // show: two new mounts, fresh state
+          s3 <- d.screen
+      yield assert(
+        s3.rows.exists(_.matches(""".*Count: 0.*Count: 0.*""")),
+        s3.text,
+      )
+    }
+
+    // claude 2026-10-13: created (C4; the prototype's Component test,
+    // Apps.test.scala lines 83-100)
+    "Component class: state per position, kept across a parent re-render" in {
+      for
+          title <- Signal.initRef("A")
+          ui     = div.onKeyDown {
+                     case KeyboardEvent(Keyboard.Char('r'), _, _) =>
+                       title.updateAndGet(_ + "A")
+                     case _                                       => ()
+                   }(
+                     title.render(t =>
+                       div(
+                         h2(s"title $t"),
+                         div.style(_.row.gap(2.px))(
+                           apps.CounterBox("Left"),
+                           apps.CounterBox("Right"),
+                         ),
+                       ),
+                     ),
+                   )
+          h     <- Headless.start(100, 30)(_ => ui)
+          _     <- h.key(Keyboard.Enter) // Left +
+          _     <- h.key(Keyboard.Tab)
+                     .andThen(h.key(Keyboard.Tab))
+                     .andThen(h.key(Keyboard.Enter))
+                     .andThen(h.key(Keyboard.Enter)) // Right + twice
+          _     <- h.char('r')           // the parent renders again
+          s     <- h.screen
+      yield
+          assert(s.contains("title AA"), s.text)
+          assert(
+            s.rows.exists(_.matches(""".*Count: 1.*Count: 2.*""")),
+            s.text,
+          )
+      end for
+    }
+
     "counter: writes to the count reach the screen; the kit's quit ends the run" in {
       for
           count <- Signal.initRef(0)

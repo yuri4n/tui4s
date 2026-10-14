@@ -440,23 +440,48 @@ object KyoUiSurface:
 
         /** K2: `Foreach.applyTyped` is still private, so `Mount` casts a
           * `Foreach[?, ?]` to `Foreach[Any, UI]`. When kyo-ui opens it, this
-          * line changes and the cast can go.
+          * line changes and the cast can go. K3: `kyo.Signal` and
+          * `Signal.SignalRef` declare no `equals` and no `hashCode`, so the
+          * component registry finds a component node by the identity of its
+          * signal.
           */
-        // claude 2026-10-13: created (C3, RC-12 part, K2)
+        // claude 2026-10-13: created (C3, RC-12 part, K2); changed (C4): K3
         def pinItems: List[Item] =
-            val fe = ctx.findStaticClass("kyo.UI.Ast.Foreach")
-            val v  = fe.declarations
+            val fe                          = ctx.findStaticClass("kyo.UI.Ast.Foreach")
+            val v                           = fe.declarations
               .collect {
                 case t: TermSymbol if nm(t.name) == "applyTyped" => vis(t)
               }
               .distinct
               .sorted
+            // claude 2026-10-13: created (C4, K3): the component registry
+            // (`internal.ComponentSpec`, a weak map) finds a component node by
+            // its signal, so it needs the identity of a `Signal`: no `equals`
+            // and no `hashCode` of its own in `kyo.Signal` and
+            // `kyo.Signal.SignalRef`. A line that names one of them means that
+            // two different signals can find the same entry
+            def own(c: ClassSymbol): String =
+                val names = c.declarations
+                  .collect {
+                    case t: TermSymbol
+                        if t.isMethod &&
+                          Set("equals", "hashCode").contains(t.name.toString) =>
+                      t.name.toString
+                  }
+                  .distinct
+                  .sorted
+                if names.isEmpty then "none" else names.mkString("|")
+            end own
+            val identity                    =
+              s"Signal: ${own(ctx.findStaticClass("kyo.Signal"))}; " +
+                s"SignalRef: ${own(ctx.findStaticClass("kyo.Signal.SignalRef"))}"
             List(
               Item(
                 "pin",
                 "K2 UI.Ast.Foreach.applyTyped",
                 if v.isEmpty then "MISSING" else v.mkString("|"),
               ),
+              Item("pin", "K3 Signal equals and hashCode", identity),
             )
         end pinItems
 

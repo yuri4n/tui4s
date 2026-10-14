@@ -9,11 +9,14 @@ import kyo.test.*
   * reads, an event type, a case of `Keyboard`, the visibility of
   * `Foreach.applyTyped`, a dispatch or region rule of `ReactiveUI` or a focus
   * rule of the client JS, or when kyo-core changes `Signal.currentWith` or
-  * `nextWith`, this test fails and names the line. Then read the change, update
-  * the runner, and update `src/test/resources/kyo-ui-surface.txt`.
+  * `nextWith` or gives `Signal` an `equals` or a `hashCode` (the component
+  * registry needs the identity of a signal), this test fails and names the
+  * line. Then read the change, update the runner, and update
+  * `src/test/resources/kyo-ui-surface.txt`.
   */
 // claude 2026-10-12: created; changed: the C2 items
 // claude 2026-10-13: changed: the C3 items
+// claude 2026-10-13: changed: the C4 item (K3, the identity of a Signal)
 class KyoUiSurfaceTest extends Test[Any]:
 
     "the kyo-ui surface that the runner reads and copies is the checked-in list"
