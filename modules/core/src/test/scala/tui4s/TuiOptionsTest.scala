@@ -26,4 +26,15 @@ class TuiOptionsTest extends Test[Any]:
       assert(TuiOptions(autoFocus = false, settle = h) != TuiOptions())
       assert(h.window.toNanos == 250_000L)
     }
+    // claude 2026-10-13: created (T1, RC-3 part)
+    "the options of the real terminal: pollInterval 25 ms, inboxCapacity 1024, captureOutput, no log file" in {
+      val o = TuiOptions()
+      assert(o.pollInterval.toMillis == 25L)
+      assert(o.inboxCapacity == 1024 && o.captureOutput && o.logFile.isEmpty)
+      val f = java.nio.file.Path.of("tui4s.log")
+      assert(
+        TuiOptions(logFile = Some(f)) == TuiOptions(logFile = Some(f)) &&
+          TuiOptions(pollInterval = Duration.ofMillis(5)) != o,
+      )
+    }
 end TuiOptionsTest

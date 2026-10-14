@@ -40,3 +40,38 @@ jobs:
       - run: sbt -v check
       - name: Show module versions
         run: sbt -v versions
+
+  # claude 2026-10-13: created (T1, OS-41): the real-terminal checklist
+  terminal:
+    name: Real-terminal checklist (pseudo-terminal)
+    runs-on: ubuntu-latest
+    # SBT_TPOLECAT_CI: the sbt step of run.sh (examples/launchers) compiles
+    # with the CI flags, as the sbt job does. TUI4S_LOAD is for the glitch
+    # tests of the core, which this job does not run.
+    env:
+      SBT_TPOLECAT_CI: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25 # Kyo 1.0.0-RC7 needs JDK 25
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      # claude 2026-10-13: changed (T1, reviews R3-1, R3-2): apt-get update
+      # first (the package index of the image can be old); the logs of a
+      # failed run are kept as an artifact
+      - run: sudo apt-get update && sudo apt-get install -y expect
+      # Starts the Counter example in a pseudo-terminal, sends keys, checks the
+      # screen and that the terminal is restored (examples/README.md). The
+      # runner has no JAVA_TOOL_OPTIONS; run.sh unsets it for the app anyway.
+      - run: examples/ptycheck/run.sh
+        env:
+          PTY_WORK: ${{ runner.temp }}/ptycheck
+      - name: Keep the logs of a failed checklist
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ptycheck-logs
+          path: ${{ runner.temp }}/ptycheck
+          if-no-files-found: ignore
