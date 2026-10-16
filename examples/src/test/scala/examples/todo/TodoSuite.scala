@@ -35,9 +35,10 @@ class TodoSuite extends FunSuite:
         p
     end file
 
-    /** The Todo app on `path`, on a 90 x 16 screen. */
+    /** Leave room for the full status path, also in macOS temporary dirs. */
     private def start(path: Path)(using Frame): Headless < (Async & Scope) =
-      Headless.start(90, 16)(_ => Todo.app(path.toString))
+        val width = 90.max(path.toString.length + 40)
+        Headless.start(width, 16)(_ => Todo.app(path.toString))
 
     /** The row of the input. */
     private def input(s: Screen): String =

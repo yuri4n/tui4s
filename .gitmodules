@@ -1,0 +1,3 @@
+[submodule "vendor/pini4s"]
+	path = vendor/pini4s
+	url = https://github.com/yuri4n/pini4s.git

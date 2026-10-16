@@ -3,6 +3,7 @@ package examples.dashboard
 // claude 2026-10-13: changed (T2, adapt): the widgets are in their own
 // package; tui4s.Tui (the prototype had tui4s.kyoui.Tui)
 import examples.widgets.Widgets
+import examples.widgets.Tabs
 import kyo.*
 import kyo.UI.*
 import tui4s.Tui
@@ -36,7 +37,6 @@ object Dashboard:
         )
 
     final case class State(
-        tab: SignalRef[Int],
         metrics: SignalRef[Metrics],
         paused: SignalRef[Boolean],
         logs: SignalRef[Chunk[(Int, String)]],
@@ -44,11 +44,10 @@ object Dashboard:
 
     def init(using Frame): State < Sync =
       for
-          tab     <- Signal.initRef(0)
           metrics <- Signal.initRef(Metrics.empty)
           paused  <- Signal.initRef(false)
           logs    <- Signal.initRef(Chunk.empty[(Int, String)])
-      yield State(tab, metrics, paused, logs)
+      yield State(metrics, paused, logs)
 
     /** One sampler tick with given values (a test or a benchmark can call it
       * directly).
@@ -101,14 +100,12 @@ object Dashboard:
         }
       }
 
-    def overview(s: State): UI =
-      s.tab.render { t =>
-        div.style(_.border(1.px, Style.Color.slate).padding(0.px, 1.px))(
-          h2(s"${series(t)} usage"),
-          Widgets.gauge(s.metrics.map(_.now(t)), 30, Style.Color.green),
-          Widgets.sparkline(s.metrics.map(_.history(t)), Style.Color.blue),
-        )
-      }
+    def overview(s: State, t: Int): UI =
+      div.style(_.border(1.px, Style.Color.slate).padding(0.px, 1.px))(
+        h2(s"${series(t)} usage"),
+        Widgets.gauge(s.metrics.map(_.now(t)), 30, Style.Color.green),
+        Widgets.sparkline(s.metrics.map(_.history(t)), Style.Color.blue),
+      )
 
     def logPane(s: State): UI =
       div.style(
@@ -120,18 +117,12 @@ object Dashboard:
 
     def view(s: State): UI =
       div.onKeyDown {
-        case KeyboardEvent(Keyboard.ArrowLeft, _, _)  =>
-          s.tab.updateAndGet(t => (t + series.size - 1) % series.size)
-        case KeyboardEvent(Keyboard.ArrowRight, _, _) =>
-          s.tab.updateAndGet(t => (t + 1) % series.size)
-        case KeyboardEvent(Keyboard.Char('p'), _, _)  =>
+        case KeyboardEvent(Keyboard.Char('p'), _, _) =>
           s.paused.updateAndGet(!_)
-        case KeyboardEvent(Keyboard.Char('q'), _, _)  => Tui.quit
-        case _                                        => ()
+        case KeyboardEvent(Keyboard.Char('q'), _, _) => Tui.quit
+        case _                                       => ()
       }(
-        div
-          .style(_.row.gap(2.px))(h1("Dashboard"), Widgets.tabs(s.tab, series)),
-        overview(s),
+        new Tabs(series, heading = h1("Dashboard"), panel = overview(s, _)),
         logPane(s),
         span(
           s.paused.map(p =>

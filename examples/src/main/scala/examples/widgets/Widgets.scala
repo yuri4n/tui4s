@@ -38,19 +38,12 @@ object Widgets:
     def sparkline(values: Signal[Chunk[Double]], color: Style.Color): UI =
       values.render(vs => span(sparklineText(vs)).style(_.color(color)))
 
-    /** Tabs: a row of buttons in one focus group (ArrowLeft / ArrowRight move
-      * between them); the selected one is bold.
+    /** Tabs with component-owned selection. Use [[Tabs]] for a panel slot, an
+      * initial tab, a change callback, or a parent-owned selection signal.
       */
-    def tabs(selected: SignalRef[Int], labels: Seq[String]): UI =
-      selected.render { sel =>
-        nav.style(_.gap(1.px))(
-          fragment(labels.zipWithIndex.map { (l, i) =>
-            button(l)
-              .focusGroup("tabs")
-              .onClick(selected.set(i))
-              .style(if i == sel then Style.bold.color(Style.Color.yellow)
-              else Style.color(Style.Color.gray))
-          }*),
-        )
-      }
+    def tabs(labels: Seq[String])(using Frame): UI = new Tabs(labels).ui
+
+    /** A two-way binding to a parent's state. */
+    def tabs(selected: SignalRef[Int], labels: Seq[String])(using Frame): UI =
+      new Tabs(labels, selected = Some(selected), onChange = selected.set).ui
 end Widgets

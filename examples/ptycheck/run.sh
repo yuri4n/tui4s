@@ -23,7 +23,7 @@ root=$(cd "$here/../.." && pwd)
 cd "$root" || exit 1
 work=${PTY_WORK:-$(mktemp -d "${TMPDIR:-/tmp}/tui4s-ptycheck.XXXXXX")}
 mkdir -p "$work"
-echo "ptycheck: work=$work date=$(date -Is) load=$(cut -d' ' -f1-3 /proc/loadavg 2>/dev/null)"
+echo "ptycheck: work=$work date=$(date '+%Y-%m-%dT%H:%M:%S%z') load=$(cut -d' ' -f1-3 /proc/loadavg 2>/dev/null)"
 if [ "${PTY_SKIP_BUILD:-}" != "1" ]; then
     echo "ptycheck: sbt examples/launchers (log: $work/launchers.log)"
     if ! sbt -Dsbt.supershell=false examples/launchers > "$work/launchers.log" 2>&1; then
