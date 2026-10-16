@@ -80,8 +80,70 @@ of its own; `widgets` is a library with no main. Each UI has a munit suite on
 <!-- claude 2026-10-13: created these lines (T2, RC-24, OS-47 part): TuiApp and the examples -->
 <!-- claude 2026-10-13: changed the last sentence (T2, review R1-4): counterkyo is a KyoApp; widgets has no main -->
 
+## UI architecture and API design
+
+- Audit the pinned Kyo and kyo-ui public APIs, documentation, and tests before
+  adding an abstraction. Prefer their existing signals, bindings, callbacks,
+  effects, and resource scopes. State the missing behavior that new code adds.
+- Follow Vue component conventions when they improve the Scala API: typed
+  props, owned or controlled state, explicit callbacks, and function slots.
+  Keep Kyo's execution model. Do not reproduce JavaScript conventions that
+  add no useful behavior to the typed Scala API.
+- Use `SignalRef` for mutable reactive state and `Signal` for derived or
+  read-only state. Use native `.value(ref)` and `.checked(ref)` bindings for
+  inputs. They write the reference before calling the user event handler.
+- Use typed Scala callbacks for component events. Use Kyo `Emit` when logic
+  needs a separate event effect and handler. Handle that effect inside the
+  callback execution before returning to the UI's `Async` event boundary.
+  Do not add model or event wrappers only to rename existing Kyo APIs.
+- A component owns local state by default. A controlled component reads the
+  signal supplied by its parent and calls a typed change callback; the parent
+  can accept or reject the request. Keep that supplied signal authoritative.
+  Prefer typed props and function parameters for slots.
+- Keep reusable widgets in `examples.widgets`. `TabsView` uses public Kyo
+  APIs only; `Tabs` adapts it to tui4s component mounting. There is no separate
+  UI core repository. tui4s owns terminal rendering, input, and its retained
+  mount identity. Ordinary Kyo UI construction and terminal mounting have
+  different state lifetimes; document the difference.
+- Use only Kyo's public APIs. Do not use a package name or reflection to reach
+  private Kyo implementation members.
+- An ordinary Scala class can group signals, derived values, and actions.
+  Use Kyo `Env` and `Layer` for dependency provision when useful. Resolve or
+  handle dependencies before a deferred UI callback runs; handling UI
+  construction alone does not handle effects in a returned callback.
+- A store groups related hooks and composables into one typed feature, not
+  only state fields. Include its actions, derived values, subscriptions, and
+  effects where useful. Review shared instance identity and the lifetime of
+  the whole group. Compare native `Scope`, `Var`, and signal composition
+  before choosing a store API; do not add a second effect runtime.
+- A shared store belongs to one app or provider. The same definition must
+  return the same whole instance within that owner and run setup once.
+  Component unmount must not destroy it; owner shutdown must clean up its
+  effects. Separate apps, tests, and server requests must get separate groups.
+- `vendor/pini4s` is an optional shared-state library. Its keyed references
+  add explicit, application-owned sharing. Do not put component events,
+  bindings, widgets, or renderer code in it. Local state and controlled
+  components need no store library.
+- Compare API alternatives with small executable spikes and independent
+  reviews before making new abstractions. Check both component code and app
+  code, including deferred callbacks. Do not choose contextual parameters
+  or effects only because the existing code uses them.
+- pini4s is a Git submodule. Run `git submodule update --init --recursive`
+  after cloning. Run `sbt check` in `vendor/pini4s` when it changes, as well as
+  the relevant tui4s checks.
+
 ## Toolchain
 
+- Keep quick onboarding available in every maintained repository. Provide a
+  locked Nix development shell with the required JDK, sbt, and test tools.
+  Use sbt-native-packager for runnable distributions where useful. A library
+  remains a library; put its runnable demonstration in a separate project.
+  This is a user preference, not a requirement to make every artifact an app.
+- Start a new checkout with `git clone --recurse-submodules`, then
+  `nix develop`. An existing checkout needs
+  `git submodule update --init --recursive`. Keep the manual JDK and sbt
+  setup documented too. Do not claim a shell or platform was tested without
+  running the relevant check.
 - Use **JDK 25**. Kyo 1.0.0-RC7 needs JDK 25 to compile and to run, because its
   macros load Kyo classes. Before you run sbt, make sure that `java -version`
   shows 25.
@@ -107,7 +169,10 @@ of its own; `widgets` is a library with no main. Each UI has a munit suite on
 | `bash scripts/version-order-test.sh` | Tests the version order of the release script (CI runs it).   |
 | `sbt versions`                       | Shows the version of each module (released or snapshot).      |
 | `sbt core/test`                      | Runs the tests of one module. The core tests use kyo-test.    |
-| `sbt examples/launchers`             | Writes a start script per example: `examples/target/bin/<package>`. |
+| `nix develop`                       | Enters the development shell with JDK 25, sbt, and terminal test tools. |
+| `sbt examples/Universal/stage`       | Stages native-packager launchers and runtime JARs in `examples/target/universal/stage`. |
+| `sbt examples/Universal/packageBin`  | Creates the examples ZIP distribution under `examples/target/universal`. |
+| `sbt examples/launchers`             | Stages the distribution and writes compatible `examples/target/bin/<package>` launchers plus the PTY classpath. |
 | `examples/target/bin/<app>`          | Runs an example in the real terminal (its own JVM): `counter`, `counterkyo`, `twocounters`, `counterstyles`, `todo`, `dashboard`, `printing`. |
 | `examples/ptycheck/run.sh`           | Runs the real-terminal checklist in a pseudo-terminal (CI job `terminal`). |
 
@@ -131,6 +196,13 @@ environment sets `JAVA_TOOL_OPTIONS` or `JDK_JAVA_OPTIONS` (a proxy setup),
 the JVM prints a "Picked up ..." line into the terminal before the UI starts;
 `run.sh` unsets them for the app.
 <!-- claude 2026-10-13: created this paragraph (T1, OS-47 part) -->
+
+The examples use sbt-native-packager's `JavaAppPackaging`. Keep the JVM flags,
+all example launchers, program arguments, and the PTY `target/bin/classpath`
+contract when changing packaging. `Universal/packageBin` distributes JARs and
+scripts; it does not bundle a JDK or build a native executable. Validate both
+the staged distribution and the existing launcher paths. Keep library modules
+free of application packaging plugins.
 
 The stress probes (`tui4s.stress.*`) are ignored in `sbt check`. To run one,
 set `-Dtui4s.stress=<rounds>` in the test JVM and run it alone on the machine:

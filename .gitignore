@@ -45,3 +45,8 @@ docs/.env
 
 # Local agent scratch space (reports, probes, handoff notes)
 .work/
+
+# Nix / direnv
+.direnv/
+/result
+/result-*

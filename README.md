@@ -28,6 +28,39 @@ with `type State = Int`, `initial`, `view(state)` and `onMount(state)`. See
 the Scaladoc of `tui4s.Hooks` and `tui4s.Component`.
 <!-- claude 2026-10-13: created these lines (C4): the two component styles -->
 
+## Development setup
+
+With [Nix](https://nixos.org/download/) installed and flakes enabled:
+
+```sh
+git clone --recurse-submodules https://github.com/yuri4n/tui4s.git
+cd tui4s
+nix develop
+sbt check examples/Universal/stage
+examples/target/universal/stage/bin/counter
+```
+
+The development shell supplies JDK 25, sbt, and the tools for the terminal
+checklist. Run the last command in a real terminal; `q` exits. For an existing
+checkout, run `git submodule update --init --recursive` before building.
+The flake defines shells for Linux on x86_64 or aarch64 and Apple Silicon
+macOS. On Intel macOS, or without Nix, install JDK 25 and sbt, then use the
+same sbt commands. These shell targets do not imply terminal runtime testing
+on every platform.
+
+For automatic activation, install direnv and nix-direnv and enable direnv's
+hook in your shell. For zsh, add `eval "$(direnv hook zsh)"` to `~/.zshrc`.
+Then run `direnv allow` in this checkout. The committed `.envrc` uses the same
+locked flake as `nix develop`; entering this directory activates its tools.
+Run `direnv allow` separately in `vendor/pini4s` when developing that library.
+
+`sbt examples/Universal/packageBin` creates a ZIP distribution under
+`examples/target/universal/`. It contains a launcher for each example and its
+runtime JARs; the receiving machine still needs JDK 25. The existing
+`sbt examples/launchers` command and `examples/target/bin/<app>` paths remain
+available. See [running and packaging examples](examples/README.md#run-an-example)
+and [pini4s's standalone setup and demo](vendor/pini4s/README.md).
+
 ## Quick start
 
 <!-- claude 2026-10-13: created this section (T1): the Counter example -->
@@ -142,6 +175,27 @@ class CounterSuite extends FunSuite:
     }
 ```
 
+## State, events, and reusable widgets
+
+Use Kyo directly: `SignalRef` owns mutable state, `Signal.map` derives values,
+and kyo-ui binds inputs with `.value(ref)` or `.checked(ref)`. Component events
+are typed Scala callbacks; Kyo `Emit` separates event-producing logic from its
+handler when needed. An ordinary class of signals and actions can be a shared
+store, with Kyo `Env` or `Layer` supplying it to the app.
+
+The Dashboard's reusable `examples.widgets.Tabs` owns its selection by default.
+Supply `selected = Some(signal)` and `onChange = next => ...` when the parent
+owns it. The parent decides whether to accept a request. `Widgets.tabs(ref,
+labels)` connects a writable signal directly. `TabsView` provides the same
+widget as a plain Kyo UI construction effect; `Tabs` adds tui4s mount lifetime.
+
+The [state and events guide](examples/README.md#state-and-events-with-kyo)
+contains complete examples of native bindings, local and controlled tabs,
+typed events, and optional shared stores. The small
+[pini4s](https://github.com/yuri4n/pini4s) library adds named references for
+components that explicitly share state. Neither tabs nor native bindings
+require it.
+
 ## Modules
 
 Each module is released on its own, with its own version.
@@ -161,6 +215,12 @@ Each module is released on its own, with its own version.
 
 Read [AGENTS.md](AGENTS.md). It has the commands, the code rules, and the
 release process for humans and for AI agents.
+
+Run `git submodule update --init --recursive` after cloning to fetch the
+optional [pini4s](https://github.com/yuri4n/pini4s) example dependency under
+`vendor/pini4s`. The core and the reusable widgets use Kyo directly.
+The [API experiments](experiments/ui-state/README.md) record the alternatives
+and the upstream API audit behind that choice.
 
 ## License
 

@@ -16,26 +16,346 @@ package.
 | Todo           | `examples.todo.TodoApp`                    | `examples/target/bin/todo [file]`   | A list in a file (the argument, or `todos.txt` in the working directory): a text input, Enter adds, Tab to the list, Space toggles, `d` deletes, Ctrl-S saves, a paste is one edit, Esc quits. |
 | Dashboard      | `examples.dashboard.DashboardApp`          | `examples/target/bin/dashboard`     | Tabs, a gauge and a sparkline fed by a sampler (250 ms), a log pane fed by a stream (400 ms); the arrows, or Tab and Space or Enter, change the tab; `p` pauses the sampler; `q` quits. |
 | Printing       | `examples.printing.PrintingApp`            | `examples/target/bin/printing [--log file]` | A `println` while the UI is up does not reach the screen: the lines come after the terminal is restored, or go to the log file. This is also true after a `println` before the run (the app prints one line when it starts). `args` and `options` of a `TuiApp`. |
-| Widgets        | none (a library)                           | none                                | The gauge, the sparkline and the tabs of the Dashboard, in plain kyo-ui (`examples.widgets.Widgets`). |
+| Widgets        | none (a library)                           | none                                | Reusable gauge and sparkline helpers, Kyo-only `TabsView`, and the terminal `Tabs` component adapter in `examples.widgets`. |
 
 <!-- claude 2026-10-13: changed the Printing row (T2, review R1-1): the println before the run -->
 
+## State and events with Kyo
+
+Use the Kyo primitives directly. A `SignalRef[A]` owns a mutable value; its
+`Signal[A]` interface supplies reactive reads. Derive values with `map` or
+`combineLatest`, pass signals to kyo-ui, and update references from typed
+callbacks. The examples below are independent objects that can be copied into
+the examples project. `Tabs`, `TabsView`, and `Widgets` are reusable example
+code, not published tui4s-core APIs.
+
+### Native state and input bindings
+
+```scala
+import kyo.*
+import kyo.UI.*
+
+object NativeStateExample:
+    def ui: UI < Sync =
+      for
+          name     <- Signal.initRef("Ada")
+          enabled  <- Signal.initRef(true)
+          lastEdit <- Signal.initRef("")
+          greeting  = name.map(value => s"Hello, $value")
+      yield div(
+        input.value(name).onInput(_ => name.get.map(lastEdit.set)),
+        checkbox.checked(enabled),
+        p(greeting),
+        p(lastEdit.map(value => s"Last edit: $value")),
+        enabled.render(value => span(if value then "Enabled" else "Disabled")),
+      )
+```
+
+`.value(name)` and `.checked(enabled)` already provide two-way binding: typing
+or toggling writes the reference, and external writes update the control.
+The runner writes the reference **before** calling `onInput` or `onChange`.
+Here `name.get` therefore reads the new text inside the callback. No callback
+is needed just to copy the input value into the bound reference.
+
+A derived `Signal` is read-only. For a custom controlled component, give it a
+read signal and a change callback separately. A native input bound to a
+`SignalRef` has already changed that ref when its callback runs, so that
+callback is not a pre-update veto. The [Kyo UI binding contract](https://github.com/getkyo/kyo/blob/v1.0.0-RC7/kyo-ui/README.md#two-way-binding-via-signalref)
+describes this behavior.
+
+### State owned by a widget
+
+The Dashboard passes labels and a panel function to `Tabs`. Tabs owns the
+selected index, handles keys and button presses, and gives the selected index
+to the panel. The Dashboard owns its metrics, pause flag, and logs.
+
+```scala
+import kyo.*
+import kyo.UI.*
+import examples.widgets.Tabs
+
+object OwnedTabsExample:
+    def ui: UI =
+      new Tabs(
+        Seq("CPU", "Memory", "Network"),
+        heading = h1("Dashboard"),
+        panel = index => p(s"Selected metric: $index"),
+      ).ui
+```
+
+Each mounted Tabs has its own state and keyboard focus group. Selection
+survives a parent render. Removing the component ends its mount; mounting it
+again starts from `initialTab` (zero by default). Tab moves focus without
+selecting. Left and Right select relative to the focused tab; Enter and Space
+select the focused tab. In local mode, Tabs updates its selection before
+calling `onChange(index)`.
+
+The parent can own the selection instead:
+
+```scala
+import kyo.*
+import kyo.UI.*
+import examples.widgets.Tabs
+
+object ControlledTabsExample:
+    def ui: UI < Sync =
+      Signal.initRef(0).map { selected =>
+        div(
+          new Tabs(
+            Seq("CPU", "Memory", "Network"),
+            selected = Some(selected),
+            onChange = next =>
+              if next == 2 then () else selected.set(next),
+            panel = index => p(s"Selected metric: $index"),
+          ).ui,
+          button("Select Network externally").onClick(selected.set(2)),
+        )
+      }
+```
+
+When `selected` is supplied, Tabs renders that signal and sends requests to
+`onChange: Int => Unit < Async`. It does not write a second selection value.
+This parent rejects user requests for Network by leaving the reference alone;
+the separate button shows that an external write still updates the tabs.
+Providing `selected` without a callback makes selection read-only. `initialTab`
+applies only to locally owned selection.
+
+Indices wrap into the label range, including the index passed to `onChange`
+and the panel function. Labels must be nonempty. `heading: UI` and
+`panel: Int => UI` are ordinary typed parameters: the panel is a scoped slot
+without another slot abstraction.
+
+`Widgets.tabs(labels)` is the short form with local state.
+`Widgets.tabs(selectedRef, labels)` supplies the ref as a signal and writes
+accepted requests straight back to it. Use `Tabs` directly for a panel, heading,
+custom change handler, or initial selection.
+
+### Construction and mount lifetime
+
+`TabsView` contains the widget behavior using public Kyo APIs only. Its `ui`
+method returns an allocation effect, `UI < Sync`:
+
+```scala
+import kyo.*
+import kyo.UI.*
+import examples.widgets.TabsView
+
+object PortableTabsExample:
+    def ui: UI < Sync =
+      new TabsView(
+        Seq("Overview", "Details"),
+        panel = index => span(s"Panel $index"),
+      ).ui
+```
+
+Each execution allocates fresh local state and a fresh focus group. Keep the
+returned UI for ordinary signal updates. Kyo follows its signals; it does not
+re-execute this construction effect on each update. Allocating again creates
+another widget. This behavior is exercised through public Kyo UI trees and
+event callbacks without a terminal. This project's widget tests do not claim
+a browser integration test.
+
+`Tabs` wraps `TabsView` in `tui4s.Component`. Its `ui` returns a plain UI node;
+the terminal runner allocates state at mount, keeps it across parent renders,
+and drops it at unmount. This retained identity is a tui4s lifecycle feature.
+Use the portable construction effect with another runner; do not assume that
+runner implements tui4s mounting. Kyo `Scope` already provides resource cleanup;
+mount effects belong in `Component.onMount` or `Hooks.component`, where tui4s
+connects the scope to the terminal mount.
+
+### Typed component events
+
+A change callback is often enough. For reusable logic that emits a typed event,
+Kyo already supplies `Emit`: define an enum, emit values, and handle them with
+`Emit.runForeach`. Handle the event effect **inside the callback execution**:
+
+```scala
+import kyo.*
+import kyo.UI.*
+import examples.widgets.Tabs
+
+object EmittedTabsExample:
+    enum Event:
+        case Selected(index: Int)
+
+    def selectionChanged(index: Int): Unit < Emit[Event] =
+      Emit.value[Event](Event.Selected(index))
+
+    def ui: UI < Sync =
+      Signal.initRef(Vector.empty[Int]).map { changes =>
+        def record(event: Event): Unit < Sync = event match
+            case Event.Selected(index) => changes.updateAndGet(_ :+ index).unit
+
+        div(
+          new Tabs(
+            Seq("Overview", "Details"),
+            onChange = index =>
+              Emit.runForeach[Event](selectionChanged(index))(record),
+          ).ui,
+          p(changes.map(values => s"Selections: ${values.mkString(", ")}")),
+        )
+      }
+```
+
+`selectionChanged` retains `Emit[Event]` in its type. The callback handles it
+before returning to the UI, whose callback accepts `Unit < Async`. Wrapping
+only UI construction in an `Emit` or `Env` handler does not handle a callback
+that executes later. Resolve dependencies during construction and capture
+ordinary references, or handle the effects inside the callback. Handle typed
+`Abort` failures there too, for example by updating a visible error signal.
+
+Callbacks are awaited. Put ordinary side effects inside `Sync.defer`, and
+return the Kyo effect you intend to execute. Long-running background work needs
+an explicit application or component scope. Native `onClick` already defers
+its by-name action; no additional event wrapper is needed.
+
+### Optional shared stores
+
+An ordinary class can group signals, derived values, and actions. Kyo `Env`
+provides a dependency; `Layer` can construct a shared dependency graph. Neither
+requires a new store abstraction:
+
+```scala
+import kyo.*
+import kyo.UI.*
+import examples.widgets.Tabs
+
+object OrdinaryStoreExample:
+    final class DashboardStore(val selected: SignalRef[Int]):
+        val summary: Signal[String] = selected.map(index => s"Metric $index")
+        def select(index: Int): Unit < Sync = selected.set(index)
+
+    def store: DashboardStore < Sync =
+      Signal.initRef(0).map(ref => new DashboardStore(ref))
+
+    def view: UI < Env[DashboardStore] =
+      Env.use[DashboardStore] { dashboard =>
+        div(
+          new Tabs(
+            Seq("CPU", "Memory", "Network"),
+            selected = Some(dashboard.selected),
+            onChange = index => dashboard.select(index),
+          ).ui,
+          p(dashboard.summary),
+        )
+      }
+
+    def ui: UI < Sync = store.map(dashboard => Env.run(dashboard)(view))
+
+    val layer = Layer(store)
+    def uiWithLayer: UI < Sync = Memo.run(Env.runLayer(layer)(view))
+```
+
+The callback captures the resolved `dashboard` object, so it can use that
+object after the construction-time `Env.run` returns. `Layer` uses `Memo` to
+share repeated references to a layer within a dependency graph; the example
+provides a fresh `Memo.run` for each app construction.
+
+Use [pini4s](../vendor/pini4s/README.md) when components explicitly need the
+Nuxt-style `useState("key")(initial)` lookup. It returns the same Kyo
+`SignalRef` for a key in one application-owned `StateStore`:
+
+```scala
+import kyo.*
+import kyo.UI.*
+import pini4s.*
+import examples.widgets.Tabs
+
+object KeyedStoreExample:
+    def tabs(using StateStore): UI < Sync =
+      useState("dashboard.currentTab")(0).map { selected =>
+        new Tabs(
+          Seq("CPU", "Memory", "Network"),
+          selected = Some(selected),
+          onChange = index => selected.set(index),
+        ).ui
+      }
+
+    def ui: UI < Sync =
+      StateStore.init.map { store =>
+        given StateStore = store
+        for
+            first  <- tabs
+            second <- tabs
+        yield div(first, second)
+      }
+```
+
+These two tab components share selection because they use the same key and
+store. The reference survives component unmounting while the store remains
+reachable. A fresh store isolates another app or test. Initialization is lazy,
+concurrent first lookups share one successful initialization, and reusing a key
+with another type fails. Use component-owned state for a local value; use
+ordinary props and callbacks for parent-controlled state. pini4s is optional
+for both.
+
+In application code, Kyo derives `Frame` automatically. Reusable library
+functions can forward it to retain caller locations. Tabs captures its
+construction location once, so later view construction needs no extra Frame
+argument.
+
 ## Run an example
 
-Write the start scripts, then start an app in a real terminal:
+Clone with `--recurse-submodules`, or run
+`git submodule update --init --recursive` in an existing checkout, to fetch
+`vendor/pini4s`. The shared-store examples use its local sbt project; no
+published artifact is needed. `TabsView` uses Kyo only; its terminal `Tabs`
+adapter uses tui4s.
+
+From the repository root, enter the Nix development shell and stage the apps:
+
+```sh
+nix develop
+sbt examples/Universal/stage
+examples/target/universal/stage/bin/counter
+```
+
+Run the last command in a real terminal. The development shell provides JDK 25,
+sbt, `expect`, Python, and GNU coreutils for the terminal checklist. It defines
+shells for Linux on x86_64 or aarch64 and Apple Silicon macOS; terminal runtime
+support still needs validation on each platform. On Intel macOS, or without
+Nix, install JDK 25 and sbt yourself; install the checklist tools when running
+the PTY suite. `nix develop --command sbt examples/Universal/stage` runs a build
+without opening an interactive development shell.
+
+The examples use sbt-native-packager's `JavaAppPackaging`.
+`examples/Universal/stage` puts one launcher per main class in
+`examples/target/universal/stage/bin`, with the runtime JARs in `lib` and JVM
+configuration in `conf/application.ini`. The script names are the package names
+in the table above: `counter`, `counterkyo`, `twocounters`, `counterstyles`,
+`todo`, `dashboard`, and `printing`. Two mains in one package stop the build.
+
+To produce a ZIP that can be unpacked elsewhere:
+
+```sh
+sbt examples/Universal/packageBin
+```
+
+The archive is under `examples/target/universal/`. Keep its `bin`, `lib`, and
+`conf` directories together. It contains scripts and JARs; the receiving
+machine must provide JDK 25. No JDK is bundled, and this task does not produce
+a GraalVM native binary.
+
+The existing start-script interface remains available:
 
 ```sh
 sbt examples/launchers
 examples/target/bin/counter
 ```
 
-`sbt examples/launchers` writes one script for each main class of the
-examples into `examples/target/bin`, named after the package of the main
-(`examples.counter.CounterApp` gets `counter`), and the class path into
-`examples/target/bin/classpath`. Two mains in one package stop the task. Each
-script starts the app in its own JVM with `$JAVA_HOME/bin/java` (or `java` on
-`PATH`), which must be JDK 25, and with these flags (`examples / run /
-javaOptions` in `build.sbt`):
+`examples/launchers` stages the same distribution and writes forwarding scripts
+in `examples/target/bin`, plus the `classpath` file used by the PTY kit. Those
+scripts preserve the existing program-argument behavior. Native-packager
+launchers also accept JVM options such as `-J-Xmx1g`; put `--` before program
+arguments that could be mistaken for launcher options:
+
+```sh
+examples/target/universal/stage/bin/printing -- --log printing.log
+examples/target/bin/printing --log printing.log
+```
+
+Both launch paths start an app in its own JVM, using `$JAVA_HOME/bin/java` or
+`java` on `PATH`. The shared JVM options in `build.sbt` include:
 
 - `--enable-native-access=ALL-UNNAMED`: crossterm is a native library.
   Without it, JDK 25 prints a warning into the terminal before the UI starts.
