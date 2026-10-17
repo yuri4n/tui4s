@@ -47,6 +47,12 @@ Raw research results (JSON and Markdown) are in `.work/explore-2026-10-17/`.
   without sbt-crossproject.
 - Spike sources: `.work/explore-2026-10-17/spike-web/` and
   `.work/explore-2026-10-17/spike-js/`.
+- User decision (2026-10-17): the targets must NOT communicate. The goal is
+  the Flutter model: write the app once, build one terminal app and one web
+  app, and run each one alone. The live sharing of the JVM spike is not a
+  goal. The Scala.js spike is the proof that matters: one source file, two
+  builds, a tui4s headless test and a browser test both passed.
+  <!-- claude 2026-10-17: added this item from the user's answer -->
 
 ### 2.2 Web limits (measured)
 
@@ -147,7 +153,7 @@ Each layer needs the layers below it.
 | L1 | Core renderer features | Viewport scroll (kyo-ui Overflow + scrollIntoView), wrap and ellipsis, overlay and z-order, native inputs, multi-line textarea, wide characters, terminal size Signal, Color.Var, one warning for each ignored property | 3k to 5k lines |
 | L2 | Libraries | `tui4s-widgets` (plain kyo-ui functions, portable) and `tui4s-use` (about 13 composables, JVM and JS, no core dependency) | 3k to 5k lines |
 | L3 | Flagship app | `examples.assistant`: chat with streaming, conversation list, settings, command palette, log pane; skill blueprint (pure domain, service traits, interpreters in `make`, app-scoped stores, Layer/Env wiring, in-memory test interpreters) | 2k to 3k lines |
-| L4 | Web | In-process web mirror of the flagship (opt-in, loopback, capability URL); Scala.js builds for docs demos | 0.5k to 1k lines |
+| L4 | Web target | A standalone Scala.js build of the flagship from the shared module (static files, no server, no link to the terminal app); the same builds give the docs demos <!-- claude 2026-10-17: changed: no web mirror, per the user --> | 0.5k to 1k lines |
 | L5 | Docs and benchmarks | Docus site on main, casts from the PTY kit, JS demos, compiled snippets; benchmark harness, rosetta tasks, mutant bug suite | large; partly outside Scala |
 | L6 | Release 0.1 | Checklist: Scaladoc in CI, OS matrix, changelog, SECURITY.md, template, skip empty zio/cats, dry run, human approval | small |
 | S1 | Spike: templates | `ui"""..."""` interpolator in `experiments/scalax`, 5 days, after L2 | spike |
@@ -174,10 +180,16 @@ Each decision has a recommendation (R).
 - D4 Providers: Anthropic API key, OpenAI API key and a scripted fake
   provider first; Codex app-server second; Claude Code CLI backend never in
   published code. Secrets from environment variables or a 0600 file. R: yes.
-- D5 Web: (a) web mirror in the flagship behind `--web`; (b) per-session
-  draft, shared conversation; (c) Scala.js only for docs demos (needs
-  sbt-scalajs in `project/`, which marks all modules unreleased; acceptable
-  before 0.1). R: yes to all.
+- D5 Web (changed 2026-10-17, the user does not want the targets to
+  communicate): the web target is a standalone Scala.js app built from a
+  shared module (crossProject JVM+JS, kyo-ui only). Platform services
+  (storage, chat provider) are traits with one implementation for each
+  platform, given through Layer. Needs sbt-scalajs in `project/`, which marks
+  all modules unreleased (acceptable before 0.1). Open: how the web build of
+  the chat bot gets an API key (the user's own key kept in the browser, a
+  small proxy server, or the fake provider only). R: the user's own key,
+  stored only in the browser, plus the fake provider for the docs demos.
+  <!-- claude 2026-10-17: changed D5 from the user's answer -->
 - D6 Modules: `tui4s-widgets` and `tui4s-use` as published modules in this
   repo with their own tags, cross-built JVM and JS, no dependency on core.
   R: yes.
