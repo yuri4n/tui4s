@@ -65,6 +65,7 @@ and [pini4s's standalone setup and demo](vendor/pini4s/README.md).
 
 <!-- claude 2026-10-13: created this section (T1): the Counter example -->
 <!-- claude 2026-10-13: changed this section (T2, OS-48 part): the hooks Counter with its TuiApp main, and its test; the two code blocks are the text of the example files (ReadmeSuite checks them) -->
+<!-- claude 2026-10-17: changed the imports of the first code block (scalafix OrganizeImports changed them in Counter.scala) -->
 The smallest app: the Counter example
 (`examples/src/main/scala/examples/counter/Counter.scala`). The UI is plain
 kyo-ui with one hook (`useSignal`); `object CounterApp extends TuiApp` is its

@@ -102,7 +102,7 @@ of writing; verify them before use.
 | Property tests | ScalaCheck (with a framework integration) | ZIO Test `Gen` | kyo-test-prop (artifact `kyo-test-prop`; `PropertyTest[S]`, `Gen`, `Shrink`) | ScalaCheck |
 | Newtypes, refinement | opaque types + Iron † | opaque types + Iron †; ZIO Prelude `Newtype` † | opaque types + Iron † | opaque types + Iron † |
 
-<!-- claude 2026-10-17: changed the Testing and Property tests rows of the Kyo column: kyo-test-prop has the property tests (D15) -->
+<!-- claude 2026-10-17: changed the Testing and Property tests rows of the Kyo column: kyo-test-prop has the property tests (purity plan A3) -->
 Shared tools work with every stack through an interpreter or a backend:
 Tapir, sttp, uPickle, Chimney, Slick, Quill, MUnit, ScalaTest, ScalaCheck.
 Choose the interpreter or backend for the project's runtime. Iron † works
