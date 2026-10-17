@@ -381,7 +381,7 @@ private[tui4s] final class Mount(
             for
                 state   <- w1.comps.get((path, key)) match
                                case Some(ref) =>
-                                 Kyo.lift(ref.asInstanceOf[SignalRef[c.State]]) // scalafix:ok DisableSyntax.asInstanceOf; P1: one Component state cast helper
+                                 Kyo.lift(ref.asInstanceOf[SignalRef[c.State]]) // scalafix:ok DisableSyntax.asInstanceOf; P1: merge the 2 casts into one KEEP helper
                                case None =>
                                  given CanEqual[c.State, c.State] =
                                    CanEqual.derived
@@ -410,7 +410,7 @@ private[tui4s] final class Mount(
                                regions = w1.regions.updated(path, region),
                                comps = w1.comps.updated(
                                  (path, key),
-                                 state.asInstanceOf[SignalRef[Any]], // scalafix:ok DisableSyntax.asInstanceOf; P1: one Component state cast helper
+                                 state.asInstanceOf[SignalRef[Any]], // scalafix:ok DisableSyntax.asInstanceOf; P1: merge the 2 casts into one KEEP helper
                                ),
                              ),
                              reclaim.removed(path),

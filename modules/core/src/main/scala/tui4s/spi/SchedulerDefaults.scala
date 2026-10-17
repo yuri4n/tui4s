@@ -57,15 +57,15 @@ object SchedulerDefaults:
       * the keys that it set.
       */
     private[tui4s] def applyTo(
-        property: String => String | Null, // scalafix:ok DisableSyntax.nullType; P1: Maybe on the Java line
-        env: String => String | Null,      // scalafix:ok DisableSyntax.nullType; P1: Maybe on the Java line
+        property: String => String | Null, // scalafix:ok DisableSyntax.nullType; P1: Option on the Java line (no Kyo class here)
+        env: String => String | Null,      // scalafix:ok DisableSyntax.nullType; P1: Option on the Java line (no Kyo class here)
         set: (String, String) => Unit,
     ): Seq[String] =
       if property(OptOut) == "false" then Nil
       else
           defaults.collect {
             case (key, value)
-                if property(key) == null && env(envName(key)) == null => // scalafix:ok DisableSyntax.null; P1: Maybe on the Java line
+                if property(key) == null && env(envName(key)) == null => // scalafix:ok DisableSyntax.null; P1: Option on the Java line (no Kyo class here)
               set(key, value)
               key
           }
