@@ -1,0 +1,4 @@
+{
+  "resources": [ { "glob": "libnative-x86_64-linux-crossterm.so" } ],
+  "foreign": { "downcalls": [ { "returnType": "jint", "parameterTypes": ["jint"] } ] }
+}

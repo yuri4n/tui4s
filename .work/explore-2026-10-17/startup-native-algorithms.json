@@ -1,0 +1,398 @@
+[
+ {
+  "key": "startup-aot",
+  "r": {
+   "summary": "Time from spawn to the first frame was measured in a PTY at 100x30, 15 runs per cell, median with min and max. With the launcher as shipped, the Counter takes 1101 ms (range 1009-1280) and the Dashboard 1233 ms (1158-1349). With `java` started directly, they take 1034 ms and 1125 ms. A plain jatatui program in Java, with no Scala and no Kyo, takes 147 ms and 56 MB. So the JVM plus crossterm costs about 150 ms. The other 850-950 ms is the tui4s, Kyo and Scala stack, and most of it is cold class loading.\n\nWhere the time goes (Counter, direct, median of 5 runs):\n- JVM boot until the TuiApp constructor runs: 66 ms.\n- The constructor (SchedulerDefaults and OutputCapture load about 230 Scala collection classes): 119 ms.\n- Start of the Kyo runtime: 377 ms. This covers about 1,070 classes and many lambda bootstraps. It also includes a sleep loop of 86-102 ms in Kyo's BlockingMonitor, which probes the CPU-time resolution (ThreadUserTime.probeResolution). I called the probe directly: it returns 12.8 ms on this machine.\n- Terminal enter: 110 ms. Loading the JNI library, which also copies the .so out of the jar, takes 25 ms. Linking the FFM isatty downcall takes 76 ms. Raw mode and the alternate screen take 9 ms.\n- UI build, mount, settle, layout, paint and flush: about 245 ms. For the Dashboard this part is about 400 ms.\n\nNo class was loaded from kyo-http, kyo-net, kyo-ffi, kyo-schema, kyo-system, pprint, JMH, commons-math3, asm or jopt-simple. Together those jars are 12.7 MB of the 38 MB lib directory.\n\nRunning work concurrently helps, and the results are measured:\n- A background thread that loads the JNI library and links isatty while Kyo starts saves 113 ms (Counter) and 77 ms (Dashboard).\n- Setting `-Dkyo.scheduler.blockingMonitorMinIntervalNs=12800000` skips the probe. This is not concurrency; it removes the wait. It saves 100 ms and 69 ms.\n- A class preloader thread with a list from a training run saves 306 ms and 319 ms.\n- With all changes but no AOT cache, the first frame comes at 537 ms and 614 ms.\n\nThe JDK 25 AOT cache alone gives 521 ms and 588 ms, about half. Combined with the probe skip, the JNI and isatty preload, C1 and SerialGC, the first frame comes at 320 ms (Counter) and 395 ms (Dashboard). That is about 70% less than the shipped launcher, and RSS goes down to 93 MB and 134 MB, from 125 MB and 164 MB. Using only launcher flags, with no code change, gives 361 ms and 433 ms.\n\nThe cache is 37-40 MB per app. It still works when the install directory moves. A changed jar mtime makes it invalid. With `AOTMode=auto`, a stale or missing cache prints warnings into the terminal before the UI, unless the launcher adds `-Xlog:aot=off`.",
+   "details": "## Method\n- Machine: container with 4 vCPU and 16 GB. JDK 25.0.4.1 (Ubuntu build). Worktree `wt-perf` at origin/main cd6a877.\n- The examples' only use of pini4s is a test, so I removed pini4s from the worktree build and deleted that test, as the earlier spike did (vendor/pini4s is a submodule that is not checked out, and reading other repositories is not allowed). Nothing was committed or pushed.\n- PTY driver `perf/ptytime.py` (it uses a copy of examples/ptycheck/vt.py):\n  - It opens a 100x30 PTY with TERM=xterm-256color, takes `t0 = time.monotonic_ns()`, then starts the process with the PTY as its controlling terminal.\n  - It feeds all output into the VT emulator. \"alt-screen\" is the first `?1049h`. \"frame\" is the first time the alternate screen holds the full last line (`q quits`). The first visible text came at the same moment as the full frame in every run.\n  - It waits 300 ms after the frame, reads VmHWM from /proc/PID/status, then sends `q`. `wait4` gives ru_maxrss.\n  - It removes JAVA_TOOL_OPTIONS from the environment (the container's proxy flags print \"Picked up...\" into the terminal) and sets JAVA_HOME to JDK 25 (the container's default is JDK 21).\n- Clocks: Python's monotonic clock, Java's System.nanoTime and the `-Xlog` decorator `tn` all read CLOCK_MONOTONIC. So the PTY times, the app marks and the class-load lines share one time line.\n- Matrix: `perf/bench.py`. 15 rounds, and each round runs every mode x app combination in a shuffled order. Page cache is warm; cold start was not measured. load1 during the runs: median 2.1 (the harness itself). The `launcher`, `direct` and `aot` modes ran in both batches, and their medians differ by at most 37 ms between batches.\n- Anatomy:\n  - A temporary build with timestamp marks: `PerfMark`, active only with `-Dtui4s.perf=<file>`.\n  - `-Xlog:class+load` and `-Xlog:startuptime` (1 run per app, with class logging on).\n  - Phase timings without class logging: median of 5 runs.\n  - A stack sampler thread (1 run) to find the time gaps.\n- Every temporary code change is in `perf/wt-perf-temporary.diff`.\n\n## Main table: first frame in ms from spawn (N=15 each)\n| mode | app | median | min | max | alt-screen median | RSS VmHWM median MB | max RSS (wait4) MB |\n|---|---|---|---|---|---|---|---|\n| launcher (shipped bash script) | counter | 1101 | 1009 | 1280 | 827 | 125 | 133 |\n| launcher | dashboard | 1233 | 1158 | 1349 | 829 | 164 | 173 |\n| launcher-novc (`-no-version-check`)* | counter | 1066 | 1014 | 1140 | 803 | 124 | 132 |\n| launcher-novc* | dashboard | 1175 | 1126 | 1260 | 776 | 166 | 174 |\n| direct (same flags, `java` exec'd directly) | counter | 1034 | 935 | 1147 | 763 | 124 | 132 |\n| direct | dashboard | 1125 | 1069 | 1197 | 736 | 165 | 174 |\n| -Xshare:off (no CDS, reference) | counter | 1127 | 1056 | 1338 | 847 | 117 | 121 |\n| -Xshare:off | dashboard | 1226 | 1180 | 1405 | 812 | 133 | 135 |\n| -XX:TieredStopAtLevel=1 | counter | 902 | 830 | 1021 | 681 | 108 | 115 |\n| TieredStopAtLevel=1 | dashboard | 1008 | 930 | 1068 | 654 | 123 | 129 |\n| -XX:+UseSerialGC | counter | 1019 | 976 | 1087 | 726 | 142 | 145 |\n| UseSerialGC | dashboard | 1134 | 1076 | 1234 | 726 | 169 | 177 |\n| no verification (diagnostic only) | counter | 904 | 863 | 1026 | 676 | 119 | 126 |\n| no verification | dashboard | 1036 | 997 | 1148 | 686 | 158 | 165 |\n| noprobe (`blockingMonitorMinIntervalNs=12800000`) | counter | 934 | 877 | 1012 | 667 | 125 | 132 |\n| noprobe | dashboard | 1056 | 994 | 1165 | 653 | 165 | 174 |\n| jnipath (pre-extracted .so, `java.library.path`) | counter | 970 | 933 | 1045 | 719 | 121 | 131 |\n| jnipath | dashboard | 1149 | 1058 | 1257 | 740 | 161 | 174 |\n| prewarm-native (thread: JNI + isatty) | counter | 921 | 871 | 1037 | 658 | 122 | 134 |\n| prewarm-native | dashboard | 1048 | 1004 | 1290 | 667 | 142 | 150 |\n| prewarm-all (+ class list of ~2,000) | counter | 728 | 672 | 790 | 554 | 124 | 135 |\n| prewarm-all | dashboard | 806 | 772 | 889 | 552 | 143 | 150 |\n| best-noaot (prewarm-native + noprobe + jnipath) | counter | 798 | 763 | 931 | 542 | 122 | 133 |\n| best-noaot | dashboard | 983 | 921 | 1038 | 575 | 141 | 155 |\n| code+flags-noaot (all code changes, list, C1, SerialGC)* | counter | 537 | 499 | 594 | 392 | 122 | 124 |\n| code+flags-noaot* | dashboard | 614 | 571 | 695 | 390 | 125 | 128 |\n| flags-only-noaot (C1, SerialGC, noprobe, jnipath)* | counter | 758 | 726 | 998 | 531 | 121 | 123 |\n| flags-only-noaot* | dashboard | 855 | 802 | 992 | 523 | 126 | 130 |\n| aot (cache trained on this app) | counter | 521 | 476 | 576 | 410 | 113 | 120 |\n| aot | dashboard | 588 | 543 | 644 | 400 | 150 | 158 |\n| aot-other-app (cache of the other app) | counter | 509 | 483 | 578 | 400 | 106 | 113 |\n| aot-other-app | dashboard | 634 | 592 | 708 | 405 | 134 | 135 |\n| flags-only+aot (no code change)* | counter | 361 | 325 | 479 | 262 | 94 | 98 |\n| flags-only+aot* | dashboard | 433 | 396 | 554 | 273 | 134 | 139 |\n| best (best-noaot + AOT) | counter | 389 | 368 | 434 | 273 | 109 | 117 |\n| best | dashboard | 484 | 447 | 538 | 284 | 154 | 158 |\n| best+SerialGC | counter | 385 | 359 | 439 | 267 | 107 | 112 |\n| best+SerialGC | dashboard | 458 | 412 | 580 | 269 | 159 | 163 |\n| best+C1 | counter | 342 | 315 | 381 | 246 | 96 | 102 |\n| best+C1 | dashboard | 417 | 393 | 476 | 248 | 134 | 137 |\n| best+C1+SerialGC* | counter | 320 | 296 | 381 | 231 | 93 | 98 |\n| best+C1+SerialGC* | dashboard | 395 | 371 | 449 | 240 | 134 | 138 |\n| plain jatatui program (Java, JNI, same 4 lines) | plain | 147 | 134 | 258 | 97 | 56 | 56 |\n\n\\* Rows marked with * come from batch 2 (`bench15b`). The anchors from batch 2 were: launcher 1080/1204, direct 1016/1160, aot 484/586.\n\nNotes on the table:\n- The prewarm and best modes need the temporary code (the `stage-exp` build). All other modes use the build from main without changes (`stage-pristine`).\n- RSS in the AOT modes includes pages of the mapped cache file, which are shared.\n\n## Anatomy: phase durations, median of 5 runs, no class log\n| phase | counter base | counter best | dashboard base | dashboard best |\n|---|---|---|---|---|\n| spawn -> TuiApp ctor (JVM boot, main class) | 66 | 89 | 72 | 94 |\n| ctor: SchedulerDefaults + OutputCapture.install | 119 | 15 | 130 | 18 |\n| main -> KyoApp.Unsafe.runAndBlock | 37 | 7 | 37 | 6 |\n| Kyo runtime start -> first fiber runs | 377 | 141 | 388 | 142 |\n| LogSink, inbox Channel -> terminal enter | 41 | 18 | 52 | 19 |\n| crossterm JNI load (+ .so extraction) | 25 | 0 | 27 | 0 |\n| FFM isatty downcall link | 76 | 1 | 57 | 3 |\n| raw mode + alternate screen | 9 | 4 | 6 | 5 |\n| canvas, input thread, shutdown hook | 15 | 4 | 11 | 5 |\n| Runner construction | 26 | 3 | 27 | 5 |\n| UI build (`ui`) | 44 | 8 | 98 | 27 |\n| mount | 31 | 11 | 96 | 49 |\n| settle (Quiescent, confirm 2) | 28 | 17 | 49 | 27 |\n| layout | 75 | 49 | 91 | 43 |\n| paint | 27 | 15 | 27 | 22 |\n| flush | 33 | 16 | 36 | 20 |\n| first frame (PTY) | 1029 | 398 | 1205 | 485 |\n\nNotes on the anatomy:\n- JVM \"Create VM\" (`-Xlog:startuptime`): 31-34 ms inside the JVM; 46-55 ms from spawn.\n- The bash launcher adds 64-108 ms on top of direct. The `java -version` check alone is 14-29 ms (launcher minus launcher-novc). The rest is bash.\n- Inside the Kyo start phase, the stack sampler showed these causes:\n  - the CPU-time probe in `BlockingMonitor.<init>`: parked for 74-90 ms. The probe called directly returns 12,800,000 ns and takes 86-102 ms (3 calls).\n  - class define and read from jars: about 35% of the samples.\n  - LambdaMetafactory spinning: about 13%.\n  - `kyo.Flag.register` / `detectNearMiss`, which scans all system properties and environment variables into Scala Lists: about 7% or more.\n  - the ManagementFactory ThreadMXBean.\n- With the AOT cache, the \"best\" mode still spends 141 ms in the Kyo start and 49 ms in layout. That is cold interpreted code: the JDK 25 cache has no compiled code.\n\n## Classes per group (N=1 per app, -Xlog:class+load; a lambda counts in the group of its host class)\n| group | counter before frame | counter total | dashboard before frame | dashboard total |\n|---|---|---|---|---|\n| JDK | 1871 | 1886 | 1926 | 1952 |\n| Scala | 526 | 555 | 584 | 617 |\n| Kyo (core, kernel, data, prelude, scheduler, config, stats) | 705 | 882 | 783 | 924 |\n| kyo-ui | 204 | 214 | 232 | 244 |\n| kyo-http / net / ffi / schema / system | 0 | 0 | 0 | 0 |\n| jatatui + crossterm | 79 | 92 | 79 | 92 |\n| tui4s | 352 | 451 | 416 | 551 |\n| app | 12 | 12 | 81 | 90 |\n| all | 3749 | 4092 | 4101 | 4470 |\n\n- Of the JDK classes, 1251 come from the default CDS archive and 413 are parsed from jrt.\n- Without a cache: 496 lambda proxies. With the AOT cache: 3670 classes come from the archive, but only 112 of 520 lambda proxies do. About 408 are still spun at run time. My guess is that Scala's serializable `altMetafactory` lambdas are not AOT-linked; I have not checked this.\n- These jars load no class in either app: kyo-http (2.8 MB), kyo-net (1.8), kyo-ffi (0.3), kyo-schema (2.4), kyo-schema-json (0.3), kyo-system (1.7), pprint, fansi, sourcecode, jmh-core and jmh-generator-* (0.6), commons-math3 (2.2), asm, jopt-simple. Total 12.7 MB of the 38 MB lib.\n- The POM of kyo-kernel_3 1.0.0-RC7 declares jmh-core, jmh-generator-bytecode and jmh-generator-reflection without a scope, that is, as compile scope. That is how JMH, commons-math3, asm and jopt get onto every app's runtime classpath.\n\n## Concurrency (step 3)\nConstraints of the experiment:\n- The prewarm thread is a daemon platform thread that starts on the first line of the TuiApp constructor.\n- It does not change the terminal. It writes nothing to stdout or stderr. It swallows its own errors.\n- Raw mode, the alternate screen, the release bracket and the shutdown hook stay exactly where they are. So the restore guarantees do not change.\n\nEntering the terminal early on another thread would show a blank alternate screen about 500 ms sooner, but the first frame would not come sooner. It would also need a second restore path that exists before the bracket. I do not recommend it.\n\nWhat I measured, as median change against direct (counter / dashboard):\n- JNI load + isatty link off the critical path (about 100 ms of work): -113 / -77.\n- Probe skip (one property, the same probed value): -100 / -69.\n- List-driven class preloader thread (`Class.forName(name, false)`), list taken from a training log up to the first frame: -306 / -319, including the native part.\n- All code changes + C1 + SerialGC, no AOT: 537 / 614.\n- What remains on the critical path is static initialization, the interpreter and lambda linkage.\n\n## AOT cache (step 4)\n- Training: one-step `-XX:AOTCacheOutput`, with a scripted PTY session (keys sent after the first frame). Exit after `q` takes about 2.5 s more while the JVM forks a child that builds the cache. Cache size: 37.6 MB (counter) and 40.6 MB (dashboard).\n- Validated with `-XX:AOTMode=on`. A cache trained on one app works for the other app (+0 / +46 ms).\n- Relocation: the same jars copied to another directory (`cp -a`) still use the cache. A jar whose mtime changed is rejected: `AOTMode=on` exits with \"shared class paths mismatch\".\n- In auto mode, a stale cache prints 521 bytes of `[warning][aot]`/`[error][aot]` lines into the terminal, and a missing cache prints 211 bytes. With `-Xlog:aot=off` it prints nothing and falls back to normal startup.\n- One-step training prints about 6 KB after the restore. That text includes the child's \"Picked up JAVA_TOOL_OPTIONS: -Djava.class.path=...\"; `-Xlog:disable` does not stop it.\n- Two-step:\n  - `-XX:AOTMode=record -XX:AOTConfiguration=f` costs +1.4 s at exit and prints one line.\n  - `-XX:AOTMode=create` runs offline: 1357 ms, 37.2 MB.\n  - The resulting cache gives first frames of 476-564 ms (3 runs).\n- How a launcher could ship the cache:\n  - **(a) Package time:** possible only with a bundled runtime (jlink), because the cache needs the same JDK build. That this requirement holds is stated in the JDK documentation; I did not test it, because only one JDK 25 is installed here. The archive must keep the jar mtimes. Train in CI under a PTY, with one union cache for all apps (+37-40 MB, about the size of lib/).\n  - **(b) First run:** use `-XX:AOTCache=$XDG_CACHE_HOME/tui4s/<hash of java -version + jar names/sizes/mtimes>.aot -Xlog:aot=off` when the file exists. Otherwise run once with record mode and start a detached `-XX:AOTMode=create` after exit, with its output going to /dev/null.\n  - Never use `AOTMode=on` in a shipped launcher.\n  - The flags probably go through native-packager's `bashScriptExtraDefines` (not tested).\n- Side finding: jatatui's NativeLoader extracts the .so into a new `/tmp/jni-*` directory on every run and never deletes it. There are now 753 such directories of 918 KB each; 532 of them come from my runs (about 470 MB). I left them in place. `-Djava.library.path` with `libcrossterm.so` stops this (checked: no new directory).\n\n## Commands\n- `sbt -Dsbt.supershell=false examples/launchers` (3 builds, one sbt process at a time). Then `python3 perf/bench.py perf/bench15.jsonl 15` and `python3 perf/bench.py perf/bench15b.jsonl 15 <modes>`; `python3 perf/summ.py <jsonl>`; `bash perf/followup.sh`; `python3 perf/phases.py perf/followup base-counter best-counter base-dashboard best-dashboard`.\n\n## Not measured\n- GraalVM native image: not measured in this task. The crossterm jar contains `META-INF/native-image/.../jni-config.json`.\n- Cold page cache, macOS, Windows.\n- Steady-state CPU or frame latency with C1 only.",
+   "measurements": [
+    {
+     "what": "Time to first frame, shipped launcher (counter / dashboard)",
+     "value": "1101 ms (1009-1280) / 1233 ms (1158-1349)",
+     "method": "PTY 100x30, N=15, median (min-max); frame = full last line on the alternate screen; batch 2 anchors: 1080 / 1204"
+    },
+    {
+     "what": "Time to first frame, java exec'd directly with the same flags",
+     "value": "1034 ms (935-1147) / 1125 ms (1069-1197)",
+     "method": "PTY, N=15, median (min-max)"
+    },
+    {
+     "what": "Overhead of the bash launcher; of its java -version check",
+     "value": "+64..+108 ms; check alone 14-29 ms",
+     "method": "launcher minus direct medians (2 batches); launcher minus launcher with -no-version-check (N=15)"
+    },
+    {
+     "what": "Plain jatatui Java program (JVM + crossterm floor)",
+     "value": "147 ms (134-258), RSS 56 MB",
+     "method": "PTY, N=15, median"
+    },
+    {
+     "what": "JVM boot until the TuiApp constructor runs",
+     "value": "66 / 72 ms (Create VM 31-34 ms inside the JVM)",
+     "method": "marks (System.nanoTime) + -Xlog:startuptime, median of 5"
+    },
+    {
+     "what": "Kyo runtime start (runAndBlock until the first fiber runs)",
+     "value": "377 / 388 ms; 141 / 142 ms with AOT + flags",
+     "method": "marks, median of 5"
+    },
+    {
+     "what": "Kyo BlockingMonitor CPU-time resolution probe",
+     "value": "returns 12,800,000 ns; takes 86-102 ms",
+     "method": "called ThreadUserTime$.probeResolution by reflection, 3 calls; stack sampler showed it parked 74-90 ms inside startup"
+    },
+    {
+     "what": "Terminal enter: JNI load / FFM isatty link / raw + alternate screen",
+     "value": "25 / 76 / 9 ms (counter); 27 / 57 / 6 ms (dashboard)",
+     "method": "marks, median of 5"
+    },
+    {
+     "what": "UI build + mount + settle + layout + paint + flush (counter / dashboard)",
+     "value": "about 238 / 397 ms base; about 116 / 188 ms best",
+     "method": "marks, median of 5"
+    },
+    {
+     "what": "Classes loaded by exit (counter / dashboard)",
+     "value": "4092 / 4470; before the first frame 3749 / 4101; 0 from kyo-http/net/ffi/schema/system",
+     "method": "-Xlog:class+load, N=1 per app"
+    },
+    {
+     "what": "Jars on the classpath that load no class",
+     "value": "12.7 MB of the 38 MB lib (kyo-http, net, ffi, schema, schema-json, system, JMH x4, commons-math3, asm, jopt, pprint, fansi, sourcecode)",
+     "method": "per-jar sources in the class-load log + ls"
+    },
+    {
+     "what": "Gain from a background JNI + isatty preload",
+     "value": "-113 ms / -77 ms (921 / 1048)",
+     "method": "N=15 medians against direct"
+    },
+    {
+     "what": "Gain from skipping the probe (-Dkyo.scheduler.blockingMonitorMinIntervalNs=12800000)",
+     "value": "-100 ms / -69 ms (934 / 1056)",
+     "method": "N=15 medians against direct"
+    },
+    {
+     "what": "Gain from a class preloader thread (list from a training run) + native preload",
+     "value": "-306 ms / -319 ms (728 / 806)",
+     "method": "N=15 medians against direct"
+    },
+    {
+     "what": "All code and flag changes, no AOT",
+     "value": "537 ms (499-594) / 614 ms (571-695)",
+     "method": "N=15"
+    },
+    {
+     "what": "JDK 25 AOT cache only",
+     "value": "521 ms (476-576) / 588 ms (543-644); RSS 113 / 150 MB",
+     "method": "N=15, -XX:AOTCache, cache trained per app in a PTY session"
+    },
+    {
+     "what": "AOT + launcher flags only (C1, SerialGC, noprobe, jnipath), no code change",
+     "value": "361 ms (325-479) / 433 ms (396-554); RSS 94 / 134 MB",
+     "method": "N=15"
+    },
+    {
+     "what": "Best measured: AOT + prewarm + noprobe + jnipath + C1 + SerialGC",
+     "value": "320 ms (296-381) / 395 ms (371-449); alt-screen 231 / 240 ms; RSS 93 / 134 MB",
+     "method": "N=15"
+    },
+    {
+     "what": "-Xshare:off (no CDS) and C1-only references",
+     "value": "1127 / 1226 ms; C1: 902 / 1008 ms (RSS 108 / 123 MB)",
+     "method": "N=15"
+    },
+    {
+     "what": "AOT cache size and training cost",
+     "value": "37.6 MB (counter), 40.6 MB (dashboard); one-step +2.5 s at exit; two-step: record +1.4 s at exit, create 1357 ms",
+     "method": "ls; PTY quit-to-exit times; wall clock of the create step"
+    },
+    {
+     "what": "Lambda proxies with the AOT cache",
+     "value": "112 of 520 come from the archive (about 408 still spun at run time)",
+     "method": "-Xlog:class+load with the cache, N=1"
+    },
+    {
+     "what": "Leaked /tmp/jni-* dirs from jatatui NativeLoader",
+     "value": "753 dirs of 918 KB each (532 from these runs)",
+     "method": "ls/find/du"
+    }
+   ],
+   "recommendations": [
+    "Set the probe value in SchedulerDefaults: add \"kyo.scheduler.blockingMonitorMinIntervalNs\" (one line, no Kyo class touched). Measured -100 ms (Counter) and -69 ms (Dashboard) with 12800000, the value the probe itself returns on Linux. For other platforms, 20000000 (equal to the tui4s blockingMonitorIntervalNs, and above the known 10 ms Linux and 15.6 ms Windows counters) is probably safe, but Kyo's semantics for it are not checked.",
+    "Start the app without the bash launcher, or at least add -no-version-check (Universal / javaOptions or application.ini): it is 64-108 ms slower than exec'ing java directly, and the version check alone is 14-29 ms.",
+    "Add a daemon prewarm thread to TuiApp that loads the crossterm JNI library and links the Tty isatty handle while Kyo starts. Measured -113 ms (Counter) and -77 ms (Dashboard). It makes no terminal change and writes no output. It needs a test that NativeAccessDenied and NativeLoadFailed are still reported: the main path then sees NoClassDefFoundError, and loadError walks its causes.",
+    "Offer the JDK 25 AOT cache as the main packaging lever. On its own it halves startup (521 and 588 ms). With the probe skip, the native prewarm, C1 and SerialGC, the first frame comes at 320 and 395 ms. Ship it with -Xlog:aot=off and AOTMode=auto, never AOTMode=on. Options: package-time training under a PTY, with one union cache in a jlink image that keeps mtimes, or a first-run two-step record/create in the background, keyed by the JDK version and the jar names, sizes and mtimes.",
+    "Ship libcrossterm.so outside the jar and set -Djava.library.path. Speed is inconclusive (-64 / +24 ms), but it stops a 918 KB /tmp/jni-* directory leaking on every run.",
+    "Exclude org.openjdk.jmh from the runtime classpath (excludeAll on kyo-kernel in core). kyo-kernel's POM puts jmh-core and its generators, and through them commons-math3, asm and jopt-simple, in compile scope: 3.0 MB that is never loaded. Report this upstream to Kyo.",
+    "If an AOT cache cannot be shipped, consider the list-driven class preloader thread: -306 ms and -319 ms. It needs a class list made at build time and goes stale when the code changes.",
+    "Consider -XX:TieredStopAtLevel=1 for TUI launchers (-117..-132 ms, -16..-42 MB RSS), but only after a steady-state check of CPU and frame latency under load on the Dashboard."
+   ],
+   "risks": [
+    "The numbers come from one 4-vCPU Linux container with a warm page cache and load1 of about 2 during the runs. Cold start, macOS and Windows were not measured.",
+    "C1-only (TieredStopAtLevel=1): steady-state throughput and CPU use are not measured.",
+    "AOT cache: validity across JDK builds is not tested (only one JDK 25 build is installed). A changed jar mtime invalidates the cache (tested). In auto mode, a stale or missing cache prints errors into the terminal unless -Xlog:aot=off is set (tested). One-step training prints about 6 KB after the restore and delays exit by about 2.5 s. Record mode delays exit by 1.4 s and prints one line.",
+    "Probe skip: it changes how Kyo's BlockingMonitor gets its minimum scan interval. With 12.8 ms on Linux the value is the same as the probe gives. On platforms with coarser counters, a low value could make busy threads look blocked. Not tested.",
+    "Prewarm thread: a JNI load failure now happens first on the prewarm thread, and the main path gets NoClassDefFoundError. The error mapping by cause walk is not tested. The class-list preloader depends on a list from a training run, which goes stale.",
+    "The prewarm and best modes ran on a temporary build with perf marks, which do nothing without -Dtui4s.perf. The other modes ran on the unmodified build from main.",
+    "The PTY runs left 532 directories /tmp/jni-* (about 470 MB) made by jatatui's NativeLoader. I did not delete them. Cleanup, if wanted: find /tmp -maxdepth 1 -name 'jni-*' -newermt '2026-10-17 21:10' -exec rm -r {} +",
+    "The worktree /tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/wt-perf is still registered in /home/user/tui4s/.git/worktrees. It holds temporary, uncommitted changes: pini4s removed from build.sbt, StateStoreSuite deleted, PerfMark and PerfPrewarm added."
+   ],
+   "openQuestions": [
+    "Why are about 408 of 520 lambda proxies not archived in the JDK 25 AOT cache? My guess is Scala's serializable altMetafactory lambdas; not checked. This could be another 50-100 ms.",
+    "Is a jlink-bundled runtime acceptable for tui4s app distribution? A cache built at package time needs the same JDK build.",
+    "Would Kyo upstream run the CPU-time probe lazily or in the background, cache its result, and make JMH a test-scope dependency of kyo-kernel?",
+    "GraalVM native image was not measured in this task. Its startup and RSS, and whether kyo-ui and Kyo's reflection and lambdas need extra metadata, are open. The crossterm jar ships jni-config.json.",
+    "Can the first-frame settle (Quiescent with confirm=2: 17-49 ms) be shortened for the Initial frame without the risk of a split frame?"
+   ],
+   "artifacts": [
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/ptytime.py",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/bench.py",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/summ.py",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/bench15.jsonl",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/bench15.md",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/bench15b.jsonl",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/bench15b.md",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/anatomy.py",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/phases.py",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/anat1",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/anat2/c.marks",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/followup.sh",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/followup.log",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/followup",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/aot",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/aot-best",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/plain/src/PlainCounter.java",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/probe/Probe.java",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/prewarm-c.txt",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/prewarm-d.txt",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/direct.sh",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/perf/wt-perf-temporary.diff",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/wt-perf"
+   ]
+  }
+ },
+ {
+  "key": "native-image",
+  "r": {
+   "summary": "The native image of the Counter works, and there was no hard blocker. Oracle GraalVM 25.0.4 (native-image 25.0.4) built a working Counter binary on the first try. I measured 15 runs per variant in a PTY at 100x30. The first frame comes at 101.5 ms median (range 99.2-107.1), and the shipped JVM launcher takes 1099.2 ms (1041.6-1190.0) in the same session. RSS (VmHWM) is 31.6 MB against 122.9 MB, and the process has 11 threads against 30. The native binary also beats the plain Java jatatui program (150.6 ms, 56.2 MB) and the best JVM AOT-cache setup (332.0 ms, 92.6 MB).\n\nAbout 85 ms of the remaining 100 ms is Kyo's BlockingMonitor CPU-time probe, which is a sleep loop. With `-Dkyo.scheduler.blockingMonitorMinIntervalNs=12800000` the native first frame comes at 15.2-16.1 ms median (13.4-20.9). As a bonus I also built the Dashboard with `-Ob`: 104.5 ms (100.6-108.8) and 29.3 MB, against 1247.6 ms and 164.5 MB with the JVM launcher, and 18.8 ms with the probe skip.\n\nThe binary is 33.2 MB at -O2 with the full classpath, 31.5 MB with the unused jars removed, and 21.5 MB with -Os (7.9 MB gzip). For comparison, the JVM lib directory is 39.6 MB and also needs a JDK. A build takes 80-150 s on 4 vCPU, with a peak RSS of 1.8-2.75 GB. Terminal restore is correct on q, Ctrl-C, SIGTERM (exit 143), SIGINT (130) and SIGHUP (129): termios is the same as before the start, the app leaves the alternate screen and shows the cursor, nothing prints outside the UI, and a resize redraws the screen.\n\nThe minimal metadata is two entries: the crossterm .so resource glob and the isatty downcall `(int)int`. You also need the builder flag `-J--sun-misc-unsafe-memory-access=allow`. Without it, a sun.misc.Unsafe warning prints into the terminal before the UI. These three items can ship in a jar as `META-INF/native-image/...` files. I tested this, and a plain `native-image --no-fallback` then works with no tui4s-specific flags.\n\nI found two problems on the way. (1) If the isatty downcall is not registered, `Tty.isatty` lets `MissingForeignRegistrationError` through, because it is a LinkageError and `NonFatal` does not match it. The app then prints a stack trace and exits 1. (2) jatatui's NativeLoader leaks one `/tmp/jni-*` directory of 904 KB on every start, with the JVM launcher and with the native binary. The count went from 169 to 244 during this step.",
+   "details": "## Setup\n- GraalVM: Oracle GraalVM for JDK 25 from download.oracle.com (`graalvm-jdk-25_linux-x64_bin.tar.gz`, 380,509,826 bytes). The sha256 is the same as the published .sha256 file. I unpacked it to `/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/dl/graalvm/graalvm-jdk-25.0.4+7.1` (native-image 25.0.4, Substrate VM 25.0.4+7-LTS). I did not install anything system-wide.\n- Classpath: the launcher lib directory of `perf/stage-pristine` (main cd6a877, no perf patches). I did not run sbt in this step, and I did not modify wt-main or /home/user/tui4s.\n- Tracing agent: I ran `-agentlib:native-image-agent=config-merge-dir=native/config` in a PTY twice. The first run pressed `+ + - Tab Enter Tab Space +` and then q. The second run sent SIGTERM. Output: `native/config/reachability-metadata.json`, with 80 reflection entries (mostly Scala 3 lazy-val `$lzyN` fields), 1 resource (`libnative-x86_64-linux-crossterm.so`) and 1 foreign downcall (`jint(jint)`).\n\n## Builds (4 vCPU, 15 GB RAM; wall time from date stamps; peak RSS from the native-image report)\n| id | classpath | flags | result | file size | build wall | peak RSS |\n|---|---|---|---|---|---|---|\n| b1 | full (31 jars) | agent config | works, but prints the Unsafe warning | 33.2 MB | 150 s | 2.71 GB |\n| b2 | full | + `-J--sun-misc-unsafe-memory-access=allow -R:StackSize=16777216` | works, clean | 33.2 MB | 142 s | 2.75 GB |\n| b3 | trimmed (18 jars; no kyo-http/net/ffi/schema/system, pprint, jmh, commons-math3, asm, jopt) | same as b2 | works | 31.5 MB | 141 s | 2.62 GB |\n| b4 | trimmed | b2 + `-Os` | works | 21.5 MB | 90 s | 1.82 GB |\n| b5 | trimmed | no config, `-Ob` | FAILS: NativeLoadFailed (UnsatisfiedLinkError: .so not on the classpath), exit 1, terminal untouched | 24.1 MB | 80 s | 1.81 GB |\n| b6 | trimmed | resource glob only, `-Ob` | FAILS: MissingForeignRegistrationError for the isatty downcall, stack trace, exit 1 | 25.0 MB | 81 s | - |\n| b7 | trimmed | resource + downcall only (no reflection), `-Ob` | works (keys, q, TERM, non-tty) | 25.0 MB | 80 s | - |\n| b8 | trimmed + metadata jar | no tui4s flags at all, `-Ob` | works | 28.1 MB | 81 s | - |\n| d1 | trimmed + metadata jar | Dashboard, `-Ob` | works (first frame, q, TERM) | 28.5 MB | 81 s | - |\n\nCompressed sizes: b2 12.7 MB gzip-9 / 9.4 MB xz; b3 12.2 / 9.0; b4 7.9 / 5.9. JVM distribution: lib 39.6 MB (bin+lib tar.gz 36.9 MB), plus a JDK 25 (345 MB on disk here; I did not measure a jlink image). The binary dynamically links only libc.so.6 and libz.so.1. I used `-march=compatibility`.\n\n## Errors met and fixes\n1. **Unsafe warning in the terminal**: `WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$`, printed before the alternate screen. Runtime `-Dsun.misc.unsafe.memory.access=allow` and runtime `--sun-misc-unsafe-memory-access=allow` had no effect. Builder flag `-J--sun-misc-unsafe-memory-access=allow` fixes it (b2), and so does `JavaArgs = --sun-misc-unsafe-memory-access=allow` in a native-image.properties on the classpath (b8).\n2. **crossterm JNI library loaded from a jar resource**: the crossterm jar already ships `META-INF/native-image/com.olvind.jatatui/crossterm/jni-config.json`, so the JNI config was automatic. Only the `.so` resource is missing without config (b5). Fix: the resource glob.\n3. **FFM isatty downcall**: GraalVM 25 has `ForeignAPISupport` on by default. It needs the `foreign.downcalls` entry `{returnType: jint, parameterTypes: [jint]}`. Without it the app throws `org.graalvm.nativeimage.MissingForeignRegistrationError`, which extends `java.lang.LinkageError`. Thus `Tty.isatty`'s `catch case NonFatal(_)` does not catch it, and the app crashes with a stack trace before raw mode. The terminal stays intact and the exit code is 1.\n4. **Static initializers / class init of OutputCapture and SchedulerDefaults**: I needed no `--initialize-at-run-time`. GraalVM 25 initializes application classes at run time by default, and the TuiApp's SchedulerDefaults still runs before the Kyo scheduler starts.\n5. **Scala lazy vals / Unsafe**: these work without the 80 agent reflection entries (b7). GraalVM's built-in `com.oracle.svm.polyglot.scala.ScalaFeature` turns itself on.\n6. **-Xss16m**: maps to `-R:StackSize=16777216`. The build accepts it, but I did not verify its effect on deep Kyo stacks.\n7. **kyo-ffi on the classpath** turns on the experimental `-H:+SharedArenaSupport` through its native-image.properties, and registers 35 downcalls. Removing the unused jars removes this, saves 1.7 MB, and leaves 1 downcall.\n8. **Kyo BlockingMonitor in native**: `SubstrateThreadMXBean` supports cross-thread user CPU time (`getThreadUserTime(long[])`). The probe returns 12.8 ms in native and on the JVM, and takes 94 ms against 88 ms (1 run each; `native/cpuprobe`). Blocking detection behaves the same, and the probe is ~85% of native startup.\n\n## Startup (PTY 100x30, ptytime.py, expect \"q quits\", hold 300 ms, 15 runs per mode, shuffled per round)\n| mode | first frame median (min-max) ms | VmHWM median MB | threads |\n|---|---|---|---|\n| launcher JVM (shipped) Counter | 1099.2 (1041.6-1190.0) | 122.9 | 30 |\n| JVM best (AOT + probe skip + JNI preload + C1 + SerialGC) | 332.0 (313.4-358.7) | 92.6 | 24 |\n| plain jatatui (Java, JVM) | 150.6 (134.5-182.7) | 56.2 | 18 |\n| native b2 (O2, full cp) | 101.5 (99.2-107.1); second batch 101.5 (97.8-112.4) | 31.6 | 11 |\n| native b3 (O2, trimmed) | 103.4 (99.6-109.6) | 30.5 | 11 |\n| native b4 (-Os) | 103.2 (101.2-110.7) | 24.3 | 11 |\n| native b8 (-Ob, jar metadata) | 102.0 (93.8-123.9) | 26.9 | 11 |\n| native b2 + probe skip | 15.2 (13.7-18.5) | 31.5 | 11 |\n| native b3 + probe skip | 15.5 (13.4-17.2) | 30.4 | 11 |\n| native b4 + probe skip | 16.1 (15.0-20.9) | 24.2 | 11 |\n| launcher JVM Dashboard | 1247.6 (1152.3-1363.9) | 164.5 | 34 |\n| native Dashboard d1 (-Ob) | 104.5 (100.6-108.8) | 29.3 | 12 |\n| native Dashboard d1 + probe skip | 18.8 (16.9-21.9) | 29.2 | 12 |\n\nIdle CPU (10 s window from frame+1 s, 3 runs each): native b3 3.9-4.1% of one core, JVM launcher 6.8-6.9%. CPU time used up to the first frame: native 0.08-0.10 s, JVM 1.95-1.98 s.\n\n## Terminal restore (native b3, ptyend.py; termios compared with tcgetattr on the slave before the start and after the exit)\n- q: 5 of 5 exit 0. SIGTERM: 5 of 5 exit 143. SIGINT: 1 of 1 exit 130. SIGHUP: 1 of 1 exit 129. Ctrl-C key: 1 of 1 exit 0. In every run raw mode was on while the app ran, the app left the alternate screen and showed the cursor, termios was the same as before the start, there was no text before or after the alternate screen, and quit-to-exit was about 80 ms.\n- Keys (+, -, Tab, Enter, Space) gave the expected counts 0,1,2,1,0,1,2,3 on b2 and b7.\n- Resize from 100x30 to 40x20 with SIGWINCH: a full redraw, with the hint line wrapped at 40 columns.\n- Non-tty stdin: prints `stdin/stdout is not a terminal`, exit 1 (b2, b7).\n- Dashboard d1: q exit 0 (3 of 3) and TERM exit 143 (1 of 1), same restore results. I did not test the Dashboard keys.\n\n## What a supported \"native\" packaging needs\n1. **Metadata in tui4s-core** (tested as a separate jar, `native/tui4s-native-meta.jar`):\n   - `META-INF/native-image/io.github.yuri4n/tui4s-core/reachability-metadata.json`, with `resources` globs `libnative-*-crossterm.so`, `libnative-*-crossterm.dylib` and `native-*-crossterm.dll`, and `foreign.downcalls` `[{returnType: jint, parameterTypes: [jint]}]`.\n   - `native-image.properties` with `JavaArgs = --sun-misc-unsafe-memory-access=allow` and `Args = -R:StackSize=16777216 --enable-native-access=ALL-UNNAMED`.\n   - Globs for all 5 platform libraries add 3.1 MB (b8 against b7). A Linux-only glob is smaller, but then the metadata is per platform.\n2. **Hardening in `Tty.isatty`** (modules/core/src/main/scala/tui4s/internal/Crossterm.scala): also catch `LinkageError`, so that missing metadata gives `None` and not a crash.\n3. **Optional probe skip**: SchedulerDefaults could set `kyo.scheduler.blockingMonitorMinIntervalNs`. This takes native startup from 100 ms to 15-19 ms. The value is a design decision: it is 12.8 ms on this machine, Kyo has a 2 ms floor, and Windows has 15.6 ms ticks.\n4. **Build**: the simplest way is a script, `scripts/native-image.sh <example>`. It reads `examples/target/bin/classpath` (from `sbt examples/launchers`) and runs `$GRAALVM_HOME/bin/native-image --no-fallback -march=compatibility [-Os|-Ob] <main>`. sbt-native-packager 1.13.0, which is already in project/plugins.sbt, has `GraalVMNativeImagePlugin` (keys `graalVMNativeImageOptions` and `graalVMNativeImageGraalVersion`; it uses `-H:Name=`, one image per mainClass, and has a docker mode). I did not try it, and the examples project has many mains.\n5. **CI cost (estimate, not run on GitHub)**: a separate job outside `sbt check`, with a 380 MB GraalVM download, a counter build with `-Ob` (80 s and 1.8 GB here), and a PTY smoke test (frame, q, TERM 143, termios), about 3-4 min. Release binaries take 1.5 min (-Os) to 2.5 min (-O2) per app on each OS and architecture. native-image cannot cross-compile, so each platform needs its own runner.\n\n## Scripts and commands\n- `native/bin/graal-agent.sh <outdir>`: the Counter on the GraalVM JVM with the tracing agent.\n- `native/bin/build.sh <id> <cpfile> [flags]` (`CONFIGDIR` env var): native-image with the config directory. `build-plain.sh` and `build-dash.sh`: no tui4s flags.\n- `native/bin/ptyend.py`: end check by key or signal, with termios, alternate-screen, cursor, stray text and `--resize` checks.\n- `native/bin/bench_native.py <out.jsonl> <rounds> <modes>` and `native/bin/summ.py <jsonl>`: the startup matrix.\n- `native/bin/idlecpu.py`: idle CPU.",
+   "measurements": [
+    {
+     "what": "Counter first frame, native b2 (O2, full classpath)",
+     "value": "101.5 ms median (99.2-107.1)",
+     "method": "PTY 100x30, ptytime.py, 15 runs, shuffled with other modes"
+    },
+    {
+     "what": "Counter first frame, shipped JVM launcher (same session)",
+     "value": "1099.2 ms median (1041.6-1190.0)",
+     "method": "PTY 100x30, ptytime.py, 15 runs"
+    },
+    {
+     "what": "Counter first frame, best JVM (AOT cache + probe skip + JNI preload + C1 + SerialGC)",
+     "value": "332.0 ms median (313.4-358.7)",
+     "method": "PTY, 15 runs"
+    },
+    {
+     "what": "Plain jatatui Java program first frame (JVM)",
+     "value": "150.6 ms median (134.5-182.7), 56.2 MB",
+     "method": "PTY, 15 runs"
+    },
+    {
+     "what": "Counter first frame, native with Kyo probe skipped (-Dkyo.scheduler.blockingMonitorMinIntervalNs=12800000)",
+     "value": "b2 15.2 ms (13.7-18.5); b3 15.5 ms (13.4-17.2); b4 16.1 ms (15.0-20.9)",
+     "method": "PTY, 15 runs each"
+    },
+    {
+     "what": "Counter first frame, native b3 (trimmed) / b4 (-Os) / b8 (-Ob, jar metadata)",
+     "value": "103.4 ms (99.6-109.6) / 103.2 ms (101.2-110.7) / 102.0 ms (93.8-123.9)",
+     "method": "PTY, 15 runs each"
+    },
+    {
+     "what": "Dashboard first frame native d1 (-Ob) vs JVM launcher",
+     "value": "104.5 ms (100.6-108.8) vs 1247.6 ms (1152.3-1363.9); with probe skip 18.8 ms (16.9-21.9)",
+     "method": "PTY, 15 runs each"
+    },
+    {
+     "what": "Peak RSS (VmHWM before quit), Counter",
+     "value": "native b2 31.6 MB, b3 30.5 MB, b4 24.3 MB, b8 26.9 MB; JVM launcher 122.9 MB; JVM best AOT 92.6 MB",
+     "method": "/proc/<pid>/status VmHWM, median of 15"
+    },
+    {
+     "what": "Peak RSS, Dashboard",
+     "value": "native 29.3 MB vs JVM launcher 164.5 MB",
+     "method": "VmHWM median of 15"
+    },
+    {
+     "what": "Threads before quit",
+     "value": "native 11 (Dashboard 12) vs JVM 30 (Dashboard 34)",
+     "method": "/proc status, median of 15"
+    },
+    {
+     "what": "Idle CPU, Counter",
+     "value": "native 3.9-4.1% of one core vs JVM launcher 6.8-6.9%",
+     "method": "utime+stime delta over 10 s from frame+1 s, 3 runs each"
+    },
+    {
+     "what": "CPU time up to first frame",
+     "value": "native 0.08-0.10 s vs JVM 1.95-1.98 s",
+     "method": "/proc/<pid>/stat at first frame, 3 runs each"
+    },
+    {
+     "what": "Binary size",
+     "value": "b2 33.2 MB (gz 12.7, xz 9.4); b3 31.5 MB (gz 12.2, xz 9.0); b4 -Os 21.5 MB (gz 7.9, xz 5.9); b7 -Ob 25.0 MB; b8 -Ob all-platform libs 28.1 MB",
+     "method": "stat, gzip -9, xz -6"
+    },
+    {
+     "what": "JVM distribution size",
+     "value": "lib 39.6 MB (bin+lib tar.gz 36.9 MB) + JDK 25 (345 MB on disk here; jlink unverified)",
+     "method": "du -sb, tar czf | wc -c"
+    },
+    {
+     "what": "native-image build time and memory",
+     "value": "O2 full cp 142-150 s, 2.71-2.75 GB; O2 trimmed 141 s, 2.62 GB; -Os 90 s, 1.82 GB; -Ob 80-81 s, 1.81 GB",
+     "method": "date wall clock around one build each; peak RSS from native-image report; 4 vCPU"
+    },
+    {
+     "what": "Terminal restore, native b3",
+     "value": "q 5/5 exit 0; SIGTERM 5/5 exit 143; SIGINT 130; SIGHUP 129; Ctrl-C 0; termios equal before/after, left alt screen, cursor shown, no stray text in all; resize to 40x20 redraws",
+     "method": "ptyend.py (tcgetattr on slave before start and after exit), counts as listed"
+    },
+    {
+     "what": "Kyo CPU-time probe in native image",
+     "value": "probe 12.8 ms resolution, takes 94 ms native vs 88 ms JVM; cross-thread getThreadUserTime works (SubstrateThreadMXBean)",
+     "method": "small Java program with the same probe loop, 1 run each"
+    },
+    {
+     "what": "Leaked /tmp/jni-* directories (jatatui NativeLoader)",
+     "value": "1 per start (904 KB each), for JVM and native; 169 -> 244 during this step; 151 MB total at count 170",
+     "method": "ls -d /tmp/jni-* | wc -l before/after single runs"
+    }
+   ],
+   "recommendations": [
+    "Offer native-image as an opt-in packaging: it cuts first frame by about 90% (1099 ms to 101 ms) and RSS by about 75% (123 MB to 31 MB) with no code change, and works for Counter and Dashboard.",
+    "Ship the two-entry reachability metadata (crossterm resource globs + isatty downcall) and a native-image.properties (JavaArgs --sun-misc-unsafe-memory-access=allow; Args -R:StackSize=16777216 --enable-native-access=ALL-UNNAMED) under META-INF/native-image/io.github.yuri4n/tui4s-core/ in tui4s-core, so that users run plain `native-image --no-fallback`.",
+    "Harden tui4s.internal.Tty.isatty to also catch LinkageError (MissingForeignRegistrationError extends LinkageError and escapes NonFatal today).",
+    "Decide whether SchedulerDefaults should set kyo.scheduler.blockingMonitorMinIntervalNs: it is now about 85% of native startup (100 ms to 15-19 ms) and about 100 ms on the JVM.",
+    "Fix or work around the /tmp/jni-* leak (one 904 KB directory per start, JVM and native): extract once to a stable cache path keyed by a hash and load from there, or report it to jatatui. Clean up the 244 directories in /tmp on this machine if wanted.",
+    "Start with a script (scripts/native-image.sh <example> over examples/target/bin/classpath), and add an optional CI job (not in sbt check) that builds the counter with -Ob and runs a PTY smoke test. Use -Os for release binaries (21.5 MB, 90 s build).",
+    "Leave unused jars (kyo-http, kyo-net, kyo-ffi, pprint, jmh, ...) off the native classpath of the examples: this saves 1.7 MB and removes the experimental SharedArenaSupport option that the kyo-ffi jar turns on."
+   ],
+   "risks": [
+    "I built only with Oracle GraalVM (its O2 builds use 'PGO: ML-inferred', an Oracle feature). Size and speed with GraalVM Community Edition are unverified, and the Oracle GraalVM license terms must be checked before release binaries are made with it.",
+    "Agent coverage: the minimal metadata was checked only on the Counter (keys, q, signals, resize, non-tty) and the Dashboard (first frame, q, TERM). Other examples, error paths and kyo-ui features not exercised may need more reflection or resource entries (they would fail at run time with Missing*RegistrationError, which is a LinkageError).",
+    "-R:StackSize=16777216 was accepted by the build, but I did not verify that it gives the 16 MB stack that Kyo needs on deep stacks.",
+    "Native binaries are per OS and architecture: macOS, Windows and Linux arm64 are unverified, and each needs its own CI runner.",
+    "An all-platform resource glob embeds all 5 crossterm libraries (+3.1 MB). A per-platform glob is smaller but makes the metadata platform-specific.",
+    "The binary still writes the crossterm .so to a new /tmp/jni-* directory on each start, so it is a single file to ship but not a single file at run time. Static linking of crossterm would need a Rust staticlib that the jar does not have (unverified).",
+    "The probe skip changes Kyo's blocking detection. A value below the real CPU-time counter resolution can make running threads look blocked."
+   ],
+   "openQuestions": [
+    "Should the native metadata ship inside tui4s-core, or in a separate small artifact?",
+    "Which default for kyo.scheduler.blockingMonitorMinIntervalNs, if any (12.8 ms measured here; 20 ms = tui4s blockingMonitorIntervalNs)?",
+    "Oracle GraalVM or GraalVM Community Edition for CI and release binaries?",
+    "Should the examples (or a demo) be published as native binaries per platform, or should native stay a documented user-side option?",
+    "Fix the /tmp/jni-* leak in tui4s (a stable cache path) or upstream in jatatui's NativeLoader?"
+   ],
+   "artifacts": [
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/out/b3/counter",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/out/b4/counter",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/out/b8/counter",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/out/d1/dashboard",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/config/reachability-metadata.json",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/config-min/reachability-metadata.json",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/metajar/META-INF/native-image/io.github.yuri4n/tui4s-core/reachability-metadata.json",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/metajar/META-INF/native-image/io.github.yuri4n/tui4s-core/native-image.properties",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/tui4s-native-meta.jar",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/bin/build.sh",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/bin/build-plain.sh",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/bin/graal-agent.sh",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/bin/ptyend.py",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/bin/bench_native.py",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/bin/summ.py",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/bin/idlecpu.py",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/bench1.jsonl",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/bench2.jsonl",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/bench3.jsonl",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/build-b2.log",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/build-b6.log",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/native/cpuprobe/CpuProbe.java",
+    "/tmp/claude-0/-home-user-tui4s/6d712dbd-bef7-57d0-b343-fd9d5dc2fafb/scratchpad/dl/graalvm/graalvm-jdk-25.0.4+7.1"
+   ]
+  }
+ },
+ {
+  "key": "frame-algorithms",
+  "r": {
+   "summary": "I read the code only. I ran no sbt, no JVM and no benchmark, so every complexity below comes from the code, with file:line evidence, and no timing is measured.\n\nMost of the steady-state frame cost is not paint. It is in four places that redo work or scale with the whole tree instead of with the change:\n1. `Laid.without` filters the whole node map once for each changed kid.\n2. `Paint.apply` compares every pair of paint roots.\n3. Each `Mount.remount` scans the whole region map twice.\n4. A relayout measures every sibling subtree again at each level, and on a size change it lays out the whole container again from scratch.\n\nIn realistic apps this gives O(n^2) cases:\n- a ring-buffer log (`takeRight`), a delete at the top, or a sort;\n- a list where every row reads one selection signal (also the 7GUIs \"cells\" task);\n- O(n x depth) for every keystroke in an input that shares a container with a long list.\n\nTwo more costs: paint visits nodes outside the clip and wraps every text again, and the verify pass compares every Foreach item on every step.\n\nThere are nine fixes (F1-F9), each derived from a spec with a named law and checked against today's code kept as the oracle. Five are small (S). F5, F7 and op elision (F9b) are medium (M), and F6 is medium to large (M-L). Three ideas are rejected: a finger tree with relative coordinates, a global measure memo table, and fusing layout with paint.\n\nWhere they go:\n- Inside P5: the paint cull, the root filter, a row-span diff kernel, cell counts by area, and borders as Run ops. P5's old-painter oracle already proves these.\n- Inside P2: nothing.\n- A separate perf phase PF in four parts:\n  - PF-a, small fixes, after P1 and before the benchmark's runtime round;\n  - PF-b, measure reuse and incremental relayout, after P5;\n  - PF-c, prefix-ordered regions, with or after P7;\n  - PF-d, op-level elision, only after a measurement.\n\nThere are 9 benchmark claims (C1-C9). FrameStats can measure them only through Headless, because `Tui.run` passes `Absent` (Tui.scala:148). Allocation needs a ThreadMXBean sum, and the split between layout, paint and flush needs an internal Knobs hook.",
+   "details": "## Inputs read\nSkills (wt-main/.claude/skills): functional-design SKILL.md + references/algorithms.md, data-structures.md, production.md section 11; scala-functional-design SKILL.md. Code (modules/core/src/main/scala/tui4s/internal): Layout, Paint, Geometry, TextEdit, Mount, Dispatch, Runner, World (3,772 lines), plus Props, SchedulerProbe, Knobs, Render, FrameStats, spi/Settle, testkit/Headless, and kyo-ui RC7 `UI.scala:73-92, 1211` (Foreach render is always `(Int, A) => UI`). Notes: explore/purity-audit.json (layout-paint slice, plan P0-P7, notWorthIt), explore/skill-review.md (A3 kyo-test-prop, A9 old painter as oracle). No sbt run, no runtime measurement.\n\nSymbols: N = nodes in Laid, S = nodes in a subtree, h = tree depth, R = mounted regions, I = items of a Foreach, k = regions changed in one event, r = paint roots, c = screen cells (W x H), d = damaged screen area, L = text length.\n\n## 1. Cost model of one frame today\n\n| Pass | Evidence | Cost today |\n|---|---|---|\n| next + dispatch | Runner.scala:207-240; Dispatch.scala:75-119 | O(h) for a key (chain, bubble). Tab or focusGroup: `Layout.focusOrder` walks the whole Laid, O(N + F log F) (Layout.scala:853-868, Dispatch.scala:483, 502). Text edit: O(L), with 3 BreakIterator passes (TextEdit.scala:41, 165-166). |\n| region update (`apply`/`absorb`, one per Msg.Content) | Runner.scala:357-406; Mount.scala:164-176, 518-573 | Foreach: `reconcile` O(I) + `items == r.items` O(I) + a `Content.Many` copy O(I). Every remount: `w.regions.filter(isUnder)` O(R\u00b7h) (Mount.scala:519) + walk O(S) + `gcComps` O(R + C) (Mount.scala:558-571). **k messages in one event: O(k\u00b7R).** Absorbed in the settle, so the cost shows in `settleNanos`. |\n| settle | Runner.scala:444-547; SchedulerProbe.scala:36-45; Settle.scala:7 | At least confirm = 2 `status()` probes (11-12 us each, spike S1 per the Scaladoc) plus hops. When any other fiber loads the Kyo scheduler, it runs to `max` = 100 ms (latency, not CPU). |\n| verify (every step) | Runner.scala:284-301, 340-342 | O(R) `collect` + \u03a3 O(I) over all Foreach regions, with 2 new I-element vectors per Foreach (`items.map(_.value) == cur.toVector`). A young Reactive always compares unequal (closures), so it is remounted in its mount step and in the next step. |\n| repair tick (1 per s) | Runner.scala:115-128, 309-312 | All R regions. Every Reactive renders again (closures), then remount + relayout + paint, usually with `flushed == 0` (FrameStats Scaladoc). |\n| relayout | Runner.scala:619-661; Layout.scala:737-848 | Filter of nested dirty regions: O(k\u00b2\u00b7h) (Runner.scala:635-637); `markRegion` is O(k) `Vector.contains` (World.scala:113-115). `relayout(owner)` measures EVERY sibling subtree again (768 \u2192 548-609 \u2192 234-321): O(S_owner\u00b7h). For each changed or removed kid, `Laid.without` filters the whole map: O(N\u00b7h) (Layout.scala:73-79, called at 785 and 808). `naturalOf` measures the container's subtree a third time (833 \u2192 714-726). A natural-size change moves up with `force = Set(container)` (834-836), so each ancestor level repeats all of this, and the forced container is laid out again from scratch (808-809). A full layout is O(N\u00b7h) measure + O(N) place, and runs twice when the focus moves (Runner.scala:621-625). |\n| measure | Layout.scala:112-145, 234-321, 353-377 | A node at depth h is measured h times in one `layoutAll` (once in each ancestor's `layoutChildren`): O(N\u00b7h), O(N\u00b2) for a chain (a deep tree view). `tableSize` runs twice (303, then 662 or 772). `wrap`: `textWidth(last)` again for each word plus `acc.init :+`, O(words\u00b7w) Span allocations; `chunksByWidth` is O(len\u00b7w) for an unbroken word. Only text inside a Column container wraps (Li, Span, Button, Tr are Row: Props.scala:202-205). |\n| paint | Paint.scala:249-320 | Top roots: pairwise, O(r\u00b2\u00b7h) (258-259). Every node of each root is visited: no cut for nodes outside the clip. Every text is wrapped again (299-300). O(d) cell writes; a border is one `put` per cell (339-354). |\n| diff + flush | Paint.scala:143-191 | O(\u03a3_i \\|dirty_i \u2229 screen\\|) compares. A replaced kid gives 3 rects (old, new, paint = new), so the new cells are compared twice. Per changed cell: 2 Cell copies + 1 BufferUpdate. `backend.draw` (crossterm) is unmeasured. |\n| focus fix | Runner.scala:580-599 | O(N) `focusOrder` EVERY frame when the focus is None and autoFocus is on (an app with no focusable element). |\n\n**O(n\u00b2) or worse in realistic trees, or redone work:**\n- **Q1, O(I\u00b7N).** A Foreach whose items move: `takeRight` ring-buffer log, delete at the top, sort, filter-as-you-type. Each moved item fails `keep` (its rect changed, and its UI is new because `reconcile` renders again when the index changes, Mount.scala:173), so each moved item costs one whole-map `without`. At N = 100k that is about 10^10 map-entry visits per new line (predicted from the code, unverified).\n- **Q2, O(r\u00b2\u00b7h).** The same event damages I roots, and the paint roots are compared pairwise.\n- **Q3, O(k\u00b7R).** Every row reads one signal (a selection highlight, a theme, a clock), or a cells grid where an edit updates its dependent cells. Each message remounts with 2 whole-map scans.\n- **Q4, O(k\u00b2).** The dirty-region filter and `markRegion`, in the same scenario.\n- **Q5, O(N\u00b7h) measure.** O(N\u00b2) on a chain.\n- **Q6.** A keystroke in an input that shares a container with an N-line list measures the whole list again, plus verify O(N), on every key.\n- **Q7.** `wrap` is O(L\u00b7w) for long tokens, and it runs h+1 times (h measures + paint).\n- **Q8.** Paint is O(N) for a 100k-line column although only about 50 rows are visible.\n- **Q9.** Verify is O(\u03a3 I) per step, with allocation.\n- **Q10.** The repair tick does about one second's worth of remounts.\n- **Q11.** `focusOrder` runs per frame when there is no focus.\n- **Q12.** A double `layoutAll`, `naturalOf` measured again, and `tableSize` twice.\n\n## 2. Fixes in the skills' terms\n\nFor each fix: the spec, then the law, then the derived code, then the oracle (property tests with kyo-test-prop, A3). The oracle is today's code, frozen in test sources (A9).\n\n**F1, `Laid.without` by structure (Q1).** S.\n- Spec: today's filter.\n- Laws: change of representation, with two invariants:\n  - I1: the descendants of p in `nodes` are exactly the nodes reachable through `kids`.\n  - I2: a region path extends its owner's path, so `o under p \u21d2 r under p`, and the `regionOwner` condition reduces to `r isAtOrUnder p`.\n```scala\nfinal case class Node(..., kids: Vector[Loc], owns: Vector[Loc]) // owns = regions this node owns\ndef without(p: Loc): Laid =\n    def sub(q: Loc): Iterator[Node] = nodes.get(q).iterator.flatMap(n => Iterator.single(n) ++ n.kids.iterator.flatMap(sub))\n    val gone = sub(p).toVector\n    Laid(nodes -- gone.iterator.map(_.path), regionOwner -- gone.iterator.flatMap(_.owns))\n```\n- Complexity: O(S\u00b7h) instead of O(N\u00b7h); the ring log goes from O(I\u00b7N) to O(\u03a3 S).\n- Properties:\n  - `without(l, p).nodes == spec.without(l, p).nodes` for all p, with l from generated UIs;\n  - `regionOwner` equal on the live regions (the walk also drops stale owner entries that the filter keeps today);\n  - I1 holds after random relayout sequences (no orphan nodes).\n\n**F2, \"drop paths under another path\" (Q2, Q4).** S.\n- Spec: `ps.filterNot(p => ps.exists(q => q != p && p.isUnder(q)))`.\n- Law: p is covered iff one of its proper prefixes is in the set.\n```scala\ndef tops(ps: Vector[Loc]): Vector[Loc] =\n    val set = ps.toSet\n    ps.distinct.filterNot(p => (0 until p.size).exists(i => set.contains(p.take(i))))\n```\n- Complexity: O(r\u00b7h\u00b2) hash lookups instead of O(r\u00b2\u00b7h). It keeps the input order, so the Runner's relayout order is unchanged. Also store `dirtyRegions` with a `Set` beside the Vector, so `markRegion` is O(1).\n- Property: `tops == spec` on random path sets (duplicates, the empty path, deep chains).\n\n**F3, paint cull (Q8).** S.\n- Law I4: every write of a node's subtree lies in `n.rect \u2229 clip` (fillBg, border, decorate and text all take `area`; kids take `content \u2229 clip`). So if `n.rect \u2229 clip` is empty, painting n is the identity.\n```scala\ncase Some(n) if n.rect.intersect(clip).isEmpty => acc   // skip the subtree\n// Txt: only the lines inside the clip\nlines.slice((clip.y - n.rect.y).max(0), (clip.bottom - n.rect.y).min(n.rect.h))\n```\n- Complexity: O(visible nodes) instead of O(S).\n- Oracle: the P5 property \"same Buffer as the old painter\".\n- Note: P1 plans to delete `Rect.isEmpty` (Geometry.scala:25) as dead code. Keep it for this.\n\n**F4, wrap as one fold that carries the width (Q7).** S.\n- Laws: accumulating parameter `(done, curWords, curW)`; side condition width additivity, `textWidth(a+\" \"+b) == textWidth(a)+1+textWidth(b)` (a property test; fall back to a measure if it fails).\n```scala\nfinal case class Acc(done: Vector[String], cur: Vector[String], curW: Int) // cur.mkString(\" \") at a line end\n```\n- `chunksByWidth` carries the width of `last` in the same way. Complexity: O(words + L), one Span per word.\n- Then cache: `Kind.Txt(text, wrap, lines, atW)`, so paint does not wrap again (fusion by caching). Law: greedy line breaking is stable, `wrap(t, W) == wrap(t, W')` for `maxWidth(wrap(t, W)) \u2264 W' \u2264 W`. So reuse when `rect.w == atW`, or when it lies in that interval.\n- Property: `wrap == wrapSpec` on generated text (wide characters, emoji, combining marks, long tokens, width 1).\n- Also: compile the RawHtml regex once (Layout.scala:158).\n\n**F5, measure once per constraint, by tupling (Q5, Q12).** M.\n- Spec: today's `measureElement`, which is pure.\n- Laws: strengthen the result: `measureElement` also returns the kids it measured and the width it used. `layoutChildren` reuses them when the constraint is equal (referential transparency).\n```scala\nfinal case class Kids(atW: Int, atH: Option[Int], items: Vector[Measured], regions: Vector[Loc], cols: Vector[Int])\nfinal case class Measured(item: Item, props: Props, size: Size, kids: Maybe[Kids])\nval kids = m.kids.filter(k => k.atW == node.content.w && k.atH == availHOf(node)).getOrElse(measureKids(node, env, root))\n```\n- `cols` are computed once (deletes the second `tableSize`), and `naturalOf` comes from `combine` of the measured kids.\n- Complexity: O(N) for column or stretch trees, which is the common case: there the width at measure time equals the content width at place time. In rows that shrink or grow the kids, the widths differ and it measures again, as today. Never worse than today.\n- A global memo table keyed by (ui eq, constraint) is rejected. Its result also depends on `env.content` and `env.focus` under the node: a non-canonical key and an unbounded cache (algorithms.md section 13). The Laid is the memo.\n\n**F6, incremental relayout over the damaged subtree only (Q6, Q1, Q12).** M-L.\n- Spec, the key property: after any sequence of events, the incremental Laid equals `LayoutSpec.layoutAll(root, env)`.\n- Locality law: `measure(k)` reads env only at paths at or under k (content, focus), plus `screen.h`. Side conditions: a resize sets `full` (Runner.scala:233); focus moves are in the dirty set; bound values and carets change only paint.\n```scala\nfinal case class Dirty(changed: Set[Loc]):\n    val touched = changed.flatMap(p => (0 to p.size).iterator.map(p.take))\n// relayout(container): a clean kid keeps its natural, no measure\ncase Some(o) if propsUnchanged && !dirty.touched(it.path) && sameItem(o, it) && o.availW == inner && o.index == i =>\n  Measured(it, o.props, o.natural, Absent)\n// a kid that moved but kept its width and availH: translate its subtree, do not lay it out again\ncase Some(o) if same item, size, props && o.rect.w == r.w && availHOf(o) == availHOf(o.copy(rect = r)) =>\n  translate(l, o.path, r.x - o.rect.x, r.y - o.rect.y)\n```\n- On a natural-size change, re-arrange the owner (integers only) and keep the container's subtree. Run `arrange` again for the container only when its box changed. Do not use `force` to lay it out from scratch.\n- Replace the second full `layoutAll` on a focus change with `relayoutAll(old, new focus)`.\n- Complexity:\n  - a keystroke next to a big list: O(siblings) instead of O(list);\n  - append to an N-line log: O(N) integer work instead of O(N\u00b7h) measures with Spans;\n  - ring log: O(N) translates instead of O(N\u00b2).\n- Properties:\n  - P-L1: `layoutAll_new == LayoutSpec.layoutAll` on a generated `Gen[UI]` (shared with P5);\n  - P-L2: Laid equality after random event sequences (Foreach append, prepend, delete-at, takeRight, reorder, Reactive switch, focus moves, bound writes);\n  - P-L3, frame equivalence: the incremental damage painted over the old buffer gives the same buffer as a full frame. This catches missing damage.\n- Rejected: a finger tree of prefix sums with relative coordinates, for O(log n) arrange. It is L, a novelty cost, and O(n) integer work at 100k items is cheap (unverified).\n\n**F7, regions as a prefix-ordered map (Q3).** M.\n- Law: under lexicographic `seqOrdering`, the keys that extend p form a contiguous interval starting at p.\n```scala\ngiven Ordering[Loc] = Ordering.Implicits.seqOrdering[Vector, String]\ndef under(rs: SortedMap[Loc, RegionState], p: Loc) = rs.iteratorFrom(p).dropWhile(_._1 == p).takeWhile(_._1.isUnder(p))\n```\n- `remount` takes `under(...)`, and `gcComps` only touches what this remount made stale (`comps -- staleKeys`, `pending -- staleDropped`).\n- Complexity: O(S + log R) instead of O(R) per remount, so k messages cost O(\u03a3 S) instead of O(k\u00b7R). Lookups become O(log R).\n- Property: random mount and remount sequences give the same World (regions, comps, pending) as today's code, compared with fiber identity left out.\n\n**F8, verify and reconcile (Q9, Q1).** S.\n- Allocation-free compare: `items.sizeCompare(cur.size) == 0 && items.iterator.map(_.value).sameElements(cur.iterator)`, plus a fast path `cur eq lastChunk` (law: eq \u21d2 ==). The fast path helps a direct `SignalRef[Chunk]`; a derived signal makes a new Chunk on every `current`.\n- Structural sharing in `reconcile` when only the index moved: render, and keep the old UI value if `ui == o.ui`. Law: return the original node when nothing changes (Okasaki p. 25). kyo-ui nodes are case classes, so equality is structural and closures compare by reference. This makes the result unobservable.\n- Property: `reconcile == spec` on the item values, and UI identity is kept whenever the values are equal.\n\n**F9, diff.**\n- (a) S, kernel: build disjoint row spans (union of the x-intervals per row), so each cell is compared once: O(d_union) instead of O(\u03a3 d_i). Law: the diff is a function of the set of cells. Oracle: P5 properties (c) and (d).\n- (b) M, measure first: op-level elision.\n  - Mechanism: replace the triple Clear(old), Clear(new), Paint(path) with `Damage.Replace(path, old, bg)`, and keep `PaintMemo: Map[Loc, (Rect, Rect, Chunk[Op])]`. Skip a Replace when its rect and clip are unchanged and its ops equal the last ops.\n  - Laws: writing the same ops twice is idempotent; I3, the subtrees of non-nested roots write disjoint cells; and no Clear of this frame meets the rect.\n  - Value: the frames with `repaired > 0 && flushed == 0` cost O(ops) instead of O(cells).\n\n## 3. Phases and order\n- **P1** (already planned): add the `Pattern` constant, and do not delete `Rect.isEmpty`.\n- **P2**: no perf changes. It is concurrency code; keep its diff clean.\n- **PF-a** (new; S items, shape 4; after P1, and before the runtime round of the benchmark; take a baseline on main first): F1, F2 (Paint and Runner), F3, the F4 fold and regex, F8, the second `layoutAll` replaced by a focus relayout. About 300 lines with properties; the oracle is copies of today's functions in test sources.\n- **P5** (inside the purity phase): F3 and F2 move into `Paint.plan`, plus the F9a row-span kernel, `write` counting `c.w*c.h`, borders as 4 Run + 4 Glyph ops. The old-painter oracle (A9) proves all of them.\n- **PF-b** (after P5, reusing its `Gen[UI]`): F5, F6, the F4 line cache. Oracle: LayoutSpec (today's Layout, A9); properties P-L1 to P-L3. M-L, about 500 lines.\n- **PF-c** (with or after P7, whose Region ADT replaces RegionState; doing it earlier means doing it twice): F7, a `pulled` set maintained in World, the `lastChunk` eq field.\n- **PF-d** (only after a measurement): F9b; a search for a new focus only in newly placed subtrees (Q11).\n- Not worth it: a finger tree or relative coordinates; a global measure cache; fusing layout and paint (premature fusion; they are driven by different subsets, and P5 needs separate pure stages; Hughes: optimize by inserting stages, and the cull is such a stage).\n\n## 4. Measurable claims for the benchmark\nMethod:\n- Harness: Headless.start(W, H) on a TestBackend. FrameStats reaches only the kit, because Tui.scala:148 passes `Absent`; it leaves out the crossterm write, which the PTY kit measures.\n- Runs: 50 warm-up events, then N = 200; report the median, p90 and p99, and min/max of `renderNanos`, `settleNanos`, `nanos` and `flushed`.\n- Doubling experiment over sizes 1k to 128k: a median ratio of \u00d72 means linear, \u00d74 quadratic (algorithms.md section 2).\n- Allocation per event: \u0394 of the sum of `com.sun.management.ThreadMXBean.getThreadAllocatedBytes(ids)` over all threads, divided by the events (Kyo fibers hop threads; check on JDK 25).\n- JVM: fixed heap and GC flags, `-Xlog:gc` to a file, taskset 4 CPUs.\n- Set `Knobs.repairInterval` high to isolate the cost of a frame.\n- Add a private[tui4s] knob `onFrame(FrameProfile)` with measureCalls, nodesPlaced, cellsCompared and layout/paint/flush nanos. This needs no public FrameStats change.\n\nAll predictions below are unverified.\n- **C1 ring log** (`takeRight(N)`, one line per event): renderNanos \u00d74 per doubling today (Q1, Q2); \u00d72 after PF-a; flat for the windowed idiom (the app slices the signal).\n- **C2 append-only N-line log in `div(p)`**: linear today with a large constant (3 to 4 full measures + full placement); a small constant after PF-b.\n- **C3 keystroke in an input that shares a container with an N-line list**: `nanos` and allocation per key grow with N today (relayout of the shared owner + verify O(N)); flat after PF-b + F8; the allocation becomes O(L).\n- **C4 one selection signal read by every row (and the 7GUIs cells task)**: `settleNanos` + `renderNanos` \u00d74 per doubling today (Q3, Q4); \u00d72 after F2 + PF-c; `updates` = number of rows.\n- **C5 idle app with K Reactive regions**: one Background frame per second with `repaired = K`, `flushed = 0`; CPU per idle minute grows with K. F9b removes the cell work; Kyo fixes #8 and #9 remove the frames.\n- **C6 resize W\u00d7H**: `flushed = W\u00b7H`; today 2\u00b7W\u00b7H cells are compared, and W\u00b7H after F9a (needs the cellsCompared knob).\n- **C7 one unbroken token of L chars in a column `p`**: renderNanos \u00d74 per doubling of L today; \u00d72 after F4.\n- **C8 Tab with N non-focusable nodes**: linear in N (low priority).\n- **C9 settle under concurrent load** (the user asked about running the HTTP server at the same time): keystroke `settleNanos` and `settleTimeouts` with a CPU-bound fiber or HTTP load on the same Kyo scheduler. Prediction: frames wait up to max = 100 ms with `settleTimeouts = 1`, because SchedulerProbe counts every worker. Compare with `Settle.Hops`.",
+   "measurements": [
+    {
+     "what": "Lines in the 8 frame-path files (Layout, Paint, Geometry, TextEdit, Mount, Dispatch, Runner, World)",
+     "value": "3,772",
+     "method": "wc -l on the read-only main checkout (static; not a runtime measurement)"
+    },
+    {
+     "what": "Call sites of the whole-map Laid.without on the relayout path",
+     "value": "2 (Layout.scala:785, 808)",
+     "method": "grep on the main checkout (static)"
+    },
+    {
+     "what": "Whole-map scans per Mount.remount",
+     "value": "2 (Mount.scala:519 regions.filter, Mount.scala:558 regions.values.collect in gcComps)",
+     "method": "code reading (static)"
+    },
+    {
+     "what": "Times a node at depth h is measured in one layoutAll",
+     "value": "h (once per ancestor's layoutChildren), plus a second tableSize per table; text is wrapped h times plus once in paint",
+     "method": "code reading of Layout.scala:612-683 and Paint.scala:299-300 (derived, not counted at run time)"
+    },
+    {
+     "what": "Default settle",
+     "value": "Quiescent(max = 100 ms, confirm = 2)",
+     "method": "read from spi/Settle.scala:7 (static)"
+    },
+    {
+     "what": "Cost of one SchedulerProbe status() call",
+     "value": "11-12 us",
+     "method": "quoted from the SchedulerProbe.scala Scaladoc (spike S1); not measured in this task"
+    },
+    {
+     "what": "Runtime frame times, allocation, doubling ratios",
+     "value": "none measured",
+     "method": "the task was read-only with no sbt; every complexity in details is predicted from the code and unverified"
+    }
+   ],
+   "recommendations": [
+    "Before any perf change, take a baseline on main with the C1-C4 doubling runs through Headless, so the benchmark can show before and after numbers for the algorithm changes.",
+    "Start PF-a right after P1 (shape 4, S items): Laid.without by walking kids (F1), the root and dirty filter by a prefix set (F2), the paint cull (F3), wrap as one fold with the width carried and the regex compiled once (F4), the allocation-free verify compare plus Foreach structural sharing (F8), and a focus relayout instead of the second layoutAll. These remove the O(n^2) cases C1, C2 and C4-paint before the benchmark's runtime round.",
+    "Tell P1 not to delete Rect.isEmpty (Geometry.scala:25): the paint cull needs it.",
+    "Keep P2 free of perf changes; it is concurrency code with a skeptic review.",
+    "In P5, include the cull and tops in Paint.plan, a row-span (disjoint interval) diff kernel, cell counts by area and borders as Run ops; the old-painter oracle already proves them.",
+    "After P5, do PF-b (F5 tupled measure, F6 incremental relayout with re-arrange instead of re-measure, F4 cached lines), with today's Layout frozen as LayoutSpec and the frame-equivalence property P-L3 as the main guard.",
+    "Do F7 (regions in a prefix-ordered SortedMap, incremental gcComps) with or after P7's typed Region ADT, not before.",
+    "Do F9b (op-level elision via Damage.Replace and a PaintMemo) only if C5 shows that frames with repaired > 0 and flushed == 0 cost real time.",
+    "Add a private[tui4s] Knobs.onFrame(FrameProfile) hook (measure calls, nodes placed, cells compared, layout/paint/flush nanos) for the bench; keep the public FrameStats shape unless the user decides otherwise.",
+    "In the 100k-log benchmark, run both the naive version (all lines in one Foreach) and the windowed version (the app slices the signal), and report both honestly.",
+    "Run C9 before you promise that an HTTP server can run at the same time as the TUI: the settle probe counts every Kyo worker, so the frame latency can go up to the 100 ms settle max."
+   ],
+   "risks": [
+    "The incremental relayout (F6) can leave a stale screen if a layout input is missed (the locality law). The frame-equivalence property P-L3 and a test-only mode that runs layoutAll beside it and compares are the guards.",
+    "Translate-on-move must still lay out again when index-dependent props change (decimal list markers, Props.resolve uses index) or when availH definiteness changes (percent heights).",
+    "F7 changes HashMap lookups into O(log R) TreeMap lookups (env.content is read in flatten for every region).",
+    "F4 relies on width additivity of jatatui Span.width across a space. A property test must check it, with a fall back to a measure.",
+    "Structural sharing in reconcile costs an O(item UI) equality per moved item. If an item holds closures it never hits, which is safe but gives no gain.",
+    "FrameStats reaches only the Headless kit (Tui.scala:148 passes Absent), so the frame numbers leave out the crossterm encode and write. The PTY kit must cover the terminal path.",
+    "The settle under scheduler load (C9) is a latency risk for the user's plan to run the TUI and an HTTP server concurrently. It is not fixed by any of F1-F9.",
+    "Every complexity and prediction in this report is from code reading. No timing was measured."
+   ],
+   "openQuestions": [
+    "Should FrameStats get public fields (layout/paint/flush nanos, allocation)? That is a public-API decision for the final shapes (P-4). Or should the counters stay internal behind a Knobs hook?",
+    "Does the 100k-line log rosetta task allow the windowed idiom (the app slices the signal), or must it be the naive Foreach of all lines? Or both?",
+    "Is a scroll or overflow container in scope (kyo-ui style support unverified)? With virtualization the log becomes O(visible) and C1/C2 lose most of their weight.",
+    "Is O(log R) region lookup acceptable for F7, or do we prefer a parent-to-child region index next to the HashMap?",
+    "For apps that run other fibers on the Kyo scheduler (the HTTP server), should the default settle change (Hops, or a probe limited to the run's own watchers)?",
+    "Is ThreadMXBean.getThreadAllocatedBytes(long[]) summed over all threads accurate enough on JDK 25 for allocation per keystroke, or should the bench use JFR allocation samples?"
+   ],
+   "artifacts": []
+  }
+ }
+]

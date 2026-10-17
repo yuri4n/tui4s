@@ -1,0 +1,394 @@
+diff --git a/build.sbt b/build.sbt
+index 419af51..46a96cb 100644
+--- a/build.sbt
++++ b/build.sbt
+@@ -89,7 +89,8 @@ lazy val zio  = module("zio").dependsOn(core)
+ lazy val cats = module("cats").dependsOn(core)
+ 
+ // Optional named shared state; widgets use Kyo's native signals and callbacks.
+-lazy val pini4s = ProjectRef(file("vendor/pini4s"), "root")
++// perf spike: vendor/pini4s is an uninitialized submodule here
++// lazy val pini4s = ProjectRef(file("vendor/pini4s"), "root")
+ 
+ // claude 2026-10-13: created: the task key of the start scripts (OS-20; the
+ // form of the feat/cats branch)
+@@ -102,7 +103,7 @@ lazy val launchers =
+ // JVM flags of a real run; munit tests; the launchers task
+ lazy val examples = project
+   .in(file("examples"))
+-  .dependsOn(core, pini4s)
++  .dependsOn(core) // perf spike: pini4s removed
+   .enablePlugins(JavaAppPackaging)
+   .settings(
+     name           := "tui4s-examples",
+diff --git a/examples/src/test/scala/examples/widgets/StateStoreSuite.scala b/examples/src/test/scala/examples/widgets/StateStoreSuite.scala
+deleted file mode 100644
+index 8e65c1d..0000000
+--- a/examples/src/test/scala/examples/widgets/StateStoreSuite.scala
++++ /dev/null
+@@ -1,112 +0,0 @@
+-package examples.widgets
+-
+-import kyo.*
+-import kyo.UI.*
+-import munit.FunSuite
+-import pini4s.*
+-import tui4s.Hooks.component
+-import tui4s.testkit.Headless
+-
+-class StateStoreSuite extends FunSuite:
+-
+-    private def run[A](v: => A < (Async & Scope))(using Frame): A =
+-        import AllowUnsafe.embrace.danger
+-        KyoApp.Unsafe.runAndBlock(30.seconds)(v).getOrThrow
+-
+-    private def sharedTabs(name: String)(using StateStore, Frame): UI < Sync =
+-      useState("tabs.selected")(0).map(selected =>
+-        new Tabs(
+-          Seq("One", "Two"),
+-          selected = Some(selected),
+-          onChange = selected.set,
+-          panel = index => span(s"[$name=$index]"),
+-        ).ui,
+-      )
+-
+-    test("two tab widgets update each other through named state") {
+-      val (fromFirst, fromSecond) = run {
+-        for
+-            store      <- StateStore.init
+-            h          <- Headless.start(40, 8)(_ =>
+-                              given StateStore = store
+-                              for
+-                                  first  <- sharedTabs("first")
+-                                  second <- sharedTabs("second")
+-                              yield div(first, second),
+-                          )
+-            _          <- h.key(Keyboard.ArrowRight)
+-            fromFirst  <- h.screen
+-            _          <- h.key(Keyboard.Tab)
+-            _          <- h.key(Keyboard.Enter)
+-            fromSecond <- h.screen
+-        yield (fromFirst, fromSecond)
+-      }
+-      assert(
+-        fromFirst.contains("[first=1]") && fromFirst.contains("[second=1]"),
+-        fromFirst.text,
+-      )
+-      assert(
+-        fromSecond.contains("[first=0]") && fromSecond.contains("[second=0]"),
+-        fromSecond.text,
+-      )
+-    }
+-
+-    test(
+-      "deferred components capture their store and keep state after remount",
+-    ) {
+-      def app(shown: Signal[Boolean])(using StateStore, Frame): UI =
+-        div(
+-          when(shown)(
+-            div(
+-              component(sharedTabs("first")),
+-              component(sharedTabs("second")),
+-            ),
+-          ),
+-        )
+-
+-      val (selected, gone, back, remounted) = run {
+-        for
+-            store     <- StateStore.init
+-            shown     <- Signal.initRef(true)
+-            h         <-
+-              Headless.start(40, 8)(_ => app(shown)(using store, summon[Frame]))
+-            _         <- h.key(Keyboard.ArrowRight)
+-            selected  <- h.screen
+-            _         <- shown.set(false)
+-            gone      <- h.awaitScreen(!_.contains("[first="), 5.seconds)
+-            _         <- shown.set(true)
+-            back      <- h.awaitScreen(
+-                           s => s.contains("[first=1]") && s.contains("[second=1]"),
+-                           5.seconds,
+-                         )
+-            remounted <- h.screen
+-        yield (selected, gone, back, remounted)
+-      }
+-      assert(
+-        selected.contains("[first=1]") && selected.contains("[second=1]"),
+-        selected.text,
+-      )
+-      assert(gone, "the tab components stayed mounted")
+-      assert(back, remounted.text)
+-    }
+-
+-    test("a store created by each app keeps repeated runs independent") {
+-      def app(using Frame): UI < Sync =
+-        StateStore.init.map { store =>
+-          given StateStore = store
+-          sharedTabs("app")
+-        }
+-
+-      val changed = run {
+-        for
+-            h <- Headless.start(40, 5)(_ => app)
+-            _ <- h.key(Keyboard.ArrowRight)
+-            s <- h.screen
+-        yield s
+-      }
+-      val fresh   = run(Headless.start(40, 5)(_ => app).map(_.screen))
+-
+-      assert(changed.contains("[app=1]"), changed.text)
+-      assert(fresh.contains("[app=0]"), fresh.text)
+-    }
+-end StateStoreSuite
+diff --git a/modules/core/src/main/scala/tui4s/Tui.scala b/modules/core/src/main/scala/tui4s/Tui.scala
+index 8443df4..cb4ebcb 100644
+--- a/modules/core/src/main/scala/tui4s/Tui.scala
++++ b/modules/core/src/main/scala/tui4s/Tui.scala
+@@ -103,7 +103,8 @@ object Tui:
+     )(ui: (Unit < Sync) => UI < (Async & Scope))(using
+         Frame,
+     ): Unit < (Async & Abort[TuiError]) =
+-      Sync.Unsafe.defer(LogSink(options.logFile)).map { sink =>
++      Sync.Unsafe.defer { tui4s.internal.PerfMark("runWith"); LogSink(options.logFile) }.map { sink =>
++        tui4s.internal.PerfMark("sink")
+         // The release finishes the sink; this also covers a run that failed
+         // before it had a terminal.
+         Sync.ensure(Sync.Unsafe.defer(sink.finish(err())))(
+@@ -141,13 +142,16 @@ object Tui:
+         ui: (Unit < Sync) => UI < (Async & Scope),
+     )(using Frame): Unit < (Async & Abort[TuiError]) =
+       Channel.initUnscoped[Msg](options.inboxCapacity.max(1)).map { inbox =>
++        tui4s.internal.PerfMark("inbox")
+         Sync.acquireReleaseWith(Session.open(options, control, None, inbox))(
+           opened => Sync.Unsafe.defer(opened.foreach(_.close())),
+         ) { opened =>
+           Abort.get(opened).map { session =>
++            tui4s.internal.PerfMark("session-open")
+             val runner = Runner(inbox, session.canvas, options, Absent)
++            tui4s.internal.PerfMark("runner")
+             Scope
+-              .run(runner.scoped(ui(runner.quit).map(runner.run)))
++              .run(runner.scoped(Sync.defer(tui4s.internal.PerfMark("ui-build")).andThen(ui(runner.quit)).map(r => { tui4s.internal.PerfMark("ui-built"); runner.run(r) })))
+               .andThen(inputFailed(session))
+           }
+         }
+diff --git a/modules/core/src/main/scala/tui4s/TuiApp.scala b/modules/core/src/main/scala/tui4s/TuiApp.scala
+index fed28f8..0cbf52e 100644
+--- a/modules/core/src/main/scala/tui4s/TuiApp.scala
++++ b/modules/core/src/main/scala/tui4s/TuiApp.scala
+@@ -56,8 +56,11 @@ import tui4s.spi.SchedulerDefaults
+ // had `TuiApp[S] extends App[S]` of the old model): `ui`, `options`, `args`,
+ // `onExit` without a state, the run through `Tui.runWith`; the Scaladoc
+ abstract class TuiApp:
++    tui4s.internal.PerfMark("ctor")
++    tui4s.internal.PerfPrewarm.start()
+     SchedulerDefaults.applyIfUnset()
+     OutputCapture.install()
++    tui4s.internal.PerfMark("ctor-done")
+ 
+     @volatile private var arguments: Seq[String] = Nil
+ 
+@@ -81,6 +84,7 @@ abstract class TuiApp:
+     // claude 2026-10-13: changed (T2, RC-24): the Scaladoc (the class has the
+     // exit codes)
+     final def main(args: Array[String]): Unit =
++        tui4s.internal.PerfMark("main")
+         val code = runMain(args, NativeCrossterm(), Hooks.runtime)
+         // claude 2026-10-13: created (T2, review R2-4): when the JVM stops the
+         // app, runMain gives 1 and this System.exit(1) blocks (the JDK's
+@@ -117,7 +121,10 @@ abstract class TuiApp:
+           )(_ => ui)
+           .andThen(Sync.defer(hooks.shuttingDown))
+           .map(stopping => if stopping then Kyo.unit else onExit)
++        tui4s.internal.PerfMark("block")
++        tui4s.internal.PerfMark.sampler(900)
+         val result   = TuiApp.block(run, hooks, restored)
++        tui4s.internal.PerfMark("block-done")
+         if hooks.shuttingDown then 1 else TuiApp.report(result, err)
+     end runMain
+ 
+@@ -154,6 +161,7 @@ private[tui4s] object TuiApp:
+         import AllowUnsafe.embrace.danger
+         KyoApp.Unsafe.runAndBlock(Duration.Infinity)(
+           Fiber.initUnscoped(program).map { fiber =>
++            tui4s.internal.PerfMark("fiber-started")
+             Sync.Unsafe
+               .defer {
+                 fiber.unsafe.onComplete(_ => restored.countDown())
+diff --git a/modules/core/src/main/scala/tui4s/internal/Runner.scala b/modules/core/src/main/scala/tui4s/internal/Runner.scala
+index c99a605..7694ae9 100644
+--- a/modules/core/src/main/scala/tui4s/internal/Runner.scala
++++ b/modules/core/src/main/scala/tui4s/internal/Runner.scala
+@@ -138,6 +138,7 @@ private[tui4s] final class Runner(
+             tick <- Fiber.initUnscoped(repairTick)
+             _    <- Sync.defer { mount.track(tick); ticker.set(Some(tick)) }
+             t0   <- nanos
++            _    <- Sync.defer(PerfMark("run"))
+             w0   <- mount
+                       .walk(
+                         root,
+@@ -148,8 +149,11 @@ private[tui4s] final class Runner(
+                       .map(remember)
+             // claude 2026-10-12: changed (D-16, armkey): the initial mount is
+             // settled and verified before the Initial frame
++            _    <- Sync.defer(PerfMark("mounted"))
+             w0s  <- settleAndVerify(w0, input = false).map(remember)
++            _    <- Sync.defer(PerfMark("settled"))
+             w1   <- frame(w0s, 0L, FrameCause.Initial, t0).map(remember)
++            _    <- Sync.defer(PerfMark("frame0-done"))
+             _    <- Loop(w1)(step)
+         yield ()
+       })
+@@ -689,9 +693,13 @@ private[tui4s] final class Runner(
+                   ),
+                 )
+             else
++                if seq == 0L then PerfMark("frame0-start")
+                 val (w1, damage)   = layoutStep(w)
++                if seq == 0L then PerfMark("frame0-layout")
+                 val (rects, roots) = Paint(canvas, w1.laid, w1.env, damage)
++                if seq == 0L then PerfMark("frame0-paint")
+                 val flushed        = canvas.flush(rects)
++                if seq == 0L then PerfMark("frame0-flush")
+                 val repainted      = canvas.takeWrites()
+                 val done           = w1.copy(
+                   dirtyRegions = Vector.empty,
+diff --git a/modules/core/src/main/scala/tui4s/internal/Session.scala b/modules/core/src/main/scala/tui4s/internal/Session.scala
+index aa4490d..18bd4c5 100644
+--- a/modules/core/src/main/scala/tui4s/internal/Session.scala
++++ b/modules/core/src/main/scala/tui4s/internal/Session.scala
+@@ -167,7 +167,9 @@ private[tui4s] object Session:
+                     t.start()
+                     control.step("input-started")
+                   }
++                  PerfMark("input-thread")
+                   control.opened(() => s.close())
++                  PerfMark("hook")
+                   Right(s)
+               catch
+                   case NonFatal(e) =>
+diff --git a/modules/core/src/main/scala/tui4s/internal/TerminalIO.scala b/modules/core/src/main/scala/tui4s/internal/TerminalIO.scala
+index efd2d3e..e4f3133 100644
+--- a/modules/core/src/main/scala/tui4s/internal/TerminalIO.scala
++++ b/modules/core/src/main/scala/tui4s/internal/TerminalIO.scala
+@@ -95,7 +95,9 @@ private[tui4s] final class TerminalIO(
+     def enter(opts: TuiOptions): Backend =
+         var undo = List.empty[() => Unit]
+         try
++            PerfMark("enter")
+             crossterm.load()
++            PerfMark("jni-loaded")
+             if opts.captureOutput then
+                 val c = OutputCapture.start(sink)
+                 capture = c
+@@ -109,19 +111,25 @@ private[tui4s] final class TerminalIO(
+             end if
+             // crossterm takes /dev/tty when stdin is not a terminal, so raw
+             // mode alone does not see a piped or redirected stdin.
++            PerfMark("capture")
+             if !crossterm.stdinIsTerminal() then
+                 throw TuiError.NotATerminal(
+                   java.io.IOException("stdin is not a terminal"),
+                 )
++            PerfMark("isatty")
+             try crossterm.enableRawMode()
+             catch case NonFatal(e) => throw TuiError.NotATerminal(e)
++            PerfMark("raw")
+             undo = (() => crossterm.disableRawMode()) :: undo
+             // A failing command list can be half done: leave all its modes.
+             undo = (() => crossterm.execute(TerminalIO.leaveCommands(opts))) ::
+               undo
+             try crossterm.execute(TerminalIO.enterCommands(opts))
+             catch case NonFatal(e) => throw TuiError.TerminalIO(e)
+-            crossterm.backend()
++            PerfMark("alt-screen")
++            val b = crossterm.backend()
++            PerfMark("backend")
++            b
+         catch
+             case e: Throwable =>
+               // claude 2026-10-13: changed (PR #14 review: Codex,
+=== new file: modules/core/src/main/scala/tui4s/internal/PerfMark.scala
+package tui4s.internal
+
+// PERF SPIKE (temporary, never commit): timestamps (System.nanoTime, the
+// CLOCK_MONOTONIC of Linux) into the file of -Dtui4s.perf=<file>. A no-op
+// without the property.
+private[tui4s] object PerfMark:
+    private val out: java.io.FileOutputStream | Null =
+        val p = java.lang.System.getProperty("tui4s.perf")
+        if p == null then null else new java.io.FileOutputStream(p, true)
+
+    def apply(label: String): Unit =
+        val o = out
+        if o != null then
+            val line =
+              s"${java.lang.System.nanoTime()} ${Thread.currentThread().nn.getName} $label\n"
+            o.synchronized(o.write(line.getBytes))
+
+    /** Starts a daemon thread that samples the stacks of the other threads
+      * every 2 ms for `ms` (only with -Dtui4s.perf.sample=true).
+      */
+    def sampler(ms: Int): Unit =
+        val o = out
+        if o != null && java.lang.Boolean.getBoolean("tui4s.perf.sample") then
+            val t = new Thread(() => {
+              val end = java.lang.System.nanoTime() + ms * 1_000_000L
+              while java.lang.System.nanoTime() < end do
+                  val now = java.lang.System.nanoTime()
+                  val sb  = new java.lang.StringBuilder
+                  Thread.getAllStackTraces().nn.forEach { (th, st) =>
+                    val n = th.nn.getName
+                    if th ne Thread.currentThread() then
+                        if st.nn.length > 0 && (n == "main" || n.nn.startsWith("kyo")) then
+                            val top = st.nn.take(8).map(f => s"${f.nn.getClassName}.${f.nn.getMethodName}:${f.nn.getLineNumber}").mkString(" < ")
+                            sb.append(s"$now SAMPLE ${n} ${th.nn.getState} $top\n")
+                  }
+                  o.synchronized(o.write(sb.toString.getBytes))
+                  Thread.sleep(2)
+            }, "tui4s-perf-sampler")
+            t.setDaemon(true)
+            t.start()
+end PerfMark
+=== new file: modules/core/src/main/scala/tui4s/internal/PerfPrewarm.scala
+package tui4s.internal
+
+
+// PERF SPIKE (temporary, never commit): a background thread that does startup
+// work off the main thread while Kyo starts. No terminal change and no output:
+// -Dtui4s.prewarm.native=true loads the crossterm JNI library and links the
+// isatty downcall; -Dtui4s.prewarm.list=<file> loads (without initializing)
+// the classes named in the file, in order.
+private[tui4s] object PerfPrewarm:
+    def start(): Unit =
+        val list = java.lang.System.getProperty("tui4s.prewarm.list")
+        val nat  = java.lang.Boolean.getBoolean("tui4s.prewarm.native")
+        if list != null || nat then
+            val loader = classOf[PerfMark.type].getClassLoader
+            val t      = new Thread(
+              () => {
+                PerfMark("prewarm-start")
+                if nat then
+                    try discard(Class.forName("tui.crossterm.CrosstermJni", true, loader))
+                    catch case _: Throwable => ()
+                    PerfMark("prewarm-jni")
+                    try discard(Tty.isatty(0))
+                    catch case _: Throwable => ()
+                    PerfMark("prewarm-tty")
+                if list != null then
+                    val names = java.nio.file.Files.readAllLines(java.nio.file.Path.of(list)).nn
+                    var n     = 0
+                    names.forEach { name =>
+                      try
+                          discard(Class.forName(name, false, loader))
+                          n += 1
+                      catch case _: Throwable => ()
+                    }
+                    PerfMark(s"prewarm-list-done $n")
+              },
+              "tui4s-prewarm",
+            )
+            t.setDaemon(true)
+            t.start()
+        end if
+    end start
+end PerfPrewarm

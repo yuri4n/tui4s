@@ -1,0 +1,791 @@
+{
+  "reflection": [
+    {
+      "type": "java.lang.Boolean",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "getBoolean",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.ClassValue"
+    },
+    {
+      "type": "java.lang.Enum",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "name",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Object[]"
+    },
+    {
+      "type": "java.lang.Object[][]"
+    },
+    {
+      "type": "java.lang.String[]"
+    },
+    {
+      "type": "java.util.List",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "add",
+          "parameterTypes": [
+            "int",
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "add",
+          "parameterTypes": [
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "get",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "remove",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "size",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.util.concurrent.atomic.LongAdder[]"
+    },
+    {
+      "type": "kyo.Access$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "kyo.Clock$$anon$6",
+      "fields": [
+        {
+          "name": "default$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "kyo.Log$",
+      "fields": [
+        {
+          "name": "kyo$internal$LogPlatformSpecific$$daemon$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "kyo.Log$$anon$1",
+      "fields": [
+        {
+          "name": "default$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "kyo.Log$Event$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy2"
+        }
+      ]
+    },
+    {
+      "type": "kyo.Log$Level$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "kyo.Maybe$package$Maybe$internal$PresentAbsent[]"
+    },
+    {
+      "type": "kyo.Queue$package$Queue$Unsafe$State$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "kyo.Style$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy31"
+        }
+      ]
+    },
+    {
+      "type": "kyo.Style$Alignment$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy4"
+        }
+      ]
+    },
+    {
+      "type": "kyo.Style$Color$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "kyo.Style$FlexDirection$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy2"
+        }
+      ]
+    },
+    {
+      "type": "kyo.Style$Justification$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy5"
+        }
+      ]
+    },
+    {
+      "type": "kyo.Style$Prop$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy30"
+        }
+      ]
+    },
+    {
+      "type": "kyo.Style$TextAlign$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy13"
+        }
+      ]
+    },
+    {
+      "type": "kyo.Style$TextTransform$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy15"
+        }
+      ]
+    },
+    {
+      "type": "kyo.Tag$package$Tag$internal$Mode$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy3"
+        }
+      ]
+    },
+    {
+      "type": "kyo.Tag$package$Tag$internal$Type$Entry$Variance$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "kyo.Tag$package$Tag$internal$Type$Entry$Variance[]"
+    },
+    {
+      "type": "kyo.UI$",
+      "fields": [
+        {
+          "name": "given_CanEqual_UI_UI$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "kyo.UI$Ast$AsHtmlChild$",
+      "fields": [
+        {
+          "name": "AsHtmlChild_RawHtml$lzy1"
+        },
+        {
+          "name": "AsHtmlChild_UI$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "kyo.UI$Keyboard$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy4"
+        }
+      ]
+    },
+    {
+      "type": "kyo.UI$KeyboardEvent$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy13"
+        }
+      ]
+    },
+    {
+      "type": "kyo.UI$Modifiers$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy11"
+        },
+        {
+          "name": "derived$Schema$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "kyo.UI$MouseEvent$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy12"
+        }
+      ]
+    },
+    {
+      "type": "kyo.internal.LogShared$",
+      "fields": [
+        {
+          "name": "fence$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "kyo.scheduler.IOPromise",
+      "fields": [
+        {
+          "name": "state"
+        }
+      ]
+    },
+    {
+      "type": "kyo.scheduler.IOTask",
+      "fields": [
+        {
+          "name": "status"
+        }
+      ]
+    },
+    {
+      "type": "kyo.scheduler.Scheduler$",
+      "fields": [
+        {
+          "name": "defaultClockExecutor$lzy1"
+        },
+        {
+          "name": "defaultTimerExecutor$lzy1"
+        },
+        {
+          "name": "defaultWorkerExecutor$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "kyo.scheduler.regulator.Regulator",
+      "fields": [
+        {
+          "name": "stats$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "scala.Tuple2[]"
+    },
+    {
+      "type": "scala.collection.immutable.ArraySeq$",
+      "fields": [
+        {
+          "name": "emptyImpl$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "scala.math.BigDecimal$",
+      "fields": [
+        {
+          "name": "cache$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "sun.management.VMManagementImpl",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "compTimeMonitoringSupport"
+        },
+        {
+          "name": "currentThreadCpuTimeSupport"
+        },
+        {
+          "name": "objectMonitorUsageSupport"
+        },
+        {
+          "name": "otherThreadCpuTimeSupport"
+        },
+        {
+          "name": "remoteDiagnosticCommandsSupport"
+        },
+        {
+          "name": "synchronizerUsageSupport"
+        },
+        {
+          "name": "threadAllocatedMemorySupport"
+        },
+        {
+          "name": "threadContentionMonitoringSupport"
+        }
+      ]
+    },
+    {
+      "type": "sun.misc.Unsafe",
+      "fields": [
+        {
+          "name": "theUnsafe"
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.NativePRNG",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.security.SecureRandomParameters"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.SHA",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Attribute"
+    },
+    {
+      "type": "tui.crossterm.ClearType"
+    },
+    {
+      "type": "tui.crossterm.Color$Reset",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Color$Rgb",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "b"
+        },
+        {
+          "name": "g"
+        },
+        {
+          "name": "r"
+        }
+      ],
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Command$Clear",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "clear_type"
+        }
+      ],
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Command$DisableBracketedPaste",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Command$EnableBracketedPaste",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Command$EnterAlternateScreen",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Command$Hide",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Command$LeaveAlternateScreen",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Command$MoveTo",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "x"
+        },
+        {
+          "name": "y"
+        }
+      ],
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Command$Print",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "value"
+        }
+      ],
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Command$SetAttribute",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "attribute"
+        }
+      ],
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Command$SetBackgroundColor",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "color"
+        }
+      ],
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Command$SetForegroundColor",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "color"
+        }
+      ],
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Command$SetUnderlineColor",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "color"
+        }
+      ],
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Command$Show",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Command[]"
+    },
+    {
+      "type": "tui.crossterm.Duration",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "nanos"
+        },
+        {
+          "name": "secs"
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Event$Key",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "tui.crossterm.KeyEvent"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.KeyCode$Char",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "char"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.KeyCode$Enter",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.KeyCode$Tab",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.KeyEvent",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "tui.crossterm.KeyCode",
+            "tui.crossterm.KeyModifiers",
+            "tui.crossterm.KeyEventKind",
+            "tui.crossterm.KeyEventState"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.KeyEventKind",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "Press"
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.KeyEventState",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.KeyModifiers",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "tui.crossterm.Xy",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "tui4s.FrameCause$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "tui4s.FrameStats$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy2"
+        }
+      ]
+    },
+    {
+      "type": "tui4s.TuiOptions$",
+      "fields": [
+        {
+          "name": "derived$CanEqual$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "tui4s.internal.Knobs$$anon$1",
+      "fields": [
+        {
+          "name": "default$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "tui4s.internal.Tty$",
+      "fields": [
+        {
+          "name": "handle$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "tui4s.internal.Tui4sQuit$$anon$31",
+      "fields": [
+        {
+          "name": "default$lzy1"
+        }
+      ]
+    },
+    {
+      "type": "tui4s.internal.Tui4sTrack$$anon$52",
+      "fields": [
+        {
+          "name": "default$lzy1"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "glob": "libnative-x86_64-linux-crossterm.so"
+    }
+  ],
+  "foreign": {
+    "downcalls": [
+      {
+        "returnType": "jint",
+        "parameterTypes": [
+          "jint"
+        ]
+      }
+    ]
+  }
+}

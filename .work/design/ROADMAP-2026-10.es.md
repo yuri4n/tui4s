@@ -163,32 +163,54 @@ Los resultados crudos de la investigación (JSON y Markdown) están en
   más sobre los módulos ZIO y Cats. Copiamos solo `docs/`; no hacemos merge
   de esa rama.
 
-### 2.7 Arranque y empaquetado (medición en curso)
+### 2.7 Arranque y empaquetado (medido, 15 corridas por caso)
 
-- Hoy: de 1,24 a 1,30 s desde el arranque de la JVM hasta el primer frame
-  (contenedor de 4 vCPU). Se cargan unas 4.090 clases: JDK 1.672, Scala 535,
-  Kyo 905, jatatui 37, tui4s 243.
-- kyo-http, kyo-net y kyo-ffi están en el classpath incluso para el counter
-  (`modules/core/build.sbt:7-9`), porque kyo-ui depende de ellos.
-- El empaquetado actual NO es el mejor: es un launcher de sbt-native-packager
-  que arranca una JVM normal, sin caché AOT ni imagen nativa.
-- Escalera de opciones, de menor a mayor riesgo:
-  1. Caché AOT de la JDK 25 (JEP 483, 514 y 515): una corrida de
-     entrenamiento y luego `-XX:AOTCache`. Sin cambios de código.
-  2. Cargar menos clases: no inicializar lo que un counter no usa.
-  3. Arranque concurrente: cargar crossterm y entrar a la terminal en un
-     hilo mientras Kyo y kyo-ui inicializan y se arma el primer árbol en
-     otro. La carga de clases es en gran parte secuencial, así que la
-     ganancia tiene un techo.
-  4. GraalVM native-image: arranque en decenas de milisegundos y menos
-     memoria, si Kyo (sun.misc.Unsafe), el JNI de crossterm y la llamada FFM
-     de isatty funcionan.
-- Los algoritmos funcionales no aceleran el arranque (eso es carga de clases
-  y empaquetado). Sí bajan el costo de cada frame: memoización del measure,
-  relayout incremental, fusión de pasadas y un diff puro del plan de dibujo.
-- Un workflow está midiendo la anatomía del arranque, la caché AOT y un
-  intento de native-image, y está analizando el camino de cada frame con las
-  skills. Los números entran en esta sección cuando termine.
+<!-- claude 2026-10-17: changed: filled in the measured numbers -->
+
+Tiempo desde el arranque del proceso hasta el primer frame, en un PTY de
+100x30, mediana (contenedor de 4 vCPU, Linux):
+
+| Modo | Counter | Dashboard | Memoria (counter) |
+|---|---|---|---|
+| Launcher de hoy (JVM) | 1.101 ms | 1.233 ms | 125 MB |
+| Programa de jatatui en Java puro (piso de la JVM) | 147 ms | n/a | 56 MB |
+| Caché AOT de la JDK 25 sola | 521 ms | 588 ms | 113 MB |
+| Caché AOT + flags del launcher, sin cambiar código | 361 ms | 433 ms | 94 MB |
+| Mejor JVM: AOT + precarga en otro hilo + flags | 320 ms | 395 ms | 93 MB |
+| GraalVM native-image | 101 ms | 104 ms | 31 MB |
+| native-image sin la espera de calibración de Kyo | 15 ms | 19 ms | 31 MB |
+
+- La JVM más crossterm cuestan unos 150 ms. Los otros 850-950 ms son carga
+  en frío de clases de Scala, Kyo y tui4s.
+- Sí conviene la concurrencia: cargar la librería JNI y enlazar isatty en un
+  hilo mientras Kyo arranca ahorra hasta 113 ms; un hilo que precarga clases
+  ahorra unos 300 ms.
+- Kyo duerme de 86 a 102 ms al arrancar para medir la resolución del reloj de
+  CPU (`BlockingMonitor`). Fijar
+  `kyo.scheduler.blockingMonitorMinIntervalNs` quita esa espera. En la imagen
+  nativa es el 85 % del arranque que queda.
+- native-image funcionó al primer intento, sin bloqueos, con Oracle GraalVM
+  25.0.4. La restauración de la terminal es correcta con q, Ctrl-C, SIGTERM
+  (143), SIGINT (130) y SIGHUP (129). La metadata mínima son dos entradas (la
+  librería de crossterm y la llamada FFM de isatty) más una flag para
+  sun.misc.Unsafe; caben en `META-INF/native-image` dentro de tui4s-core.
+  Binario: 33 MB (-O2) o 21,5 MB (-Os, 7,9 MB con gzip). Build: 80-150 s y
+  1,8-2,7 GB de RAM.
+- Problemas encontrados:
+  - jatatui deja un directorio `/tmp/jni-*` de 904 KB en cada arranque (JVM y
+    nativo). Arreglo: extraer la librería una vez a una ruta estable, y un
+    borrador de issue para jatatui.
+  - `Tty.isatty` deja escapar `MissingForeignRegistrationError` (es un
+    LinkageError y `NonFatal` no lo atrapa).
+  - 12,7 MB de jars nunca cargan una clase (kyo-http, kyo-net, kyo-ffi, JMH y
+    otros). kyo-kernel publica JMH en el scope de compilación: borrador de
+    issue para Kyo.
+- Algoritmos funcionales para cada frame (solo lectura de código, sin medir):
+  hay casos O(n^2) en logs con anillo, listas con una señal de selección
+  compartida y relayouts que miden subárboles en cada nivel. Nueve arreglos
+  (F1-F9) con el código actual como oráculo; ver la capa L1b.
+- Detalles: `.work/explore-2026-10-17/startup-native-algorithms.json`,
+  `perf/` y `native/`.
 
 <!-- claude 2026-10-17: created this section -->
 ## 3. El plan como una pila (orden de dependencias)
@@ -199,12 +221,12 @@ Cada capa necesita las capas de abajo.
 |---|---|---|---|
 | L0 | Reescritura funcional | Fases P0-P6 del plan revisado con las skills (lint, ganancias baratas, formas públicas, estado en Kyo, pila de liberación, ejemplos, painter puro, sinks) | unas 5.400 líneas cambiadas |
 | L1 | Funciones del renderer | Scroll del viewport (Overflow de kyo-ui + scrollIntoView), wrap y elipsis, overlay y z-order, inputs nativos, textarea multilínea, caracteres anchos, tamaño de la terminal como Signal, Color.Var, un aviso por cada propiedad ignorada | de 3.000 a 5.000 líneas |
-| L1b | Rendimiento por frame | Las mejoras de algoritmos funcionales del análisis en curso, con el código actual como oráculo y tests de propiedades | por definir |
+| L1b | Rendimiento por frame | PF-a (arreglos chicos F1-F4 y F8, justo después de P1); dentro de P5 el recorte por clip y un diff por tramos de fila; PF-b (measure reutilizado y relayout incremental, después de P5); PF-c con P7; PF-d solo si una medición lo pide. Siempre con el código actual como oráculo y tests de propiedades <!-- claude 2026-10-17: changed: filled from the analysis --> | S y M |
 | L2 | Librerías | `tui4s-widgets` (funciones de kyo-ui puras, portables) y `tui4s-use` (unos 13 composables, JVM y JS, sin depender del core) | de 3.000 a 5.000 líneas |
 | L3 | App insignia | `examples.assistant`: chat con streaming, lista de conversaciones, ajustes, paleta de comandos, panel de logs. Sigue el plano de las skills: dominio puro, traits de servicio, intérpretes en `make`, stores con alcance de la app, wiring con Layer/Env, intérpretes en memoria para tests | de 2.000 a 3.000 líneas |
 | L4 | Destino web | Un build de Scala.js independiente de la app insignia, desde el módulo compartido (archivos estáticos, sin servidor, sin enlace con la app de terminal). Los mismos builds dan las demos de los docs | de 500 a 1.000 líneas |
 | L5 | Docs y benchmarks | Sitio Docus en main, casts del kit de PTY, demos JS, snippets compilados; programa de comparación (ver sección 4) | grande; en parte fuera de Scala |
-| L5b | Empaquetado | Caché AOT en los launchers; native-image si el spike pasa | por definir |
+| L5b | Empaquetado | Metadata de native-image en tui4s-core, `scripts/native-image.sh`, un job de CI opcional que construye el counter y corre un smoke test en PTY, binarios nativos por plataforma para el release; caché AOT y flags en los launchers de la JVM; arreglo del leak de `/tmp/jni-*` <!-- claude 2026-10-17: changed: filled from the measurements --> | chico |
 | L6 | Release 0.1 | Checklist: Scaladoc en CI, matriz de sistemas operativos, changelog, SECURITY.md, plantilla, no publicar zio/cats vacíos, dry run, aprobación humana | pequeño |
 | S1 | Templates (solo intención) | Intención documentada: un interpolador `ui"""..."""` con macros de Scala 3 que produce llamadas de kyo-ui. Sin spike en esta etapa (decisión del usuario, 2026-10-17: presupuesto) <!-- claude 2026-10-17: changed: no spike --> | 0 |
 
@@ -301,7 +323,10 @@ Cada decisión tiene una recomendación (R).
   "temporary"); corregir la fila de la skill de Scala que nombra
   `kyo-test-runner` en vez de `kyo-test-prop` para tests de propiedades.
   R: sí.
-- D16 Empaquetado: caché AOT de la JDK 25 por defecto en los launchers;
-  native-image como destino si el spike pasa sin parches frágiles; el
-  arranque concurrente solo si la medición muestra una ganancia real.
-  R: decidir con los números de la sección 2.7.
+- D16 Empaquetado (con los números de la sección 2.7): el formato de release
+  es native-image por plataforma (Linux, macOS, Windows en CI), con la
+  metadata dentro de tui4s-core; los launchers de la JVM llevan caché AOT y
+  flags; tui4s fija `kyo.scheduler.blockingMonitorMinIntervalNs` en
+  SchedulerDefaults (con un test por plataforma); la precarga en otro hilo
+  solo en la JVM. Abierto: Oracle GraalVM o GraalVM Community para CI (revisar
+  la licencia de Oracle). <!-- claude 2026-10-17: changed D16 with the numbers -->

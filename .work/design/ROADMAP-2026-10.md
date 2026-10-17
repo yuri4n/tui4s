@@ -144,6 +144,41 @@ Raw research results (JSON and Markdown) are in `.work/explore-2026-10-17/`.
 - Docs: the `docs/docus` branch is stale (it predates kyo-ui) and overclaims
   the ZIO and Cats modules. Copy only `docs/`; do not merge the branch.
 
+### 2.7 Startup and packaging (measured, 15 runs each)
+
+<!-- claude 2026-10-17: created this section with the measured numbers -->
+
+First frame from process start, PTY 100x30, median, 4 vCPU Linux:
+
+| Mode | Counter | Dashboard | RSS (counter) |
+|---|---|---|---|
+| Launcher today (JVM) | 1,101 ms | 1,233 ms | 125 MB |
+| Plain Java jatatui program (JVM floor) | 147 ms | n/a | 56 MB |
+| JDK 25 AOT cache only | 521 ms | 588 ms | 113 MB |
+| AOT cache + launcher flags, no code change | 361 ms | 433 ms | 94 MB |
+| Best JVM: AOT + background preload + flags | 320 ms | 395 ms | 93 MB |
+| GraalVM native-image | 101 ms | 104 ms | 31 MB |
+| native-image without Kyo's calibration wait | 15 ms | 19 ms | 31 MB |
+
+- Concurrency helps: a JNI + isatty preload thread saves up to 113 ms; a class
+  preload thread saves about 300 ms.
+- Kyo's BlockingMonitor sleeps 86-102 ms at start to probe the CPU clock;
+  `kyo.scheduler.blockingMonitorMinIntervalNs` removes it.
+- native-image worked first time (Oracle GraalVM 25.0.4); restore correct on
+  q, Ctrl-C, SIGTERM 143, SIGINT 130, SIGHUP 129; metadata = 2 entries + one
+  Unsafe flag, can ship in tui4s-core `META-INF/native-image`; binary 21.5-33 MB.
+- Problems: jatatui leaks one 904 KB `/tmp/jni-*` dir per start; `Tty.isatty`
+  lets `MissingForeignRegistrationError` escape (LinkageError vs NonFatal);
+  12.7 MB of jars load no class (kyo-kernel ships JMH in compile scope).
+- Frame path (code reading only): O(n^2) cases; fixes F1-F9 in phases PF-a to
+  PF-d with today's code as the oracle.
+- D16 (with these numbers): release format = native-image per platform, with
+  the metadata in tui4s-core; JVM launchers get the AOT cache and flags;
+  SchedulerDefaults sets the probe interval (test per platform). Open: Oracle
+  GraalVM or Community for CI (license).
+- Details: `.work/explore-2026-10-17/startup-native-algorithms.json`, `perf/`,
+  `native/`.
+
 <!-- claude 2026-10-17: created this section -->
 ## 3. The plan as a stack (dependency order)
 
