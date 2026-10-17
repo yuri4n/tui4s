@@ -341,8 +341,8 @@ private[tui4s] object Layout:
         it.ui match
             case _: Tr     => Vector(it)
             case tb: Tbody =>
-              itemsOf(tb, it.path, env).items.filter(_.ui.isInstanceOf[Tr])
-            case _         => Vector.empty
+              itemsOf(tb, it.path, env).items.filter(_.ui.isInstanceOf[Tr]) // scalafix:ok DisableSyntax.isInstanceOf; P1: rowsOf gives (Item, Tr)
+            case _ => Vector.empty
       }
 
     /** Column widths and the table's content size. Cells are one row high;
@@ -358,9 +358,9 @@ private[tui4s] object Layout:
         val rows  = rowsOf(table, path, env)
         val cells = rows.map { row =>
           val rp =
-            Props.resolve(row.ui.asInstanceOf[Element], p.text, false, None, 0)
+            Props.resolve(row.ui.asInstanceOf[Element], p.text, false, None, 0) // scalafix:ok DisableSyntax.asInstanceOf; P1: rowsOf gives (Item, Tr)
           itemsOf(
-            row.ui.asInstanceOf[Element],
+            row.ui.asInstanceOf[Element], // scalafix:ok DisableSyntax.asInstanceOf; P1: rowsOf gives (Item, Tr)
             row.path,
             env,
           ).items.zipWithIndex.map((c, i) =>
@@ -509,17 +509,17 @@ private[tui4s] object Layout:
             /* a left-aligned text paints only its glyphs: it does not stretch
              * (smaller damage when it changes) */
             val textNoStretch = m.item.ui
-              .isInstanceOf[Text] && p.text.align == kyo.Style.TextAlign.left
-            val fixedCross    =
+              .isInstanceOf[Text] && p.text.align == kyo.Style.TextAlign.left // scalafix:ok DisableSyntax.isInstanceOf; P1: a match on Text
+            val fixedCross =
               textNoStretch || (if column then m.props.width.isDefined
                                 else m.props.height.isDefined)
-            val align         = m.props.alignSelf.getOrElse(p.align)
-            val crossLen      =
+            val align      = m.props.alignSelf.getOrElse(p.align)
+            val crossLen   =
               if align == Alignment.stretch && !fixedCross then crossRoom
               else crossOf(m.size).min(crossRoom)
-            val crossLead     =
+            val crossLead  =
               if column then m.props.margin.l else m.props.margin.t
-            val crossPos      = crossLead + (align match
+            val crossPos   = crossLead + (align match
                 case Alignment.center => (crossRoom - crossLen) / 2
                 case Alignment.end    => crossRoom - crossLen
                 case _                => 0)

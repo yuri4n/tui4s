@@ -32,7 +32,7 @@ private[tui4s] object ComponentSpec:
     // goes away with the UI value that holds the signal. The registry is
     // global and mutable, and keyed by the identity of the signal.
     private val registry =
-      java.util.Collections.synchronizedMap(
+      java.util.Collections.synchronizedMap( // scalafix:ok DisableSyntax.jvmSync; KEEP: the weak registry (sealed kyo-ui AST)
         new java.util.WeakHashMap[Signal[?], ComponentSpec](),
       )
 

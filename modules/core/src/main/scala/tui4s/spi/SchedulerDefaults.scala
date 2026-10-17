@@ -47,25 +47,25 @@ object SchedulerDefaults:
       */
     def applyIfUnset(): Unit =
         val _ = applyTo(
-          java.lang.System.getProperty,
-          java.lang.System.getenv,
+          java.lang.System.getProperty, // scalafix:ok DisableSyntax.jvmGlobal; KEEP: it runs before Kyo loads
+          java.lang.System.getenv,      // scalafix:ok DisableSyntax.jvmGlobal; KEEP: it runs before Kyo loads
           (key, value) =>
-              val _ = java.lang.System.setProperty(key, value),
+              val _ = java.lang.System.setProperty(key, value), // scalafix:ok DisableSyntax.jvmGlobal; KEEP: it runs before Kyo loads
         )
 
     /** [[applyIfUnset]] on the given property and environment lookups; returns
       * the keys that it set.
       */
     private[tui4s] def applyTo(
-        property: String => String | Null,
-        env: String => String | Null,
+        property: String => String | Null, // scalafix:ok DisableSyntax.nullType; P1: Maybe on the Java line
+        env: String => String | Null,      // scalafix:ok DisableSyntax.nullType; P1: Maybe on the Java line
         set: (String, String) => Unit,
     ): Seq[String] =
       if property(OptOut) == "false" then Nil
       else
           defaults.collect {
             case (key, value)
-                if property(key) == null && env(envName(key)) == null =>
+                if property(key) == null && env(envName(key)) == null => // scalafix:ok DisableSyntax.null; P1: Maybe on the Java line
               set(key, value)
               key
           }

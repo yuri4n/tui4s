@@ -1,3 +1,6 @@
+// scalafix:off DisableSyntax
+// EDGE: the crossterm terminal modes and JVM shutdown hooks (Runtime)
+// claude 2026-10-17: created this header (purity plan, phase P0)
 package tui4s.internal
 
 import jatatui.core.backend.Backend

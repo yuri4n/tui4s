@@ -1,3 +1,6 @@
+// scalafix:off DisableSyntax
+// EDGE: the input Thread (crossterm poll, read) and the hook-safe release
+// claude 2026-10-17: created this header (purity plan, phase P0)
 package tui4s.internal
 
 import jatatui.core.backend.Backend

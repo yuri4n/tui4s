@@ -83,7 +83,7 @@ abstract class Component:
     final def ui(using Frame): Reactive[UI] =
       ComponentSpec.node(
         ComponentSpec.Instance(this), {
-          import AllowUnsafe.embrace.danger
+          import AllowUnsafe.embrace.danger // scalafix:ok DisableSyntax.unsafe; KEEP: a node state outside the tui4s runner
           given CanEqual[State, State] = CanEqual.derived
           view(Signal.SignalRef.Unsafe.init[State](initial).safe)
         },

@@ -1,3 +1,6 @@
+// scalafix:off DisableSyntax
+// EDGE: the load of the Kyo scheduler (Scheduler.status)
+// claude 2026-10-17: created this header (purity plan, phase P0)
 package tui4s.internal
 
 // claude 2026-10-13: changed (C3, gate 1 item 1): private[tui4s] on every top-level definition of this file (the seal of tui4s.internal)

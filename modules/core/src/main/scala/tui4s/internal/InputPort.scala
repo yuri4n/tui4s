@@ -15,4 +15,4 @@ private[tui4s] trait InputPort:
     def poll(timeoutMillis: Int): Boolean
 
     /** The next event; `null` when none is ready. */
-    def read(): CEvent | Null
+    def read(): CEvent | Null // scalafix:ok DisableSyntax.nullType; P1: Maybe[CEvent]

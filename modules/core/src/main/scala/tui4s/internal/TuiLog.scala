@@ -1,3 +1,6 @@
+// scalafix:off DisableSyntax
+// EDGE: the Kyo Log.Unsafe (AllowUnsafe logger API) and java.time
+// claude 2026-10-17: created this header (purity plan, phase P0)
 package tui4s.internal
 
 import kyo.*

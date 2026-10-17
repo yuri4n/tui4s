@@ -22,18 +22,18 @@ import scala.jdk.CollectionConverters.*
   * `front` only inside those rectangles and sends only the cells that differ.
   */
 private[tui4s] final class Canvas private (
-    private var back: Buffer,
-    private var front: Buffer,
+    private var back: Buffer,  // scalafix:ok DisableSyntax.var; P5: the Canvas seam
+    private var front: Buffer, // scalafix:ok DisableSyntax.var; P5: the Canvas seam
     val backend: Backend,
     flushSeamNanos: Long, /* claude 2026-10-12: created (the test seam
      * `Knobs.flushSeam`) */
 ):
-    private var writes = 0
+    private var writes = 0 // scalafix:ok DisableSyntax.var; P5: FrameOut replaces the counter
 
     // claude 2026-10-13: created (T1, the bot fix of the review thread
     // CountingBackend.scala:33 of PR 5): set by `close`, read and written only
     // under the backend's monitor
-    private var closed = false
+    private var closed = false // scalafix:ok DisableSyntax.var; P5: the Canvas seam
 
     def size: Size = Size(back.area.width, back.area.height)
 
@@ -46,7 +46,7 @@ private[tui4s] final class Canvas private (
     // claude 2026-10-13: created (T1, the bot fix of the review thread
     // CountingBackend.scala:33: the close() guard of PR 5 CountingBackend, and
     // the wait for a draw in progress)
-    def close(): Unit = backend.synchronized { closed = true }
+    def close(): Unit = backend.synchronized { closed = true } // scalafix:ok DisableSyntax.jvmSync; P5: the Canvas monitor
 
     /** Cell writes since the last call (the "cells repainted" measure). */
     def takeWrites(): Int =
@@ -65,7 +65,7 @@ private[tui4s] final class Canvas private (
     // claude 2026-10-13: changed (T1, bot fix CountingBackend.scala:33): no
     // backend call after `close`
     def resize(s: Size): Unit =
-      backend.synchronized {
+      backend.synchronized { // scalafix:ok DisableSyntax.jvmSync; P5: the Canvas monitor
         if !closed then
             backend match
                 case tb: TestBackend => tb.resize(s.w, s.h)
@@ -161,7 +161,7 @@ private[tui4s] final class Canvas private (
             // other holder of the monitor is `close` (the release). With the
             // test seam, the draw goes one row at a time with a spin between
             // the rows.
-            backend.synchronized {
+            backend.synchronized { // scalafix:ok DisableSyntax.jvmSync; P5: the Canvas monitor
               // claude 2026-10-13: changed (T1): a write to the terminal that
               // fails is TuiError.TerminalIO (the run fails with it); after
               // `close` (the release) nothing is drawn (bot fix
@@ -173,8 +173,8 @@ private[tui4s] final class Canvas private (
                         updates.grouped(back.area.width.max(1)).foreach {
                           chunk =>
                             backend.draw(chunk.asJava)
-                            val t0 = java.lang.System.nanoTime()
-                            while java.lang.System
+                            val t0 = java.lang.System.nanoTime() // scalafix:ok DisableSyntax.jvmGlobal; P5: no busy-spin in the flush seam
+                            while java.lang.System // scalafix:ok DisableSyntax.while; P5: no busy-spin in the flush seam
                                   .nanoTime() - t0 < flushSeamNanos
                             do
                                 (
@@ -196,7 +196,7 @@ private[tui4s] object Canvas:
     // claude 2026-10-13: created (T1)
     def terminalIO(write: => Unit): Unit =
       try write
-      catch case e: java.io.IOException => throw tui4s.TuiError.TerminalIO(e)
+      catch case e: java.io.IOException => throw tui4s.TuiError.TerminalIO(e) // scalafix:ok DisableSyntax.throw; P5: Abort[TuiError] in Canvas.draw
 
     /** @param flushSeam
       *   the test seam `Knobs.flushSeam` (zero in a real run)

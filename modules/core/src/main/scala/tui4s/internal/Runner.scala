@@ -31,12 +31,12 @@ private[tui4s] final class Runner(
     private val mount = Mount(inbox, knobs)
 
     private def nanos(using Frame): Long < Sync =
-      Sync.defer(java.lang.System.nanoTime())
+      Sync.defer(java.lang.System.nanoTime()) // scalafix:ok DisableSyntax.jvmGlobal; P2: Clock.nowMonotonic
 
     // claude 2026-10-12: created (R1 option b, RC-8): the last world, so that
     // `stop` can unmount it when the run ends in any way
     private val last =
-      new java.util.concurrent.atomic.AtomicReference[Option[World]](None)
+      new java.util.concurrent.atomic.AtomicReference[Option[World]](None) // scalafix:ok DisableSyntax.jvmSync; P2: delete last and remember
 
     private def remember(w: World)(using Frame): World < Sync =
       Sync.defer { last.set(Some(w)); w }
@@ -65,9 +65,9 @@ private[tui4s] final class Runner(
     // ends at its next wake-up, also when `ticker` was never set) and by
     // `quit` (the step reads it, so a quit that the full inbox dropped still
     // ends the run)
-    private val stopped       = new java.util.concurrent.atomic.AtomicBoolean(false)
+    private val stopped       = new java.util.concurrent.atomic.AtomicBoolean(false) // scalafix:ok DisableSyntax.jvmSync; P2: Fiber.use for the repair tick
     private val quitRequested =
-      new java.util.concurrent.atomic.AtomicBoolean(false)
+      new java.util.concurrent.atomic.AtomicBoolean(false) // scalafix:ok DisableSyntax.jvmSync; P2: a Kyo AtomicBoolean in Runner.init
 
     /** Asks the run to end: it posts the quit message and sets a flag that the
       * next step reads, in case the inbox is full and drops the message.
@@ -94,7 +94,7 @@ private[tui4s] final class Runner(
 
     // claude 2026-10-12: created (K29): the repair tick fiber
     private val ticker =
-      new java.util.concurrent.atomic.AtomicReference[Option[
+      new java.util.concurrent.atomic.AtomicReference[Option[ // scalafix:ok DisableSyntax.jvmSync; P2: Fiber.use for the repair tick
         Fiber[Any, Nothing],
       ]](
         None,
@@ -357,7 +357,7 @@ private[tui4s] final class Runner(
           case Some(r) if r.gen == c.gen =>
             r.source match
                 case Source.One(_) | Source.Comp(_, _) =>
-                  val content = Content.Single(c.value.asInstanceOf[UI])
+                  val content = Content.Single(c.value.asInstanceOf[UI]) // scalafix:ok DisableSyntax.asInstanceOf; KEEP: true by construction (Msg.Content)
                   if r.content == content then w
                   else
                       val w1 = w.copy(
@@ -374,7 +374,7 @@ private[tui4s] final class Runner(
                   val items = mount.reconcile(
                     fe,
                     r.items,
-                    c.value.asInstanceOf[Chunk[Any]].toVector,
+                    c.value.asInstanceOf[Chunk[Any]].toVector, // scalafix:ok DisableSyntax.asInstanceOf; KEEP: true by construction (Msg.Content)
                   )
                   if items == r.items then w
                   else
@@ -667,7 +667,7 @@ private[tui4s] final class Runner(
         settleNs: Long = 0,
     )(using Frame): World < Async =
         val idle = !w.full && w.dirtyRegions.isEmpty && w.dirtyNodes.isEmpty
-        val tr   = java.lang.System.nanoTime()
+        val tr   = java.lang.System.nanoTime() // scalafix:ok DisableSyntax.jvmGlobal; P2: Clock.nowMonotonic
         Sync
           .defer {
             if idle then

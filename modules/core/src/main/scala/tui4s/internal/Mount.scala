@@ -20,7 +20,7 @@ private[tui4s] final class Mount(
     // have not ended, for the live-fiber gauge of the tests. Weak, so that the
     // gauge itself keeps no fiber alive.
     private val started =
-      java.util.Collections.synchronizedSet(
+      java.util.Collections.synchronizedSet( // scalafix:ok DisableSyntax.jvmSync; P2: a Gauge on a Kyo AtomicRef (A7)
         java.util.Collections.newSetFromMap(
           new java.util.WeakHashMap[Fiber[Any, Nothing], java.lang.Boolean](),
         ),
@@ -30,7 +30,7 @@ private[tui4s] final class Mount(
     // not armed yet (path -> gen). Until the arm, a write is not seen by the
     // watcher; an Input step verifies these regions.
     private val unarmed =
-      new java.util.concurrent.ConcurrentHashMap[Loc, java.lang.Long]()
+      new java.util.concurrent.ConcurrentHashMap[Loc, java.lang.Long]() // scalafix:ok DisableSyntax.jvmSync; P2: World.unarmed
 
     /** The regions of `w` whose watcher has not armed yet; stale entries (an
       * old generation) are dropped.
@@ -55,7 +55,7 @@ private[tui4s] final class Mount(
     private[tui4s] def liveFibers(using Frame): Int < Sync =
         import scala.jdk.CollectionConverters.*
         Sync
-          .defer(started.synchronized(started.asScala.toList))
+          .defer(started.synchronized(started.asScala.toList)) // scalafix:ok DisableSyntax.jvmSync; P2: a Gauge on a Kyo AtomicRef (A7)
           .map(fs =>
             Kyo.foldLeft(fs)(0)((n, f) =>
               f.done.map(d => if d then n else n + 1),
@@ -240,7 +240,7 @@ private[tui4s] final class Mount(
           case fe0: Foreach[?, ?] =>
             /* Erasure-forced: a Foreach carries its own A for signal, key and
              * render (kyo-ui's `applyTyped` is private). */
-            val fe = fe0.asInstanceOf[Foreach[Any, UI]]
+            val fe = fe0.asInstanceOf[Foreach[Any, UI]] // scalafix:ok DisableSyntax.asInstanceOf; P1: a match on Foreach[a, ?]
             reclaim.get(path) match
                 case Some(
                       old @ RegionState(_, Source.Many(prev), _, _, items, _),
@@ -381,8 +381,8 @@ private[tui4s] final class Mount(
             for
                 state   <- w1.comps.get((path, key)) match
                                case Some(ref) =>
-                                 Kyo.lift(ref.asInstanceOf[SignalRef[c.State]])
-                               case None      =>
+                                 Kyo.lift(ref.asInstanceOf[SignalRef[c.State]]) // scalafix:ok DisableSyntax.asInstanceOf; P1: one Component state cast helper
+                               case None =>
                                  given CanEqual[c.State, c.State] =
                                    CanEqual.derived
                                  Signal.initRef[c.State](c.initial)
@@ -410,7 +410,7 @@ private[tui4s] final class Mount(
                                regions = w1.regions.updated(path, region),
                                comps = w1.comps.updated(
                                  (path, key),
-                                 state.asInstanceOf[SignalRef[Any]],
+                                 state.asInstanceOf[SignalRef[Any]], // scalafix:ok DisableSyntax.asInstanceOf; P1: one Component state cast helper
                                ),
                              ),
                              reclaim.removed(path),
@@ -605,7 +605,7 @@ private[tui4s] final class Mount(
     private[tui4s] def interruptAll(using Frame): Unit < Sync =
         import scala.jdk.CollectionConverters.*
         Sync
-          .defer(started.synchronized(started.asScala.toList))
+          .defer(started.synchronized(started.asScala.toList)) // scalafix:ok DisableSyntax.jvmSync; P2: a Gauge on a Kyo AtomicRef (A7)
           .map(fs => Kyo.foreachDiscard(fs)(_.interrupt.unit))
 end Mount
 

@@ -11,7 +11,7 @@ import tui4s.internal.{
 import tui4s.spi.SchedulerDefaults
 
 import java.io.PrintStream
-import java.util.concurrent.{CountDownLatch, TimeUnit}
+import java.util.concurrent.{CountDownLatch, TimeUnit} // scalafix:ok DisableSyntax.jvmSync; P3: one stop hook and no latch (A2)
 
 /** The main class of a tui4s app: `object CounterApp extends TuiApp`. Its
   * `main` runs [[ui]] in the real terminal with [[Tui.run]] and [[options]],
@@ -61,7 +61,7 @@ abstract class TuiApp:
     SchedulerDefaults.applyIfUnset()
     OutputCapture.install()
 
-    @volatile private var arguments: Seq[String] = Nil
+    @volatile private var arguments: Seq[String] = Nil // scalafix:ok DisableSyntax.var, DisableSyntax.jvmSync; KEEP: args: set once before the run
 
     /** The UI of the app. [[Tui.quit]] ends the run: an app whose UI is a
       * function of the quit value (as [[Tui.run]] gives it) passes `Tui.quit`
@@ -90,7 +90,7 @@ abstract class TuiApp:
         // with its own code: 128 + the signal, or the code of the app's
         // System.exit. Never replace it with Runtime.halt: that skips the
         // restore and gives 1.
-        if code != 0 then java.lang.System.exit(code)
+        if code != 0 then java.lang.System.exit(code) // scalafix:ok DisableSyntax.jvmGlobal; KEEP: the exit code of the process
     end main
 
     /** [[main]] without the exit: returns the exit code (1 when the JVM stops
@@ -153,13 +153,13 @@ private[tui4s] object TuiApp:
         hooks: Hooks,
         restored: CountDownLatch,
     )(using Frame): Result[Throwable, A] =
-        import AllowUnsafe.embrace.danger
+        import AllowUnsafe.embrace.danger // scalafix:ok DisableSyntax.unsafe; P3: one stop hook (A2)
         KyoApp.Unsafe.runAndBlock(Duration.Infinity)(
           Fiber.initUnscoped(program).map { fiber =>
-            Sync.Unsafe
+            Sync.Unsafe // scalafix:ok DisableSyntax.unsafe; P3: one stop hook (A2)
               .defer {
-                fiber.unsafe.onComplete(_ => restored.countDown())
-                val hook = Thread(() => stop(fiber, restored), "tui4s-stop")
+                fiber.unsafe.onComplete(_ => restored.countDown()) // scalafix:ok DisableSyntax.unsafe; P3: one stop hook (A2)
+                val hook = Thread(() => stop(fiber, restored), "tui4s-stop") // scalafix:ok DisableSyntax.jvmSync; P3: one stop hook (A2)
                 hooks.add(hook)
                 hook
               }
@@ -173,8 +173,8 @@ private[tui4s] object TuiApp:
     private def stop[A](
         fiber: Fiber[A, Abort[Throwable]],
         restored: CountDownLatch,
-    )(using Frame, AllowUnsafe): Unit =
-        discard(fiber.unsafe.interrupt())
+    )(using Frame, AllowUnsafe): Unit = // scalafix:ok DisableSyntax.unsafe; P3: one stop hook (A2)
+        discard(fiber.unsafe.interrupt()) // scalafix:ok DisableSyntax.unsafe; P3: one stop hook (A2)
         discard(restored.await(2, TimeUnit.SECONDS))
 
     /** Prints a failed run to `err` and gives the exit code. The prints run
@@ -198,7 +198,7 @@ private[tui4s] object TuiApp:
           val cause = e.getCause
           // claude 2026-10-13: changed (T2): one print per line, so that the
           // marker stays a trailing comment
-          if cause != null then
+          if cause != null then // scalafix:ok DisableSyntax.null; P1b: a typed TuiError cause (A4)
               val line = s"  cause: $cause"
               err.println(line) // tui4s: allowed
         case _: Interrupted =>

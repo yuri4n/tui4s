@@ -1,3 +1,6 @@
+// scalafix:off DisableSyntax
+// EDGE: the log file (java.nio.file) and the stderr after the restore
+// claude 2026-10-17: created this header (purity plan, phase P0)
 package tui4s.internal
 
 import java.io.PrintStream

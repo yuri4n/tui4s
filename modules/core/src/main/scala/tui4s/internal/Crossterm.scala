@@ -1,3 +1,6 @@
+// scalafix:off DisableSyntax
+// EDGE: the crossterm JNI (CrosstermJni) and the isatty downcall (FFM)
+// claude 2026-10-17: created this header (purity plan, phase P0)
 package tui4s.internal
 
 import jatatui.core.backend.Backend

@@ -10,7 +10,7 @@ package tui4s
   */
 // claude 2026-10-13: created (T1, RC-3): the TuiError of PR 5 Options.scala
 // without the cases of dropped features (AppFailed, SourceFailed)
-enum TuiError(message: String, cause: Throwable | Null)
+enum TuiError(message: String, cause: Throwable | Null) // scalafix:ok DisableSyntax.nullType; P1b: a non-null cause (A4)
     extends Exception(message, cause):
 
     /** Standard input is not a terminal, or the process has no terminal (raw
@@ -62,7 +62,7 @@ object TuiError:
         @annotation.tailrec
         def root(t: Throwable, seen: List[Throwable]): Throwable =
             val c = t.getCause
-            if c == null || seen.size >= 16 || seen.exists(_ eq c) then t
+            if c == null || seen.size >= 16 || seen.exists(_ eq c) then t // scalafix:ok DisableSyntax.null; KEEP: Java getCause can give null
             else root(c, c :: seen)
         val r                                                    = root(e, List(e))
         if r eq e then e.toString else s"$e (cause: $r)"

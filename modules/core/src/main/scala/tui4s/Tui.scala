@@ -106,10 +106,10 @@ object Tui:
     )(ui: (Unit < Sync) => UI < (Async & Scope))(using
         Frame,
     ): Unit < (Async & Abort[TuiError]) =
-      Sync.Unsafe.defer(LogSink(options.logFile)).map { sink =>
+      Sync.Unsafe.defer(LogSink(options.logFile)).map { sink => // scalafix:ok DisableSyntax.unsafe; P6: LogSink.open: LogSink < Sync
         // The release finishes the sink; this also covers a run that failed
         // before it had a terminal.
-        Sync.ensure(Sync.Unsafe.defer(sink.finish(err())))(
+        Sync.ensure(Sync.Unsafe.defer(sink.finish(err())))(     // scalafix:ok DisableSyntax.unsafe; P3: the release stack owns sink.finish (A1)
           Abort
             .run[TuiError](
               TuiLog.let(sink)(
@@ -145,7 +145,7 @@ object Tui:
     )(using Frame): Unit < (Async & Abort[TuiError]) =
       Channel.initUnscoped[Msg](options.inboxCapacity.max(1)).map { inbox =>
         Sync.acquireReleaseWith(Session.open(options, control, None, inbox))(
-          opened => Sync.Unsafe.defer(opened.foreach(_.close())),
+          opened => Sync.Unsafe.defer(opened.foreach(_.close())), // scalafix:ok DisableSyntax.unsafe; P3: the release stack (A1)
         ) { opened =>
           Abort.get(opened).map { session =>
             val runner = Runner(inbox, session.canvas, options, Absent)
@@ -164,6 +164,6 @@ object Tui:
         Frame,
     ): Unit < (Sync & Abort[TuiError]) =
       Sync.defer(session.inputFailure).map { f =>
-        if f == null then Kyo.unit else Abort.fail(TuiError.TerminalIO(f))
+        if f == null then Kyo.unit else Abort.fail(TuiError.TerminalIO(f)) // scalafix:ok DisableSyntax.null; P1: inputFailure gives a Maybe
       }
 end Tui

@@ -1,3 +1,6 @@
+// scalafix:off DisableSyntax
+// EDGE: System.out, System.err (setOut, setErr) and scala.Console
+// claude 2026-10-17: created this header (purity plan, phase P0)
 package tui4s.internal
 
 import java.io.{ByteArrayOutputStream, OutputStream, PrintStream}

@@ -56,27 +56,27 @@ private[tui4s] object EventMapping:
       */
     // claude 2026-10-13: changed (T1): Msg with its sequence number; null
     // checks at the Java records (AGENTS.md, the Java boundary)
-    def apply(e: CEvent, seq: Long): Msg | Null = e match
+    def apply(e: CEvent, seq: Long): Msg | Null = e match // scalafix:ok DisableSyntax.nullType; P1: apply gives Maybe[Msg]
         case k: CEvent.Key         =>
           val ke = k.keyEvent
-          if ke == null then null
+          if ke == null then null // scalafix:ok DisableSyntax.null; P1: apply gives Maybe[Msg]
           else
               val ev = key(ke)
-              if ev == null then null else Msg.Key(ev, seq)
+              if ev == null then null else Msg.Key(ev, seq) // scalafix:ok DisableSyntax.null; P1: apply gives Maybe[Msg]
         case p: CEvent.Paste       =>
           val text = p.string
-          if text == null then null else Msg.Paste(text, seq)
+          if text == null then null else Msg.Paste(text, seq) // scalafix:ok DisableSyntax.null; P1: apply gives Maybe[Msg]
         case r: CEvent.Resize      => Msg.Resize(Size(r.columns, r.rows), seq)
-        case _: CEvent.Mouse       => null
-        case _: CEvent.FocusGained => null
-        case _: CEvent.FocusLost   => null
+        case _: CEvent.Mouse       => null // scalafix:ok DisableSyntax.null; P1: apply gives Maybe[Msg]
+        case _: CEvent.FocusGained => null // scalafix:ok DisableSyntax.null; P1: apply gives Maybe[Msg]
+        case _: CEvent.FocusLost   => null // scalafix:ok DisableSyntax.null; P1: apply gives Maybe[Msg]
 
     /** The modifier keys of crossterm's bits (`extraShift`: BackTab). SUPER and
       * HYPER are not reported.
       */
     // claude 2026-10-13: changed (T1): kyo-ui Modifiers; META is meta
-    def mods(m: KeyModifiers | Null, extraShift: Boolean = false): Modifiers =
-        val bits = if m == null then 0 else m.bits
+    def mods(m: KeyModifiers | Null, extraShift: Boolean = false): Modifiers = // scalafix:ok DisableSyntax.nullType; P1: Maybe on the Java field
+        val bits = if m == null then 0 else m.bits // scalafix:ok DisableSyntax.null; P1: Maybe on the Java field
         Modifiers(
           ctrl = (bits & KeyModifiers.CONTROL) != 0,
           alt = (bits & KeyModifiers.ALT) != 0,
@@ -89,11 +89,11 @@ private[tui4s] object EventMapping:
       * the keys that the runner does not model.
       */
     // claude 2026-10-13: changed (T1): kyo-ui Keyboard (the prototype rules)
-    def key(ke: KeyEvent): KeyboardEvent | Null =
+    def key(ke: KeyEvent): KeyboardEvent | Null = // scalafix:ok DisableSyntax.nullType; P1: key gives Maybe[KeyboardEvent]
         def ev(k: Keyboard, m: Modifiers): KeyboardEvent =
           KeyboardEvent(k, m, Absent)
         val code                                         = ke.code
-        if ke.kind == KeyEventKind.Release || code == null then null
+        if ke.kind == KeyEventKind.Release || code == null then null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
         else
             val m = mods(ke.modifiers)
             code match
@@ -104,7 +104,7 @@ private[tui4s] object EventMapping:
                     if m.ctrl then Character.toLowerCase(c.c)
                     else if m.shift then Character.toUpperCase(c.c)
                     else c.c
-                  if Character.isSurrogate(ch) then null
+                  if Character.isSurrogate(ch) then null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
                   else if ch == ' ' then ev(Keyboard.Space, m)
                   else ev(Keyboard.Char(ch), m)
                 case _: KeyCode.BackTab     =>
@@ -126,17 +126,17 @@ private[tui4s] object EventMapping:
                 case f: KeyCode.F           =>
                   EventMapping.function(f.num) match
                       case Present(k) => ev(k, m)
-                      case Absent     => null
-                case _: KeyCode.Null        => null
-                case _: KeyCode.CapsLock    => null
-                case _: KeyCode.ScrollLock  => null
-                case _: KeyCode.NumLock     => null
-                case _: KeyCode.PrintScreen => null
-                case _: KeyCode.Pause       => null
-                case _: KeyCode.Menu        => null
-                case _: KeyCode.KeypadBegin => null
-                case _: KeyCode.Media       => null
-                case _: KeyCode.Modifier    => null
+                      case Absent     => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
+                case _: KeyCode.Null        => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
+                case _: KeyCode.CapsLock    => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
+                case _: KeyCode.ScrollLock  => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
+                case _: KeyCode.NumLock     => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
+                case _: KeyCode.PrintScreen => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
+                case _: KeyCode.Pause       => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
+                case _: KeyCode.Menu        => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
+                case _: KeyCode.KeypadBegin => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
+                case _: KeyCode.Media       => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
+                case _: KeyCode.Modifier    => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
             end match
         end if
     end key

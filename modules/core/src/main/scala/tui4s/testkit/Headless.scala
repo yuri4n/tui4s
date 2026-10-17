@@ -89,12 +89,12 @@ final class Headless private (
     private def poll(timeout: Duration)(cond: => Boolean < Sync)(using
         Frame,
     ): Boolean < Async =
-      Sync.defer(java.lang.System.nanoTime()).map { t0 =>
+      Sync.defer(java.lang.System.nanoTime()).map { t0 => // scalafix:ok DisableSyntax.jvmGlobal; P4: Clock.deadline
         Loop.foreach {
           cond.map { ok =>
             if ok then Loop.done(true)
             else
-                Sync.defer(java.lang.System.nanoTime()).map { now =>
+                Sync.defer(java.lang.System.nanoTime()).map { now => // scalafix:ok DisableSyntax.jvmGlobal; P4: Clock.deadline
                   if now - t0 > timeout.toNanos then Loop.done(false)
                   else
                       Clock
@@ -112,7 +112,7 @@ final class Headless private (
     /* claude 2026-10-12: changed (PR #11 review: Codex, Headless.scala:88): the
      * monitor */
     def screen(using Frame): Screen < Sync =
-      Sync.defer(backend.synchronized(Screen.of(backend)))
+      Sync.defer(backend.synchronized(Screen.of(backend))) // scalafix:ok DisableSyntax.jvmSync; P4: Canvas.read
 
     /** The rows of the screen as it is now, with their trailing spaces (one
       * string per row, one place per cell). Under the backend's monitor, as
@@ -121,7 +121,7 @@ final class Headless private (
     /* claude 2026-10-12: changed (PR #11 review: Codex, Headless.scala:88): the
      * monitor */
     def lines(using Frame): Vector[String] < Sync = Sync.defer {
-      backend.synchronized {
+      backend.synchronized { // scalafix:ok DisableSyntax.jvmSync; P4: Canvas.read
         val buf = backend.buffer()
         Vector.tabulate(buf.area.height)(y =>
           (0 until buf.area.width).map(x => buf.cellAt(x, y).symbol()).mkString,
@@ -344,7 +344,7 @@ object Headless:
         else
             val c = cp.toChar
             EventMapping.key(EventMapping.typed(c)) match
-                case null              => plain(Keyboard.Char(c))
+                case null              => plain(Keyboard.Char(c)) // scalafix:ok DisableSyntax.null; P1: EventMapping.key gives Maybe
                 case ev: KeyboardEvent => ev
     end keyOf
 

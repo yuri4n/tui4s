@@ -181,12 +181,12 @@ private[tui4s] final class Dispatch(
                   // through its click (the Click rule), not here too
                   val submit                = form.filter(_ =>
                     isKey(ev, Keyboard.Enter) && !e.isInstanceOf[Select] &&
-                      !e.isInstanceOf[Button],
+                      !e.isInstanceOf[Button], // scalafix:ok DisableSyntax.isInstanceOf; P1: a match and enum Click
                   )
                   val action: World < Async = e match
                       case ti: TextInput                        => editText(w, target, ti, ev)
                       case b: (Button | Anchor) if activate(ev) =>
-                        activateClick(ch, target, b.isInstanceOf[Button], ev)
+                        activateClick(ch, target, b.isInstanceOf[Button], ev) // scalafix:ok DisableSyntax.isInstanceOf; P1: a match and enum Click
                           .andThen(w)
                       case bi: BooleanInput if activate(ev)     =>
                         toggle(w, target, bi)

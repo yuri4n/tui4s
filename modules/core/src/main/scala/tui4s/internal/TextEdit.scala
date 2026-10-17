@@ -110,8 +110,8 @@ private[tui4s] object TextEdit:
         if s.nonEmpty then
             val it  = BreakIterator.getCharacterInstance()
             it.setText(s)
-            var end = it.next()
-            while end != BreakIterator.DONE do
+            var end = it.next() // scalafix:ok DisableSyntax.var; P1: boundaries from an Iterator
+            while end != BreakIterator.DONE do // scalafix:ok DisableSyntax.while; P1: boundaries from an Iterator
                 b += end
                 end = it.next()
         b.result()
@@ -129,8 +129,8 @@ private[tui4s] object TextEdit:
       */
     def singleLine(s: String): String =
         val out = new java.lang.StringBuilder(s.length)
-        var i   = 0
-        while i < s.length do
+        var i   = 0 // scalafix:ok DisableSyntax.var; P1: singleLine with replace and filterNot
+        while i < s.length do // scalafix:ok DisableSyntax.while; P1: singleLine with replace and filterNot
             val c = s.charAt(i)
             if c == '\r' && i + 1 < s.length && s.charAt(i + 1) == '\n' then
                 discard(out.append(' '))
@@ -139,7 +139,7 @@ private[tui4s] object TextEdit:
                 discard(out.append(' '))
             else if !Character.isISOControl(c) then discard(out.append(c))
             i += 1
-        end while
+        end while // scalafix:ok DisableSyntax.while; P1: singleLine with replace and filterNot
         out.toString
     end singleLine
 
@@ -181,8 +181,8 @@ private[tui4s] object TextEdit:
     private def wordStart(text: String, bounds: Array[Int], at: Int): Int =
         def blankAt(i: Int): Boolean =
           text.substring(bounds(i), bounds(i + 1)).isBlank
-        var i                        = at
-        while i > 0 && blankAt(i - 1) do i -= 1
-        while i > 0 && !blankAt(i - 1) do i -= 1
+        var i                        = at // scalafix:ok DisableSyntax.var; P1: a tailrec wordStart
+        while i > 0 && blankAt(i - 1) do i -= 1 // scalafix:ok DisableSyntax.while; P1: a tailrec wordStart
+        while i > 0 && !blankAt(i - 1) do i -= 1 // scalafix:ok DisableSyntax.while; P1: a tailrec wordStart
         i
 end TextEdit
