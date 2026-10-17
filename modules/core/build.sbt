@@ -11,6 +11,10 @@ libraryDependencies ++= Seq(
   "com.olvind.jatatui" % "jatatui-core"      % Versions.jatatui,
   "com.olvind.jatatui" % "jatatui-crossterm" % Versions.jatatui,
   "io.getkyo"         %% "kyo-test-runner"   % Versions.kyo        % Test,
+  // Property tests (PropertyTest, Gen, Shrink). The suites run under the
+  // kyo-test framework below; there is no second test framework.
+  // claude 2026-10-17: created (purity plan, phase P0)
+  "io.getkyo"         %% "kyo-test-prop"     % Versions.kyo        % Test,
   // The surface guard reads the TASTy of the kyo-ui jar (KyoUiSurfaceTest).
   "ch.epfl.scala"     %% "tasty-query"       % Versions.tastyQuery % Test,
 )
