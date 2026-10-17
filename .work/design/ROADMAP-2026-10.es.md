@@ -277,8 +277,11 @@ Cada decisión tiene una recomendación (R).
   spike en esta etapa, por presupuesto. Si se retoma: interpolador
   `ui"""..."""`, huecos con `${...}`, Metals primero, en `experiments/scalax`,
   después de L2. <!-- claude 2026-10-17: changed D9 from the user's answer -->
-- D10 Benchmarks: repo aparte `yuri4n/tui4s-bench` (más fácil recibir PRs de
-  afuera); el titular es lo compacto, lo expresivo, la corrección y el manejo
+- D10 Benchmarks: DECIDIDO el lugar (2026-10-17): en este mismo repo, en
+  `bench/`, con su propio build de sbt fuera del `build.sbt` raíz (así ningún
+  módulo publicado queda como no publicado) y las implementaciones de otros
+  lenguajes en `bench/impl/<lenguaje>/`, con su propio job de CI.
+  <!-- claude 2026-10-17: changed D10 from the user's answer --> El titular es lo compacto, lo expresivo, la corrección y el manejo
   de recursos (sección 4); etapa 1 = Counter y Dashboard contra ratatui,
   Bubble Tea, Textual, Ink, TamboUI, layoutz y jatatui puro; publicar después
   de 0.1. R: sí. Abierto: quién pone una máquina dedicada.

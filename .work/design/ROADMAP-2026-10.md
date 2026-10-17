@@ -202,10 +202,14 @@ Each decision has a recommendation (R).
   because of the budget. If it comes back: a `ui"""..."""` interpolator,
   `${...}` holes, Metals first, in `experiments/scalax`, after L2.
   <!-- claude 2026-10-17: changed D9 from the user's answer -->
-- D10 Benchmarks: separate repo `yuri4n/tui4s-bench` (easier outside PRs);
-  Stage 1 = Counter and Dashboard against ratatui, Bubble Tea, Textual, Ink,
-  TamboUI, layoutz and plain jatatui; publish after 0.1. R: yes. Open: who
-  gives a bare-metal machine.
+- D10 Benchmarks: place DECIDED (2026-10-17): in this repo, in `bench/`, with
+  its own sbt build outside the root `build.sbt` (so no published module
+  becomes unreleased), other languages in `bench/impl/<language>/`, and its
+  own CI job. Stage 1 = Counter and Dashboard against ratatui, Bubble Tea,
+  Textual, Ink, TamboUI, layoutz and plain jatatui; the headline is
+  compactness, expressiveness, correctness and resource management; publish
+  after 0.1. Open: who gives a bare-metal machine.
+  <!-- claude 2026-10-17: changed D10 from the user's answer -->
 - D11 Docs: copy `docs/` onto main in a new PR; domain and Vercel token
   owner. Open: domain.
 - D12 Release: version 0.1.0-RC1 while Kyo is RC; skip empty zio and cats;
