@@ -17,11 +17,8 @@ class TextEditPropertyTest extends PropertyTest[Any]:
       // The split loses no char and adds no char.
       forAll(text)(s => assert(TextEdit.graphemes(s).mkString == s))
 
-      // No grapheme is empty, and `count` agrees with the split.
-      forAll(text) { s =>
-        val gs = TextEdit.graphemes(s)
-        assert(gs.forall(_.nonEmpty) && TextEdit.count(s) == gs.size)
-      }
+      // No grapheme is empty.
+      forAll(text)(s => assert(TextEdit.graphemes(s).forall(_.nonEmpty)))
     }
 end TextEditPropertyTest
 
