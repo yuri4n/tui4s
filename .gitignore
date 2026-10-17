@@ -20,6 +20,11 @@ src_managed/
 *.iml
 out/
 
+# Python (the PTY kit in examples/ptycheck)
+# claude 2026-10-13: created (T1)
+__pycache__/
+*.pyc
+
 # JVM
 *.class
 *.log
@@ -40,3 +45,8 @@ docs/.env
 
 # Local agent scratch space (reports, probes, handoff notes)
 .work/
+
+# Nix / direnv
+.direnv/
+/result
+/result-*

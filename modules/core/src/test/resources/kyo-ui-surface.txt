@@ -1,0 +1,273 @@
+# kyo-ui surface list (RC-12, C1 part): the types of kyo.UI.Ast and the cases of kyo.Style.Prop
+# in the kyo-ui jar on the test class path (io.getkyo::kyo-ui, Versions.kyo). KyoUiSurfaceTest reads the
+# TASTy of the jar with tasty-query and compares it with this list. A new, removed or changed line fails
+# the test: read the kyo-ui change, update the runner, then update this list.
+# Format: kind<TAB>name<TAB>detail. Lines that start with # are comments.
+# ast.type: kind, visibility and parents of a class, trait or object of kyo.UI.Ast (a class and its
+#   companion object are one line). enum.case: a case of kyo.Style.Prop with its fields.
+# ast.fields: the constructor fields of UI.Ast.Reactive and UI.Ast.Foreach (the region nodes that Mount and
+#   Runner match on). bound.case: a case of UI.Bound with its fields (Mount.boundRef matches on Bound.Ref).
+#   signal.method: the two kyo.Signal methods of the watcher loop, from the kyo-core jar (K29).
+# claude 2026-10-12: created (the reader KyoUiSurface wrote this list from kyo-ui 1.0.0-RC7); changed: the
+#   C2 part (ast.fields, bound.case, signal.method: the last 6 lines)
+# C3 part: attrs.field: a field of UI.Ast.Attrs that Dispatch (or the focus order of Layout) reads, with its type.
+#   ui.member: a member of an element that Dispatch reads (a field, or a def with no parameter list), with its
+#   visibility and type. event.fields: the fields of KeyboardEvent, MouseEvent, Modifiers. keyboard.case: a case of
+#   UI.Keyboard. pin: K2, Foreach.applyTyped is still private (Mount casts a Foreach). rule: the shape hash of a rule
+#   method of kyo.internal.ReactiveUI that Dispatch or Mount copies; js: the hash of a rule fragment of the client JS
+#   (keydown, click, focusAuto). The hashes are the same as the spike S3 guard's (the same algorithm, shape mode).
+# claude 2026-10-13: changed: the C3 part (the last 84 lines)
+# C4 part: pin K3: kyo.Signal and kyo.Signal.SignalRef (kyo-core) declare no equals and no hashCode; the
+#   component registry (internal.ComponentSpec) finds a component node by the identity of its signal.
+# claude 2026-10-13: changed: the C4 part (one pin line)
+ast.type	UI.Ast.Activatable	trait public extends UI,Element
+ast.type	UI.Ast.Anchor	case class public extends UI,Inline,Interactive,Focusable,Activatable,Clickable
+ast.type	UI.Ast.AsHtmlChild	trait public extends 
+ast.type	UI.Ast.AsHtmlChildLowPriority	trait public extends AsHtmlChildLowestPriority
+ast.type	UI.Ast.AsHtmlChildLowestPriority	trait public extends 
+ast.type	UI.Ast.Attrs	case class private[kyo] extends 
+ast.type	UI.Ast.Block	trait public extends UI,Element,HtmlContent
+ast.type	UI.Ast.Blockquote	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.BooleanInput	trait public extends UI,Focusable,HasDisabled
+ast.type	UI.Ast.Br	case class public extends UI,Block,Void
+ast.type	UI.Ast.Button	case class public extends UI,Inline,Interactive,Focusable,HasDisabled,Activatable,Clickable
+ast.type	UI.Ast.Checkbox	case class public extends UI,Inline,Interactive,BooleanInput,Void
+ast.type	UI.Ast.Clickable	trait public extends UI,Element
+ast.type	UI.Ast.Code	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.ColorInput	case class public extends UI,Inline,Interactive,PickerInput,Void
+ast.type	UI.Ast.ConstrainedInput	trait public extends UI,TextInput
+ast.type	UI.Ast.DateInput	case class public extends UI,Inline,Interactive,PickerInput,Void
+ast.type	UI.Ast.Div	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Dropdown	case class public extends UI,Block,Interactive,PickerInput
+ast.type	UI.Ast.Element	trait public extends UI
+ast.type	UI.Ast.EmailInput	case class public extends UI,Inline,Interactive,ConstrainedInput,Void
+ast.type	UI.Ast.FileInput	case class public extends UI,Inline,Interactive,Focusable,HasDisabled,Void
+ast.type	UI.Ast.Focusable	trait public extends UI,Element
+ast.type	UI.Ast.Footer	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Foreach	case class public extends UI
+ast.type	UI.Ast.Form	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Fragment	case class public extends UI
+ast.type	UI.Ast.H1	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.H2	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.H3	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.H4	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.H5	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.H6	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.HasDisabled	trait public extends UI,Element
+ast.type	UI.Ast.Header	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.HiddenInput	case class public extends UI,Inline,Void
+ast.type	UI.Ast.Hr	case class public extends UI,Block,Void
+ast.type	UI.Ast.HtmlChildVal	class public extends AnyVal
+ast.type	UI.Ast.HtmlContent	trait public extends UI
+ast.type	UI.Ast.Iframe	case class public extends UI,Block,Void
+ast.type	UI.Ast.Img	case class public extends UI,Inline,Void
+ast.type	UI.Ast.Inline	trait public extends UI,Element,HtmlContent
+ast.type	UI.Ast.Input	case class public extends UI,Inline,Interactive,ConstrainedInput,Void
+ast.type	UI.Ast.Interactive	trait public extends UI,Element
+ast.type	UI.Ast.KeyedChild	case class private[kyo] extends UI
+ast.type	UI.Ast.Label	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Li	case class public extends UI,Inline,Interactive
+ast.type	UI.Ast.Main	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Nav	case class public extends UI,Inline,Interactive
+ast.type	UI.Ast.NumberInput	case class public extends UI,Inline,Interactive,TextInput,Void
+ast.type	UI.Ast.Ol	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Opt	case class public extends UI,Block
+ast.type	UI.Ast.P	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.PasswordInput	case class public extends UI,Inline,Interactive,ConstrainedInput,Void
+ast.type	UI.Ast.PickerInput	trait public extends UI,Focusable,HasDisabled
+ast.type	UI.Ast.Pre	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Radio	case class public extends UI,Inline,Interactive,BooleanInput,Void
+ast.type	UI.Ast.RangeInput	case class public extends UI,Inline,Interactive,Focusable,HasDisabled,Void
+ast.type	UI.Ast.RawHtml	case class public extends UI
+ast.type	UI.Ast.Reactive	case class public extends UI
+ast.type	UI.Ast.SearchInput	case class public extends UI,Inline,Interactive,ConstrainedInput,Void
+ast.type	UI.Ast.Section	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Select	case class public extends UI,Block,Interactive,PickerInput
+ast.type	UI.Ast.SpanElement	case class public extends UI,Inline,Interactive
+ast.type	UI.Ast.SvgInteractiveNode	trait public extends UI,SvgNode,Interactive
+ast.type	UI.Ast.SvgNode	trait public extends UI,Element
+ast.type	UI.Ast.SvgRootNode	trait public extends UI,SvgInteractiveNode,Inline,HtmlContent
+ast.type	UI.Ast.Table	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Tbody	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.Td	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.TelInput	case class public extends UI,Inline,Interactive,ConstrainedInput,Void
+ast.type	UI.Ast.Text	case class public extends UI,HtmlContent
+ast.type	UI.Ast.TextInput	trait public extends UI,Focusable,HasDisabled
+ast.type	UI.Ast.TextInputAttrs	case class private[kyo] extends 
+ast.type	UI.Ast.Textarea	case class public extends UI,Block,Interactive,ConstrainedInput,Void
+ast.type	UI.Ast.Th	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.TimeInput	case class public extends UI,Inline,Interactive,PickerInput,Void
+ast.type	UI.Ast.Tr	case class public extends UI,Inline,Interactive
+ast.type	UI.Ast.Ul	case class public extends UI,Block,Interactive
+ast.type	UI.Ast.UrlInput	case class public extends UI,Inline,Interactive,ConstrainedInput,Void
+ast.type	UI.Ast.Void	trait public extends UI,Element
+enum.case	Style.Prop.AccentColorProp	(color:Color)
+enum.case	Style.Prop.ActiveProp	(style:Style)
+enum.case	Style.Prop.Align	(value:Alignment)
+enum.case	Style.Prop.AlignSelf	(value:Alignment)
+enum.case	Style.Prop.AnimationDelayProp	(ms:Int)
+enum.case	Style.Prop.AnimationProp	(durationMs:Int,easing:Easing,name:String)
+enum.case	Style.Prop.BackgroundClipProp	(value:BackgroundClip)
+enum.case	Style.Prop.BgColor	(color:Color)
+enum.case	Style.Prop.BgGradientProp	(colorSpace:GradientColorSpace,colors:Chunk[Color],direction:GradientDirection,positions:Chunk[Double])
+enum.case	Style.Prop.BlurProp	(value:Length)
+enum.case	Style.Prop.BorderCollapseProp	(value:BorderCollapse)
+enum.case	Style.Prop.BorderColorProp	(bottom:Color,left:Color,right:Color,top:Color)
+enum.case	Style.Prop.BorderRadiusProp	(bottomLeft:Length,bottomRight:Length,topLeft:Length,topRight:Length)
+enum.case	Style.Prop.BorderStyleProp	(value:BorderStyle)
+enum.case	Style.Prop.BorderWidthProp	(bottom:Length,left:Length,right:Length,top:Length)
+enum.case	Style.Prop.Bottom	(value:Length)
+enum.case	Style.Prop.BrightnessProp	(value:Double)
+enum.case	Style.Prop.ContrastProp	(value:Double)
+enum.case	Style.Prop.CursorProp	(value:Cursor)
+enum.case	Style.Prop.DisabledProp	(style:Style)
+enum.case	Style.Prop.DisplayProp	(value:Display)
+enum.case	Style.Prop.FlexBasisProp	(value:Length)
+enum.case	Style.Prop.FlexDirectionProp	(value:FlexDirection)
+enum.case	Style.Prop.FlexGrowProp	(value:Double)
+enum.case	Style.Prop.FlexShrinkProp	(value:Double)
+enum.case	Style.Prop.FlexWrapProp	(value:FlexWrap)
+enum.case	Style.Prop.FocusProp	(style:Style)
+enum.case	Style.Prop.FontFamilyProp	(value:FontFamily)
+enum.case	Style.Prop.FontSizeProp	(value:Length)
+enum.case	Style.Prop.FontStyleProp	(value:FontStyle)
+enum.case	Style.Prop.FontVariantLigaturesProp	(value:FontVariantLigatures)
+enum.case	Style.Prop.FontWeightProp	(value:FontWeight)
+enum.case	Style.Prop.Gap	(value:Length)
+enum.case	Style.Prop.GrayscaleProp	(value:Double)
+enum.case	Style.Prop.Height	(value:Length)
+enum.case	Style.Prop.HiddenProp	-
+enum.case	Style.Prop.HoverProp	(style:Style)
+enum.case	Style.Prop.HueRotateProp	(value:Double)
+enum.case	Style.Prop.InvertProp	(value:Double)
+enum.case	Style.Prop.Justify	(value:Justification)
+enum.case	Style.Prop.Left	(value:Length)
+enum.case	Style.Prop.LetterSpacingProp	(value:Length)
+enum.case	Style.Prop.LineHeightProp	(value:Double)
+enum.case	Style.Prop.ListStyleProp	(value:ListStyle)
+enum.case	Style.Prop.Margin	(bottom:Length,left:Length,right:Length,top:Length)
+enum.case	Style.Prop.MaxHeight	(value:Length)
+enum.case	Style.Prop.MaxWidth	(value:Length)
+enum.case	Style.Prop.MinHeight	(value:Length)
+enum.case	Style.Prop.MinWidth	(value:Length)
+enum.case	Style.Prop.OpacityProp	(value:Double)
+enum.case	Style.Prop.OverflowProp	(value:Overflow)
+enum.case	Style.Prop.OverflowXProp	(value:Overflow)
+enum.case	Style.Prop.OverflowYProp	(value:Overflow)
+enum.case	Style.Prop.Padding	(bottom:Length,left:Length,right:Length,top:Length)
+enum.case	Style.Prop.PositionProp	(value:Position)
+enum.case	Style.Prop.Right	(value:Length)
+enum.case	Style.Prop.SaturateProp	(value:Double)
+enum.case	Style.Prop.ScrollMarginTopProp	(value:Length)
+enum.case	Style.Prop.ScrollbarColorProp	(thumb:Color,track:Color)
+enum.case	Style.Prop.ScrollbarGutterProp	(value:ScrollbarGutter)
+enum.case	Style.Prop.ScrollbarWidthProp	(value:ScrollbarWidth)
+enum.case	Style.Prop.SepiaProp	(value:Double)
+enum.case	Style.Prop.ShadowProp	(blur:Length,color:Color,spread:Length,x:Length,y:Length)
+enum.case	Style.Prop.StrokeDashoffsetProp	(value:Double)
+enum.case	Style.Prop.TextAlignProp	(value:TextAlign)
+enum.case	Style.Prop.TextColor	(color:Color)
+enum.case	Style.Prop.TextDecorationProp	(value:TextDecoration)
+enum.case	Style.Prop.TextOverflowProp	(value:TextOverflow)
+enum.case	Style.Prop.TextTransformProp	(value:TextTransform)
+enum.case	Style.Prop.TextWrapProp	(value:TextWrap)
+enum.case	Style.Prop.Top	(value:Length)
+enum.case	Style.Prop.TransitionProp	(durationMs:Int,easing:Easing,property:TransitionProperty)
+enum.case	Style.Prop.TranslateProp	(x:Length,y:Length)
+enum.case	Style.Prop.WhiteSpaceProp	(value:WhiteSpace)
+enum.case	Style.Prop.Width	(value:Length)
+enum.case	Style.Prop.ZIndexProp	(value:Int)
+ast.fields	UI.Ast.Foreach	(frame:Frame,key:Maybe[Function1[A,String]],render:Function2[Int,A,UI],signal:Signal[Chunk[A]])
+ast.fields	UI.Ast.Reactive	(frame:Frame,signal:Signal[UI])
+bound.case	UI.Bound.Const	(value:A)
+bound.case	UI.Bound.Ref	(ref:SignalRef[A])
+signal.method	Signal.currentWith	[B,S](f:Function1[A,<[B,S]])(x$#:Frame):<[B,&[S,Sync]]
+signal.method	Signal.nextWith	[B,S](f:Function1[A,<[B,S]])(x$#:Frame):<[B,&[S,Async]]
+attrs.field	UI.Ast.Attrs.focusAuto	Maybe[Boolean]
+attrs.field	UI.Ast.Attrs.focusGroup	Maybe[String]
+attrs.field	UI.Ast.Attrs.focusTrap	Maybe[Boolean]
+attrs.field	UI.Ast.Attrs.identifier	Maybe[String]
+attrs.field	UI.Ast.Attrs.onBlur	Maybe[<[Any,Async]]
+attrs.field	UI.Ast.Attrs.onBlurEvt	Maybe[Function1[MouseEvent,<[Any,Async]]]
+attrs.field	UI.Ast.Attrs.onClick	Maybe[<[Any,Async]]
+attrs.field	UI.Ast.Attrs.onClickEvt	Maybe[Function1[MouseEvent,<[Any,Async]]]
+attrs.field	UI.Ast.Attrs.onClickSelf	Maybe[<[Any,Async]]
+attrs.field	UI.Ast.Attrs.onClickSelfEvt	Maybe[Function1[MouseEvent,<[Any,Async]]]
+attrs.field	UI.Ast.Attrs.onFocus	Maybe[<[Any,Async]]
+attrs.field	UI.Ast.Attrs.onFocusEvt	Maybe[Function1[MouseEvent,<[Any,Async]]]
+attrs.field	UI.Ast.Attrs.onKeyDown	Maybe[Function1[KeyboardEvent,<[Any,Async]]]
+attrs.field	UI.Ast.Attrs.stopPropagation	Maybe[Boolean]
+attrs.field	UI.Ast.Attrs.tabIndex	Maybe[Int]
+event.fields	UI.KeyboardEvent	(key:Keyboard,modifiers:Modifiers,targetId:Maybe[String])
+event.fields	UI.Modifiers	(alt:Boolean,ctrl:Boolean,meta:Boolean,shift:Boolean)
+event.fields	UI.MouseEvent	(modifiers:Modifiers,targetId:Maybe[String])
+js	click rules	3f22778d5acefe81 lines=33
+js	focusAuto seeding	dfc94f5a7d154bbb lines=18
+js	keydown rules	fdb7564d279c9eda lines=145
+js	sweepFocusAuto (restore)	7c18a01ce0afb86a lines=15
+keyboard.case	UI.Keyboard.ArrowDown	-
+keyboard.case	UI.Keyboard.ArrowLeft	-
+keyboard.case	UI.Keyboard.ArrowRight	-
+keyboard.case	UI.Keyboard.ArrowUp	-
+keyboard.case	UI.Keyboard.Backspace	-
+keyboard.case	UI.Keyboard.Char	(c:Char)
+keyboard.case	UI.Keyboard.Delete	-
+keyboard.case	UI.Keyboard.End	-
+keyboard.case	UI.Keyboard.Enter	-
+keyboard.case	UI.Keyboard.Escape	-
+keyboard.case	UI.Keyboard.F1	-
+keyboard.case	UI.Keyboard.F10	-
+keyboard.case	UI.Keyboard.F11	-
+keyboard.case	UI.Keyboard.F12	-
+keyboard.case	UI.Keyboard.F2	-
+keyboard.case	UI.Keyboard.F3	-
+keyboard.case	UI.Keyboard.F4	-
+keyboard.case	UI.Keyboard.F5	-
+keyboard.case	UI.Keyboard.F6	-
+keyboard.case	UI.Keyboard.F7	-
+keyboard.case	UI.Keyboard.F8	-
+keyboard.case	UI.Keyboard.F9	-
+keyboard.case	UI.Keyboard.Home	-
+keyboard.case	UI.Keyboard.Insert	-
+keyboard.case	UI.Keyboard.PageDown	-
+keyboard.case	UI.Keyboard.PageUp	-
+keyboard.case	UI.Keyboard.Space	-
+keyboard.case	UI.Keyboard.Tab	-
+keyboard.case	UI.Keyboard.Unknown	(raw:String)
+pin	K2 UI.Ast.Foreach.applyTyped	private[kyo]
+pin	K3 Signal equals and hashCode	Signal: none; SignalRef: none
+rule	internal.ReactiveUI.collectSignalRef	b4879d3afb526f87 n=97
+rule	internal.ReactiveUI.cycleSelectOption	86dc9c43e6801388 n=169
+rule	internal.ReactiveUI.dispatch	f227f4345d0a9579 n=259
+rule	internal.ReactiveUI.dispatchToElement	0aa05f3066e0c92a n=1548
+rule	internal.ReactiveUI.findAllFocusableIds	9750df2cd3d156d6 n=125
+rule	internal.ReactiveUI.isDisabled	8c6a24d95d432631 n=21
+rule	internal.ReactiveUI.isHidden	e36354c0af8453f2 n=11
+rule	internal.ReactiveUI.isReadOnly	0c43a034c2ac7eac n=21
+rule	internal.ReactiveUI.isTargetButton	ce87840d4069f8f1 n=26
+rule	internal.ReactiveUI.isTargetDisabled	964cf2708da357ed n=23
+rule	internal.ReactiveUI.isTargetSelect	3967e2fe285e6475 n=26
+rule	internal.ReactiveUI.keepBubbling	cef2faadd2f4c2b9 n=17
+rule	internal.ReactiveUI.normalize	1f7a0015f5d31fd2 n=26
+rule	internal.ReactiveUI.normalizeAt	1337668f57b40f28 n=402
+rule	internal.ReactiveUI.readChecked	46a4a1b6d7283951 n=43
+rule	internal.ReactiveUI.subscribe	c4c6dc83d4dc01b1 n=206
+rule	internal.ReactiveUI.subscribeScoped	9a187465e3a1224e n=253
+rule	internal.ReactiveUI.targetSatisfies	661d76b892f3b214 n=313
+rule	internal.ReactiveUI.toggleChecked	76ae3ecf00b9c8fe n=54
+rule	internal.ReactiveUI.walkStatic	2f05d6d68b69b92d n=557
+ui.member	UI.Ast.BooleanInput.checked	public Maybe[Bound[Boolean]]
+ui.member	UI.Ast.BooleanInput.onChange	public Maybe[Function1[Boolean,<[Any,Async]]]
+ui.member	UI.Ast.Element.attrs	public Attrs
+ui.member	UI.Ast.Element.children	public Chunk[UI]
+ui.member	UI.Ast.Form.onSubmit	public Maybe[<[Any,Async]]
+ui.member	UI.Ast.Form.onSubmitEvt	public Maybe[Function1[MouseEvent,<[Any,Async]]]
+ui.member	UI.Ast.HasDisabled.disabled	public Maybe[Boolean]
+ui.member	UI.Ast.Opt.value	public Maybe[String]
+ui.member	UI.Ast.Select.children	public Chunk[UI]
+ui.member	UI.Ast.Select.onChange	public Maybe[Function1[String,<[Any,Async]]]
+ui.member	UI.Ast.Select.value	public Maybe[Bound[String]]
+ui.member	UI.Ast.TextInput.onChange	public Maybe[Function1[String,<[Any,Async]]]
+ui.member	UI.Ast.TextInput.onInput	public Maybe[Function1[String,<[Any,Async]]]
+ui.member	UI.Ast.TextInput.readOnly	public Maybe[Boolean]
+ui.member	UI.Ast.TextInput.value	public Maybe[Bound[String]]

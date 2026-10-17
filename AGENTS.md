@@ -5,29 +5,158 @@ This file is for AI agents and for humans who work on tui4s. It uses ASD-STE100
 
 ## What tui4s is
 
-tui4s is a library for declarative terminal user interfaces in Scala 3. It wraps
+<!-- claude 2026-10-12: changed this section: tui4s is a terminal runner for kyo-ui (C1) -->
+tui4s is a terminal runner for [kyo-ui](https://github.com/getkyo/kyo), the UI
+library of [Kyo](https://getkyo.io), in Scala 3. A kyo-ui value describes the
+screen. tui4s lays it out in terminal cells and paints it with
 [jatatui](https://github.com/oyvindberg/jatatui), a Java port of ratatui that
-replaces tui-scala.
+replaces tui-scala. tui4s has no UI DSL of its own: the DSL is kyo-ui.
 
-| Directory       | sbt id     | Artifact                         | Release tag     | Published |
-| --------------- | ---------- | -------------------------------- | --------------- | --------- |
-| `modules/core`  | `core`     | `io.github.yuri4n::tui4s-core`   | `core-v<semver>` | yes      |
-| `modules/zio`   | `zio`      | `io.github.yuri4n::tui4s-zio`    | `zio-v<semver>`  | yes      |
-| `modules/cats`  | `cats`     | `io.github.yuri4n::tui4s-cats`   | `cats-v<semver>` | yes      |
-| `examples`      | `examples` | none                             | none             | no       |
-| `docs`          | none       | none (Nuxt Docus site)           | none             | no       |
+| Directory       | sbt id     | Artifact                         | UI DSL                                  | Release tag      | Published |
+| --------------- | ---------- | -------------------------------- | --------------------------------------- | ---------------- | --------- |
+| `modules/core`  | `core`     | `io.github.yuri4n::tui4s-core`   | kyo-ui                                  | `core-v<semver>` | yes       |
+| `modules/zio`   | `zio`      | `io.github.yuri4n::tui4s-zio`    | a ZIO DSL over kyo-ui (planned)         | `zio-v<semver>`  | yes       |
+| `modules/cats`  | `cats`     | `io.github.yuri4n::tui4s-cats`   | a Cats Effect DSL over kyo-ui (planned) | `cats-v<semver>` | yes       |
+| `examples`      | `examples` | none                             | -                                       | none             | no        |
+| `docs`          | none       | none (Nuxt Docus site)           | -                                       | none             | no        |
 
-The core uses [Kyo](https://getkyo.io). The `zio` and `cats` modules let ZIO and
-Cats Effect users write tui4s apps without Kyo types in their code.
+The core uses Kyo and kyo-ui (both at `Versions.kyo`). The `zio` and `cats`
+modules will let ZIO and Cats Effect users write tui4s apps without Kyo types
+in their code. Today the core renders a kyo-ui value to cells
+(`tui4s.internal.Layout`, `tui4s.internal.Paint`) and follows its signals: a
+`Signal`, a `Foreach` or a bound `SignalRef` drives a region of the screen,
+and each change gives one frame (`tui4s.internal.Runner`). Keys reach the UI
+(`tui4s.internal.Dispatch`): `onKeyDown` handlers bubble from the focused
+element up to the root (`stopPropagation` stops them); Tab and Shift-Tab move
+the focus, also inside a focus trap, and the arrows move it inside a focus
+group; Enter and Space press a button (a click that bubbles to the ancestors'
+`onClick` and submits the button's form, as in a browser), toggle a checkbox
+or a radio and cycle a select; Enter in a form submits it; a handler in its
+event form (`onClick(e => ...)`, `onFocus(e => ...)`, `onSubmit(e => ...)`)
+runs as its action form does; a text input edits by grapheme clusters
+(Ctrl-A, E, U, K, W too); a bracketed paste is one edit; Ctrl-C and
+`tui4s.Tui.quit` end the run. `tui4s.Tui.run` runs a UI in the real
+terminal: it enters raw mode and the alternate screen (`internal.TerminalIO`,
+`internal.Session`), an input thread maps the crossterm events to kyo-ui keys,
+pastes and resizes (`internal.EventMapping`), the runner draws on a crossterm
+backend, and the release restores the terminal in every way that a run ends
+(also from a JVM shutdown hook). The headless test kit
+`tui4s.testkit.Headless` runs an app without a terminal: a test sends keys
+(`press`, `key`, `char`, `typeText`, `paste`) or writes the app's
+`SignalRef`s, and reads `testkit.Screen`. Components come in two styles.
+Hooks (`tui4s.Hooks`): a component is a function that returns `UI < Sync` or
+`UI < (Async & Scope)`, with `useSignal`, `useHold`, `useFold`, `useEffect`
+and `useInterval`; `component(key)(body)` is a node that the runner mounts:
+the body runs at the mount, in a `Scope` that closes at the unmount, and the
+mount goes on while a node of the same call site and key stays at the same
+position. The class style (`tui4s.Component`): a `State` type member,
+`initial`, `view(state)` and `onMount(state)`; the runner keeps the state
+under the position and `stateKey` (the class name by default; override it for
+one state per value), so a parent that renders again keeps the state and the
+effects (`onMount` runs once per mount), and another class at that position
+starts fresh. A component (hook or class) inside a `when` loses its state
+when it is hidden and starts fresh when it comes back. The frame of the event
+that mounts a hook component waits for its first UI at most
+`TuiOptions.pendingTimeout` (2 s, in all), then comes without it; the UI
+comes in a later frame. A component node is a kyo-ui `Reactive` whose signal
+is in a global weak registry (`internal.ComponentSpec`): the AST of kyo-ui is
+sealed.
+<!-- claude 2026-10-12: changed these lines: signals drive the screen; the headless kit (C2) -->
+<!-- claude 2026-10-13: changed these lines: keys reach the UI; the key methods of the kit (C3) -->
+<!-- claude 2026-10-13: changed the button and the event-form sentences (PR #13 review: Codex, Dispatch.scala:180, :204, :401) -->
+<!-- claude 2026-10-13: changed these lines: Tui.run in the real terminal (T1) -->
+<!-- claude 2026-10-13: changed these lines: the two component styles, the state key, `when`, the pending frame (C4) -->
+`tui4s.TuiApp` is the main class of an app (`object App extends TuiApp` with
+`def ui`, and `options`, `args`, `onExit`): its constructor sets the tui4s
+scheduler values (`tui4s.spi.SchedulerDefaults`) and installs the output
+capture before the app's own code, and its `main` runs `ui` with `Tui.run`.
+The exit code is 0 after a quit (also the key Ctrl-C) and 1 after a failure
+(printed after the restore); on `kill -TERM`, `kill -INT` or a `System.exit`,
+a shutdown hook interrupts the run and waits at most 2 s for the restore, and
+the JVM exits with its own code (143, 130). The examples (`examples/`) have
+one main per package. All are `TuiApp`s except `counterkyo`, a `KyoApp` main
+of its own; `widgets` is a library with no main. Each UI has a munit suite on
+`Headless`.
+<!-- claude 2026-10-13: created these lines (T2, RC-24, OS-47 part): TuiApp and the examples -->
+<!-- claude 2026-10-13: changed the last sentence (T2, review R1-4): counterkyo is a KyoApp; widgets has no main -->
+
+## UI architecture and API design
+
+- Audit the pinned Kyo and kyo-ui public APIs, documentation, and tests before
+  adding an abstraction. Prefer their existing signals, bindings, callbacks,
+  effects, and resource scopes. State the missing behavior that new code adds.
+- Follow Vue component conventions when they improve the Scala API: typed
+  props, owned or controlled state, explicit callbacks, and function slots.
+  Keep Kyo's execution model. Do not reproduce JavaScript conventions that
+  add no useful behavior to the typed Scala API.
+- Use `SignalRef` for mutable reactive state and `Signal` for derived or
+  read-only state. Use native `.value(ref)` and `.checked(ref)` bindings for
+  inputs. They write the reference before calling the user event handler.
+- Use typed Scala callbacks for component events. Use Kyo `Emit` when logic
+  needs a separate event effect and handler. Handle that effect inside the
+  callback execution before returning to the UI's `Async` event boundary.
+  Do not add model or event wrappers only to rename existing Kyo APIs.
+- A component owns local state by default. A controlled component reads the
+  signal supplied by its parent and calls a typed change callback; the parent
+  can accept or reject the request. Keep that supplied signal authoritative.
+  Prefer typed props and function parameters for slots.
+- Keep reusable widgets in `examples.widgets`. `TabsView` uses public Kyo
+  APIs only; `Tabs` adapts it to tui4s component mounting. There is no separate
+  UI core repository. tui4s owns terminal rendering, input, and its retained
+  mount identity. Ordinary Kyo UI construction and terminal mounting have
+  different state lifetimes; document the difference.
+- Use only Kyo's public APIs. Do not use a package name or reflection to reach
+  private Kyo implementation members.
+- An ordinary Scala class can group signals, derived values, and actions.
+  Use Kyo `Env` and `Layer` for dependency provision when useful. Resolve or
+  handle dependencies before a deferred UI callback runs; handling UI
+  construction alone does not handle effects in a returned callback.
+- A store groups related hooks and composables into one typed feature, not
+  only state fields. Include its actions, derived values, subscriptions, and
+  effects where useful. Review shared instance identity and the lifetime of
+  the whole group. Compare native `Scope`, `Var`, and signal composition
+  before choosing a store API; do not add a second effect runtime.
+- A shared store belongs to one app or provider. The same definition must
+  return the same whole instance within that owner and run setup once.
+  Component unmount must not destroy it; owner shutdown must clean up its
+  effects. Separate apps, tests, and server requests must get separate groups.
+- `vendor/pini4s` is an optional shared-state library. Its keyed references
+  add explicit, application-owned sharing. Do not put component events,
+  bindings, widgets, or renderer code in it. Local state and controlled
+  components need no store library.
+- Compare API alternatives with small executable spikes and independent
+  reviews before making new abstractions. Check both component code and app
+  code, including deferred callbacks. Do not choose contextual parameters
+  or effects only because the existing code uses them.
+- pini4s is a Git submodule. Run `git submodule update --init --recursive`
+  after cloning. Run `sbt check` in `vendor/pini4s` when it changes, as well as
+  the relevant tui4s checks.
 
 ## Toolchain
 
+- Keep quick onboarding available in every maintained repository. Provide a
+  locked Nix development shell with the required JDK, sbt, and test tools.
+  Use sbt-native-packager for runnable distributions where useful. A library
+  remains a library; put its runnable demonstration in a separate project.
+  This is a user preference, not a requirement to make every artifact an app.
+- Start a new checkout with `git clone --recurse-submodules`, then
+  `nix develop`. An existing checkout needs
+  `git submodule update --init --recursive`. Keep the manual JDK and sbt
+  setup documented too. Do not claim a shell or platform was tested without
+  running the relevant check.
 - Use **JDK 25**. Kyo 1.0.0-RC7 needs JDK 25 to compile and to run, because its
   macros load Kyo classes. Before you run sbt, make sure that `java -version`
   shows 25.
 - Scala **3.9.0** and sbt **1.13.0**. Do not change them in only one module.
 - Run only one sbt process in this repo at a time. Two processes share
   `target/` and fight for the sbt server lock.
+- The compiler options come from sbt-tpolecat (`build.sbt`, "Compiler
+  options"). On a developer machine the warnings stay warnings (`DevMode`). In
+  CI the environment variable `SBT_TPOLECAT_CI` adds `-Werror`: a warning
+  fails the build. To get the CI behaviour in a local sbt session, run
+  `tpolecatCiMode` first, or set `SBT_TPOLECAT_CI=1`. Keep the code free of
+  warnings.
+  <!-- claude 2026-10-12: created this item (D-8: sbt-tpolecat replaces the hand-written flags) -->
 
 ## Daily commands
 
@@ -39,30 +168,219 @@ Cats Effect users write tui4s apps without Kyo types in their code.
 | `sbt check`                          | Does the sbt checks of CI: format, compile, test, compat.     |
 | `bash scripts/version-order-test.sh` | Tests the version order of the release script (CI runs it).   |
 | `sbt versions`                       | Shows the version of each module (released or snapshot).      |
-| `sbt core/test`                      | Runs the tests of one module.                                 |
-| `sbt "examples/runMain <main>"`      | Runs an example in the real terminal (forked JVM).            |
+| `sbt core/test`                      | Runs the tests of one module. The core tests use kyo-test.    |
+| `nix develop`                       | Enters the development shell with JDK 25, sbt, and terminal test tools. |
+| `sbt examples/Universal/stage`       | Stages native-packager launchers and runtime JARs in `examples/target/universal/stage`. |
+| `sbt examples/Universal/packageBin`  | Creates the examples ZIP distribution under `examples/target/universal`. |
+| `sbt examples/launchers`             | Stages the distribution and writes compatible `examples/target/bin/<package>` launchers plus the PTY classpath. |
+| `examples/target/bin/<app>`          | Runs an example in the real terminal (its own JVM): `counter`, `counterkyo`, `twocounters`, `counterstyles`, `todo`, `dashboard`, `printing`. |
+| `examples/ptycheck/run.sh`           | Runs the real-terminal checklist in a pseudo-terminal (CI job `terminal`). |
+
+<!-- claude 2026-10-13: changed (T1): the launchers and the PTY kit replace `sbt "examples/runMain <main>"` -->
 
 <!-- claude 2026-10-09: changed: also run the version order test before each push -->
 Run `sbt fmt`, `sbt check` and `bash scripts/version-order-test.sh` before each
-push.
+push. After a change to the terminal code (`TerminalIO`, `Crossterm`,
+`Session`, `EventMapping`, `OutputCapture`, `Tui.run`, `TuiApp`, the
+examples), also run `examples/ptycheck/run.sh` (it needs `expect`, `python3`
+and JDK 25 in `JAVA_HOME`, or `java` on `PATH` when `JAVA_HOME` is not set).
+<!-- claude 2026-10-13: changed (T1): run the PTY kit after a terminal change -->
+<!-- claude 2026-10-13: changed (T2): TuiApp; the JDK of the kit -->
+
+Never start a terminal UI with `sbt run` or `sbt runMain`: sbt also reads the
+keyboard, so keys are lost, and the forked JVM gets no terminal on stdin (the
+app stops with `NotATerminal`). Use the start scripts. An agent never starts
+a terminal UI in its own shell: only the PTY kit runs one. The start scripts
+use `$JAVA_HOME/bin/java` (or `java` on `PATH`): it must be JDK 25. When the
+environment sets `JAVA_TOOL_OPTIONS` or `JDK_JAVA_OPTIONS` (a proxy setup),
+the JVM prints a "Picked up ..." line into the terminal before the UI starts;
+`run.sh` unsets them for the app.
+<!-- claude 2026-10-13: created this paragraph (T1, OS-47 part) -->
+
+The examples use sbt-native-packager's `JavaAppPackaging`. Keep the JVM flags,
+all example launchers, program arguments, and the PTY `target/bin/classpath`
+contract when changing packaging. `Universal/packageBin` distributes JARs and
+scripts; it does not bundle a JDK or build a native executable. Validate both
+the staged distribution and the existing launcher paths. Keep library modules
+free of application packaging plugins.
+
+The stress probes (`tui4s.stress.*`) are ignored in `sbt check`. To run one,
+set `-Dtui4s.stress=<rounds>` in the test JVM and run it alone on the machine:
+`sbt 'set core / Test / javaOptions += "-Dtui4s.stress=150"' 'core/testOnly
+tui4s.stress.LeakProbe'`. A test run under CPU contention sets
+`-Dtui4s.load=1` the same way, or runs `TUI4S_LOAD=1 sbt ...` (the glitch
+tests then allow 1 split frame).
+<!-- claude 2026-10-13: changed: TUI4S_LOAD (C3) -->
+<!-- claude 2026-10-12: created this paragraph (review R3-8, R3-2) -->
 
 ## Rules for code
 
 - Do not write to stdout or stderr while a terminal UI runs. The output
-  corrupts the screen. Send logs to a file.
+  corrupts the screen. Send logs to a file. `Tui.run` binds its own Kyo
+  logger (`internal.TuiLog`, to `TuiOptions.logFile` or to memory) and
+  captures `System.out` and `System.err` (`internal.OutputCapture`); what it
+  kept is printed after the restore. A `TuiApp` installs the capture in its
+  constructor, before the first use of `scala.Console`, so Scala's `println`
+  is captured too. The core main sources have no
+  `System.err` and no `println` except the log sink, the output forwarders
+  and the prints after the restore, each with a `// tui4s: allowed` comment:
+  `grep -rnE 'System\.err|System\.out|println' modules/core/src/main` shows
+  only comment lines and lines with that marker.
+  <!-- claude 2026-10-13: changed (T1): the run's logger, the capture, the marker rule -->
+  <!-- claude 2026-10-13: changed (T2): TuiApp installs the capture -->
 - Do not put `com.olvind.tui` (tui-scala) on the classpath. Its `crossterm`
   jar has the same `tui.crossterm` package as the jatatui `crossterm` jar.
 - Do all drawing on one fiber. jatatui buffers, cells and widget states are
   mutable and are not thread-safe.
 - The native `read()` of crossterm blocks and an interrupt cannot stop it. To
   read input, call `poll(<short timeout>)` in a loop, then call `read()`.
+  Only the input thread of the session (`internal.InputThread`, a platform
+  thread) reads the terminal; it posts messages to the runner's inbox and
+  never draws.
+- A run in the terminal needs the JVM flag
+  `--enable-native-access=ALL-UNNAMED` (crossterm is a JNI library). Without
+  it JDK 25 prints a four-line warning into the terminal before the UI starts
+  (it stays above the prompt after the run); with
+  `--illegal-native-access=deny` the run fails with
+  `TuiError.NativeAccessDenied` before the terminal changes. A library that
+  does not load for another reason is `TuiError.NativeLoadFailed`.
+- The release of the terminal (`Session.close`) closes the canvas first: it
+  waits for a draw in progress (the backend's monitor), and nothing is drawn
+  after it. It runs once, from the end of the run or from the JVM shutdown
+  hook, whichever comes first. After a quit, `Tui.run` closes the `Scope` of
+  the UI before the release: it interrupts the fibers that the UI started
+  with `Fiber.init` and waits for them. A fiber that does not stop on an
+  interrupt (a blocking call in `Sync.defer`) keeps the terminal in raw mode
+  until it ends.
+  <!-- claude 2026-10-13: changed (T1, review R2-2): the scope closes before the release -->
+- The fibers that a component or a hook starts end with the run: the body of
+  a hook component and `Component.onMount` (started by `internal.Mount`), and
+  the fibers of `useEffect`, `useInterval`, `useHold` and `useFold` (they
+  call `internal.Tui4sTrack`) join the live-fiber gauge of the run, and the
+  end of the run interrupts them (`Mount.interruptAll`), also a fiber of a
+  hook at the top of the app, whose `Scope` closes later. A new hook or a
+  new mount that starts a fiber adds it to the gauge in the same way, and a
+  test checks the gauge after an interrupted run and after a quit
+  (`ComponentTest`). The unmount of a component interrupts its fiber, so its
+  `Scope` closes and its effects stop.
+  <!-- claude 2026-10-13: created this item (C4, RC-8) -->
+- jatatui 0.31.0's JNI cuts a typed character outside the Basic Multilingual
+  Plane (an emoji) to 16 bits: such a key arrives wrong. A bracketed paste
+  keeps it (`internal.EventMapping` Scaladoc).
+  <!-- claude 2026-10-13: created these three items and the input-thread sentence (T1) -->
 - Tests must not need a real terminal. Render into a jatatui `TestBackend` or
-  into a `Buffer`.
+  into a `Buffer`, or run the app on `tui4s.testkit.Headless`. A test of the
+  terminal path uses a fake crossterm (`FakeCrossterm` and the run seam
+  `Tui.runWith`); `NativeTerminalTest` loads the real library only when stdin
+  is not a terminal. The real terminal is the job of the PTY kit
+  (`examples/ptycheck`).
+  <!-- claude 2026-10-13: changed (T1): the fake crossterm and the PTY kit -->
+- The frame contract is SOFT (decision D-17 c): one frame per event with all
+  of its consequences; 0 split frames with no load, and at most 1 per 10 000
+  under load (Kyo 1.0.0-RC7 can lose a wakeup in `Signal.combineLatest`, and
+  a region on `combineLatest`, `zip`, `switchMap` or `combineLatestAll` still
+  runs one `Async.race` per change inside Kyo; the watcher loop of the runner
+  removes only its own race: issue #8). The glitch tests (AppsTest: 500
+  writes, and 500 keys) assert 0 split frames and print the count; a run
+  under CPU contention sets `-Dtui4s.load=1` in the test JVM, which allows 1.
+  CI sets the environment variable `TUI4S_LOAD=1` (`ci.yml`), and
+  `modules/core/build.sbt` gives the test JVM `-Dtui4s.load=1`: on a loaded
+  2-CPU runner, 500 events give about a 5 percent chance of 1 split under the
+  SOFT contract, and a real regression gives many. One event is one write
+  (or one key). A key is one event: its handlers run inside the runner's step,
+  before the settle, so its Input frame holds their writes and every region that
+  derives from them; a key step also re-reads the regions whose watcher has not
+  armed yet, as a resize does. The runner cannot tell a consequence of the
+  active event from an independent write that lands while it settles (a Kyo
+  signal carries no cause), so the writes that land inside one settle window
+  share one frame: a frame is a batch, and `FrameStats.updates` counts its
+  region values. The glitch test writes one ref at a time and waits for its
+  frame; two writes from a test fiber with no wait between them give one frame
+  or two.
+  <!-- claude 2026-10-12: changed this sentence (PR #11 review: Codex, Runner.scala:394) -->
+  The runner settles on the JVM-wide Kyo scheduler, so core test suites run one
+  at a time: a suite that runs the runner extends `RunnerSuite` (sequential
+  leaves), and sbt runs one test JVM at a time. A test that writes a
+  `SignalRef` and reads the screen waits with `Headless.awaitScreen`; the kit
+  itself never waits unless a method's name says so. After the run has ended, a
+  kit method that waits for a frame (a key method, `paste`, `resize`,
+  `nextFrame`) fails at once; the key that ended the run still gets its frame.
+  The runner posts the stats of a frame after its flush: a test that counts
+  frames after `awaitScreen` waits for them with `RunnerSuite.framesUntil`.
+  <!-- claude 2026-10-12: created this item (D-17 c, RC-19); changed: the races inside Kyo, the glitch assertion and the load flag, one event is one write, framesUntil (review R2-6, R3-2, K2-2, R2-3) -->
+  <!-- claude 2026-10-13: changed: the glitch test by keys, the CI load flag TUI4S_LOAD (C3, gate 1 item 2) -->
+  <!-- claude 2026-10-13: changed: rewrapped at 80 columns (review R1-7); the kit fails after the end of the run (review R1-8, R2-7) -->
+- A `Reactive` region whose UI holds a closure (a handler) or a nested signal
+  never compares equal to its last render. The verify pass and the repair
+  tick (every 1 s) render it again: the frame has `repaired > 0` and, when
+  the cells did not change, `flushed == 0`; the terminal gets no bytes. Kyo's
+  `Signal.observe` repair timer does the same. A test that counts frames
+  turns the tick off (`Knobs.let(Knobs(repairInterval = 1.hour))`) or drains
+  these frames first. Such a render builds new component nodes: the mount of
+  a component of the same identity (a hook component: the call site and the
+  key; a `Component`: the state key) at the same position goes on, so its
+  state stays and its body or `onMount` does not run again.
+  <!-- claude 2026-10-12: created this item (review R2-5) -->
+  <!-- claude 2026-10-13: changed (C4): the component mounts go on -->
+- The test JVM sets the tui4s scheduler values (`modules/core/build.sbt`,
+  `Test / javaOptions`): `kyo.scheduler.cycleIntervalNs=10000000`,
+  `kyo.scheduler.blockingMonitorIntervalNs=20000000` and
+  `kyo.scheduler.regulator.concurrencyCollectIntervalMs=100`. Without them the
+  runner gives more split frames under load (spike S1). The start scripts of
+  the examples give a real app the same values as JVM flags
+  (`examples / run / javaOptions` in `build.sbt`); `TuiApp` sets them in code
+  (`tui4s.spi.SchedulerDefaults.applyIfUnset`, first in its constructor: Kyo
+  reads them once, when its scheduler starts). An app with a main of its own
+  gives them as JVM flags.
+  <!-- claude 2026-10-13: changed (T1, D-17 c): the start scripts -->
+  <!-- claude 2026-10-13: changed (T2, RC-25): TuiApp sets them in code -->
+  The settle canary (SettleTest) needs a
+  second Kyo worker: on a 2-CPU JVM under load the scheduler keeps one, so
+  the canary cancels itself there (the report says `cancelled`, not passed).
+  <!-- claude 2026-10-12: created this item (D-17 c); changed: the canary on 2 CPUs -->
+- When the JVM stops a `TuiApp` (SIGTERM, SIGINT, `System.exit`), its shutdown
+  hook `tui4s-stop` interrupts the run and waits at most 2 s until the
+  terminal is restored; the restore hook of the session can end the run first
+  (a closed inbox is a quit). In both cases `main` prints nothing and `onExit`
+  does not run (`internal.Hooks.shuttingDown`), so no output races with the
+  exit of the JVM. `TuiAppTest` models the hooks with `FakeHooks`; the PTY kit
+  checks the real signals.
+  <!-- claude 2026-10-13: created this item (T2, RC-24, D-24 a) -->
+- Never join the run fiber from an interruptible wait. A join makes the
+  caller's interrupt wait for the run, and a run that waits for the caller is
+  a deadlock. Poll `done` with a bounded wait instead (`Headless.awaitEnd`).
+  <!-- claude 2026-10-12: created this item (OS-34) -->
+- Give a Kyo handler value the type `Any < Async` (a function:
+  `KeyboardEvent => Any < Async`), and put a side effect inside `Sync.defer`.
+  Kyo lifts a plain value into `A < S`, so a handler with no type compiles,
+  but its side effect is not in the effect: an untyped `val h = { n += 1 }`
+  given to `onClick` runs once, when the UI is built, and never on the key;
+  an untyped `e => e.key match { ... }` whose cases return effects runs none
+  of them. The compiler gives no warning. `LiftTrapTest` shows the trap (the
+  lift trap, RR O5); when Kyo closes it, that test fails.
+  <!-- claude 2026-10-13: created this item (C3, RR O5) -->
+- The runner calls no `private[kyo]` member of Kyo or kyo-ui (RR N9). The
+  compiler rejects a direct call. Do not get around it with a source file in
+  package `kyo` or with reflection. Read the attributes of an element through
+  the public member `Element.attrs` (its type `Attrs` is `private[kyo]`, so
+  the runner never names it). Where kyo-ui keeps a rule private (the key
+  dispatch, the region walk), the runner copies its semantics (`Dispatch`,
+  `Mount`), and the surface guard (`kyo-ui-surface.txt`) pins what it reads.
+  <!-- claude 2026-10-13: created this item (C3, RR N9) -->
+- The strict flags do not see everything at the Java boundary (spike S6):
+  `-Wnonunit-statement` does not see a Java call in statement position;
+  `-Wvalue-discard` sees a Java result only in a `Unit` position;
+  `-Yexplicit-nulls` gives flexible types to Java results, so the compiler does
+  not force a null check. Check for null where the Java source, the Javadoc or
+  the JNI contract allows null, mainly for the crossterm records.
+  <!-- claude 2026-10-12: created this item (S6 "Proposed AGENTS.md rule for C1") -->
 
 ## Dependencies and versions
 
 - `project/Versions.scala` holds the versions that more than one module uses
-  (Scala, Kyo, jatatui, munit).
+  (Scala, Kyo, jatatui, munit, tasty-query). tasty-query is there because the
+  core tests use it now and the zio and cats coverage tests will use it later.
+  <!-- claude 2026-10-12: changed: tasty-query named, with the reason (review R1-3, R2-5) -->
 - Each published module watches its own `modules/<m>` directory, the root
   `build.sbt` and the `project` directory. A change in the root `build.sbt` or
   in `project` marks all modules as unreleased.
@@ -80,6 +398,17 @@ rules are early-semver:
   (`0.y.z` to `0.y.z+1`).
 - `Compatibility.None`: the next release must bump the minor version (`0.y` to
   `0.y+1`).
+
+The package `tui4s.internal` is sealed: each of its top-level definitions is
+`private[tui4s]`, so users and Scaladoc do not see it (the test kit and the
+`zio` and `cats` modules are inside `tui4s` and keep the access).
+`PublicApiTest` checks the seal, and also that no public signature of `tui4s`,
+`tui4s.spi` or `tui4s.testkit` names an internal type; the compiler does not
+check this. `private[tui4s]` is public in the bytecode: MiMa and
+`versionPolicyCheck` see the internal types and the `private[tui4s]` seams, so
+a change there can break binary compatibility as a change of the public API
+does.
+<!-- claude 2026-10-13: created this paragraph (C3, gate 1 item 1, RC-36) -->
 
 If a pull request breaks binary compatibility, set the intention of that module
 to `Compatibility.None` in the same pull request. After the release, set it back
