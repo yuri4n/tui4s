@@ -13,7 +13,9 @@ started from the main checkout): it is the user's Metals sbt server.
   as a stack (L0 functional rewrite first, then core renderer features,
   widgets and hooks, the flagship assistant app, web, docs, benchmarks,
   release) and decisions D1-D14 with recommendations.
-- Nothing is decided until the user answers D1-D14. Do not start code before.
+- The user APPROVED D1-D16 on 2026-10-17 (DECISIONS.md, fifteenth round). Next: L0 phase P0 on branch
+  chore/cleanup-7p2rll (restarted from main), after the startup measurement workflow frees sbt.
+  <!-- claude 2026-10-17: changed after the user's approval -->
 - The user's rules for the rewrite are the skills on main:
   `.claude/skills/functional-design` and `.claude/skills/scala-functional-design`
   (commit cd6a877, "temporary").

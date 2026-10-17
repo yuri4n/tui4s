@@ -1,8 +1,10 @@
 # tui4s roadmap after the Kyo phase (draft for decisions, 2026-10-17)
 
-This file is a draft. It uses ASD-STE100. It records the research of
-2026-10-17 and the decisions that the user must take. Nothing in it is
-decided until the user answers the questions in "Decisions".
+This file uses ASD-STE100. It records the research of 2026-10-17 and the
+decisions. STATUS (2026-10-17): the user APPROVED D1-D16 (D5, D9 and D10 as
+changed by the user; the others as recommended). Open: D10 machine, D11
+domain, D16 waits for the startup numbers. See DECISIONS.md, fifteenth round.
+<!-- claude 2026-10-17: changed the status line after the user's approval -->
 
 Raw research results (JSON and Markdown) are in `.work/explore-2026-10-17/`.
 

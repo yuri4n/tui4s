@@ -224,3 +224,32 @@ Eighth round (2026-10-11, gate 0, after W0; recorded by Claude from the user's a
 - The user wants to SEE the result: after T2 the next step is the user's run of the examples (`sbt examples/launchers`;
   `examples/target/bin/{counter,twocounters,counterstyles,todo,dashboard}`) on the branch feat/kyoui-06-app-examples,
   and the merges of the stack (#10, #11, #13, #14, #15, T2). P1 (trace and bench) and L1/L2 wait for the user's word.
+
+## Fifteenth round (2026-10-17; claude)
+
+<!-- claude 2026-10-17: created this section -->
+
+- The next phase follows `.work/design/ROADMAP-2026-10.md` (Spanish copy: `ROADMAP-2026-10.es.md`). The user
+  answered the decisions D1-D16 on 2026-10-17:
+  - D5 changed by the user: the terminal app and the web app must NOT communicate ("I just want a flutter style
+    paradigm of coding once and generating for multiple platforms"). The web target is a standalone Scala.js build
+    from a shared module (crossProject JVM+JS, kyo-ui only); platform services are traits with one implementation
+    for each platform, given through Layer. The web chat bot uses the user's own API key, kept only in the browser,
+    plus the fake provider for docs demos.
+  - D9 changed by the user: templates ("scalax") are intent only; no spike now ("No tengo tantos créditos").
+  - D10 changed by the user: the benchmarks live in this repo, in `bench/` with their own sbt build outside the root
+    build.sbt, other languages in `bench/impl/<language>/`, their own CI job. The headline of the comparison is
+    compactness, expressiveness, correctness and resource management; performance is published honestly on its own
+    page.
+  - All other decisions: the recommendations, approved by the user ("for the rest, approve"). In short: L0 (the
+    functional rewrite, phases P0-P6 of the skill-reviewed plan) before L1; the `// claude` marks of rewritten code
+    move to the PR text; final public shapes A4/A5 accepted; P7 out; one flagship app (examples.assistant); providers
+    = Anthropic and OpenAI API keys plus a fake provider, then Codex app-server, never the Claude Code CLI in
+    published code; tui4s-widgets and tui4s-use as published modules (JVM+JS, no core dependency); no mouse for 0.1;
+    both web themes from one Theme value; docs copied onto main; 0.1.0-RC1 while Kyo is RC, no empty zio/cats
+    artifacts, Windows experimental; upstream Kyo issues as drafts only; lean mode stays (skeptic only for concurrency
+    and terminal-restore code); the skills stay on main as project skills, and the effect-systems.md row that names
+    kyo-test-runner for property tests is fixed to kyo-test-prop.
+  - Still open: D10 who gives a bare-metal machine; D11 the docs domain and the Vercel token owner; D16 packaging waits
+    for the startup measurements (AOT cache, native-image) of workflow wf_5ed848c4-01d.
+- The user is careful with credits ("No tengo tantos créditos"): keep workflows small (shape 4), no extra spikes.

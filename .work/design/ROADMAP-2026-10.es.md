@@ -3,8 +3,11 @@
 Este archivo es la versión en español de `ROADMAP-2026-10.md`. Usa frases
 cortas y voz activa, con el mismo espíritu que ASD-STE100. Los términos
 técnicos quedan en inglés cuando es lo usual (Scope, Layer, fiber, store).
-Nada aquí está decidido hasta que el usuario responda las preguntas de la
-sección 5.
+ESTADO (2026-10-17): el usuario APROBÓ D1-D16 (D5, D9 y D10 como los cambió
+el usuario; las demás según la recomendación). Abierto: la máquina de D10, el
+dominio de D11, y D16 espera los números de arranque. Ver DECISIONS.md, ronda
+quince.
+<!-- claude 2026-10-17: changed the status line after the user's approval -->
 
 Los resultados crudos de la investigación (JSON y Markdown) están en
 `.work/explore-2026-10-17/`.
