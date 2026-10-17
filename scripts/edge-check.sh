@@ -8,13 +8,14 @@
 #      scalafix: outside the edge files, a suppression is one line.
 #   3. Each `scalafix:ok` names the phase that removes the site, or KEEP:
 #      `// scalafix:ok DisableSyntax.<id>; <phase>: <reason>`, where <phase>
-#      is P1, P1b or P2 to P6 (the purity plan) or KEEP (it stays).
+#      is P1, P1b or P2 to P6 (the phase key in AGENTS.md, "Purity") or KEEP
+#      (it stays).
 #
 # Usage: bash scripts/edge-check.sh (CI runs it; see AGENTS.md).
 # claude 2026-10-17: created (purity plan, phase P0)
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+CDPATH='' cd "$(dirname "$0")/.."
 
 edge=(
   modules/core/src/main/scala/tui4s/internal/Crossterm.scala
@@ -35,8 +36,12 @@ is_edge() {
 }
 
 # The Scala files of the repository: tracked, and new ones that git does not
-# ignore (the submodules are not included).
-mapfile -d '' files < <(git ls-files -z --cached --others --exclude-standard -- '*.scala')
+# ignore (the submodules are not included). A read loop, not mapfile, because
+# the bash 3.2 of macOS does not have mapfile.
+files=()
+while IFS= read -r -d '' f; do
+  files+=("$f")
+done < <(git ls-files -z --cached --others --exclude-standard -- '*.scala')
 
 failures=0
 fail() {
