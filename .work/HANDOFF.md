@@ -21,6 +21,15 @@ started from the main checkout): it is the user's Metals sbt server.
   run `git merge --no-edit e027fe2` on the local branch (trivial, no conflicts). The vendor/pini4s submodule is
   checked out from a read-only clone at /home/user/pini4s (local git config only).
   <!-- claude 2026-10-17: created this item -->
+- P0 DONE (2026-10-17): pushed to chore/cleanup-7p2rll at b3977c1 (11 commits + the trivial merge; no PR yet;
+  CI runs only on a PR). Results: 231 core tests, 49 example tests, 0 warnings, scalafixAll --check green, lint
+  proof (a `var` fails), edge-check.sh green under bash 5 and 3.2. 105 tagged suppressions: P1 57, P1b 2, P2 10,
+  P3 9, P4 5, P5 10, P6 1, KEEP 11. Edge files: Session, TerminalIO, Crossterm, OutputCapture, LogSink, TuiLog,
+  SchedulerProbe. Deviations: .scalafmt.conf comments.wrap = no (long scalafix:ok lines); regex rules skip comment
+  lines; a mechanical OrganizeImports commit (63 files). Next: P1 (cheap wins; also the isatty LinkageError fix,
+  the probe interval in SchedulerDefaults, the /tmp/jni-* leak workaround). Port the effect-systems.md row fix
+  to the Mac copy of the skills.
+  <!-- claude 2026-10-17: created this item -->
   <!-- claude 2026-10-17: changed after the user's approval -->
 - The user's rules for the rewrite are the skills on main:
   `.claude/skills/functional-design` and `.claude/skills/scala-functional-design`
