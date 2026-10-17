@@ -3,8 +3,7 @@ package tui4s
 import kyo.*
 import kyo.test.*
 import tui4s.FrameStats
-import tui4s.testkit.Headless
-import tui4s.testkit.Screen
+import tui4s.testkit.{Headless, Screen}
 
 /** A kyo-test suite for runner tests. Its leaves run one at a time: the runner
   * settles on the JVM-wide Kyo scheduler, so a leaf that runs next to another

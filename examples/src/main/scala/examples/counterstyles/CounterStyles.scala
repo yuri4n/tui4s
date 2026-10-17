@@ -2,12 +2,10 @@ package examples.counterstyles
 
 import kyo.*
 import kyo.UI.*
+import tui4s.Hooks.*
 // claude 2026-10-13: changed (T2, adapt): the tui4s package (the prototype
 // had tui4s.kyoui)
-import tui4s.Component
-import tui4s.Hooks.*
-import tui4s.Tui
-import tui4s.TuiApp
+import tui4s.{Component, Tui, TuiApp}
 
 /** Style 1: hooks. A component is a function that returns `UI < Sync` (or
   * `< (Async & Scope)`).

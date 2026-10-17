@@ -1,14 +1,13 @@
 package examples.todo
 
-import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.nio.file.Paths
 import kyo.*
 import kyo.UI.*
 // claude 2026-10-13: changed (T2, adapt): tui4s.Tui (the prototype had
 // tui4s.kyoui.Tui)
-import tui4s.Tui
-import tui4s.TuiApp
+import tui4s.{Tui, TuiApp}
+
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, Paths}
 
 /** The Todo app in plain kyo-ui. Components are plain functions of signals and
   * actions. Keys: type a text and press Enter to add it; Tab moves between the

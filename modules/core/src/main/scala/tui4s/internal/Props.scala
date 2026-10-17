@@ -2,21 +2,21 @@ package tui4s.internal
 
 // claude 2026-10-13: changed (C3, gate 1 item 1): private[tui4s] on every top-level definition of this file (the seal of tui4s.internal)
 
-import jatatui.core.style.Color as JColor
-import jatatui.core.style.Modifier
-import jatatui.core.style.Style as JStyle
+import jatatui.core.style.{Color as JColor, Modifier, Style as JStyle}
 import kyo.*
-import kyo.Style.Alignment
-import kyo.Style.BorderStyle
-import kyo.Style.FlexDirection
-import kyo.Style.FontStyle
-import kyo.Style.FontWeight
-import kyo.Style.Justification
-import kyo.Style.ListStyle
-import kyo.Style.Prop
-import kyo.Style.TextAlign
-import kyo.Style.TextDecoration
-import kyo.Style.TextTransform
+import kyo.Style.{
+  Alignment,
+  BorderStyle,
+  FlexDirection,
+  FontStyle,
+  FontWeight,
+  Justification,
+  ListStyle,
+  Prop,
+  TextAlign,
+  TextDecoration,
+  TextTransform,
+}
 import kyo.UI.Ast.*
 
 private[tui4s] enum Dir:

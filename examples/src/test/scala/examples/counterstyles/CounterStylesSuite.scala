@@ -3,8 +3,7 @@ package examples.counterstyles
 import kyo.*
 import kyo.UI.Keyboard
 import munit.FunSuite
-import tui4s.testkit.Headless
-import tui4s.testkit.Screen
+import tui4s.testkit.{Headless, Screen}
 
 /** Both counter styles on the headless test kit: the hook counters and the
   * `Component` counters count on their own, and the hook counters inside the

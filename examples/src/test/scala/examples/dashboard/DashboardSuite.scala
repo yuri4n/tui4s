@@ -3,8 +3,7 @@ package examples.dashboard
 import kyo.*
 import kyo.UI.Keyboard
 import munit.FunSuite
-import tui4s.testkit.Headless
-import tui4s.testkit.Screen
+import tui4s.testkit.{Headless, Screen}
 
 /** The Dashboard on the headless test kit, with short periods (a sample every
   * 50 ms, a log line every 50 ms) and the kit's waits with wide margins: the

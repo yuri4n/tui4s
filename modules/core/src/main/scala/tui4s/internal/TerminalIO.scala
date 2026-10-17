@@ -1,11 +1,11 @@
 package tui4s.internal
 
 import jatatui.core.backend.Backend
+import tui.crossterm.{ClearType, Command}
+import tui4s.*
+
 import java.io.PrintStream
 import scala.util.control.NonFatal
-import tui.crossterm.ClearType
-import tui.crossterm.Command
-import tui4s.*
 
 /** JVM shutdown hooks, so that tests can see them. */
 private[tui4s] trait Hooks:

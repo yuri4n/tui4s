@@ -1,8 +1,7 @@
 package tui4s
 
 import kyo.*
-import tui4s.internal.ComponentSpec
-import tui4s.internal.Tui4sTrack
+import tui4s.internal.{ComponentSpec, Tui4sTrack}
 
 /** Hooks: the first style of tui4s components (the second is [[Component]]).
   * They are plain Kyo effects: a component is any function that returns

@@ -1,7 +1,8 @@
 package tui4s
 
-import java.time.Duration
 import tui4s.spi.Settle
+
+import java.time.Duration
 
 /** The options of a run. This type is Kyo-free: a duration is a
   * `java.time.Duration`, so that ZIO and Cats Effect users can build it without

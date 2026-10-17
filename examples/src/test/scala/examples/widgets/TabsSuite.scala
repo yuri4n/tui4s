@@ -3,8 +3,7 @@ package examples.widgets
 import kyo.*
 import kyo.UI.*
 import munit.FunSuite
-import tui4s.testkit.Headless
-import tui4s.testkit.Screen
+import tui4s.testkit.{Headless, Screen}
 
 class TabsSuite extends FunSuite:
 

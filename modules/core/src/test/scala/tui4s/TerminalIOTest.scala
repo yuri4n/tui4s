@@ -1,15 +1,15 @@
 package tui4s
 
-import java.nio.charset.StandardCharsets
-import java.nio.file.Files
 import kyo.*
 import kyo.UI.*
 import kyo.test.*
 import tui.crossterm.KeyCode
 import tui4s.EventMappingTest.key
 import tui4s.fixtures.*
-import tui4s.internal.LogSink
-import tui4s.internal.OutputCapture
+import tui4s.internal.{LogSink, OutputCapture}
+
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 
 /** The real-terminal path on a fake crossterm: the order of the acquire and the
   * release, the error of each failing step, the output capture, the Kyo log of

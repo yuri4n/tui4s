@@ -1,15 +1,14 @@
 package tui4s
 
-import java.io.RandomAccessFile
-import java.lang.foreign.FunctionDescriptor
-import java.lang.foreign.Linker
-import java.lang.foreign.ValueLayout
 import kyo.*
 import kyo.test.*
-import scala.jdk.OptionConverters.*
-import scala.util.control.NonFatal
 import tui4s.fixtures.*
 import tui4s.internal.Tty
+
+import java.io.RandomAccessFile
+import java.lang.foreign.{FunctionDescriptor, Linker, ValueLayout}
+import scala.jdk.OptionConverters.*
+import scala.util.control.NonFatal
 
 /** The real crossterm library, where it is safe: `Tui.run` must fail with
   * `NotATerminal` and change nothing when stdin is not a terminal.

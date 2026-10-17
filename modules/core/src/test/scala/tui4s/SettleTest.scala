@@ -1,11 +1,12 @@
 package tui4s
 
-import java.time.Duration as JDuration
 import kyo.*
 import kyo.UI.*
 import tui4s.internal.Knobs
 import tui4s.spi.Settle
 import tui4s.testkit.Headless
+
+import java.time.Duration as JDuration
 
 /** The settle canary (D-17 c, RC-11): the public `Scheduler.status()` probe
   * sees a CPU-bound fiber and the frame counts the timeout; a quiet run has no

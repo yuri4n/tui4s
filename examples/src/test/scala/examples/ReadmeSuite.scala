@@ -1,10 +1,9 @@
 package examples
 
-import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
 import munit.FunSuite
+
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, Path, Paths}
 import scala.jdk.CollectionConverters.*
 
 /** README.md shows code of the examples, and this suite checks that it is the

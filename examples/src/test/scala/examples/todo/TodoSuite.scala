@@ -1,13 +1,12 @@
 package examples.todo
 
-import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.nio.file.Path
 import kyo.*
 import kyo.UI.Keyboard
 import munit.FunSuite
-import tui4s.testkit.Headless
-import tui4s.testkit.Screen
+import tui4s.testkit.{Headless, Screen}
+
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, Path}
 
 /** The Todo app on the headless test kit, on a file in a temporary directory:
   * the load, the keys of the input and of the list, the save, a paste.

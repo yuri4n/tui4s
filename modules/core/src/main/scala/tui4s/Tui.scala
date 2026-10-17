@@ -1,18 +1,21 @@
 package tui4s
 
-import java.io.PrintStream
 import kyo.*
-import tui4s.internal.Crossterm
-import tui4s.internal.Hooks
-import tui4s.internal.LogSink
-import tui4s.internal.Msg
-import tui4s.internal.NativeCrossterm
-import tui4s.internal.OutputCapture
-import tui4s.internal.Runner
-import tui4s.internal.Session
-import tui4s.internal.TerminalIO
-import tui4s.internal.Tui4sQuit
-import tui4s.internal.TuiLog
+import tui4s.internal.{
+  Crossterm,
+  Hooks,
+  LogSink,
+  Msg,
+  NativeCrossterm,
+  OutputCapture,
+  Runner,
+  Session,
+  TerminalIO,
+  Tui4sQuit,
+  TuiLog,
+}
+
+import java.io.PrintStream
 
 /** The entry points of a tui4s app: [[run]] runs a kyo-ui UI in the real
   * terminal, [[quit]] ends it from inside.

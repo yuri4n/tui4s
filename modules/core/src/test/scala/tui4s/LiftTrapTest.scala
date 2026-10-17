@@ -1,9 +1,10 @@
 package tui4s
 
-import java.util.concurrent.atomic.AtomicInteger
 import kyo.*
 import kyo.UI.*
 import tui4s.testkit.Headless
+
+import java.util.concurrent.atomic.AtomicInteger
 
 /** The lift-trap canary (RR O5). Kyo lifts a plain value into `A < S`, so a
   * handler value with no type compiles where kyo-ui expects `Any < Async`, but

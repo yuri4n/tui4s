@@ -4,8 +4,7 @@ import kyo.*
 import kyo.UI.*
 // claude 2026-10-13: changed (T2, adapt): tui4s.Tui (the prototype had
 // tui4s.kyoui.Tui)
-import tui4s.Tui
-import tui4s.TuiApp
+import tui4s.{Tui, TuiApp}
 
 /** Two independent counters side by side, in plain kyo-ui: a counter is a
   * function that allocates its own state when it runs, so each call is a new

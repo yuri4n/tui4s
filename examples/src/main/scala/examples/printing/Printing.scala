@@ -1,12 +1,11 @@
 package examples.printing
 
-import java.nio.file.Paths
 import kyo.*
 import kyo.UI.*
 import tui4s.Hooks.useSignal
-import tui4s.Tui
-import tui4s.TuiApp
-import tui4s.TuiOptions
+import tui4s.{Tui, TuiApp, TuiOptions}
+
+import java.nio.file.Paths
 
 /** An app that prints while its UI is up: a line when the UI is built and a
   * line at each `+`. A print would write over the screen, so the run captures

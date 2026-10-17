@@ -2,9 +2,8 @@ package tui4s.fixtures
 
 import kyo.*
 import kyo.UI.*
-import tui4s.Component
 import tui4s.Hooks.*
-import tui4s.Tui
+import tui4s.{Component, Tui}
 
 /** Style 1: hooks. A component is a function that returns `UI < Sync` (or
   * `< (Async & Scope)`).

@@ -2,10 +2,9 @@ package tui4s.testkit
 
 import jatatui.core.backend.TestBackend
 import jatatui.core.buffer.Buffer
-import jatatui.core.style.Color as JColor
-import jatatui.core.style.Modifier
-import jatatui.core.style.Style as JStyle
+import jatatui.core.style.{Color as JColor, Modifier, Style as JStyle}
 import jatatui.core.text.Span as JSpan
+
 import java.text.BreakIterator
 
 /** The style of one screen cell, in plain Scala types (no jatatui type).

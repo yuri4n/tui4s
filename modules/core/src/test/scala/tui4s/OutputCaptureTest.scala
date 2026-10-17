@@ -1,14 +1,12 @@
 package tui4s
 
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
-import java.nio.charset.StandardCharsets
-import java.nio.file.Files
 import kyo.*
 import kyo.test.*
-import tui4s.internal.LogSink
-import tui4s.internal.OutputCapture
-import tui4s.internal.TerminalIO
+import tui4s.internal.{LogSink, OutputCapture, TerminalIO}
+
+import java.io.{ByteArrayOutputStream, PrintStream}
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 
 /** SPEC 5.10: the sink of a run and the capture of `System.out` / `err`.
   * Sequential: the capture is JVM-global.

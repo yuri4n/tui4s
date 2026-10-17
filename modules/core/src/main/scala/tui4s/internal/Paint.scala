@@ -2,16 +2,14 @@ package tui4s.internal
 
 // claude 2026-10-13: changed (C3, gate 1 item 1): private[tui4s] on every top-level definition of this file (the seal of tui4s.internal)
 
-import jatatui.core.backend.Backend
-import jatatui.core.backend.TestBackend
-import jatatui.core.buffer.Buffer
-import jatatui.core.buffer.BufferUpdate
+import jatatui.core.backend.{Backend, TestBackend}
+import jatatui.core.buffer.{Buffer, BufferUpdate}
 import jatatui.core.layout.Rect as JRect
-import jatatui.core.style.Color as JColor
-import jatatui.core.style.Style as JStyle
+import jatatui.core.style.{Color as JColor, Style as JStyle}
 import kyo.*
 import kyo.Style.TextAlign
 import kyo.UI.Ast.*
+
 import scala.jdk.CollectionConverters.*
 
 /** The kept frame.

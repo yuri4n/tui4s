@@ -1,15 +1,15 @@
 package tui4s.internal
 
 import kyo.*
-import kyo.UI.Keyboard
-import kyo.UI.KeyboardEvent
-import kyo.UI.Modifiers
-import tui.crossterm.Event as CEvent
-import tui.crossterm.KeyCode
-import tui.crossterm.KeyEvent
-import tui.crossterm.KeyEventKind
-import tui.crossterm.KeyEventState
-import tui.crossterm.KeyModifiers
+import kyo.UI.{Keyboard, KeyboardEvent, Modifiers}
+import tui.crossterm.{
+  Event as CEvent,
+  KeyCode,
+  KeyEvent,
+  KeyEventKind,
+  KeyEventState,
+  KeyModifiers,
+}
 
 /** crossterm events to runner messages: a key is a kyo-ui
   * [[kyo.UI.KeyboardEvent]] in [[Msg.Key]], as a browser gives it to kyo-ui; a

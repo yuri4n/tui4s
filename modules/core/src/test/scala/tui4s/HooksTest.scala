@@ -1,11 +1,11 @@
 package tui4s
 
-import java.util.concurrent.atomic.AtomicInteger
 import kyo.*
 import kyo.UI.*
 import tui4s.Hooks.*
-import tui4s.testkit.Headless
-import tui4s.testkit.Screen
+import tui4s.testkit.{Headless, Screen}
+
+import java.util.concurrent.atomic.AtomicInteger
 
 /** One test per hook (RC-15 rest; the hooks that had no test: RR skeptic
   * "refuted" 9) and the life of a component in a `when` (RR O7). Each leaf

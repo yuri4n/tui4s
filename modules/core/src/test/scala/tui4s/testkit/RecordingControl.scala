@@ -1,16 +1,13 @@
 package tui4s.testkit
 
-import jatatui.core.backend.Backend
-import jatatui.core.backend.ClearType
-import jatatui.core.backend.TestBackend
-import jatatui.core.backend.WindowSize
+import jatatui.core.backend.{Backend, ClearType, TestBackend, WindowSize}
 import jatatui.core.buffer.BufferUpdate
-import jatatui.core.layout.Position
-import jatatui.core.layout.Size
-import java.util.concurrent.ConcurrentLinkedQueue
-import scala.jdk.CollectionConverters.*
+import jatatui.core.layout.{Position, Size}
 import tui4s.*
 import tui4s.internal.TerminalControl
+
+import java.util.concurrent.ConcurrentLinkedQueue
+import scala.jdk.CollectionConverters.*
 
 /** A terminal control for the tests of the session: it draws on a `TestBackend`
   * and records the steps of the terminal session in order: "enter",

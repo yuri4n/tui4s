@@ -1,11 +1,11 @@
 package tui4s
 
-import java.time.Duration as JDuration
 import kyo.test.*
-import scala.language.strictEquality
 import tui4s.spi.Settle
-import tui4s.testkit.CellStyle
-import tui4s.testkit.Screen
+import tui4s.testkit.{CellStyle, Screen}
+
+import java.time.Duration as JDuration
+import scala.language.strictEquality
 
 /** Users who compile with `-language:strictEquality` can compare the public
   * types with `==`. This file does not compile when one of them has no

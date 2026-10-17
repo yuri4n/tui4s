@@ -3,11 +3,8 @@ package tui4s.internal
 // claude 2026-10-13: changed (C3, gate 1 item 1): private[tui4s] on every top-level definition of this file (the seal of tui4s.internal)
 
 import kyo.*
-import kyo.UI.Keyboard
-import kyo.UI.KeyboardEvent
-import kyo.UI.Modifiers
-import kyo.UI.MouseEvent
 import kyo.UI.Ast.*
+import kyo.UI.{Keyboard, KeyboardEvent, Modifiers, MouseEvent}
 
 /** Key routing. Mirrors kyo-ui's dispatcher (`ReactiveUI.dispatchToElement`)
   * and its client-side focus rules:

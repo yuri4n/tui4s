@@ -10,8 +10,7 @@ package examples.counter
 import kyo.*
 import kyo.UI.*
 import tui4s.Hooks.useSignal
-import tui4s.Tui
-import tui4s.TuiApp
+import tui4s.{Tui, TuiApp}
 
 /** The Counter: a kyo-ui UI with one piece of state (`useSignal`), key handlers
   * and two buttons. `+` and `-` change the count, Tab moves between the

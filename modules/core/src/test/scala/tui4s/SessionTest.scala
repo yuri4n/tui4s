@@ -1,19 +1,13 @@
 package tui4s
 
-import java.util.concurrent.atomic.AtomicBoolean
 import kyo.*
-import kyo.UI.Keyboard
-import kyo.UI.KeyboardEvent
-import kyo.UI.Modifiers
+import kyo.UI.{Keyboard, KeyboardEvent, Modifiers}
 import kyo.test.*
-import tui.crossterm.Event as CEvent
-import tui.crossterm.KeyCode
-import tui4s.internal.InputPort
-import tui4s.internal.InputThread
-import tui4s.internal.Msg
-import tui4s.internal.Session
-import tui4s.internal.Size
+import tui.crossterm.{Event as CEvent, KeyCode}
+import tui4s.internal.{InputPort, InputThread, Msg, Session, Size}
 import tui4s.testkit.*
+
+import java.util.concurrent.atomic.AtomicBoolean
 
 /** The terminal session and the inbox at the edges of a run: the release, the
   * input thread (it maps crossterm events, D-21 a), a failing input thread.

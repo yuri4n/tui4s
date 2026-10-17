@@ -1,15 +1,17 @@
 package tui4s
 
-import java.io.PrintStream
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import kyo.*
-import tui4s.internal.Crossterm
-import tui4s.internal.Hooks
-import tui4s.internal.NativeCrossterm
-import tui4s.internal.OutputCapture
-import tui4s.internal.discard
+import tui4s.internal.{
+  Crossterm,
+  Hooks,
+  NativeCrossterm,
+  OutputCapture,
+  discard,
+}
 import tui4s.spi.SchedulerDefaults
+
+import java.io.PrintStream
+import java.util.concurrent.{CountDownLatch, TimeUnit}
 
 /** The main class of a tui4s app: `object CounterApp extends TuiApp`. Its
   * `main` runs [[ui]] in the real terminal with [[Tui.run]] and [[options]],

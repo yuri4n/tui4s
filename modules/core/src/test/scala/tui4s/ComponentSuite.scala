@@ -1,7 +1,8 @@
 package tui4s
 
-import java.util.concurrent.atomic.AtomicInteger
 import kyo.*
+
+import java.util.concurrent.atomic.AtomicInteger
 
 /** The helpers of the component suites (ComponentTest, HooksTest): waits on the
   * wall clock and counters that the effects of a test app move.

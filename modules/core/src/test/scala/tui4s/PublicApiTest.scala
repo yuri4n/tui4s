@@ -1,16 +1,15 @@
 package tui4s
 
-import java.io.File
-import java.net.URI
-import java.nio.file.FileSystems
-import java.nio.file.Files
-import java.nio.file.Path
 import kyo.test.*
 import tastyquery.Contexts.Context
 import tastyquery.Modifiers.Visibility
 import tastyquery.Symbols.*
 import tastyquery.Types.*
 import tastyquery.jdk.ClasspathLoaders
+
+import java.io.File
+import java.net.URI
+import java.nio.file.{FileSystems, Files, Path}
 
 /** The seal of `tui4s.internal` (gate 1 item 1, RC-36), read from the TASTy of
   * the core's own classes with tasty-query: every top-level definition of

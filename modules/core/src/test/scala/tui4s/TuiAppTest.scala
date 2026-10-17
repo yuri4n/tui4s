@@ -1,20 +1,17 @@
 package tui4s
 
-import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicLong
 import kyo.*
 import kyo.UI.*
 import kyo.test.*
-import scala.jdk.CollectionConverters.*
 import tui.crossterm.KeyCode
-import tui4s.EventMappingTest.Ctrl
-import tui4s.EventMappingTest.key
+import tui4s.EventMappingTest.{Ctrl, key}
 import tui4s.internal.TerminalIO
+
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicLong}
+import java.util.concurrent.{ConcurrentLinkedQueue, CountDownLatch}
+import scala.jdk.CollectionConverters.*
 
 /** A main class for the tests: a counter that shows its arguments, plus a key
   * that throws, a key that prints, and a key that blocks its thread as

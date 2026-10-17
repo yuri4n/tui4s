@@ -1,8 +1,9 @@
 package tui4s.internal
 
+import kyo.*
+
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import kyo.*
 
 /** The Kyo logger of a run: `Tui.run` binds it with `Log.let`, so a `Log.info`
   * in user code or in a library writes into the run's [[LogSink]] and never

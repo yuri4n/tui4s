@@ -2,13 +2,9 @@ package tui4s.testkit
 
 import jatatui.core.backend.TestBackend
 import kyo.*
-import kyo.UI.Keyboard
-import kyo.UI.KeyboardEvent
-import kyo.UI.Modifiers
-import tui4s.FrameCause
-import tui4s.FrameStats
-import tui4s.TuiOptions
+import kyo.UI.{Keyboard, KeyboardEvent, Modifiers}
 import tui4s.internal.*
+import tui4s.{FrameCause, FrameStats, TuiOptions}
 
 /** A headless run on a jatatui `TestBackend`, for tests and measurements.
   *

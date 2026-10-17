@@ -1,25 +1,20 @@
 package tui4s
 
-import jatatui.core.backend.Backend
-import jatatui.core.backend.ClearType
-import jatatui.core.backend.TestBackend
-import jatatui.core.backend.WindowSize
+import jatatui.core.backend.{Backend, ClearType, TestBackend, WindowSize}
 import jatatui.core.buffer.BufferUpdate
-import jatatui.core.layout.Position
-import jatatui.core.layout.Size
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
-import java.nio.charset.StandardCharsets
-import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.TimeUnit
-import scala.jdk.CollectionConverters.*
-import tui.crossterm.Command
-import tui.crossterm.Event as CEvent
-import tui4s.internal.Crossterm
-import tui4s.internal.Hooks
-import tui4s.internal.NativeCrossterm
+import jatatui.core.layout.{Position, Size}
+import tui.crossterm.{Command, Event as CEvent}
+import tui4s.internal.{Crossterm, Hooks, NativeCrossterm}
 import tui4s.testkit.Screen
+
+import java.io.{ByteArrayOutputStream, PrintStream}
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.{
+  ConcurrentLinkedQueue,
+  LinkedBlockingQueue,
+  TimeUnit,
+}
+import scala.jdk.CollectionConverters.*
 
 /** A terminal for the tests of the real-terminal path: it records the native
   * calls in order, draws on a `TestBackend`, and gives scripted crossterm

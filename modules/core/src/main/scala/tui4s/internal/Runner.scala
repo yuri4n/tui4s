@@ -4,10 +4,8 @@ package tui4s.internal
 
 import kyo.*
 import kyo.UI.Keyboard
-import tui4s.FrameCause
-import tui4s.FrameStats
 import tui4s.spi.Settle
-import tui4s.TuiOptions
+import tui4s.{FrameCause, FrameStats, TuiOptions}
 
 /** The runner: one fiber that owns the world and the canvas.
   *

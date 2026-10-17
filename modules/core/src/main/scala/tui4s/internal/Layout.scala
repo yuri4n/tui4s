@@ -5,9 +5,7 @@ package tui4s.internal
 import jatatui.core.style.Color as JColor
 import jatatui.core.text.Span
 import kyo.*
-import kyo.Style.Alignment
-import kyo.Style.Justification
-import kyo.Style.ListStyle
+import kyo.Style.{Alignment, Justification, ListStyle}
 import kyo.UI.Ast.*
 
 /** What a region shows now. */

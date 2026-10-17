@@ -1,9 +1,10 @@
 package tui4s
 
-import java.time.Duration
 import kyo.test.*
-import scala.language.strictEquality
 import tui4s.spi.Settle
+
+import java.time.Duration
+import scala.language.strictEquality
 
 /** `TuiOptions` and `Settle` are Kyo-free and compare with `==` under
   * `-language:strictEquality` (this file does not compile when one of them

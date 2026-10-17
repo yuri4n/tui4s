@@ -2,9 +2,10 @@ package tui4s
 
 import kyo.*
 import kyo.UI.Ast.*
+import tui4s.internal.ComponentSpec
+
 import scala.annotation.unused
 import scala.language.implicitConversions
-import tui4s.internal.ComponentSpec
 
 /** A component class: the second style of tui4s components (the first is
   * [[Hooks]]). The state is a type member, `State`, with its `initial` value.

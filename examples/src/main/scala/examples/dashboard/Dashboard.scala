@@ -2,12 +2,10 @@ package examples.dashboard
 
 // claude 2026-10-13: changed (T2, adapt): the widgets are in their own
 // package; tui4s.Tui (the prototype had tui4s.kyoui.Tui)
-import examples.widgets.Widgets
-import examples.widgets.Tabs
+import examples.widgets.{Tabs, Widgets}
 import kyo.*
 import kyo.UI.*
-import tui4s.Tui
-import tui4s.TuiApp
+import tui4s.{Tui, TuiApp}
 
 /** The Dashboard in plain kyo-ui: one tab per series (CPU, Memory, Network), a
   * gauge and a sparkline fed by a sampler (every 250 ms), a log pane fed by a

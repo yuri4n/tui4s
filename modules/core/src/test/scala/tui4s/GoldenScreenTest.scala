@@ -1,7 +1,6 @@
 package tui4s
 
-import jatatui.core.style.Color as JColor
-import jatatui.core.style.Modifier
+import jatatui.core.style.{Color as JColor, Modifier}
 import kyo.*
 import kyo.UI.*
 

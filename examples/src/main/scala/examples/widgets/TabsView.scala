@@ -1,8 +1,9 @@
 package examples.widgets
 
-import java.util.concurrent.atomic.AtomicLong
 import kyo.*
 import kyo.UI.*
+
+import java.util.concurrent.atomic.AtomicLong
 
 /** Tabs built only from Kyo signals, UI values, and callbacks. Each execution
   * of [[ui]] owns fresh selection state unless a parent supplies `selected`.

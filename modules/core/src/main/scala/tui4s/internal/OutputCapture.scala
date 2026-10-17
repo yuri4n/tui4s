@@ -1,8 +1,6 @@
 package tui4s.internal
 
-import java.io.ByteArrayOutputStream
-import java.io.OutputStream
-import java.io.PrintStream
+import java.io.{ByteArrayOutputStream, OutputStream, PrintStream}
 import java.nio.charset.Charset
 
 /** Captures `System.out` and `System.err` while the UI is up

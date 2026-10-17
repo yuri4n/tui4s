@@ -1,23 +1,21 @@
 package tui4s
 
 import kyo.*
-import kyo.UI.Keyboard
-import kyo.UI.KeyboardEvent
-import kyo.UI.Modifiers
+import kyo.UI.{Keyboard, KeyboardEvent, Modifiers}
 import kyo.test.*
-import tui.crossterm.Event as CEvent
-import tui.crossterm.KeyCode
-import tui.crossterm.KeyEventKind
-import tui.crossterm.KeyEventState
-import tui.crossterm.KeyModifiers
-import tui.crossterm.MediaKeyCode
-import tui.crossterm.ModifierKeyCode
-import tui.crossterm.MouseButton
-import tui.crossterm.MouseEvent
-import tui.crossterm.MouseEventKind
-import tui4s.internal.EventMapping
-import tui4s.internal.Msg
-import tui4s.internal.Size
+import tui.crossterm.{
+  Event as CEvent,
+  KeyCode,
+  KeyEventKind,
+  KeyEventState,
+  KeyModifiers,
+  MediaKeyCode,
+  ModifierKeyCode,
+  MouseButton,
+  MouseEvent,
+  MouseEventKind,
+}
+import tui4s.internal.{EventMapping, Msg, Size}
 import tui4s.testkit.ScriptedInput
 
 /** crossterm records to runner messages, built without the native library:

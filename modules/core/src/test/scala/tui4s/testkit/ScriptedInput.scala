@@ -1,15 +1,16 @@
 package tui4s.testkit
 
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.TimeUnit
-import tui.crossterm.Event as CEvent
-import tui.crossterm.KeyCode
-import tui.crossterm.KeyEvent
-import tui.crossterm.KeyEventKind
-import tui.crossterm.KeyEventState
-import tui.crossterm.KeyModifiers
-import tui4s.internal.EventMapping
-import tui4s.internal.InputPort
+import tui.crossterm.{
+  Event as CEvent,
+  KeyCode,
+  KeyEvent,
+  KeyEventKind,
+  KeyEventState,
+  KeyModifiers,
+}
+import tui4s.internal.{EventMapping, InputPort}
+
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 /** Scripted crossterm input for the tests of the input thread and of a run on a
   * fake terminal: the given events, then the events that [[push]] adds, in

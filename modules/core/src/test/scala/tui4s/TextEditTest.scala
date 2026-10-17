@@ -2,10 +2,8 @@ package tui4s
 
 import kyo.*
 import kyo.UI.*
-import tui4s.internal.Layout
-import tui4s.internal.Paint
-import tui4s.testkit.Headless
-import tui4s.testkit.Screen
+import tui4s.internal.{Layout, Paint}
+import tui4s.testkit.{Headless, Screen}
 
 /** The editing of a text input by grapheme clusters (OS-11, OS-15 part): the
   * cases of the old `TextFieldTest` (origin/feat/core-1-model-view), driven by

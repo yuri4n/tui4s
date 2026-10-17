@@ -2,11 +2,8 @@ package tui4s
 
 import kyo.*
 import kyo.UI.*
-import tui4s.internal.EventMapping
-import tui4s.internal.Knobs
-import tui4s.internal.Msg
-import tui4s.testkit.Headless
-import tui4s.testkit.ScriptedInput
+import tui4s.internal.{EventMapping, Knobs, Msg}
+import tui4s.testkit.{Headless, ScriptedInput}
 
 /** The headless kit: the quit value, resize, idle, awaitScreen (RC-7, D-15);
   * the waits after the end of the run, `char` and half of a surrogate pair.

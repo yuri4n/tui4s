@@ -1,10 +1,11 @@
 package tui4s.internal
 
 import jatatui.core.backend.Backend
-import java.util.concurrent.atomic.AtomicBoolean
 import kyo.*
-import scala.util.control.NonFatal
 import tui4s.*
+
+import java.util.concurrent.atomic.AtomicBoolean
+import scala.util.control.NonFatal
 
 /** The terminal side of a run, without the input thread: raw mode, the
   * alternate screen, the terminal modes, and the backend to draw on. The real

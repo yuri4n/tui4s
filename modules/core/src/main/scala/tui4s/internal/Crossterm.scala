@@ -2,16 +2,17 @@ package tui4s.internal
 
 import jatatui.core.backend.Backend
 import jatatui.crossterm.CrosstermBackend
-import java.lang.foreign.FunctionDescriptor
-import java.lang.foreign.Linker
-import java.lang.foreign.ValueLayout
+import tui.crossterm.{
+  Command,
+  CrosstermJni,
+  Duration as CDuration,
+  Event as CEvent,
+}
+import tui4s.*
+
+import java.lang.foreign.{FunctionDescriptor, Linker, ValueLayout}
 import scala.jdk.OptionConverters.*
 import scala.util.control.NonFatal
-import tui.crossterm.Command
-import tui.crossterm.CrosstermJni
-import tui.crossterm.Duration as CDuration
-import tui.crossterm.Event as CEvent
-import tui4s.*
 
 /** The native terminal calls that a run makes, so that [[TerminalIO]] can be
   * tested without a terminal. [[NativeCrossterm]] is the real one.

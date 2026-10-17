@@ -4,8 +4,7 @@ import kyo.*
 import kyo.UI.*
 import kyo.test.*
 import tui.crossterm.KeyCode
-import tui4s.EventMappingTest.Ctrl
-import tui4s.EventMappingTest.key
+import tui4s.EventMappingTest.{Ctrl, key}
 import tui4s.fixtures.Counter
 
 /** `Tui.run` (RC-2) on a fake crossterm, through its seam `Tui.runWith`: a run

@@ -1,15 +1,12 @@
 package tui4s
 
-import java.util.concurrent.ConcurrentLinkedQueue
 import kyo.*
 import kyo.UI.*
-import scala.jdk.CollectionConverters.*
-import tui4s.internal.Dispatch
-import tui4s.internal.Kind
-import tui4s.internal.Layout
-import tui4s.internal.Size
-import tui4s.internal.World
+import tui4s.internal.{Dispatch, Kind, Layout, Size, World}
 import tui4s.testkit.Headless
+
+import java.util.concurrent.ConcurrentLinkedQueue
+import scala.jdk.CollectionConverters.*
 
 /** The key routing of the runner (`tui4s.internal.Dispatch`): the quit key, the
   * focus moves, bubbling and `stopPropagation`, a handler that fails.

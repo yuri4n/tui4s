@@ -1,18 +1,15 @@
 package tui4s
 
-import java.time.Duration as JDuration
-import java.util.concurrent.atomic.AtomicInteger
 import jatatui.core.backend.TestBackend
 import kyo.*
 import kyo.UI.*
 import tui4s.Hooks.*
-import tui4s.internal.Canvas
-import tui4s.internal.Knobs
-import tui4s.internal.Msg
-import tui4s.internal.Runner
+import tui4s.internal.{Canvas, Knobs, Msg, Runner}
 import tui4s.spi.Settle
-import tui4s.testkit.Headless
-import tui4s.testkit.Screen
+import tui4s.testkit.{Headless, Screen}
+
+import java.time.Duration as JDuration
+import java.util.concurrent.atomic.AtomicInteger
 
 /** The components (C4): R1 for the fibers that a component mount or a hook
   * starts; the state key of a `Component`.

@@ -1,11 +1,11 @@
 package tui4s.fixtures
 
-import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.nio.file.Paths
 import kyo.*
 import kyo.UI.*
 import tui4s.Tui
+
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, Paths}
 
 /** The Todo app in plain kyo-ui. Components are plain functions of signals and
   * actions. Keys: type a text and press Enter to add it; Tab moves between the

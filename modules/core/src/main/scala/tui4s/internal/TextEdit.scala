@@ -1,8 +1,8 @@
 package tui4s.internal
 
+import kyo.UI.{Keyboard, KeyboardEvent}
+
 import java.text.BreakIterator
-import kyo.UI.Keyboard
-import kyo.UI.KeyboardEvent
 
 /** The editing of a single-line text input by grapheme clusters: what a reader
   * sees as one character ("é" written as e + U+0301, "👍🏽", a flag), not a

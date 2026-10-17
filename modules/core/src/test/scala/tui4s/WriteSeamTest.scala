@@ -1,13 +1,12 @@
 package tui4s
 
-import java.util.concurrent.ConcurrentLinkedQueue
 import kyo.*
 import kyo.UI.*
-import scala.jdk.CollectionConverters.*
-import tui4s.internal.Knobs
-import tui4s.internal.Loc
-import tui4s.internal.showLoc
+import tui4s.internal.{Knobs, Loc, showLoc}
 import tui4s.testkit.Headless
+
+import java.util.concurrent.ConcurrentLinkedQueue
+import scala.jdk.CollectionConverters.*
 
 /** The write seam (plan 0.3): every write of a bound `SignalRef` by the
   * dispatcher (a text input, a checkbox, a radio, a select, a textarea) goes

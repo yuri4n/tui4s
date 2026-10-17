@@ -1,12 +1,13 @@
 package examples.printing
 
-import java.nio.file.Paths
-import java.util.concurrent.ConcurrentLinkedQueue
 import kyo.*
 import munit.FunSuite
-import scala.jdk.CollectionConverters.*
 import tui4s.TuiOptions
 import tui4s.testkit.Headless
+
+import java.nio.file.Paths
+import java.util.concurrent.ConcurrentLinkedQueue
+import scala.jdk.CollectionConverters.*
 
 /** The printing app on the headless test kit, with a print that records the
   * lines (the kit has no terminal to protect; the capture of the real terminal

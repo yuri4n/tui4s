@@ -2,8 +2,9 @@ package tui4s
 
 import kyo.*
 import kyo.test.*
-import scala.collection.mutable
 import tui4s.spi.SchedulerDefaults
+
+import scala.collection.mutable
 
 /** The scheduler values (RC-25) are set only where the user set nothing, and
   * the constructor of `TuiApp` sets them before the app's own fields.

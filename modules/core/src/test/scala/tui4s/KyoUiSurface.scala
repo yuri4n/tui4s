@@ -1,12 +1,5 @@
 package tui4s
 
-import java.io.File
-import java.net.URI
-import java.nio.charset.StandardCharsets.UTF_8
-import java.nio.file.FileSystems
-import java.nio.file.Path
-import java.security.MessageDigest
-import scala.io.Source
 import tastyquery.Classpaths.ClasspathEntry
 import tastyquery.Constants.Constant
 import tastyquery.Contexts.Context
@@ -17,6 +10,13 @@ import tastyquery.Trees.*
 import tastyquery.Types.*
 import tastyquery.jdk.ClasspathLoaders
 import tui4s.internal.discard
+
+import java.io.File
+import java.net.URI
+import java.nio.charset.StandardCharsets.UTF_8
+import java.nio.file.{FileSystems, Path}
+import java.security.MessageDigest
+import scala.io.Source
 
 /** The kyo-ui surface that the runner depends on, read from the TASTy of the
   * kyo-ui jar on the test class path (RC-12): the types of `kyo.UI.Ast` and the

@@ -1,12 +1,13 @@
 package tui4s
 
 import jatatui.core.backend.TestBackend
-import java.time.Duration as JDuration
 import kyo.*
 import kyo.UI.*
 import tui4s.internal.*
 import tui4s.spi.Settle
 import tui4s.testkit.Headless
+
+import java.time.Duration as JDuration
 
 /** The region watchers: R1 (no fiber outlives the run) and, later, the own
   * watcher loop and the repair tick.

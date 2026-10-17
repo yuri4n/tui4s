@@ -2,9 +2,7 @@ package tui4s.internal
 
 import java.io.PrintStream
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.StandardOpenOption
+import java.nio.file.{Files, Path, StandardOpenOption}
 import scala.util.control.NonFatal
 
 /** Where the log lines and the captured output of one run go while the UI is
