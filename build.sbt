@@ -26,6 +26,13 @@ ThisBuild / developers        := List(
 ThisBuild / scalaVersion      := Versions.scala
 ThisBuild / semanticdbEnabled := true
 
+// Scalafix: the main sources use .scalafix.conf (OrganizeImports and
+// DisableSyntax), the test sources use .scalafix-test.conf (OrganizeImports
+// only). A project/Test lookup finds ThisBuild/Test before the Global default.
+// claude 2026-10-17: created (purity plan, phase P0)
+ThisBuild / Test / scalafixConfig :=
+  Some((ThisBuild / baseDirectory).value / ".scalafix-test.conf")
+
 // Compiler options (D-8). sbt-tpolecat sets them. Its default set for Scala 3
 // has -deprecation, -feature, -unchecked, -Wvalue-discard,
 // -Wnonunit-statement and the -Wunused:* checks. On a developer machine the
@@ -180,9 +187,10 @@ Global / commands ++= Seq(
 
 addCommandAlias("fmt", "; scalafmtAll; scalafmtSbt")
 addCommandAlias("fmtCheck", "; scalafmtCheckAll; scalafmtSbtCheck")
+// claude 2026-10-17: changed: `scalafixAll --check` after the compile
 addCommandAlias(
   "check",
-  "; scalafmtCheckAll; scalafmtSbtCheck; Test/compile; test; versionPolicyCheck",
+  "; scalafmtCheckAll; scalafmtSbtCheck; Test/compile; scalafixAll --check; test; versionPolicyCheck",
 )
 addCommandAlias(
   "versions",
