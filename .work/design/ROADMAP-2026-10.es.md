@@ -203,7 +203,7 @@ Cada capa necesita las capas de abajo.
 | L5 | Docs y benchmarks | Sitio Docus en main, casts del kit de PTY, demos JS, snippets compilados; programa de comparación (ver sección 4) | grande; en parte fuera de Scala |
 | L5b | Empaquetado | Caché AOT en los launchers; native-image si el spike pasa | por definir |
 | L6 | Release 0.1 | Checklist: Scaladoc en CI, matriz de sistemas operativos, changelog, SECURITY.md, plantilla, no publicar zio/cats vacíos, dry run, aprobación humana | pequeño |
-| S1 | Spike: templates | Interpolador `ui"""..."""` en `experiments/scalax`, 5 días, después de L2 | spike |
+| S1 | Templates (solo intención) | Intención documentada: un interpolador `ui"""..."""` con macros de Scala 3 que produce llamadas de kyo-ui. Sin spike en esta etapa (decisión del usuario, 2026-10-17: presupuesto) <!-- claude 2026-10-17: changed: no spike --> | 0 |
 
 Por qué L0 va primero: L1 cambia Layout, Paint y Runner. El scroll y el
 overlay son funciones del momento de dibujar. Sobre un painter puro (P5) son
@@ -273,8 +273,10 @@ Cada decisión tiene una recomendación (R).
 - D8 Aspecto web: tema web nativo, tema con look de terminal, o ambos.
   R: ambos, con un solo valor Theme que se vuelve variables CSS y una paleta
   de terminal.
-- D9 Spike de templates: después de L2, huecos con `${...}`, Metals primero.
-  R: sí.
+- D9 Templates: DECIDIDO (2026-10-17). Solo se documenta la intención; no hay
+  spike en esta etapa, por presupuesto. Si se retoma: interpolador
+  `ui"""..."""`, huecos con `${...}`, Metals primero, en `experiments/scalax`,
+  después de L2. <!-- claude 2026-10-17: changed D9 from the user's answer -->
 - D10 Benchmarks: repo aparte `yuri4n/tui4s-bench` (más fácil recibir PRs de
   afuera); el titular es lo compacto, lo expresivo, la corrección y el manejo
   de recursos (sección 4); etapa 1 = Counter y Dashboard contra ratatui,

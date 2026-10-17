@@ -156,7 +156,7 @@ Each layer needs the layers below it.
 | L4 | Web target | A standalone Scala.js build of the flagship from the shared module (static files, no server, no link to the terminal app); the same builds give the docs demos <!-- claude 2026-10-17: changed: no web mirror, per the user --> | 0.5k to 1k lines |
 | L5 | Docs and benchmarks | Docus site on main, casts from the PTY kit, JS demos, compiled snippets; benchmark harness, rosetta tasks, mutant bug suite | large; partly outside Scala |
 | L6 | Release 0.1 | Checklist: Scaladoc in CI, OS matrix, changelog, SECURITY.md, template, skip empty zio/cats, dry run, human approval | small |
-| S1 | Spike: templates | `ui"""..."""` interpolator in `experiments/scalax`, 5 days, after L2 | spike |
+| S1 | Templates (intent only) | Documented intent: a `ui"""..."""` Scala 3 macro interpolator that emits kyo-ui calls. No spike now (user decision, 2026-10-17: budget) <!-- claude 2026-10-17: changed: no spike --> | 0 |
 | S2 | Spike: native image | GraalVM native-image for startup, for L5 | spike |
 
 Why L0 comes first: L1 changes Layout, Paint and Runner. Scroll and overlay
@@ -198,7 +198,10 @@ Each decision has a recommendation (R).
   reports it. R: yes.
 - D8 Web look: native web theme, terminal-look theme, or both. R: both, one
   Theme value rendered to CSS variables and to a terminal palette.
-- D9 Templates spike: after L2, `${...}` hole syntax, Metals first. R: yes.
+- D9 Templates: DECIDED (2026-10-17). Document the intent only; no spike now,
+  because of the budget. If it comes back: a `ui"""..."""` interpolator,
+  `${...}` holes, Metals first, in `experiments/scalax`, after L2.
+  <!-- claude 2026-10-17: changed D9 from the user's answer -->
 - D10 Benchmarks: separate repo `yuri4n/tui4s-bench` (easier outside PRs);
   Stage 1 = Counter and Dashboard against ratatui, Bubble Tea, Textual, Ink,
   TamboUI, layoutz and plain jatatui; publish after 0.1. R: yes. Open: who
