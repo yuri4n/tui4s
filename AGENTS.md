@@ -161,12 +161,15 @@ of its own; `widgets` is a library with no main. Each UI has a munit suite on
 ## Daily commands
 
 <!-- claude 2026-10-09: changed the sbt check row and added the version order test row -->
+<!-- claude 2026-10-17: changed the sbt check row; added the scalafixAll and edge-check rows -->
 
 | Command                              | What it does                                                  |
 | ------------------------------------ | ------------------------------------------------------------- |
 | `sbt fmt`                            | Formats all Scala and sbt files.                              |
-| `sbt check`                          | Does the sbt checks of CI: format, compile, test, compat.     |
+| `sbt check`                          | Does the sbt checks of CI: format, compile, lint, test, compat. |
+| `sbt scalafixAll`                    | Organizes the imports and shows the DisableSyntax errors (see "Purity"). |
 | `bash scripts/version-order-test.sh` | Tests the version order of the release script (CI runs it).   |
+| `bash scripts/edge-check.sh`         | Checks the edge headers and the phase of each scalafix suppression (CI runs it). |
 | `sbt versions`                       | Shows the version of each module (released or snapshot).      |
 | `sbt core/test`                      | Runs the tests of one module. The core tests use kyo-test.    |
 | `nix develop`                       | Enters the development shell with JDK 25, sbt, and terminal test tools. |
@@ -179,8 +182,9 @@ of its own; `widgets` is a library with no main. Each UI has a munit suite on
 <!-- claude 2026-10-13: changed (T1): the launchers and the PTY kit replace `sbt "examples/runMain <main>"` -->
 
 <!-- claude 2026-10-09: changed: also run the version order test before each push -->
-Run `sbt fmt`, `sbt check` and `bash scripts/version-order-test.sh` before each
-push. After a change to the terminal code (`TerminalIO`, `Crossterm`,
+<!-- claude 2026-10-17: changed: also run the edge check before each push -->
+Run `sbt fmt`, `sbt check`, `bash scripts/version-order-test.sh` and
+`bash scripts/edge-check.sh` before each push. After a change to the terminal code (`TerminalIO`, `Crossterm`,
 `Session`, `EventMapping`, `OutputCapture`, `Tui.run`, `TuiApp`, the
 examples), also run `examples/ptycheck/run.sh` (it needs `expect`, `python3`
 and JDK 25 in `JAVA_HOME`, or `java` on `PATH` when `JAVA_HOME` is not set).
@@ -374,6 +378,36 @@ tests then allow 1 split frame).
   not force a null check. Check for null where the Java source, the Javadoc or
   the JNI contract allows null, mainly for the crossterm records.
   <!-- claude 2026-10-12: created this item (S6 "Proposed AGENTS.md rule for C1") -->
+
+## Purity
+
+<!-- claude 2026-10-17: created this section (purity plan, phase P0) -->
+
+- Write impure code only in an edge file and in the two kernels
+  `Canvas.write` and `Canvas.diff` (phase P5 makes them). Impure code is a
+  `var`, a `while` loop, `null`, a `| Null` type, `return`, `throw`, a cast,
+  a JVM lock, atomic or thread, a `System` or `Runtime` call, and the unsafe
+  Kyo APIs (`AllowUnsafe`, `Sync.Unsafe`, `.unsafe`).
+- An edge file wraps one foreign API. Its line 1 is
+  `// scalafix:off DisableSyntax` and its line 2 is
+  `// EDGE: <the foreign API>`. `scripts/edge-check.sh` has the list of the
+  edge files.
+- The scalafix rule DisableSyntax (`.scalafix.conf`) finds impure code in the
+  main sources. `sbt check` runs `scalafixAll --check`. The test sources use
+  `.scalafix-test.conf`, which has only OrganizeImports.
+- Outside the edge files, an impure site has a comment at the end of its
+  line: `// scalafix:ok DisableSyntax.<id>; <phase>: <reason>`. `<phase>` is
+  the phase of the purity plan that removes the site (`P1`, `P1b`, `P2` to
+  `P6`), or `KEEP` for a site that stays (for example `System.exit` in
+  `TuiApp`). When you remove the site, remove its comment. Do not write
+  `scalafix:off` outside an edge file. `bash scripts/edge-check.sh` checks
+  these rules. scalafmt does not wrap a trailing comment (`.scalafmt.conf`),
+  so the comment stays on its line.
+- Use an ADT (an enum), not a Boolean, when a Boolean selects runtime
+  behavior. A Boolean is correct for an option toggle and for a predicate.
+- Property tests use kyo-test-prop (`PropertyTest[S]`, `Gen`, `Shrink`) under
+  the kyo-test framework, with explicit `Gen` values. Do not use `Gen.derive`
+  or a given `Gen` for a domain type.
 
 ## Dependencies and versions
 
