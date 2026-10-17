@@ -166,10 +166,10 @@ of its own; `widgets` is a library with no main. Each UI has a munit suite on
 | Command                              | What it does                                                  |
 | ------------------------------------ | ------------------------------------------------------------- |
 | `sbt fmt`                            | Formats all Scala and sbt files.                              |
-| `sbt check`                          | Does the sbt checks of CI: format, compile, lint, test, compat. |
-| `sbt scalafixAll`                    | Organizes the imports and shows the DisableSyntax errors (see "Purity"). |
+| `sbt check`                          | Does the sbt CI checks: format, compile, lint, test, compat.  |
+| `sbt scalafixAll`                    | Organizes the imports and shows the DisableSyntax errors.     |
 | `bash scripts/version-order-test.sh` | Tests the version order of the release script (CI runs it).   |
-| `bash scripts/edge-check.sh`         | Checks the edge headers and the phase of each scalafix suppression (CI runs it). |
+| `bash scripts/edge-check.sh`         | Checks the edge headers and the suppressions (CI runs it).    |
 | `sbt versions`                       | Shows the version of each module (released or snapshot).      |
 | `sbt core/test`                      | Runs the tests of one module. The core tests use kyo-test.    |
 | `nix develop`                       | Enters the development shell with JDK 25, sbt, and terminal test tools. |
@@ -182,12 +182,14 @@ of its own; `widgets` is a library with no main. Each UI has a munit suite on
 <!-- claude 2026-10-13: changed (T1): the launchers and the PTY kit replace `sbt "examples/runMain <main>"` -->
 
 <!-- claude 2026-10-09: changed: also run the version order test before each push -->
-<!-- claude 2026-10-17: changed: also run the edge check before each push -->
+<!-- claude 2026-10-17: changed: also run the edge check before each push; `sbt scalafixAll` -->
 Run `sbt fmt`, `sbt check`, `bash scripts/version-order-test.sh` and
-`bash scripts/edge-check.sh` before each push. After a change to the terminal code (`TerminalIO`, `Crossterm`,
-`Session`, `EventMapping`, `OutputCapture`, `Tui.run`, `TuiApp`, the
-examples), also run `examples/ptycheck/run.sh` (it needs `expect`, `python3`
-and JDK 25 in `JAVA_HOME`, or `java` on `PATH` when `JAVA_HOME` is not set).
+`bash scripts/edge-check.sh` before each push. If the scalafix check of
+`sbt check` fails on an import, run `sbt scalafixAll`. After a change to the
+terminal code (`TerminalIO`, `Crossterm`, `Session`, `EventMapping`,
+`OutputCapture`, `Tui.run`, `TuiApp`, the examples), also run
+`examples/ptycheck/run.sh` (it needs `expect`, `python3` and JDK 25 in
+`JAVA_HOME`, or `java` on `PATH` when `JAVA_HOME` is not set).
 <!-- claude 2026-10-13: changed (T1): run the PTY kit after a terminal change -->
 <!-- claude 2026-10-13: changed (T2): TuiApp; the JDK of the kit -->
 
@@ -383,12 +385,13 @@ tests then allow 1 split frame).
 
 <!-- claude 2026-10-17: created this section (purity plan, phase P0) -->
 
-- Write impure code only in an edge file and in the two kernels
-  `Canvas.write` and `Canvas.diff` (phase P5 makes them). Impure code is a
-  `var`, a `while` loop, `null`, a `| Null` type, `return`, `throw`, a cast,
-  a JVM lock, atomic or thread, a `System` or `Runtime` call, and the unsafe
-  Kyo APIs (`AllowUnsafe`, `Sync.Unsafe`, `.unsafe`).
-- An edge file wraps one foreign API. Its line 1 is
+- Write impure code only in an edge file, or on a line that has a
+  `scalafix:ok` comment (see below). Phase P5 adds two more permitted places:
+  the kernels `Canvas.write` and `Canvas.diff`. Impure code is a `var`, a
+  `while` loop, `null`, a `| Null` type, `return`, `throw`, a cast, a JVM
+  lock, atomic or thread, a `System` or `Runtime` call, and the unsafe Kyo
+  APIs (`AllowUnsafe`, `Sync.Unsafe`, `.unsafe`).
+- An edge file wraps a foreign API. Its line 1 is
   `// scalafix:off DisableSyntax` and its line 2 is
   `// EDGE: <the foreign API>`. `scripts/edge-check.sh` has the list of the
   edge files.
@@ -397,12 +400,29 @@ tests then allow 1 split frame).
   `.scalafix-test.conf`, which has only OrganizeImports.
 - Outside the edge files, an impure site has a comment at the end of its
   line: `// scalafix:ok DisableSyntax.<id>; <phase>: <reason>`. `<phase>` is
-  the phase of the purity plan that removes the site (`P1`, `P1b`, `P2` to
-  `P6`), or `KEEP` for a site that stays (for example `System.exit` in
-  `TuiApp`). When you remove the site, remove its comment. Do not write
-  `scalafix:off` outside an edge file. `bash scripts/edge-check.sh` checks
-  these rules. scalafmt does not wrap a trailing comment (`.scalafmt.conf`),
-  so the comment stays on its line.
+  the phase that removes the site (see the phase key below), or `KEEP` for a
+  site that stays (for example `System.exit` in `TuiApp`). For an expression
+  on more than one line, put the comment on its last line: scalafix applies
+  it to the full expression. When you remove the site, remove its comment. An
+  impure site in an edge file has no comment. Do not write `scalafix:off`
+  outside an edge file. `bash scripts/edge-check.sh` checks these rules.
+  scalafmt does not wrap a trailing comment (`.scalafmt.conf`), so the
+  comment stays on its line.
+- The phase key (the purity plan of 2026-10-17; a tag such as `(A1)` in a
+  reason names an amendment of the plan):
+  - `P1`: delete dead code, change `null` to `Maybe` (to `Option` where no
+    Kyo class can load), and change casts to matches.
+  - `P1b`: a non-null `TuiError` cause (A4) and the final shapes of the
+    public API (A5).
+  - `P2`: the state of `Runner` and `Mount` on Kyo primitives, with the fiber
+    gauge in one Kyo `AtomicRef` (A7).
+  - `P3`: one synchronous release stack for the terminal (A1) and one stop
+    hook for each run (A2).
+  - `P4`: the testkit (`Headless`) and the examples. `Headless` reads the
+    screen through `Canvas.read`, not through its own monitor.
+  - `P5`: a pure painter and one `Canvas` seam, with the two kernels.
+  - `P6`: the output sinks (`OutputCapture`, `LogSink`).
+  - `KEEP`: the site stays.
 - Use an ADT (an enum), not a Boolean, when a Boolean selects runtime
   behavior. A Boolean is correct for an option toggle and for a predicate.
 - Property tests use kyo-test-prop (`PropertyTest[S]`, `Gen`, `Shrink`) under
