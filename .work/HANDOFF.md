@@ -15,6 +15,12 @@ started from the main checkout): it is the user's Metals sbt server.
   release) and decisions D1-D14 with recommendations.
 - The user APPROVED D1-D16 on 2026-10-17 (DECISIONS.md, fifteenth round). Next: L0 phase P0 on branch
   chore/cleanup-7p2rll (restarted from main), after the startup measurement workflow frees sbt.
+- Branch state (2026-10-17): the remote chore/cleanup-7p2rll is the merge commit e027fe2 (parents: the old tip
+  adbe3a6, whose content is already in main through PR 1, and origin/main cd6a877; its tree equals main). The
+  classifier refused a force push, so this merge keeps history and pushes as a fast-forward. Before pushing P0,
+  run `git merge --no-edit e027fe2` on the local branch (trivial, no conflicts). The vendor/pini4s submodule is
+  checked out from a read-only clone at /home/user/pini4s (local git config only).
+  <!-- claude 2026-10-17: created this item -->
   <!-- claude 2026-10-17: changed after the user's approval -->
 - The user's rules for the rewrite are the skills on main:
   `.claude/skills/functional-design` and `.claude/skills/scala-functional-design`
