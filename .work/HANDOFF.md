@@ -6,6 +6,20 @@ section 8 = PR plan) -> `.work/impl/*.md` for the module you touch. Old, detaile
 Toolchain: `source .work/env.sh` (JDK 25, sbt, node 24, pnpm 10, IPv4, -Xss16m). Do NOT kill PID 7740 (or any sbt
 started from the main checkout): it is the user's Metals sbt server.
 
+<!-- claude 2026-10-17: created this section -->
+## 2026-10-17: NEXT PHASE IS A DRAFT ROADMAP (read first)
+
+- Read `.work/design/ROADMAP-2026-10.md`. It has the research facts, the plan
+  as a stack (L0 functional rewrite first, then core renderer features,
+  widgets and hooks, the flagship assistant app, web, docs, benchmarks,
+  release) and decisions D1-D14 with recommendations.
+- Nothing is decided until the user answers D1-D14. Do not start code before.
+- The user's rules for the rewrite are the skills on main:
+  `.claude/skills/functional-design` and `.claude/skills/scala-functional-design`
+  (commit cd6a877, "temporary").
+- Raw results: `.work/explore-2026-10-17/` (JSON per research agent, the
+  skill review, and the sources of the two spikes that worked).
+
 <!-- claude 2026-10-03: created this section (cloud session resume) -->
 ## 2026-10-03: RESUMED IN A CLOUD SESSION (read first)
 

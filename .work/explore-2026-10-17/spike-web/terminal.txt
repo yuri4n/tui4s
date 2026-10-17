@@ -1,0 +1,9 @@
+Spike: one UI, two surfaces
+Count: 4
+Message: draft
+[ +1                                                                                               ]
+Messages:
+1. hello from tty
+2. hello from web
+web: http://127.0.0.1:18080/
+Tab moves, Enter presses or adds, Esc quits

@@ -1,0 +1,136 @@
+{
+ "direct": {
+  "spawn_to_first_frame_s": 1.376,
+  "spawn_to_http_200_s": 1.291,
+  "jvm_start_to_first_frame_s": 1.275,
+  "jvm_start_to_http_200_s": 1.19,
+  "spawn_to_jvm_start_s": 0.101,
+  "quit_to_exit_s": 0.503
+ },
+ "direct-logfile": {
+  "spawn_to_first_frame_s": 1.389,
+  "spawn_to_http_200_s": 1.306,
+  "jvm_start_to_first_frame_s": 1.297,
+  "jvm_start_to_http_200_s": 1.214,
+  "spawn_to_jvm_start_s": 0.092,
+  "quit_to_exit_s": 0.503
+ },
+ "final": {
+  "spawn_to_first_frame_s": 1.404,
+  "spawn_to_http_200_s": 1.343,
+  "jvm_start_to_first_frame_s": 1.298,
+  "jvm_start_to_http_200_s": 1.236,
+  "spawn_to_jvm_start_s": 0.107,
+  "quit_to_exit_s": 0.503,
+  "echo_latency_no_browser_s": [
+   0.155,
+   0.203,
+   0.156
+  ],
+  "echo_latency_one_browser_s": [
+   0.154,
+   0.153,
+   0.153
+  ]
+ },
+ "fork": {
+  "spawn_to_first_frame_s": 1.343,
+  "spawn_to_http_200_s": 1.322,
+  "jvm_start_to_first_frame_s": 1.239,
+  "jvm_start_to_http_200_s": 1.217,
+  "spawn_to_jvm_start_s": 0.105,
+  "quit_to_exit_s": 0.503,
+  "echo_latency_no_browser_s": [
+   0.153,
+   0.154,
+   0.153
+  ],
+  "echo_latency_one_browser_s": [
+   0.204,
+   0.153,
+   0.154
+  ]
+ },
+ "native-uring": {
+  "spawn_to_first_frame_s": 1.527,
+  "spawn_to_http_200_s": 1.422,
+  "jvm_start_to_first_frame_s": 1.498,
+  "jvm_start_to_http_200_s": 1.393,
+  "spawn_to_jvm_start_s": 0.029,
+  "quit_to_exit_s": 0.553,
+  "echo_latency_no_browser_s": [
+   0.153,
+   0.203,
+   0.153
+  ],
+  "echo_latency_one_browser_s": [
+   0.204,
+   0.154,
+   0.153
+  ]
+ },
+ "quit-timing-": {
+  "spawn_to_first_frame_s": 1.407,
+  "spawn_to_http_200_s": 1.282,
+  "jvm_start_to_first_frame_s": 1.314,
+  "jvm_start_to_http_200_s": 1.188,
+  "spawn_to_jvm_start_s": 0.093,
+  "quit_to_exit_s": 0.503,
+  "quit_to_restore_bytes_s": 0.128,
+  "echo_latency_no_browser_s": [
+   0.152,
+   0.203,
+   0.154
+  ],
+  "echo_latency_one_browser_s": [
+   0.154,
+   0.153,
+   0.153
+  ]
+ },
+ "quit-timing-1": {
+  "spawn_to_first_frame_s": 1.57,
+  "spawn_to_http_200_s": 1.424,
+  "jvm_start_to_first_frame_s": 1.473,
+  "jvm_start_to_http_200_s": 1.327,
+  "spawn_to_jvm_start_s": 0.097,
+  "quit_to_exit_s": 2.104,
+  "quit_to_restore_bytes_s": 0.154,
+  "echo_latency_no_browser_s": [
+   0.153,
+   0.153,
+   0.152
+  ],
+  "echo_latency_one_browser_s": [
+   0.204,
+   0.152,
+   0.153
+  ]
+ },
+ "quit-with-browser": {
+  "spawn_to_first_frame_s": 1.365,
+  "spawn_to_http_200_s": 1.321,
+  "jvm_start_to_first_frame_s": 1.262,
+  "jvm_start_to_http_200_s": 1.219,
+  "spawn_to_jvm_start_s": 0.102,
+  "quit_to_exit_s": 2.106,
+  "echo_latency_no_browser_s": [
+   0.153,
+   0.203,
+   0.152
+  ],
+  "echo_latency_one_browser_s": [
+   0.153,
+   0.153,
+   0.153
+  ]
+ },
+ "run1-fork-firstbuild": {
+  "spawn_to_first_frame_s": 1.415,
+  "spawn_to_http_200_s": 1.311,
+  "jvm_start_to_first_frame_s": 1.301,
+  "jvm_start_to_http_200_s": 1.197,
+  "spawn_to_jvm_start_s": 0.114,
+  "quit_to_exit_s": 0.503
+ }
+}

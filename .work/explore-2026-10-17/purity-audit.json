@@ -1,0 +1,1410 @@
+{
+ "audits": [
+  {
+   "slice": "runtime: modules/core/src/main/scala/tui4s/internal/{Runner,Session,TerminalIO,Crossterm,InputPort,Knobs,SchedulerProbe}.scala and modules/core/src/main/scala/tui4s/spi/{SchedulerDefaults,Settle}.scala (main checkout, read-only). Note: I did not find the user's functional-design skills under ~/.claude/skills, so this audit uses the provisional rubric.",
+   "sites": [
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Session.scala:89-106 (close), :122-127 (safely), :200-203 (closeInbox); modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:158-200 (leave); modules/core/src/main/scala/tui4s/Tui.scala:144-146 (bracket)",
+     "construct": "synchronized + AtomicBoolean CAS + try/catch per step + AllowUnsafe inbox.unsafe.close + Thread.currentThread().interrupt()",
+     "what": "This is the one synchronous release. The current code gives these guarantees. G1: canvas.close() runs first. It takes the backend monitor, so it waits for a draw in progress, and no frame is drawn after the restore (Paint.scala:51, :166-171). G2: the input loop is stopped, then the inbox is closed. This wakes an input put that waits for room (backpressure), and the runner ends at its next take (Runner.scala:211-213). G3: the release joins the input thread, bounded at 2*poll+50 ms (100 ms by default). It records 'input-hung' and goes on, so a native poll that hangs cannot block the exit. G4: then leave runs. It sends DisableBracketedPaste (when paste is on), then Show (cursor), then LeaveAlternateScreen. Then it turns raw mode off, flushes, stops the output capture, finishes the sink (logs and captured output go to the real stderr only after the restore), removes the shutdown hook (not when it runs inside the hook), prints the R3 warning and the first error, and calls restored() (the latch of TuiApp). G5: every step runs even if an earlier step failed. G6: the release is idempotent, and a second caller (the hook thread or the release of the fiber) WAITS on the monitor until the first caller is done. So the JVM cannot halt in the middle of a restore. G7: an interrupt does not cut the release short. The flag is set again at the end. G8: the release depends on no Kyo scheduler. On SIGTERM, kill -INT, SIGHUP or System.exit, the tui4s-restore hook runs it on a plain JVM thread. TuiApp's tui4s-stop hook also interrupts the fiber and waits at most 2 s for restored. G9: on a quit or a UI failure, Scope.run (the user's Scope.ensure) closes INSIDE the use of the bracket, so it runs before the restore (Tui.scala:150-152). Lock order: the Session monitor, then the backend monitor. A flush holds only the backend monitor, so there is no deadlock. Note on Ctrl-C: in raw mode Ctrl-C is a key, not SIGINT. ctrlCQuits makes it a quit.",
+     "why": "The JVM shutdown hook has no fiber. It must run the restore synchronously on its own thread, and it must not depend on a Kyo scheduler that may be busy.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep this as one synchronous function. Do NOT move it into Scope finalizers: those run on Async, they need the scheduler during shutdown, and Fiber.init AWAITS its fibers (kyo Fiber.scala:139-145). Clean up the inside of the function only.\n\nprivate[tui4s] object Release:\n  final case class Outcome(first: Maybe[Throwable], interrupted: Boolean)\n  def all(steps: (() => Unit)*): Outcome =\n    steps.foldLeft(Outcome(Absent, false)) { (o, step) =>\n      try { step(); o }\n      catch\n        case e: VirtualMachineError  => throw e\n        case _: InterruptedException => o.copy(interrupted = true)\n        case e: Throwable            => if o.first.isEmpty then o.copy(first = Present(e)) else o\n    }\n\ndef close()(using AllowUnsafe, Frame): Unit = synchronized {\n  if !closed then                     // a plain field under the monitor; the CAS goes\n    closed = true\n    val out = Release.all(\n      () => canvas.close(),                          // G1\n      () => Session.closeInbox(inbox),               // G2 (also stops the input loop)\n      () => thread.foreach(joinOrHang),              // G3\n      () => control.leave(opts, entered))            // G4\n    if out.interrupted then Thread.currentThread().interrupt() // G7\n}\n\nG5 and G6 are kept by Release.all and the monitor. G8 is kept because nothing here uses Async. G9 is kept if Tui.onTerminal keeps Scope.run inside the use of acquireReleaseWith.",
+     "risk": "terminal restore and concurrency. The step order G1 to G4 is load-bearing. Release.all makes Session use the policy 'catch all but VirtualMachineError', as TerminalIO.leave does. Today Session.safely catches only NonFatal, so a LinkageError in an early step would skip control.leave. The practical risk is low, because no early step makes a JNI call. The SessionTest order logs ('input-stopped', 'input-joined') must stay.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Session.scala:67, :127",
+     "construct": "@volatile var releaseError: Throwable | Null",
+     "what": "Keeps the first error of the release.",
+     "why": "Diagnostics for tests that were planned. Nothing reads it in main, in the tests, or in the zio and cats modules (grep over the whole checkout).",
+     "klass": "DELETE",
+     "replacement": "Remove it. If the error is needed, Release.all returns it in Outcome.first.",
+     "risk": "none",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Session.scala:111-120 (join)",
+     "construct": "while loop + var left + try/catch InterruptedException + System.nanoTime + Thread.join",
+     "what": "Waits until a deadline for the input thread. When the wait is interrupted, it records the interrupt and waits again.",
+     "why": "Thread.join is the only way to wait for a platform thread. An interrupt must not cut the wait short (G3, G7).",
+     "klass": "KEEP-EDGE",
+     "replacement": "@tailrec def join(t: Thread, deadline: Long, intr: Boolean): (Boolean, Boolean) =\n  val left = deadline - System.nanoTime()\n  if !t.isAlive || left <= 0 then (!t.isAlive, intr)\n  else Result.catching[InterruptedException](t.join(java.time.Duration.ofNanos(left))) match\n    case Result.Failure(_) => join(t, deadline, true)   // recursion outside the try, so it stays tailrec\n    case _                 => (!t.isAlive, intr)\nThe interrupt flag goes into Release.Outcome. Then the `interrupted` field (Session.scala:64) goes too.",
+     "risk": "terminal restore: the bound of the join must stay. Without it, a hung native poll blocks the exit.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Session.scala:142-184 (open)",
+     "construct": "Sync.Unsafe.defer with a try/catch nested in a try/catch, var session: Session | Null, a defensive try around control.leave (:177-178), throw e",
+     "what": "Enters the terminal, makes the Canvas and the input thread, starts the thread, and registers the hook. A failure after the session exists calls s.close(). A failure before it exists calls control.leave(). The result is an Either.",
+     "why": "The acquire of the bracket must be ONE step, with no map after it, so that an interrupt cannot drop an open session (guarantee G10). The var lets the catch know how far the acquire went.",
+     "klass": "REPLACE",
+     "replacement": "Keep the single Sync.Unsafe.defer (G10), and build the session in stages, with no var:\nSync.Unsafe.defer {\n  control.enter(opts) match                         // Result[TuiError, (Backend, Entered)]; it undoes its own steps\n    case Result.Success((backend, entered)) =>\n      Result.catching[Throwable](Session(Canvas(backend), control, opts, inbox, entered, threadFor(input))) match\n        case Result.Failure(e) => control.leave(opts, entered); Left(TuiError.TerminalIO(e))\n        case Result.Success(s) =>\n          Result.catching[Throwable] { s.thread.foreach(_.start()); control.opened(() => s.close()) }\n            .fold(_ => Right(s))(e => { s.close(); Left(asTuiError(e)) })\n    case Result.Failure(e) => Left(e)\n}\nleave never throws (all but VirtualMachineError are caught), so the try at :177-178 goes.",
+     "risk": "terminal restore: a failure between raw mode and the hook registration must still undo everything (G11). Keep this as one step for the bracket.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Session.scala:219-274 (InputThread: extends Thread, setDaemon :224, @volatile running :225, var seq :228, while :236 and :240, var n :239, mutable.ArrayBuffer :238, CountDownLatch :250-254, catch Throwable minus VirtualMachineError :257-268)",
+     "construct": "Thread subclass + while loops + var + volatile + mutable buffer + j.u.c. latch + catch Throwable",
+     "what": "A platform daemon thread. It calls poll(pollMillis), then reads every queued event (at most 512), maps the events to Msg values, and puts them as one batch, blocking while the inbox is full (backpressure). On a failure it keeps the error and puts Msg.Quit.",
+     "why": "Keep the THREAD. The native read() cannot be interrupted. A daemon thread whose poll hangs does not keep the JVM alive. Also, a JNI poll on a Kyo worker would count as load in SchedulerProbe, so `busy <= 1 && total <= 1` would fail and every settle would run until its max (100 ms per frame). The loop BODY does not need its mutable state.",
+     "klass": "KEEP-EDGE",
+     "replacement": "override def run(): Unit =\n  import AllowUnsafe.embrace.danger\n  val forever = new Clock.Deadline.Unsafe(Absent, Clock.live.unsafe)\n  def stopped = inbox.unsafe.closed()              // replaces `running`: the release closes the inbox (G2)\n  @tailrec def batch(n: Int, seq: Long, acc: Chunk[Msg]): (Long, Chunk[Msg]) =\n    if stopped || n >= 512 || (n > 0 && !port.poll(0)) then (seq, acc)\n    else port.read().flatMap(EventMapping(_, seq)) match\n      case Present(m) => batch(n + 1, seq + 1, acc.append(m))\n      case Absent     => batch(n + 1, seq, acc)\n  @tailrec def loop(seq: Long): Unit =\n    if !stopped then\n      if port.poll(pollMillis) then\n        val (next, msgs) = batch(0, seq, Chunk.empty)\n        if msgs.nonEmpty then discard(inbox.unsafe.putBatchFiber(msgs).block(forever)) // a closed inbox gives Closed\n        loop(next)\n      else loop(seq)\n  try loop(1L)\n  catch\n    case _: InterruptedException => ()\n    case e: VirtualMachineError  => throw e\n    case e: Throwable            => failed.set(Present(e)); discard(inbox.unsafe.putFiber(Msg.Quit))\n`failed` is an AtomicRef.Unsafe[Maybe[Throwable]], the same cell that Kyo's KyoAppInterrupts uses for a value written by another thread.",
+     "risk": "concurrency. Keep the backpressure, and keep the guarantee that closing the inbox releases a blocked put (the Fiber.Unsafe.block of Kyo parks with LockSupport and returns when the put fiber completes with Closed). Keep the poll-before-read rule. The catch must keep LinkageError as a failure of the input. SessionTest.scala:96 calls requestStop(): it must close the inbox instead.",
+     "cost": "M"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Session.scala:59, :73-75, :231, :265; modules/core/src/main/scala/tui4s/Tui.scala:152, :160-165",
+     "construct": "InputThread | Null field, @volatile var failure: Throwable | Null, side-channel poll after the run",
+     "what": "The input failure is stored in a volatile field. The run ends as a normal quit. Then Tui.inputFailed reads the field and fails with TerminalIO.",
+     "why": "The runner's Msg had no failure case.",
+     "klass": "REPLACE",
+     "replacement": "Make the field `thread: Maybe[InputThread]`, and send the failure as a message: `case InputFailed(e: Throwable)` in Msg. Runner.handle and absorb then end with `Abort.fail(TuiError.TerminalIO(e))`, and Runner.run gets the type Unit < (Async & Abort[TuiError]). Then Session.inputFailure and Tui.inputFailed go. A smaller fix: keep the AtomicRef.Unsafe[Maybe[Throwable]] from the InputThread site.",
+     "risk": "concurrency and API (internal only). With the message form, a failure that comes after a Msg.Quit is dropped. Today the run fails with TerminalIO in that case.",
+     "cost": "M"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:87-91 (capture, hook, inHook, consoleWarning), :148, :176-193",
+     "construct": "4 x @volatile private var ... | Null, plus the 'once' reset consoleWarning = null",
+     "what": "enter() and opened() write these fields on the fiber's thread. leave() reads them on any thread (the hook or a worker).",
+     "why": "A control object that is mutable and changes state between enter and leave.",
+     "klass": "REPLACE",
+     "replacement": "final case class Entered(capture: Maybe[OutputCapture.Capture], warning: Maybe[String])\ndef enter(opts: TuiOptions): Result[TuiError, (Backend, Entered)]\ndef leave(opts: TuiOptions, e: Entered): Unit\nThe Session keeps `entered` and the hook Thread as vals. DELETE the 'once' reset at :189: the idempotence of Session.close already makes leave run once. DELETE inHook: Hooks.runtime.remove already ignores the IllegalStateException of a shutdown in progress (:31-33). To do this, FakeHooks.remove (test/FakeCrossterm.scala:175) must do nothing while shuttingDown, as the Hooks contract at :14 says.",
+     "risk": "terminal restore: the hook must still be removed after a normal end, and nothing must fail inside the hook. The TerminalControl signature changes, so RecordingControl and TerminalIOTest change too.",
+     "cost": "M"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:95-139 (enter)",
+     "construct": "var undo: List[() => Unit] + throw TuiError.NotATerminal / TerminalIO + try/catch around each step + catch Throwable with rethrow + the undo loop",
+     "what": "Steps of the acquire: (1) load the native library, (2) start the output capture and its R3 check, (3) check that stdin is a tty, (4) raw mode, (5) the mode commands. The undo of the modes is registered BEFORE the execute, because a command list that fails can be half done. A failure runs the undos in reverse order, then sink.finish(err), then throws again.",
+     "why": "Expected conditions (stdin is not a tty, raw mode is refused) travel as exceptions, and the undo stack is mutable.",
+     "klass": "REPLACE",
+     "replacement": "type Undo = () => Unit\n// each acquire gives the undo to keep (also on a half-done failure) and its result\ntype Acquire = () => (Maybe[Undo], Result[TuiError, Unit])\nval acquires: List[Acquire] = List(load, capture(opts), ttyCheck, raw, modes(opts))\n@tailrec def go(as: List[Acquire], undos: List[Undo]): Result[TuiError, Unit] = as match\n  case Nil => Result.unit\n  case a :: rest =>\n    val (u, r) = a(); val us = u.toList ++ undos\n    r match\n      case Result.Success(_) => go(rest, us)\n      case failed            => discard(Release.all(us*)); sink.finish(err); failed\nThe undo list is built by prepending, so it is already in reverse order. The JNI calls keep their own catch, which maps an error to a TuiError.",
+     "risk": "terminal restore (G11). The undo order must stay: leave the modes, raw mode off, stop the capture, then sink.finish. Keep the half-done rule for the command list. load stays first, so the three errors that come before any terminal change still come before the terminal changes.",
+     "cost": "M"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:218-234 (enterCommands, leaveCommands)",
+     "construct": "Seq.newBuilder (local mutable builder); the leave list is kept by hand as the reverse of the enter list",
+     "what": "Builds the command lists for the alternate screen, Clear, Hide and bracketed paste, and their reverse.",
+     "why": "Convenience.",
+     "klass": "REPLACE",
+     "replacement": "final case class Mode(on: Command, off: Maybe[Command])\ndef modes(o: TuiOptions): List[Mode] =\n  List(Mode(Command.EnterAlternateScreen(), Present(Command.LeaveAlternateScreen())),\n       Mode(Command.Clear(ClearType.All), Absent),\n       Mode(Command.Hide(), Present(Command.Show()))) ++\n  Option.when(o.paste)(Mode(Command.EnableBracketedPaste(), Present(Command.DisableBracketedPaste())))\ndef enterCommands(o: TuiOptions) = modes(o).map(_.on)\ndef leaveCommands(o: TuiOptions) = modes(o).reverse.flatMap(_.off.toList)  // paste off, Show, LeaveAlternateScreen: the same order as today",
+     "risk": "terminal restore: the leave order must stay the same, and a TerminalIOTest asserts it.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:11-46 (Hooks, Hooks.runtime)",
+     "construct": "Runtime.addShutdownHook / removeShutdownHook, catch IllegalStateException, a probe Thread for shuttingDown (an exception used as control flow)",
+     "what": "Registers and removes the restore hook. Finds out whether the JVM is shutting down by adding and removing a dummy hook.",
+     "why": "The JDK has no public query for a shutdown in progress. A flag that one of our own hooks sets would race: the JVM starts the hooks concurrently, in no fixed order. The probe is exact, because the registry of hooks closes when the shutdown starts.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep the code as it is. Move it into its own small file (JvmHooks.scala) as part of the boundary module. The four Runtime.getRuntime.nn calls stay (explicit nulls at the Java boundary).",
+     "risk": "terminal restore (G8). TuiApp uses shuttingDown to skip onExit and its prints.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Crossterm.scala:28, :64-76 (load, @volatile var jni: CrosstermJni | Null, native throws IllegalStateException)",
+     "construct": "lazy init through a volatile nullable var + throw + catch Throwable",
+     "what": "load() starts the JNI class. Every other method checks that the class is loaded and throws when it is not.",
+     "why": "Temporal coupling: 'every other call comes after load' (:65).",
+     "klass": "REPLACE",
+     "replacement": "Use type-state:\nobject NativeCrossterm:\n  def load(): Result[TuiError, Crossterm] =\n    try Result.succeed(new NativeCrossterm(new CrosstermJni()))\n    catch case e: Throwable => loadError(e) match\n      case t: TuiError => Result.fail(t)\n      case fatal       => throw fatal                   // VirtualMachineError, InterruptedException\nfinal class NativeCrossterm private (jni: CrosstermJni) extends Crossterm  // jni is a non-null val\nThe IllegalStateException branch goes: the types now rule it out.",
+     "risk": "none for the restore, if load stays acquire step 1. FakeCrossterm and the call TerminalIO(crossterm, ...) change.",
+     "cost": "M"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Crossterm.scala:57, :91, :175; modules/core/src/main/scala/tui4s/internal/InputPort.scala:18; modules/core/src/main/scala/tui4s/internal/EventMapping.scala:59 (Msg | Null, another slice)",
+     "construct": "CEvent | Null and Msg | Null as the result types, with checks against null in InputThread (Session.scala:242, :244)",
+     "what": "The JNI read can return null, and the mapping returns null for an event that it drops.",
+     "why": "The explicit-nulls flag at the Java boundary.",
+     "klass": "REPLACE",
+     "replacement": "def read(): Maybe[CEvent] = Maybe(jni.read())   // the one null-to-Maybe conversion, on the JNI line\ndef EventMapping(e: CEvent, seq: Long): Maybe[Msg]",
+     "risk": "none",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Crossterm.scala:108-125 (loadError, causes), :131-166 (Tty)",
+     "construct": "isInstanceOf (:112); lazy val with try/catch NonFatal; 6 .nn calls; invokeWithArguments with a match on Integer",
+     "what": "Classifies an error of the native load. Calls isatty(0) through the FFM API.",
+     "why": "These are true foreign boundaries (JNI loading, a downcall to libc). The causes walk is already a pure tailrec function.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Change only small things: write `causes(e).exists { case _: IllegalCallerException => true; case _ => false }`, and put the two try blocks into one helper, `def safely[A](a: => A): Option[A]`. Keep the .nn calls.",
+     "risk": "none",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Runner.scala:40-44 (last, remember), plus the remember calls at :148, :151, :152, :180, :190, :202, and :59-60 (unmountAll(last))",
+     "construct": "java.util.concurrent.atomic.AtomicReference[Option[World]], written 6 times per run and step",
+     "what": "Keeps the latest World, so that stop can interrupt the watchers of that World.",
+     "why": "Review fix RC-8: an interrupted run must stop its watchers.",
+     "klass": "DELETE",
+     "replacement": "stop already calls mount.interruptAll (:64). That call interrupts EVERY fiber in the gauge: the watchers (Mount.scala:83), the hook and component fibers (Mount.scala:464, :512) and the tick (:139). So unmountAll(last) duplicates it:\nprivate def stop(using Frame): Unit < Sync = mount.interruptAll",
+     "risk": "concurrency. The change needs every watcher in the gauge (true today), and the weak set must hold every live watcher (a parked watcher is reachable from its signal). The end order stays the same: nothing waits. The liveFibers tests are the check.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Runner.scala:57-64, :70, :98-103, :115-128, :138-139 (stopped, ticker, repairTick, Fiber.initUnscoped plus manual track)",
+     "construct": "AtomicBoolean + AtomicReference[Option[Fiber]] + an unscoped fiber + a flag that the tick polls",
+     "what": "Starts the repair tick without a scope. stop sets `stopped` and interrupts the tick. The flag covers the gap between the start of the fiber and ticker.set.",
+     "why": "Review fixes R2-1 and R2-2. A run-owned Scope was refused because Fiber.init WAITS for its fiber, and that breaks the end order (spike S2).",
+     "klass": "REPLACE",
+     "replacement": "Fiber.use is Sync.acquireReleaseWith(initUnscoped(v))(_.interrupt): the spawn and the interrupt land on the same side of any interrupt, and the release does NOT wait for the fiber (kyo Fiber.scala:159-174):\ndef run(root: UI)(using Frame): Unit < Async =\n  scoped(Sync.ensure(mount.interruptAll) {\n    Fiber.use(repairTick) { tick =>\n      Sync.defer(mount.track(tick)).andThen(for\n        t0  <- nanos\n        w0  <- mount.walk(root, Loc.root, World.init(root, canvas.size), Map.empty)\n        w0s <- settleAndVerify(w0, input = false)\n        w1  <- frame(w0s, 0L, FrameCause.Initial, t0)\n        _   <- Loop(w1)(step)\n      yield ())\n    }\n  })\nprivate def repairTick(using Frame): Unit < Async =\n  Abort.run[Closed](Loop.forever(Async.sleep(knobs.repairInterval).andThen(inbox.put(Msg.Repair)))).unit",
+     "risk": "concurrency. Do NOT use Fiber.init (scoped) here, because it awaits the fiber (G2 of spike S2). The step loop stays on the calling fiber. Async.race would move it to a child fiber, and SchedulerProbe assumes that only the caller runs.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Runner.scala:71-81, :162, :558 (quitRequested); the class body allocations at :33, :85",
+     "construct": "java.util.concurrent AtomicBoolean, plus mutable state that the constructor allocates outside any effect (Tui.scala:148, Headless.scala:322)",
+     "what": "Tui.quit can be called from any fiber. It sets the flag and offers Msg.Quit. The flag covers the case where offer drops Quit on a full inbox.",
+     "why": "A put is not possible here: a handler runs on the runner fiber, and a put into its own full inbox would deadlock. So the flag is necessary.",
+     "klass": "REPLACE",
+     "replacement": "object Runner:\n  def init(inbox: Channel[Msg], canvas: Canvas, o: TuiOptions, stats: Maybe[Channel[FrameStats]], k: Knobs = Knobs.default)(using Frame): Runner < Sync =\n    AtomicBoolean.init(false).map(q => new Runner(inbox, canvas, o, stats, k, q))\ndef quit(using Frame): Unit < Sync =\n  quitRequested.set(true).andThen(Abort.run[Closed](inbox.offer(Msg.Quit)).unit)\nThe same applies to Mount (Mount.init), which is in another slice.",
+     "risk": "none. Tui.scala:148 and Headless.scala:322 change to `runner <- Runner.init(...)`.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Runner.scala:35-36 (nanos), :672 (val tr = java.lang.System.nanoTime())",
+     "construct": "System.nanoTime, once inside Sync.defer and once RAW, when the frame computation is built",
+     "what": "Gives the timestamps for FrameStats and the settle deadlines.",
+     "why": "Plain JVM time.",
+     "klass": "REPLACE",
+     "replacement": "private def nanos(using Frame): Long < Sync = Clock.nowMonotonic.map(_.toNanos)\n// frame:\nnanos.map { tr => Sync.defer { /* layout, paint, flush */ } ... renderNanos = t1 - tr }\nThis also lets tests control the time with Clock.withTimeControl.",
+     "risk": "performance: about the same cost. The meaning of renderNanos does not change.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Runner.scala:502-505 (the probe call in settle); modules/core/src/main/scala/tui4s/internal/SchedulerProbe.scala:30, :36-46",
+     "construct": "an impure global read that is not suspended (scheduler.status()) inside the Loop body; var total and var busy in a foreach; a null filter",
+     "what": "Before each drain, it reads the load of all Kyo workers. 'Probe, THEN drain' is load-bearing (without it, frames split under CPU contention).",
+     "why": "The public Scheduler.status() is the only signal of quiescence (D-17 c). Each call costs 11 to 12 us.",
+     "klass": "REPLACE",
+     "replacement": "def quiescent(using Frame): Boolean < Sync = Sync.defer {\n  val (busy, total) = scheduler.status().workers.iterator.filter(_ ne null)\n    .foldLeft((0, 0)) { case ((b, t), w) => (if w.load > 0 then b + 1 else b, t + w.load) }\n  busy <= 1 && total <= 1\n}\n// settle: the order is explicit in the flatMap\nval probe = options.settle match\n  case Settle.Quiescent(_, _) => SchedulerProbe.quiescent\n  case Settle.Hops(_, _)      => Kyo.lift(true)\nprobe.map(idleBefore => Abort.run[Closed](inbox.drain).map { ... })\nKeep Scheduler.get and the null filter: workers can hold nulls (kyo-scheduler top/Printer.scala:70 filters them too).",
+     "risk": "concurrency: keep probe-then-drain. Performance: one more closure for each settle iteration, which is negligible next to the 11 us of the probe.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Runner.scala:362, :379",
+     "construct": "c.value.asInstanceOf[UI], c.value.asInstanceOf[Chunk[Any]]",
+     "what": "Msg.Content(value: Any) carries 3 kinds of value. The runner casts the value from the Source of the region.",
+     "why": "Msg.Content has no type.",
+     "klass": "REPLACE",
+     "replacement": "enum Msg:\n  case Single(region: Loc, gen: Long, ui: UI)          // Source.One | Source.Comp\n  case Items(region: Loc, gen: Long, items: Chunk[Any]) // Source.Many\n  case Value(region: Loc, gen: Long, value: Any)        // Source.Bound\nEach watcher in Mount posts the case for its kind. verifyRegion (:322-348) builds the matching case. apply matches on (msg, source), so no cast remains.",
+     "risk": "none for the restore. Mount.scala (another slice) changes its post calls.",
+     "cost": "M"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Runner.scala:211-213, :475-487",
+     "construct": "`case _ =>` after Abort.run[Closed] / Abort.run[Timeout | Closed]",
+     "what": "Makes a closed inbox (or a timeout) into Quit (or 'stop waiting'). The wildcard also catches Result.Panic.",
+     "why": "A shortcut.",
+     "klass": "REPLACE",
+     "replacement": "Abort.run[Closed](inbox.take).map {\n  case Result.Success(m)            => (m, w)\n  case Result.Failure(_: Closed)    => (Msg.Quit, w)\n  case Result.Panic(e)              => Abort.panic(e)\n}\nUse the same shape for the pending branch: match Timeout and Closed by name, and let a Panic propagate.",
+     "risk": "failure: today a defect in take ends the run as a clean quit (exit code 0, no report). After the change it goes through the bracket as a failure, so the restore still runs first.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Runner.scala:663-717 (frame: the Sync.defer around layoutStep, Paint, canvas.flush, canvas.takeWrites)",
+     "construct": "jatatui Buffer mutation inside one Sync.defer",
+     "what": "Lays out, paints into the kept buffer, flushes the changed cells, and reads and resets the write counter.",
+     "why": "jatatui Buffer and Cell are mutable and not thread-safe. Only the runner fiber touches them. This is the per-frame hot path.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep the code. It is already the one seam for the canvas. Small change: canvas.flush can return (sent, repainted), so that the takeWrites read-and-reset (Paint.scala:54-57) goes. Build FrameStats once and copy it (it is built twice at :680-689 and :705-715).",
+     "risk": "performance and terminal (no frame after close: Canvas.closed under the backend monitor, G1).",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/spi/SchedulerDefaults.scala:48-54, :59-71",
+     "construct": "System.getProperty, System.getenv, System.setProperty (JVM-global mutation without an effect); a side effect inside `collect`; 2 .nn calls",
+     "what": "Sets three Kyo scheduler properties before the first Kyo class loads, when the user did not set them.",
+     "why": "This MUST run before any Kyo class is initialized, so no Kyo effect can wrap it. The pure `applyTo` is already separate from the impure `applyIfUnset`.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep the code. Small cleanup: in applyTo, use `val missing = defaults.filter((k, _) => property(k) == null && env(envName(k)) == null); missing.foreach(set.tupled); missing.map(_._1)`, so that no side effect runs inside collect.",
+     "risk": "public API (spi): the signatures do not change.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Knobs.scala:29-45; modules/core/src/main/scala/tui4s/spi/Settle.scala:22-40; modules/core/src/main/scala/tui4s/internal/InputPort.scala:13-18",
+     "construct": "none (a Kyo Local at the object level; a pure enum and a pure trait)",
+     "what": "The test seams through Local.let and Local.get, the settle strategy, and the input port.",
+     "why": "These files are already clean. The only impurity is the CEvent | Null in InputPort, which is on the Maybe site.",
+     "klass": "KEEP-KERNEL",
+     "replacement": "No change. Possible later: give onBoundWrite a typed value instead of Any (a test seam only).",
+     "risk": "none",
+     "cost": "S"
+    }
+   ],
+   "smells": [
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:145-155 (opened) together with Session.scala:166-170",
+     "smell": "A gap in the restore guarantee. The JVM restore hook is registered LAST, after raw mode, the alternate screen, the canvas and the start of the input thread. Under plain Tui.run (no tui4s-stop hook from TuiApp), a SIGTERM during enter leaves the shell in raw mode and in the alternate screen. Under TuiApp it is covered: hooks.add throws IllegalStateException, the catch calls s.close(), and the fiber's interrupt goes through the bracket.",
+     "fix": "Register the hook FIRST, before load and raw mode. Give it a release that undoes only the steps entered so far. With the immutable Entered value, or an AtomicRef.Unsafe[Entered] that grows as each step succeeds, the hook knows how far the acquire went."
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Session.scala:122-127; modules/core/src/main/scala/tui4s/internal/TerminalIO.scala:130-135, :166-171; modules/core/src/main/scala/tui4s/internal/Session.scala:177-178",
+     "smell": "Duplicated logic. Four hand-written copies of 'run every step, keep the first error', with DIFFERENT catch policies: Session.safely catches NonFatal and InterruptedException; enter's undo catches all but VirtualMachineError and drops the errors; leave catches all but VirtualMachineError and keeps the first; Session.open catches NonFatal and drops the errors. A LinkageError in an early step of Session.close would skip control.leave.",
+     "fix": "Use one Release.all(steps*): Outcome(first: Maybe[Throwable], interrupted: Boolean) with one policy (all but VirtualMachineError), and use it in all four places."
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Runner.scala (749 lines)",
+     "smell": "A god object. The settle loop, the scheduler probe policy, verify and repair, the application of content, the layout and focus repair (fixFocus, relayoutAll and layoutStep are pure and use only options.autoFocus), and the FrameStats are all in one class that has mutable fields.",
+     "fix": "Split it into Settler (settle, hop, probe), Repair (verify, repairAll, verifyRegion), a pure object FrameLayout (fixFocus, relayoutAll, layoutStep, with autoFocus as a parameter), and a thin Runner that only loops and holds the seams."
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/World.scala:70 (used at Runner.scala:172-178, :417-419)",
+     "smell": "A god state. World mixes the UI state, the counters of each step (updates, repaired, settleTimeouts, which are reset by hand at each step), control flags (quit, full) and a queue of messages (backlog).",
+     "fix": "Thread the counters as a separate StepStats value (or as a Kyo Var[StepStats] that is run for each step), and keep the backlog in the Loop state of the runner. Then World holds only what is on the screen."
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Runner.scala:185-200, :224, :559-561",
+     "smell": "Duplicated classification of Msg. Two matches on Key, Paste and Resize, one to find `input` and one to find (seq, cause). The isCtrlC test is in handle and also in ending.",
+     "fix": "Add `def inputSeq: Maybe[Long]` to Msg. Then input = msg.inputSeq.isDefined, and cause = inputSeq.fold(Background)(_ => Input)."
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Session.scala:28-31 (TerminalControl.step) and its call sites at :98-102, :168",
+     "smell": "Stringly typed data. The steps of the session are the strings \"input-started\", \"input-stopped\", \"input-joined\" and \"input-hung\".",
+     "fix": "Use `enum SessionStep { InputStarted, InputStopped, InputJoined, InputHung }`. RecordingControl writes the kebab-case names to its log, so the test assertions do not change."
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Session.scala:19-26 (TerminalControl.enter 'Throws a TuiError'), :181-183",
+     "smell": "Exceptions are used for expected outcomes. NotATerminal and NativeAccessDenied are thrown, then caught and made into an Either.",
+     "fix": "Use `enter: Result[TuiError, (Backend, Entered)]`. Use throw only for errors that the JVM makes fatal."
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Session.scala:59, :67, :73, :231; modules/core/src/main/scala/tui4s/internal/Crossterm.scala:57; modules/core/src/main/scala/tui4s/internal/EventMapping.scala:59",
+     "smell": "Null sentinels: InputThread | Null, Throwable | Null (twice), CEvent | Null, Msg | Null.",
+     "fix": "Use Maybe[...]. Convert with Maybe(x) only on the Java line that returns the value."
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Session.scala:89, :202; Session.scala:234 (embrace.danger); modules/core/src/main/scala/tui4s/Tui.scala:106, :145; modules/core/src/main/scala/tui4s/TuiApp.scala:153",
+     "smell": "The seams of the effect system are spread out. AllowUnsafe and Sync.Unsafe are used in five files, and there is no single boundary module.",
+     "fix": "Make one boundary package, tui4s.internal.term, with Session, TerminalIO, JvmHooks, Crossterm, InputThread and Release. Put the only AllowUnsafe / Sync.Unsafe.defer calls in Session.open and Session.close (and the hook thread). Runner then has none."
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Runner.scala:252, :444-448",
+     "smell": "Boolean blindness and positional loop state. settleAndVerify(w, input: Boolean) takes a bare Boolean. Loop(w, 0, t0, t0) has the positional state (w, quiet, start, last).",
+     "fix": "Pass `cause: StepKind` (Input | Background | Initial), and use `final case class SettleState(quiet: Int, start: Long, lastNews: Long)` in the Loop."
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Session.scala:61 and :89",
+     "smell": "Two mechanisms do one job. An AtomicBoolean CAS runs INSIDE a synchronized block. The monitor alone already gives exclusion and the wait of the second caller (G6).",
+     "fix": "Keep the monitor (the wait is the guarantee), and use a plain private field that only the monitor guards."
+    }
+   ],
+   "sliceVerdict": "This slice is not 'whiles everywhere'. Runner (749 lines) already has a Kyo shape: Loop, Kyo.foldLeft, Abort.run, Async.timeout and a pure World. Its problems are few and cheap to fix: four java.util.concurrent atomics, two impure reads outside an effect (nanoTime at Runner.scala:672, the scheduler probe at :503), two casts, and a Result wildcard that turns a Panic into a clean quit. The impure code is in the right files (Session, TerminalIO, Crossterm, InputThread), but it is written like Java: 9 volatile or var fields, null sentinels, a mutable undo stack, four copies of 'run every step, keep the first error' with different catch policies, and exceptions for expected errors such as NotATerminal. The restore logic is careful and correct (guarantees G1 to G11 are on the Session.close site). Keep it as one synchronous release that does not use the Kyo scheduler and that a JVM hook can call; do not move it into Scope finalizers. The single most valuable change is in Runner: replace last/remember/ticker/stopped with Sync.ensure(mount.interruptAll) around Fiber.use(repairTick). That deletes about 40 lines, six remember calls and two review-fix windows, and it does not touch the terminal restore. Next, add one Release combinator and an immutable Entered value from enter: that removes the four volatile fields of TerminalIO, makes the catch policy the same everywhere, and lets the restore hook be registered first, which closes the SIGTERM-during-enter gap under plain Tui.run."
+  },
+  {
+   "slice": "Reactive tree: modules/core/src/main/scala/tui4s/internal/{Mount,Dispatch,Render,World,ComponentSpec,Props,EventMapping}.scala and modules/core/src/main/scala/tui4s/{Component,Hooks}.scala (main checkout, read-only). There was no functional-design or Scala skill under /root/.claude/skills in this container (only session-start-hook and the synced Anthropic skills), so this uses the provisional rubric.",
+   "sites": [
+    {
+     "where": "internal/Mount.scala:22-27, 49-50, 55-64, 605-609",
+     "construct": "java.util.Collections.synchronizedSet(newSetFromMap(WeakHashMap[Fiber, Boolean])), started.synchronized(...) iteration, an impure `track(f): Unit`, 3 CollectionConverters imports",
+     "what": "The live-fiber gauge. Every watcher, hook or onMount fiber and the repair tick are added to it. liveFibers counts the fibers that are not done (a test gauge), and interruptAll interrupts all of them at stop (the R2-1 window: a watcher that a step started but did not remember yet).",
+     "why": "The gauge must not keep dead fibers alive (so the set is weak). interruptAll is the safety net for the fibers that a step started inside a settle.",
+     "klass": "REPLACE",
+     "replacement": "final class Gauge private (live: AtomicRef[Set[Fiber[Any, Nothing]]]):\n  def add(f: Fiber[Any, Nothing])(using Frame): Unit < Sync =\n    live.updateAndGet(_ + f).andThen(f.onComplete(_ => live.updateAndGet(_ - f).unit))\n  def size(using Frame): Int < Sync = live.get.map(_.size)\n  def interruptAll(using Frame): Unit < Sync =\n    live.get.map(fs => Kyo.foreachDiscard(fs.toSeq)(_.interrupt.unit))\nobject Gauge:\n  def init(using Frame): Gauge < Sync = AtomicRef.init(Set.empty[Fiber[Any, Nothing]]).map(Gauge(_))\n// Mount.init(inbox, knobs, gauge): Mount < Sync; Runner builds it inside run, not in its constructor",
+     "risk": "Concurrency and the end of the run. Strong references with removal on completion are exact, and they also close a latent hole: a hook or onMount fiber parked on Async.never that the World dropped (the R2-1 window) is reachable only from the weak set. GC could collect it before interruptAll, and then its Scope finalizers never run (PLAUSIBLE, not reproduced). The Runner constructor (outside the slice) must build Mount inside an effect. WatcherTest, ComponentTest and HooksTest gauge asserts must stay green.",
+     "cost": "M"
+    },
+    {
+     "where": "internal/Mount.scala:32-46, 79, 111-117",
+     "construct": "java.util.concurrent.ConcurrentHashMap[Loc, java.lang.Long] shared between the watcher fibers and the runner; unarmedRegions mutates the map (remove) inside a flatMap, outside any effect",
+     "what": "The armkey set (D-16): the regions whose watcher has not reached its arm step. watch puts the entry, the watcher's step 0 removes it before it posts Msg.Armed, and Runner.verify reads it on Input steps.",
+     "why": "The verify pass must re-read the regions that can still miss a write (the lost wakeup of Signal in Kyo RC7, TODO #8).",
+     "klass": "REPLACE",
+     "replacement": "// World: unarmed: Map[Loc, Long] = Map.empty  (pure, owned by the runner fiber)\n// Mount.walk, at each watch:  w1.copy(unarmed = w1.unarmed.updated(path, gen))\n// Runner.handle and absorb:  case Msg.Armed(p, g) => verifyRegion(w.copy(unarmed = w.unarmed - p), p, Some(g))\ndef unarmedRegions(w: World): Set[Loc] =\n  w.unarmed.collect { case (p, g) if w.regions.get(p).exists(_.gen == g) => p }.toSet\n// remount / gcComps: w.copy(unarmed = w.unarmed.filter((p, g) => w.regions.get(p).exists(_.gen == g)))\n// the watcher loop loses its Sync.defer(unarmed.remove(...)); it only posts Msg.Armed",
+     "risk": "Concurrency semantics of D-16. The World set is a superset of the map: an entry leaves when the runner absorbs Armed, after the watcher removed it. So verify can only re-read more often, never less. Every Armed message is handled (Runner.scala:238 and :415). SeamTest (armkey) must stay green. Runner is touched (2 lines).",
+     "cost": "S"
+    },
+    {
+     "where": "internal/Mount.scala:622-633 (Tui4sTrack), called by Hooks.scala:53, 70, 85 and Runner.scala:95",
+     "construct": "Local[Fiber[Any, Nothing] => Unit]: a Local that holds an impure callback (mount.track mutates the Java set); apply wraps it in Sync.defer",
+     "what": "Carries the gauge of the run to the fibers that the hooks start, so they end with the run.",
+     "why": "Hooks run in user code with no handle to the runner.",
+     "klass": "REPLACE",
+     "replacement": "private val local: Local[Fiber[Any, Nothing] => Unit < Sync] = Local.init(_ => Kyo.unit)\ndef let[A, S](track: Fiber[Any, Nothing] => Unit < Sync)(v: A < S)(using Frame): A < S = local.let(track)(v)\ndef apply(f: Fiber[Any, Nothing])(using Frame): Unit < Sync = local.use(_(f))\n// Runner.scoped: Tui4sTrack.let(gauge.add)(v)",
+     "risk": "None. It is internal, and the effect type is unchanged for the hooks.",
+     "cost": "S"
+    },
+    {
+     "where": "internal/Mount.scala:243",
+     "construct": "fe0.asInstanceOf[Foreach[Any, UI]]",
+     "what": "Opens the existential item type of a kyo-ui Foreach so that key, render and signal can be applied.",
+     "why": "The comment says erasure forces it (kyo-ui's applyTyped is private). A Scala 3 type-variable pattern opens the existential without a cast.",
+     "klass": "REPLACE",
+     "replacement": "case fe: Foreach[a, ?] =>   // a is bound: fe.signal: Signal[Chunk[a]], fe.render: (Int, a) => UI\n  ... reconcile(fe, Vector.empty, values.toVector) ...\ndef reconcile[A](fe: Foreach[A, ?], old: Vector[ItemState], values: Vector[A]): Vector[ItemState]\n// Source.Many(fe: Foreach[?, ?]); Runner.apply opens it with the same pattern",
+     "risk": "None at run time. One cast stays in Runner.scala:379 (c.value.asInstanceOf[Chunk[Any]]) until Msg.Content carries a typed value (see the smells).",
+     "cost": "S"
+    },
+    {
+     "where": "internal/Mount.scala:384, 413 (and World.comps: Map[(Loc, String), SignalRef[Any]])",
+     "construct": "2 casts: ref.asInstanceOf[SignalRef[c.State]] and state.asInstanceOf[SignalRef[Any]]",
+     "what": "Stores and loads the state of a Component across instances (a parent that renders again builds a new instance with the same key).",
+     "why": "Component#State is a path-dependent type member. For a new instance c, nothing proves c.State = old.State, so a cast is unavoidable without a type witness. The real hole: stateKey is a user string that can be overridden, and it decides the cast. Two classes with one key and different State types give a ClassCastException in user code. The Scaladoc of stateKey documents this.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep one cast in one helper: private def stateOf(c: Component)(r: SignalRef[Any]): SignalRef[c.State] = r.asInstanceOf. Key comps by (path, c.getClass, stateKey) so that the key cannot pair two classes (the hole then remains only for one generic class with different type arguments). A full fix needs `protected given Tag[State]` on Component (a public API change).",
+     "risk": "Public API: the documented sharing of state across classes with one key goes away if the class joins the key.",
+     "cost": "S"
+    },
+    {
+     "where": "internal/Mount.scala:81-83, 449-464, 504-512 (and Runner.scala:138-139)",
+     "construct": "Fiber.initUnscoped plus `.map(f => Sync.defer { track(f); f })`, repeated 3 times; Abort.run[Throwable](...).unit and `case _ => post(UI.empty)` drop failures silently",
+     "what": "Starts the watcher, the hook-component body and the onMount fiber. Each is owned by RegionState.watcher, interrupted at unmount, and interrupted at stop by interruptAll.",
+     "why": "Unscoped on purpose: a run-owned Scope waits for a CPU-bound fiber at close (Fiber.init's release awaits the fiber; spike S2). Keep initUnscoped. The duplication and the silent failures are what to fix.",
+     "klass": "REPLACE",
+     "replacement": "private def fork(label: String, onFail: => Unit < Async = Kyo.unit)(v: => Any < (Async & Abort[Throwable]))(using Frame): Fiber[Any, Nothing] < Sync =\n  Fiber.initUnscoped(Abort.run[Throwable](v).map {\n    case Result.Success(_)               => Kyo.unit\n    case Result.Panic(_: Interrupted)    => Kyo.unit\n    case Result.Failure(e)               => Log.error(s\"tui4s: $label failed\", e).andThen(onFail)\n    case Result.Panic(e)                 => Log.error(s\"tui4s: $label panicked\", e).andThen(onFail)\n  }).map(f => gauge.add(f).andThen(f))\n// watch:  fork(\"watcher\")(Abort.run[Closed](loop(signal, path, gen)))\n// hook:   fork(\"component\", post(path, gen, UI.empty))(Scope.run(body().map(post(path, gen, _)).andThen(Async.never)))\n// onMount: fork(\"onMount\")(Scope.run(c.onMount(state).andThen(Async.never)))",
+     "risk": "Concurrency: low. The interrupt order stays the same. Log must go to the file sink (AGENTS: no stdout while the UI runs). Dispatch.safe already uses Log.error.",
+     "cost": "S"
+    },
+    {
+     "where": "internal/Mount.scala:416",
+     "construct": "reclaim.removed(path)",
+     "what": "Removes the component's own path from the reclaim map before it walks the content.",
+     "why": "Defensive. The nested walk only looks up paths under path :+ \"~\", so it can never look up `path`, and the call has no effect.",
+     "klass": "DELETE",
+     "replacement": "walk(content, path :+ \"~\", ..., reclaim)",
+     "risk": "None.",
+     "cost": "S"
+    },
+    {
+     "where": "internal/ComponentSpec.scala:34-41, 46-54",
+     "construct": "A global mutable registry: Collections.synchronizedMap(WeakHashMap[Signal[?], ComponentSpec]). node() writes it from pure-typed public code (Component.ui: Reactive[UI], Hooks.component: UI), and lookup reads it with no effect",
+     "what": "Marks a kyo-ui Reactive as a component node by the identity of its signal (K3).",
+     "why": "A true boundary: the kyo-ui AST is sealed, and kyo.Signal is a `sealed abstract class` (Signal.scala:44 in RC7). tui4s cannot subclass Signal or add a node type, so a registry keyed by identity is the only side channel. Each entry is written once for a fresh signal before the UI value can be seen, so a lookup is deterministic (it acts like the read of an immutable field). Weak keys tie the entry to the UI value. No value holds its key, so nothing leaks.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep it in this file as the one seam, with this reason in its Scaladoc. Do not make node() effectful: that changes the public return types (Hooks.component: UI, the implicit conversion componentToChild).",
+     "risk": "Public API if anyone changes it. Global state (the second global after the output capture).",
+     "cost": "S"
+    },
+    {
+     "where": "internal/ComponentSpec.scala:56",
+     "construct": "private def discard(a: Any): Unit = ()",
+     "what": "A local copy of the package-level discard helper.",
+     "why": "Redundant. The package-level inline discard (internal/package.scala:7) is in scope and this copy shadows it.",
+     "klass": "DELETE",
+     "replacement": "Use the package-level discard(registry.put(sig, spec)).",
+     "risk": "None.",
+     "cost": "S"
+    },
+    {
+     "where": "Component.scala:82-89",
+     "construct": "import AllowUnsafe.embrace.danger; Signal.SignalRef.Unsafe.init[State](initial).safe inside the lazy fallback",
+     "what": "The UI that a foreign kyo-ui runner (DOM, server push) sees: one state per node value, built the first time it is needed.",
+     "why": "A foreign-runner boundary. The fallback must be a plain UI inside Signal.currentWith, and it is memoized by `lazy val fb` in ComponentSpec.node. A Sync allocation per read would give a new state on each read. The allocation is one-shot and local.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Move the unsafe allocation into ComponentSpec (the one seam): ComponentSpec.node(Instance(this), ComponentSpec.ownState(initial)(view)) with `def ownState[A: CanEqual](init: A)(view: SignalRef[A] => UI): UI = { import AllowUnsafe.embrace.danger; view(Signal.SignalRef.Unsafe.init(init).safe) }`. Then Component.scala has no AllowUnsafe.",
+     "risk": "None (internal to ui).",
+     "cost": "S"
+    },
+    {
+     "where": "internal/Dispatch.scala:186-187, 192",
+     "construct": "3 isInstanceOf: !e.isInstanceOf[Select] && !e.isInstanceOf[Button]; b.isInstanceOf[Button]",
+     "what": "Decides whether Enter submits the form (not from a Select or a Button), and whether a click submits (a Button does, an Anchor does not).",
+     "why": "A shortcut inside a union-type case `b: (Button | Anchor)`. Pattern matching expresses the same rule.",
+     "klass": "REPLACE",
+     "replacement": "val enterSubmits = e match\n  case _: Select | _: Button => false\n  case _                     => true\nval submit = form.filter(_ => isKey(ev, Keyboard.Enter) && enterSubmits)\n...\ncase _: Button if activate(ev) => activateClick(ch, target, Click.Submits, ev).andThen(w)\ncase _: Anchor if activate(ev) => activateClick(ch, target, Click.NoSubmit, ev).andThen(w)\n// enum Click { case Submits, NoSubmit } replaces the `submits: Boolean` parameter",
+     "risk": "None. DispatchTest covers the Click and submit rules.",
+     "cost": "S"
+    },
+    {
+     "where": "internal/Dispatch.scala:69-72, 151, 210",
+     "construct": "4 calls of Maybe.get after an isEmpty or nonEmpty check (boolean blindness)",
+     "what": "Runs an optional handler, and reads focusGroup after a nonEmpty guard.",
+     "why": "Written as null-style checks. Maybe has fold and patterns.",
+     "klass": "REPLACE",
+     "replacement": "private def run(m: Maybe[Any < Async]): Any < Async = m.getOrElse(())\nprivate def runWith[A](m: Maybe[A => Any < Async], a: A): Any < Async = m.fold(())(_(a))\n// bubble: e.attrs.onKeyDown match { case Present(h) if !skip => safe(\"onKeyDown\", h(ev)).andThen(...) ; case _ => bubble(rest, ev, target) }\n// defaults: case _ if isArrowLR(ev) => e.attrs.focusGroup.fold(Kyo.lift(w))(g => moveInGroup(w, target, g, dirOf(ev)))",
+     "risk": "None.",
+     "cost": "S"
+    },
+    {
+     "where": "internal/EventMapping.scala:59-72, 78-79, 92-141 (callers: internal/Session.scala:243, testkit/Headless.scala:350)",
+     "construct": "About 25 null sites: return types Msg | Null and KeyboardEvent | Null, `null` for each ignored case, and 4 null checks of Java record fields (keyEvent, string, modifiers, code)",
+     "what": "Maps crossterm events to runner messages on the input thread. null means 'ignored'.",
+     "why": "The Java checks are a true JNI boundary (jatatui records can hold null). But null leaks into the Scala API, and both callers must null-check. Kyo's Maybe.apply maps null to Absent, and Present(x) of a non-Maybe value is unboxed, so the input thread allocates nothing extra.",
+     "klass": "REPLACE",
+     "replacement": "def apply(e: CEvent, seq: Long): Maybe[Msg] = e match\n  case k: CEvent.Key         => Maybe(k.keyEvent).flatMap(key).map(Msg.Key(_, seq))\n  case p: CEvent.Paste       => Maybe(p.string).map(Msg.Paste(_, seq))\n  case r: CEvent.Resize      => Present(Msg.Resize(Size(r.columns, r.rows), seq))\n  case _: CEvent.Mouse       => Absent\n  case _: CEvent.FocusGained => Absent\n  case _: CEvent.FocusLost   => Absent\ndef key(ke: KeyEvent): Maybe[KeyboardEvent] =\n  Maybe(ke.code).filter(_ => ke.kind != KeyEventKind.Release).flatMap { ... case _: KeyCode.Null => Absent ... }\ndef mods(m: KeyModifiers | Null): Modifiers = { val bits = Maybe(m).fold(0)(_.bits); ... }\n// Session: EventMapping(e, seq).foreach { m => batch += m; seq += 1 }\n// Headless: EventMapping.key(EventMapping.typed(c)).getOrElse(plain(Keyboard.Char(c)))",
+     "risk": "Input thread (Session, outside the slice): a 2-line change. Keep every case of the sealed Java types, so the -Wconf exhaustivity error in modules/core/build.sbt keeps working.",
+     "cost": "S"
+    },
+    {
+     "where": "internal/Render.scala:14-45",
+     "construct": "A test-only helper in main sources: it builds a jatatui TestBackend and Canvas, mutates them through Paint, and returns a mutable Buffer, with no effect",
+     "what": "Renders one static UI to rows of text for ScreenTest and ScreenSuite.",
+     "why": "Only test code uses it (grep: ScreenSuite.scala x2, ScreenTest.scala x1). The Scaladoc is stale ('The runner that drives signals comes in a later PR (C2)').",
+     "klass": "DELETE",
+     "replacement": "Move it to modules/core/src/test/scala/tui4s/internal/Render.scala. private[tui4s] stays reachable from the tests. Drop the stale paragraph.",
+     "risk": "None (not public, not used in main).",
+     "cost": "S"
+    }
+   ],
+   "smells": [
+    {
+     "where": "internal/World.scala:52-59 RegionState, internal/Layout.scala:14-27 Content, used across Mount, Dispatch and Runner",
+     "smell": "A loosely typed product where a sum type belongs. items is only valid for Many, Content.Value(v: Any) only for Bound/Local, and Local uses gen 0 as a sentinel. There are 7 `Vector.empty` placeholders in Mount and Dispatch. `path` repeats the Map key. `items` and Content.Many hold the same data twice (Runner.scala:383-386 keeps both in sync by hand). `watcher` also holds the hook and onMount fibers.",
+     "fix": "A sealed ADT per source: Region.Reactive(sig, gen, ui, fiber), Region.Many[A](fe: Foreach[A, ?], gen, items: Vector[Item[A]], fiber), Region.Bound[A](ref: SignalRef[A], gen, value: A, fiber), Region.Local[A](value: A), Region.Comp(spec, key, gen, content: Maybe[UI], fiber). Derive Content for Layout from it. This deletes the casts, the placeholders and the double state. Cost L (touches Runner, Layout, Paint)."
+    },
+    {
+     "where": "internal/World.scala:19 Msg.Content(region, gen, value: Any)",
+     "smell": "An untyped message payload. It forces asInstanceOf[UI] and asInstanceOf[Chunk[Any]] in Runner.apply, and v.toString / `v: Boolean` type tests in Dispatch.",
+     "fix": "Have the watcher post a typed update, e.g. case Content(region: Loc, gen: Long, value: Region.Value) with an enum of UI | Items[A] | Bound[A], or post the new Region itself."
+    },
+    {
+     "where": "internal/World.scala:70-117",
+     "smell": "A god object: 17 fields that mix 6 concerns. Tree (regions, comps, pending, nextGen), interaction (focus, carets), layout (laid), damage (dirtyRegions, dirtyNodes, full), loop control (backlog, quit), step statistics (updates, repaired, settleTimeouts) and lost-wakeup bookkeeping (youngNow, youngPrev). World.init is positional with bare booleans and zeros.",
+     "fix": "Split it into Tree, Input, Damage and StepStats case classes held by World, and keep backlog and quit in the Runner loop state. Use named arguments or defaults in World.init."
+    },
+    {
+     "where": "internal/Mount.scala (9x) and internal/Dispatch.scala (3x)",
+     "smell": "Duplicated logic. `w.copy(regions = w.regions.updated(path, r))` appears 12 times. The 'store the runner's own value' block (copy the region content, or build RegionState(p, Source.Local, 0, Content.Value(v), Vector.empty, None)) appears 3 times (commitText 349-361, toggle 390-403, cycle 428-443). The bound-write match `case Present(UI.Bound.Ref(ref)) => writeBound(...)` appears 3 times.",
+     "fix": "Add World.withRegion(r) and World.setValue(p, v) (the second also calls markNode), and Dispatch.writeBoundOf[A](p, bound: Maybe[UI.Bound[A]], v)."
+    },
+    {
+     "where": "internal/Dispatch.scala:237-242 (submits), 449 (runHandlers), 406 (forward), 482/499 (dir: Int); internal/EventMapping.scala:78 (extraShift)",
+     "smell": "Boolean and Int flags in place of meaning (boolean blindness).",
+     "fix": "Use small enums: Click.Submits/NoSubmit, FocusMove.Silent/WithHandlers, Step.Next/Prev (with an `offset` method). For extraShift: mods(ke.modifiers).copy(shift = true) at BackTab, and drop the parameter."
+    },
+    {
+     "where": "internal/Dispatch.scala:112-116",
+     "smell": "Maybe to Option to Maybe round trip: targetEl.flatMap(_.attrs.identifier.toOption) match Some/None => Present/Absent.",
+     "fix": "val ev = key.copy(targetId = targetEl.fold(Absent)(_.attrs.identifier))."
+    },
+    {
+     "where": "internal/EventMapping.scala:171-174",
+     "smell": "A stringly-typed lookup: Keyboard.fromString(s\"F$n\") to map a function-key number.",
+     "fix": "private val fKeys = Vector(Keyboard.F1, ..., Keyboard.F12); def function(n: Int): Maybe[Keyboard] = Maybe.fromOption(fKeys.lift(n - 1))."
+    },
+    {
+     "where": "Hooks.scala:44-91",
+     "smell": "Effects declared wider than needed. useHold, useFold, useEffect and useInterval only call Signal.initRef, Fiber.init and Tui4sTrack, which are Sync & Scope, but they return `< (Async & Scope)`. useEffect also loses a failure of `effect` silently, because the fiber result is never read.",
+     "fix": "Narrow the returns to `< (Sync & Scope)`. This is source compatible because the effect parameter of `<` is contravariant, and binary compatible because the erasure is the same. Wrap the effect in Abort.run[Throwable] with Log.error, as Dispatch.safe does. Public API: run versionPolicyCheck."
+    },
+    {
+     "where": "Hooks.scala:108, internal/World.scala:37 Source.Comp(spec, key: String)",
+     "smell": "Stringly-typed identity. A hook identity is s\"${frame.position.show}#$key\" (it can collide when a key or a path holds '#'). Source.Comp.key is a Component stateKey or a hook identity in one String, and the same value is also inside ComponentSpec.Hook(identity, ...).",
+     "fix": "final case class HookId(position: String, key: String). Derive the key from the spec (spec match Hook(id, _) => id; Instance(c) => Component.stateKeyOf(c)) and drop the duplicated field."
+    },
+    {
+     "where": "internal/Mount.scala, internal/World.scala (Armed, youngNow/youngPrev, repaired), internal/Knobs.scala seam",
+     "smell": "The lost-wakeup workaround of Kyo RC7 (TODO #8/#9: the watcher loop, Msg.Armed, Msg.Repair, the unarmed set, the young sets, the pull check, knobs.seam) is spread over Mount, World and Runner. It takes much of the reactive-tree code, and removing it later will be a scattered edit.",
+     "fix": "Put it in one Watcher module (watch loop, arm bookkeeping, repair policy) with a narrow API to the runner, so the fix of #8 is one deletion."
+    },
+    {
+     "where": "internal/Mount.scala:518-540, 557-573",
+     "smell": "Perf. remount filters all regions by prefix (O(n)), and gcComps scans all regions and all pending paths after every remount. A settle that applies m updates costs O(n*m).",
+     "fix": "Keep regions in a TreeMap[Loc, ...] with a Loc ordering, so a prefix is a range query (rangeFrom/rangeTo). Run gcComps once per settle, not once per remount."
+    },
+    {
+     "where": "internal/Mount.scala (class Mount)",
+     "smell": "Mixed responsibilities. Pure tree diffing (keysOf, reconcile, gcComps, boundRef, waits) sits next to the fiber lifecycle and two shared mutable collections. boundRef and reconcile use no instance state.",
+     "fix": "Move the pure functions to an object Tree (testable without fibers). Keep Mount for mount, unmount and fork."
+    },
+    {
+     "where": "internal/Props.scala:99-155, 28-73",
+     "smell": "A 23-field positional constructor with bare booleans, zeros and Nones (Props.neutral, TextAttrs.default). Dir plus reverse: Boolean reinvents kyo's FlexDirection. TextAttrs.style rebuilds a List and folds it on every call. The rest of Props is pure. Integer.parseInt in hex cannot throw: kyo-ui's Color.Hex has a private[kyo] constructor, and Color.hex checks the digits and the length.",
+     "fix": "Use default parameters and named arguments. Store a 4-case direction (or FlexDirection). Make `lazy val style` on TextAttrs (it is immutable)."
+    },
+    {
+     "where": "all 9 files: 89 lines that start with 'claude 2026-10-..' plus their continuation lines (Mount 30, Dispatch 17, World 13, Hooks 8, EventMapping 7, Component 6, Props 4, ComponentSpec 3, Render 1)",
+     "smell": "A change log in the source: review IDs (R2-4, C4, P-6, RC-8, FC-17) explain history, not the code. Some split code lines (Props.scala:102-103, 310-312).",
+     "fix": "Move the history to git and the PR text. Keep a comment only when it says why the code is as it is (for example the S2 reason for initUnscoped and the K3 reason for the registry)."
+    },
+    {
+     "where": "Component.scala:94-95",
+     "smell": "A Scala 2 style `implicit def` conversion with scala.language.implicitConversions.",
+     "fix": "given (using Frame): Conversion[Component, HtmlChildVal] = c => HtmlChildVal.lift(c.ui). This changes the public API, so treat it as a minor-version change."
+    }
+   ],
+   "sliceVerdict": "This slice is not \"whiles everywhere\". The 9 files have no while or do loop, no var, no return, no try/catch/throw and no Thread. The tree is already one immutable World threaded through Kyo Loop, Kyo.foldLeft and plain recursion, and Props is fully pure. The impurity is in a few places: two Java concurrent collections in Mount (the weak fiber gauge and the armkey map, which is mutated with no effect in unarmedRegions), the impure callback in Tui4sTrack, null as absence in EventMapping, and a test-only renderer in main. Two sites are justified boundaries: the global component registry (Signal and the kyo-ui AST are sealed) and the AllowUnsafe fallback in Component.ui. The real reason it reads badly is the data model: RegionState, Content and Msg carry Any payloads, fields that are valid only for some sources, duplicated state and string keys, and those cause the casts and the copy-paste in Dispatch. On top of that, World is a 17-field god object, and 89 change-log comment lines bury the logic. The one purity change with the most value, for small cost: move the unarmed map into World and replace the weak set with a Kyo AtomicRef gauge (removal on completion). Mount then holds no shared mutable state, and that also closes a latent GC hole for fibers parked on Async.never. The follow-up with the most design value is a sealed per-source Region ADT with typed Msg.Content (cost L)."
+  },
+  {
+   "slice": "layout-paint: modules/core/src/main/scala/tui4s/internal/{Layout,Paint,Geometry,TextEdit}.scala (main checkout, read-only)",
+   "sites": [
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Paint.scala:249-592 (Paint.apply 260-261, paintNode 287-320, border 325-363, decorate 397-592)",
+     "construct": "side effects outside an effect: 25 direct canvas.put/text/clear/fillBg calls that return Unit, inside an object that looks pure",
+     "what": "Walks the immutable Laid and writes cells straight into the mutable jatatui back Buffer while it decides what to draw. Runner.scala:693 calls it inside one big Sync.defer. Render.scala:23 calls it with no effect at all.",
+     "why": "Simplest way to paint. Deciding what to draw and writing the cells are mixed together.",
+     "klass": "REPLACE",
+     "replacement": "Make the painter pure and do one final write. All of Paint becomes a function from immutable input to immutable output, threading an accumulator the same way Layout threads `acc: Laid`:\n```scala\nenum Op:\n  case Clear(r: Rect, bg: Option[JColor])\n  case Fill(r: Rect, bg: JColor)                          // clipped in plan\n  case Run(x: Int, y: Int, n: Int, sym: String, st: JStyle) // border side, field fill; clipped\n  case Glyph(x: Int, y: Int, sym: String, st: JStyle)\n  case Text(x: Int, y: Int, s: String, st: JStyle, clip: Rect)\nfinal case class FramePlan(ops: Chunk[Op], dirty: Vector[Rect], subtrees: Int)\n\nobject Paint:\n  def plan(laid: Laid, env: Scene, damage: Vector[Damage]): FramePlan =\n    val clears = damage.collect { case c: Damage.Clear => c }.distinct\n    val top    = ...                                   // as today\n    val ops0   = Chunk.from(clears.map(c => Op.Clear(c.rect, c.bg)))\n    val ops    = top.foldLeft(ops0)((acc, p) => node(laid, env, p, clipOf(laid, p), acc))\n    FramePlan(ops, clears.map(_.rect) ++ top.flatMap(laid.nodes.get(_).map(_.rect)), top.size)\n  private def node(laid: Laid, env: Scene, p: Loc, clip: Rect, acc: Chunk[Op]): Chunk[Op] = ... acc.append(op) ...\n\n// Runner.frame:\ncanvas.draw(Paint.plan(w1.laid, w1.env, damage))   // FrameOut(cells, sent, subtrees) < (Sync & Abort[TuiError])\n```\nUse `Chunk.append`, which is O(1). Do not use `++`: Kyo `Chunk.concat` copies both arrays, so it would cost O(n\u00b7depth). A border becomes 4 Run ops and 4 Glyph ops, not one op per cell, so the op count is O(nodes). scrollStart, textValue, checkedValue and pickerValue are already pure and stay as they are.",
+     "risk": "perf: one small Op allocation per text line, border side or decoration, never per cell. Check it with the existing FrameStats and LeakProbe. Test API: SessionTest.scala:224-239 calls canvas.put and canvas.flush directly, so it must change. No public API change, because tui4s.internal is sealed.",
+     "cost": "L"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Paint.scala:199-201 (used at 78, 172); related: Tui.scala:126",
+     "construct": "try/catch + throw (an exception used for control flow)",
+     "what": "Canvas.terminalIO catches an IOException from the backend and throws TuiError.TerminalIO. Inside Runner's Sync.defer this becomes a Panic, and Tui.scala:126 maps `Result.Panic(e: TuiError)` back to a failure.",
+     "why": "Canvas methods are plain Unit methods with no effect type, so a throw was the only way to report a failure.",
+     "klass": "REPLACE",
+     "replacement": "```scala\nprivate def io[A](a: => A)(using Frame): A < (Sync & Abort[TuiError]) =\n  Sync.defer(Abort.catching[java.io.IOException](TuiError.TerminalIO(_))(a))\n\ndef draw(plan: FramePlan)(using Frame): FrameOut < (Sync & Abort[TuiError]) =\n  Sync.defer {\n    val cells   = plan.ops.foldLeft(0)((n, op) => n + write(op)) // kernel\n    val updates = diff(plan.dirty)                                 // kernel\n    (cells, updates)\n  }.map { (cells, updates) =>\n    io(lock.synchronized { if !closed && updates.nonEmpty then { backend.draw(updates.asJava); backend.flush() } })\n      .andThen(FrameOut(cells, updates.size, plan.subtrees))\n  }\n```\nresize gets the same shape. Runner.frame widens to `< (Async & Abort[TuiError])`. Once TerminalIO.scala:123 (another slice) also stops throwing, the Panic remap at Tui.scala:126 can be deleted.",
+     "risk": "terminal restore: an Abort failure must still run the Session release bracket. It does, because the release is a Scope/ensure finalizer. concurrency: the monitor stays as it is. The effect type widens through Runner.",
+     "cost": "M"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Paint.scala:33, 54-57, 93, 106, 118, 135",
+     "construct": "var (a hidden counter) + takeWrites() (a side channel)",
+     "what": "Counts the cells written since the last call. Runner.scala:695 reads and resets it after each flush, to report the 'cells repainted' frame stat.",
+     "why": "Canvas methods return Unit, so the count has no other way out.",
+     "klass": "REPLACE",
+     "replacement": "The write kernel returns its count: `write(op): Int` (Clear and Fill give r.w*r.h after the clip, Text gives setStringn's end.x - sx). Canvas.draw returns `FrameOut(cells, sent, subtrees)`. Delete `writes` and takeWrites. This is part of the draw seam above.",
+     "risk": "none beyond the frame-stats tests",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Paint.scala:175-184 (knob at 30, 208; set by testkit/Headless.scala:321)",
+     "construct": "while busy-wait on System.nanoTime, inside backend.synchronized, on the runner fiber",
+     "what": "Test seam Knobs.flushSeam. When it is set, the draw goes one row at a time and the thread spins between rows, so HeadlessTest.scala:99 can show that a reader never sees a torn frame.",
+     "why": "It makes the race window wide in a test. In a real run the knob is zero.",
+     "klass": "DELETE",
+     "replacement": "Move the knob out of the production Canvas. Headless wraps its TestBackend in a test-only decorator whose `draw` splits the list by row and calls `LockSupport.parkNanos(seam)` between the rows. Canvas still calls draw under its monitor, so the test keeps its meaning. Canvas.resize matches `case tb: TestBackend` (Paint.scala:73), so the decorator must expose resize, or the match must see through it. Smallest fallback: keep the knob and replace the spin with `LockSupport.parkNanos(flushSeamNanos)`, which burns no CPU and still holds the monitor.",
+     "risk": "concurrency: HeadlessTest torn-frame test. perf: none in a real run.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Paint.scala:38, 51, 70-79, 166-188 (protocol shared with testkit/Headless.scala:119, 128)",
+     "construct": "var closed + synchronized on a foreign object (the Backend)",
+     "what": "close() is called from the JVM shutdown hook thread through Session.close. It waits for a draw in progress and then blocks every later draw. Headless reads under the same monitor, so it never sees a torn frame.",
+     "why": "A true cross-thread boundary. The shutdown hook runs outside the Kyo scheduler, and only a blocking JVM monitor can wait for the draw to end.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep the monitor, but let Canvas own it: `private val lock = new Object`, `def close()(using AllowUnsafe): Unit = lock.synchronized { closed = true }`, and `def read[A](f: Backend => A)(using Frame): A < Sync = Sync.defer(lock.synchronized(f(backend)))`. Headless then calls `canvas.read(Screen.of)` and no longer locks the backend itself. The lock protocol then lives in one file.",
+     "risk": "concurrency and terminal restore: the shutdown hook must still wait for the last frame. Keep the existing Session and Headless tests.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Paint.scala:26-29, 75-76, 208-215",
+     "construct": "private var back/front (mutable jatatui Buffers swapped on resize); Canvas.apply calls backend.size() with no effect",
+     "what": "The kept back buffer and the copy of the terminal (front). Resize replaces them. The constructor makes a foreign call. Its callers wrap it in Sync.defer (Headless.scala:321, tests), but Session.scala:154 and Render.scala:19 call it inside plain code.",
+     "why": "jatatui Buffer and Cell are mutable and not thread-safe. Runner and Session share one Canvas instance, so the buffers are swapped inside it instead of building a new Canvas.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep the vars. Move Canvas from Paint.scala into its own boundary file, Canvas.scala. Its whole surface becomes: `init(backend): Canvas < Sync`, `draw(plan)`, `resize(size)` (both `< (Sync & Abort[TuiError])`), `size: Size < Sync`, `read(f)`, and `close()(using AllowUnsafe)`. Only the private kernel touches Buffer.",
+     "risk": "concurrency: only the runner fiber may touch back and front. Keep that comment in the code.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Paint.scala:84-107 (clear, fillBg), 109-118 (put), 123-138 (text -> Buffer.setStringn)",
+     "construct": "per-cell nested Range loops that mutate jatatui Cells",
+     "what": "Reset or fill every cell of a damaged rect, and write glyphs and strings into the back buffer.",
+     "why": "This is the real per-frame hot path. It touches O(damaged cells) foreign mutable Cells.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep it as the private `write(op): Int` kernel of Canvas.draw, and say there that it is the hot path. Small cleanups: count `c.w * c.h` once instead of `writes += 1` per cell, and turn `bg.foreach(cell.setBg)` into a branch outside the loop. A `while` loop is acceptable here if a profile asks for it, and only here.",
+     "risk": "perf: it is the per-frame cell loop",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Paint.scala:143-156",
+     "construct": "a side effect hidden in a for/yield over iterators (`front.content(front.indexOf(x, y)) = copy.copy()`), plus a write to jatatui's public Cell[] field",
+     "what": "Diffs back against front inside the dirty rects, updates front, and collects BufferUpdates. When dirty rects overlap, a cell is sent only once, and only because the front write happens lazily before the next compare.",
+     "why": "The per-cell diff is a true hot loop. It was written in an iterator style that looks pure but is not.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep it as a kernel, but make the effect explicit, for example:\n```scala\nprivate def diff(dirty: Vector[Rect]): Vector[BufferUpdate] =\n  val out = Vector.newBuilder[BufferUpdate]\n  for r <- dirty; c = r.intersect(screen); y <- c.y until c.bottom; x <- c.x until c.right do\n    val b = back.cellAt(x, y)\n    if b != front.cellAt(x, y) then\n      val copy = b.copy()\n      front.content(front.indexOf(x, y)) = copy.copy()\n      out += BufferUpdate(x, y, copy)\n  out.result()\n```\nKeep the double copy. back's cells are mutated again by reset and setBg, and the backend may keep the instance it gets.",
+     "risk": "perf: hot loop. Correctness: overlapping rects still give one update per cell, because the front write happens before the next visit.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Paint.scala:310, 414, 415, 417, 427, 437, 439, 449, 473, 489, 515, 567, 582, 584 (14x discard(canvas.text(...))); 579-589 (`case li: Li` ... `discard(li)`)",
+     "construct": "a defensive discard of a return value that no caller uses; a dead binding",
+     "what": "Canvas.text returns the cells it used, and all 14 callers throw that value away. `li` is bound only to silence an unused-variable warning.",
+     "why": "An old API shape.",
+     "klass": "DELETE",
+     "replacement": "With the plan from site 1 these calls become `acc.append(Op.Text(...))` and the Int disappears. Without it, make `text` return Unit. Write `case _: Li =>` and remove `discard(li)`.",
+     "risk": "none",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Layout.scala:346, 363, 365, 513-514",
+     "construct": "isInstanceOf[Tr], asInstanceOf[Element] x2, isInstanceOf[Text]",
+     "what": "rowsOf filters tbody children down to Tr, then tableSize casts row.ui back to Element. arrange tests whether an item is a Text so that it does not stretch.",
+     "why": "Item.ui has type UI, so the Tr type is lost after the filter.",
+     "klass": "REPLACE",
+     "replacement": "```scala\nprivate def rowsOf(table: Element, path: Loc, env: Scene): Vector[(Item, Tr)] =\n  itemsOf(table, path, env).items.flatMap { it => it.ui match\n    case tr: Tr    => Vector((it, tr))\n    case tb: Tbody => itemsOf(tb, it.path, env).items.collect { case i @ Item(_, tr: Tr, _) => (i, tr) }\n    case _         => Vector.empty }\n// tableSize: rows.map { (row, tr) => val rp = Props.resolve(tr, p.text, false, None, 0); itemsOf(tr, row.path, env) ... }\n// arrange: val isText = m.item.ui match { case _: Text => true; case _ => false }\n```",
+     "risk": "none",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Layout.scala:548-609 (third element at 573, 588, 605, 607; destructured as `_` at 658, 768)",
+     "construct": "dead tuple element",
+     "what": "measuredKids returns (kids, regions, Vector.empty). The third element is always empty, and both callers ignore it.",
+     "why": "Left over from an earlier signature.",
+     "klass": "DELETE",
+     "replacement": "Return `(Vector[Measured], Vector[Loc])`, or better a `Kids(measured, regions)` case class.",
+     "risk": "none",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/TextEdit.scala:107-118",
+     "construct": "Array.newBuilder + var + while over a java.text.BreakIterator; returns a mutable Array[Int] that escapes to insert, remove and wordStart",
+     "what": "The UTF-16 offsets of the grapheme clusters.",
+     "why": "BreakIterator is a stateful Java cursor. This is not hot: it runs per keystroke (3 passes: key, then count twice in insert) and once per text-input paint (graphemes).",
+     "klass": "REPLACE",
+     "replacement": "```scala\ndef boundaries(s: String): IArray[Int] =\n  if s.isEmpty then IArray(0)\n  else\n    val it = BreakIterator.getCharacterInstance()\n    it.setText(s)\n    IArray.from(Iterator.single(0) ++ Iterator.continually(it.next()).takeWhile(_ != BreakIterator.DONE))\n```\nChange the parameter type of insert, remove and wordStart to IArray[Int]. The iterator stays local and does not escape.",
+     "risk": "none (TextEditTest covers it)",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/TextEdit.scala:130-144",
+     "construct": "java.lang.StringBuilder + var i + while",
+     "what": "singleLine: CRLF, CR, LF and TAB become a space, and other ISO control characters are dropped.",
+     "why": "Imperative style only. It runs once per paste.",
+     "klass": "REPLACE",
+     "replacement": "```scala\ndef singleLine(s: String): String =\n  s.replace(\"\\r\\n\", \" \")\n    .map(c => if c == '\\r' || c == '\\n' || c == '\\t' then ' ' else c)\n    .filterNot(Character.isISOControl)\n```",
+     "risk": "none",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/TextEdit.scala:181-187",
+     "construct": "var i + two while loops",
+     "what": "Ctrl-W word start: skip the blanks, then skip the non-blanks, walking back from the caret.",
+     "why": "Imperative style only. It runs once per Ctrl-W.",
+     "klass": "REPLACE",
+     "replacement": "```scala\nprivate def wordStart(text: String, bounds: IArray[Int], at: Int): Int =\n  def blankAt(i: Int) = text.substring(bounds(i), bounds(i + 1)).isBlank\n  @annotation.tailrec def back(i: Int, blank: Boolean): Int =\n    if i > 0 && blankAt(i - 1) == blank then back(i - 1, blank) else i\n  back(back(at, blank = true), blank = false)\n```",
+     "risk": "none",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/Geometry.scala:25, 28, 44-50, 70",
+     "construct": "dead code",
+     "what": "Rect.isEmpty, Rect.area, Rect.union and Sides.all have no caller in main or test. Rect.isEmpty is used only by area and union, which are dead too.",
+     "why": "Speculative helpers.",
+     "klass": "DELETE",
+     "replacement": "Delete them (about 12 lines). The rest of Geometry is already pure and immutable.",
+     "risk": "none",
+     "cost": "S"
+    }
+   ],
+   "smells": [
+    {
+     "where": "Layout.scala:575-582 vs 341-348 (measuredKids table branch vs rowsOf)",
+     "smell": "Duplicated logic that has drifted. This is a PLAUSIBLE real bug. measuredKids takes all tbody children (no Tr filter) and throws away `itemsOf(tb, ...).regions`. So a Reactive or Foreach directly inside a tbody is never put in regionOwner. When it changes, Runner.scala:640 finds no owner and drops the update, so a `table(tbody(foreach(sig)(tr(...))))` would stay stale until a full layout. There is no tbody test.",
+     "fix": "Use one rowsOf for both paths. It returns typed rows plus the regions of the table and of each tbody, and measuredKids and tableSize both use it. Add a RelayoutTest with a foreach inside a tbody."
+    },
+    {
+     "where": "Layout.scala:657-683 vs 768-826",
+     "smell": "layoutChildren and relayout repeat the same block: measuredKids, then content box, then tableCols, then arrange, then Ctx, then the regionOwner update.",
+     "fix": "Extract `arrangeKids(node, env, root): Arranged(kids, regions, rects, ctx, cols)` and a `register(laid, node, kids, regions)` step. Both functions then call them."
+    },
+    {
+     "where": "Layout.scala:73-79 (Laid.without), called per changed kid at 785 and 808",
+     "smell": "A per-frame perf trap on a hot path. Each removal filters the whole nodes Map, so the cost is O(N) per changed kid. A Foreach of 1000 rows that changes costs O(N\u00b7k) every frame.",
+     "fix": "It can stay pure. Walk the subtree through node.kids: `def sub(p: Loc): Iterator[Loc] = Iterator(p) ++ nodes.get(p).iterator.flatMap(_.kids.iterator.flatMap(sub))`, then `nodes -- sub(prefix)`. Even better, keep each node's regions on the node, so regionOwner is cleaned locally too."
+    },
+    {
+     "where": "Layout.scala:234-321, 612-683, 303 and 662 (tableSize twice)",
+     "smell": "The same subtree is measured again at every level. measureItem measures a whole subtree, then place, layoutChildren and measuredKids measure the kids again, so the work is O(n\u00b7depth). tableSize runs once in measureElement and once more in layoutChildren. When a container's natural size changes, relayout (834-836) also throws away the work it did at its own level.",
+     "fix": "Keep the result of the measure in Measured (the kids' Measured, the table cols) and reuse it in place, or memoize per Loc inside one layout pass. Check the natural-size change before re-arranging the kids."
+    },
+    {
+     "where": "Layout.scala:112-145 (wrap, chunksByWidth)",
+     "smell": "textWidth(last) is computed again for every word or glyph, and `acc.init :+` rebuilds the accumulator. The cost is O(words \u00d7 width) for each text node. It is paid in measure and again in paint (Paint.scala:300 wraps the same text again).",
+     "fix": "It stays pure. Fold over `(lines, cur, curW)` and carry the current width. Store the wrapped lines in Kind.Txt so that paint does not wrap again."
+    },
+    {
+     "where": "Layout.scala:158",
+     "smell": "`String.replaceAll(\"<[^>]*>\", \"\")` compiles a regex for every RawHtml in every flatten pass.",
+     "fix": "`private val Tag = java.util.regex.Pattern.compile(\"<[^>]*>\")`, then `Tag.matcher(v).replaceAll(\"\")`."
+    },
+    {
+     "where": "Geometry.scala:10 (type Loc = Vector[String]); Layout.scala:168, 174, 181",
+     "smell": "Stringly-typed tree paths. A child index is `i.toString`, region content is \"~\", and a foreach item is s\"#$key\". The alias is transparent, so any Vector[String] is a Loc. Each Map lookup also hashes the whole path, which costs O(depth) (clipOf and relayout do many lookups).",
+     "fix": "`opaque type Loc = Vector[Step]` with `enum Step { case Child(i: Int); case Content; case Item(key: String) }`, plus a cached hash if a profile asks for it."
+    },
+    {
+     "where": "Layout.scala:24 (Content.Value(v: Any)); Paint.scala:365-381, 507",
+     "smell": "An Any-typed bound value. Paint recovers its type at runtime with `.toString`, `.contains(true)` and `collect { case d: Double }`. Runner also casts c.value with asInstanceOf.",
+     "fix": "Use a typed enum `BoundValue { Str(s); Bool(b); Num(d) }` that is set where the SignalRef is read."
+    },
+    {
+     "where": "Paint.scala:458-497 vs Layout.scala:201-207; Paint.scala:580-587 vs Props.scala:254-261",
+     "smell": "Duplicated logic. Select options are taken out twice (Layout for the width, Paint for the label) and the `(label + \" \" * r.w).take(...) + \"\u25be\"` line is repeated. The list marker text (\"\u2022 \" and s\"${i + 1}. \") is built in Paint, and its width again in Props.",
+     "fix": "One `Picker.options(el): Vector[(value, label)]` and one `ListMarker.text(style, index)`. Layout, Props and Paint all use them."
+    },
+    {
+     "where": "Paint.scala:269-285 (clipOf)",
+     "smell": "A magic 'infinity' sentinel, `Rect(0, 0, Int.MaxValue / 2, Int.MaxValue / 2)`.",
+     "fix": "Start from the screen node's rect, `laid.nodes.get(Loc.screen).fold(Rect.empty)(_.rect)`. The walk already reaches that node, so the result is the same."
+    },
+    {
+     "where": "Paint.scala:123-130 (Canvas.text)",
+     "smell": "`text.drop(skip)` drops UTF-16 chars where it means cells. A left clip would split a surrogate pair or shift wide characters. Margins are clamped to 0 or more (Props.scala:168), so a node never starts left of its clip today. This is latent.",
+     "fix": "Skip by cells with TextEdit.graphemes and textWidth. Or put the clip rect in the Op and let the kernel skip graphemes."
+    },
+    {
+     "where": "Paint.scala:17-25, 26-217",
+     "smell": "A misleading claim and the wrong module. The Scaladoc says Canvas is 'THE ONE MUTABLE PLACE', but TextEdit also has var and while. Canvas, the foreign boundary, lives in the same file as the painter, which can be pure.",
+     "fix": "Move Canvas to its own Canvas.scala boundary file (see the sites). After the TextEdit replacements, the claim is true."
+    },
+    {
+     "where": "Layout.scala:49-61, 623-649, 686-698 (Node)",
+     "smell": "A case class with 11 positional fields, built positionally in 3 places with literals like `Vector.empty, None, 0`. Kind.Txt(text, wrap: Boolean) and TextEdit.key(..., readOnly: Boolean) are mild boolean blindness, and TextEdit returns `(String, Int)` tuples.",
+     "fix": "Use named arguments with defaults for Node. A `Field(text, caret)` case class for TextEdit's in and out. A `Wrap` enum is optional."
+    }
+   ],
+   "sliceVerdict": "Layout is already pure and contains no var, while, null or try. Its real problems are types (4 casts, Any-typed bound values, stringly paths), duplication (the table-row logic has drifted, and this probably makes a foreach inside a tbody never update) and two per-frame perf traps (Laid.without filters the whole map, subtrees are measured repeatedly). Geometry is pure apart from dead members, and TextEdit is pure at its API, with 3 small var/while sites off the hot path that are cheap to replace. The impurity that matters is in Paint.scala. A painter that could be pure writes cells straight into Canvas as it goes. Canvas reports a failure by throwing a TuiError that Tui.scala turns back into an error, keeps a hidden writes counter, and carries a test busy-spin in production code. The real hot loops (clear, fillBg, the flush diff and setStringn) all mutate the foreign jatatui Buffer, so they are legitimate KEEP-EDGE kernels. The change that gives most value is to split Paint into a pure `Paint.plan(laid, env, damage): FramePlan` (a Chunk of Ops) plus one `Canvas.draw(plan): FrameOut < (Sync & Abort[TuiError])` seam in its own Canvas.scala. That removes the writes counter, the throw-for-control-flow and the direct mutation, and it keeps the per-cell loops in one documented kernel."
+  },
+  {
+   "slice": "io-surface: internal/{OutputCapture,LogSink,TuiLog,package}.scala and tui4s/{TuiApp,Tui,TuiOptions,TuiError,FrameStats,package}.scala (provisional rubric: this container's /root/.claude/skills has no functional-design or Scala skill, only session-start-hook and the synced Anthropic skills, so the user's skills are probably on the Mac)",
+   "sites": [
+    {
+     "where": "modules/core/src/main/scala/tui4s/TuiApp.scala:149-176 (with TerminalIO.scala:145-155)",
+     "construct": "Thread shutdown hook 'tui4s-stop', java.util.concurrent.CountDownLatch, fiber.unsafe.onComplete, Sync.Unsafe.defer, import AllowUnsafe.embrace.danger (154), blocking restored.await(2 s) on the hook thread",
+     "what": "block starts the run on a fiber and registers a JVM hook. The hook interrupts the fiber, then waits up to 2 s on a latch. Two things count the latch down: the release, through the restored callback that goes through Tui.runWith and TerminalIO, and the end of the fiber. In the same TuiApp run, TerminalIO.opened also registers a second hook, 'tui4s-restore', which calls release() directly on the hook thread. TuiAppTest waits for hooks.added.size == 2.",
+     "why": "SIGTERM, SIGINT and System.exit must restore the terminal. Hooks run on JVM threads, not on fibers. The direct release is for a fiber that is stuck in System.exit and never sees the interrupt.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep exactly one hook and the blocking wait, in one boundary module (internal/JvmStop.scala, with Hooks). Tui.runWith installs it for both entry points:\n```scala\ndef guard[A](fiber: Fiber[A, Abort[Throwable]], release: () => Unit, restored: CountDownLatch)(using Frame): Unit < (Sync & Scope) =\n  Scope.acquireRelease(Sync.defer {\n    val h = Thread(() => {\n      import AllowUnsafe.embrace.danger            // JVM hook thread: the edge\n      stopping.set(true)\n      discard(fiber.unsafe.interrupt())\n      if !restored.await(200, MILLISECONDS) then release() // fiber stuck in System.exit\n      discard(restored.await(2, SECONDS))\n    }, \"tui4s-stop\")\n    hooks.add(h); h\n  })(h => Sync.defer(hooks.remove(h)))\n// TuiApp.block becomes: KyoApp.Unsafe.runAndBlock(Duration.Infinity)(program)\n```\nThis deletes the second hook, the restored callback that runWith and TerminalIO pass along, and the Sync.Unsafe.defer with the nested Sync.ensure.",
+     "risk": "Terminal restore under SIGTERM and System.exit, concurrency of hooks and release, exit codes 130 and 143. Session.close is idempotent and synchronized (Session.scala:89), so a double release is safe. This is concurrency and terminal-restore code, so it needs the adversarial check, the three TuiAppTest hook tests and the PTY kit.",
+     "cost": "M"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/TuiApp.scala:118,121 (probe at TerminalIO.scala:36-45)",
+     "construct": "hooks.shuttingDown called twice. Each call adds and removes a real JVM probe hook and uses IllegalStateException for control flow.",
+     "what": "Tells a JVM stop apart from a quit, so that runMain skips onExit and returns 1.",
+     "why": "The restore hook can end the run as a quit, so the outcome of the run cannot tell a stop from a quit.",
+     "klass": "REPLACE",
+     "replacement": "Our own hook knows that it ran. In Hooks.runtime:\n```scala\nprivate val stopping = { import AllowUnsafe.embrace.danger; AtomicBoolean.Unsafe.init(false) }\ndef add(hook: Thread): Unit = Runtime.getRuntime.nn.addShutdownHook(Thread(() => { stopping.set(true); hook.run() }, hook.getName))\ndef shuttingDown: Boolean = stopping.get()\n```\nWith the single hook of the site above, the hook sets the flag itself. runMain keeps `.andThen(Sync.defer(hooks.shuttingDown))` as a cheap read.",
+     "risk": "Exit code and onExit skip on a JVM stop. A stop that runs none of our hooks (after the run ended) is no longer seen, but then the terminal is already restored.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:29-41 (all methods use them, under OutputCapture.synchronized)",
+     "construct": "Global mutable state at object level: 8 private vars (5 nullable) guarded by synchronized",
+     "what": "Keeps the JVM-global record of the original streams, the current forwarders, every forwarder made so far (twice: forwards and streams), the pinned flag and the active capture.",
+     "why": "System.setOut and System.setErr are JVM-global. Forward.write runs on any thread, and one lock makes 'drain, then deactivate' atomic against writers.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep the global and the one lock. Hold one immutable value instead of 8 vars:\n```scala\nprivate final case class Fwd(stream: PrintStream, bytes: Forward)\nprivate final case class State(out: Maybe[Fwd], err: Maybe[Fwd], realOut: Maybe[PrintStream], realErr: Maybe[PrintStream], all: Chunk[Fwd], pinned: Boolean, active: Maybe[LogSink])\nprivate var state = State.empty // the only var; read and written under OutputCapture.synchronized\n```\nforwards and streams merge into `all`. The duplicated out and err branches of installStreams (72-85) become one `forwarder(sys, cur, real)` that is applied twice.",
+     "risk": "System.out and System.err restore after stop, capture of println (scala.Console binding), writers on any thread",
+     "cost": "M"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:157-206 (while at 174-177)",
+     "construct": "while loop over bytes, mutable ByteArrayOutputStream partial, var carriage, per-byte put, emit and drain",
+     "what": "Splits the captured bytes into lines. A CR without LF starts the line again, CRLF ends the line, a line is cut at MaxLine before the first byte of a character, and drain sends a last partial line.",
+     "why": "The OutputStream contract works on bytes, and the stream is called on foreign threads under the global lock.",
+     "klass": "REPLACE",
+     "replacement": "Make the splitter a pure value and keep one var of it under the existing lock:\n```scala\nfinal case class LineSplit(partial: IArray[Byte], carriage: Boolean):\n  /** The new state and the complete lines of b(off until off + len). */\n  def feed(b: Array[Byte], off: Int, len: Int, cs: Charset): (LineSplit, Chunk[String])\n  def drain(cs: Charset): (LineSplit, Maybe[String])\nobject LineSplit:\n  val empty = LineSplit(IArray.empty, false)\n\noverride def write(b: Array[Byte], off: Int, len: Int): Unit = OutputCapture.synchronized {\n  sinkNow.fold(original.write(b, off, len)) { s =>\n    val (next, lines) = split.feed(b, off, len, charset)\n    split = next\n    lines.foreach(s.line(_, important = true))\n  }\n}\n```\nfeed scans for the next '\\n' or '\\r' and copies whole slices. The scan loop inside feed is KEEP-KERNEL: it is local and nothing escapes. write(Int) calls feed with a 1-byte array.",
+     "risk": "Same behavior for CR, CRLF, the MaxLine cut and drain (OutputCaptureTest covers these). Perf is the same or better (bulk copies instead of a call per byte).",
+     "cost": "M"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:109-121,131-132",
+     "construct": "null sentinel: Capture(null) and sink: LogSink | Null",
+     "what": "A second start while a capture runs returns a Capture that captures nothing and whose stop does nothing.",
+     "why": "Only one capture can be active in the JVM at a time.",
+     "klass": "REPLACE",
+     "replacement": "```scala\ndef start(sink: LogSink): Maybe[Capture] = synchronized {\n  if state.active.nonEmpty then Absent\n  else { installStreams(); state = state.copy(active = Present(sink)); Present(Capture(sink)) }\n}\n/** The effect seam for fiber code. */\ndef scoped(sink: LogSink)(using Frame): Boolean < (Sync & Scope) =\n  Scope.acquireRelease(Sync.defer(start(sink)))(c => Sync.defer(c.foreach(_.stop()))).map(_.nonEmpty)\n```\nTerminalIO keeps the direct Maybe[Capture] form, because its release can also run on the hook thread.",
+     "risk": "Order in TerminalIO.leave (capture.stop before sink.finish). Call sites in TerminalIO, TerminalIOTest and OutputCaptureTest.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/OutputCapture.scala:44-53,69-91,136-139",
+     "construct": "java.lang.System.out/err reads, System.setOut/setErr, 8 .nn (46,52,70,71,73,75,80,82), discard(scala.Console.out) at 90 to force class init",
+     "what": "Installs and restores the forwarders. It also loads scala.Console now, so that println binds to the forwarders.",
+     "why": "This is what the module is for: a JVM-global foreign boundary.",
+     "klass": "KEEP-EDGE",
+     "replacement": "No replacement. After the State change, the .nn on charset goes into one helper. The scala.Console side effect keeps its comment.",
+     "risk": "Capture of println (scala.Console binds once)",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/LogSink.scala:34-40 (used in 62-114, 120-137)",
+     "construct": "mutable.ArrayDeque ring plus 5 vars (4 nullable: out, finished, problem, lateFile) under synchronized",
+     "what": "An implicit state machine: open to a file or to a memory ring, then finished (late lines go to the file or, if important, to stderr at once). A file write failure falls back to the ring.",
+     "why": "line() is called from forwarder threads and from Kyo's log daemon fiber. finish() is called from the release, which can run on a JVM hook thread.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep the lock. Make the state one value:\n```scala\nprivate enum State:\n  case ToFile(w: java.io.Writer, path: Path)\n  case ToRing(kept: scala.collection.immutable.Queue[String], dropped: Long, problem: Maybe[String])\n  case Done(err: PrintStream, late: Maybe[Path])\nprivate var state: State // the only var, under `synchronized`\ndef line(text: String, keep: Keep): Unit = synchronized { state = LogSink.step(state, text, keep, capacity) }\n```\nThe ring math is a pure function on ToRing (enqueue, then drop the head and add 1 to dropped above capacity). Only ToFile and Done do IO. Combinations that cannot happen today (out != null and finished != null) can then not be written at all.",
+     "risk": "What is printed after the restore and in which order, Kyo log lines that come after finish, concurrency (forwarders, log daemon, hook thread)",
+     "cost": "M"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/LogSink.scala:42-53",
+     "construct": "IO in the constructor body (Files.newBufferedWriter) with try/catch NonFatal into a string var",
+     "what": "Opens the log file when the object is created. A failure is stored as a message to print later.",
+     "why": "A log file that cannot be opened must not fail the run.",
+     "klass": "REPLACE",
+     "replacement": "```scala\nobject LogSink:\n  def open(file: Option[Path], capacity: Int = 200)(using Frame): LogSink < Sync = Sync.defer(file match\n    case None    => new LogSink(State.ToRing(Queue.empty, 0, Absent), capacity, file)\n    case Some(p) => Result(Files.newBufferedWriter(p, UTF_8, CREATE, APPEND)).foldError(\n      w => new LogSink(State.ToFile(w, p), capacity, file),\n      e => new LogSink(State.ToRing(Queue.empty, 0, Present(s\"tui4s: the log file $p cannot be written: ${e.exception}\")), capacity, file)))\n// Tui.runWith: Sync.acquireReleaseWith(LogSink.open(options.logFile))(s => Sync.defer(s.finish(err())))(sink => ...)\n```\nThe constructor becomes private.",
+     "risk": "Low. Tests build LogSink(None) and LogSink(Some(file)) directly, so they change to the new form.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/LogSink.scala:71-78,92-107,125-135",
+     "construct": "try/catch NonFatal around Writer.write/flush/close and Files.writeString; err.println at 67, 106, 107, 131, 132, 135",
+     "what": "Writes lines to the file. After the restore, it prints the kept lines, the dropped-count note and the file problem to the real stderr.",
+     "why": "A sink must never throw into a println or a log call. The prints run after the restore, by design (they carry the 'tui4s: allowed' markers).",
+     "klass": "KEEP-EDGE",
+     "replacement": "No replacement. With the State enum, these become the IO arms of `step` and `finish`.",
+     "risk": "Terminal restore (nothing may print before it)",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/LogSink.scala:56",
+     "construct": "def toFile: Boolean = synchronized(out != null)",
+     "what": "Says whether the lines go to a file.",
+     "why": "Nothing uses it: no caller in main or in test.",
+     "klass": "DELETE",
+     "replacement": "Remove it.",
+     "risk": "None (private[tui4s])",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/TuiLog.scala:29-45,48,54,60,66,72",
+     "construct": "t: Throwable | Null parameter with null passed by the 5 methods that have no throwable",
+     "what": "Writes one log line, plus the stack trace when there is a throwable.",
+     "why": "It is the shared body of the 10 Log.Unsafe methods.",
+     "klass": "REPLACE",
+     "replacement": "```scala\nprivate def write(at: Log.Level, msg: => String, t: => Maybe[Throwable])(using frame: Frame): Unit =\n  if at.enabled(level) then\n    val keep = if at.enabled(Log.Level.warn) then Keep.UntilRestore else Keep.FileOnly\n    sink.line(s\"$stamp ${at.toString.toUpperCase} $name [${frame.position.show}] $msg\", keep)\n    t.foreach(e => Throwables.lines(e).foreach(sink.line(_, keep)))\ndef info(msg: => String)(using Frame, AllowUnsafe): Unit = write(Log.Level.info, msg, Absent)\ndef info(msg: => String, t: => Throwable)(using Frame, AllowUnsafe): Unit = write(Log.Level.info, msg, Present(t))\n```\nWith a by-name t, the throwable is no longer evaluated when the level is off. Today it is evaluated in that case too.",
+     "risk": "None",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/TuiLog.scala:37,79",
+     "construct": "LocalTime.now() wall-clock read, 2 .nn",
+     "what": "The time stamp of a log line.",
+     "why": "The line needs a time. Kyo's Log.Event.timestamp (the time of the log call) is private[kyo], so tui4s cannot override emit and reads the clock at drain time on Kyo's log daemon fiber.",
+     "klass": "REPLACE",
+     "replacement": "`private def stamp(using AllowUnsafe) = Clock.live.unsafe.now().toJava.atZone(ZoneId.systemDefault).nn.toLocalTime.nn.format(TuiLog.Time)`. This puts the clock behind Kyo's Clock seam. The skew to the time of the call stays (milliseconds); state it in the Scaladoc. Low value: do it together with the Maybe change.",
+     "risk": "Log line format only",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/internal/TuiLog.scala:22-76 (printStackTrace at 42-45)",
+     "construct": "extends Log.Unsafe: 10 methods that take AllowUnsafe; t.printStackTrace(PrintWriter(StringWriter))",
+     "what": "The Kyo logger of a run, which writes into the run's LogSink.",
+     "why": "Log.Unsafe is Kyo's only SPI for a logger backend. The JDK has no pure stack-trace renderer.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep it. Move the rendering into one internal `Throwables.lines(t): Chunk[String]`, which TuiApp.describe (205) also uses.",
+     "risk": "None",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/TuiApp.scala:59-60",
+     "construct": "Side effects in the constructor: SchedulerDefaults.applyIfUnset() (System.setProperty) and OutputCapture.install() (System.setOut/setErr, scala.Console init)",
+     "what": "Prepares the JVM before the fields of the user's app object are set.",
+     "why": "Kyo reads the scheduler flags once, when its scheduler starts. scala.Console binds its stream at first use, and a field of the app can use println. So the constructor is the only early enough place.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep it, with the reason stated. Optionally fold both calls into one `internal.JvmSetup.prepare()`, so that there is one seam.",
+     "risk": "Capture of println, scheduler flags",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/TuiApp.scala:107",
+     "construct": "Second SchedulerDefaults.applyIfUnset() in runMain",
+     "what": "Sets the scheduler properties again.",
+     "why": "No reason found. runMain is an instance method, so the constructor (59) already ran for this instance. The call is idempotent, and no test clears the properties in between (grep: no clearProperty in TuiAppTest).",
+     "klass": "DELETE",
+     "replacement": "Remove the line.",
+     "risk": "None",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/TuiApp.scala:62,108,125",
+     "construct": "@volatile private var arguments: Seq[String]",
+     "what": "Holds the command-line arguments for the public accessor `protected final def args`.",
+     "why": "args is a pure accessor in the public API (the same as KyoApp.Base, which keeps `private var _args`). It is written once, before the run fiber starts.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep it. Making it Env or Local would make the public `args` effectful, which is a worse shape.",
+     "risk": "Public API",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/TuiApp.scala:91",
+     "construct": "java.lang.System.exit(code)",
+     "what": "Exits the process with the code of the run.",
+     "why": "Process exit. The comment explains why this must not be Runtime.halt (that skips the restore).",
+     "klass": "KEEP-EDGE",
+     "replacement": "None",
+     "risk": "Exit code, terminal restore",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/TuiApp.scala:183-205",
+     "construct": "err.println and printStackTrace(err) mixed with the decision; a 3-arm Result match; cause != null",
+     "what": "Prints a failed run to the real stderr and gives the exit code 0 or 1.",
+     "why": "main is the end of the program. The prints run after the restore.",
+     "klass": "REPLACE",
+     "replacement": "Pure rendering, one print loop:\n```scala\ndef report(result: Result[Throwable, Any], err: PrintStream): Int =\n  result.error.fold(0) { e =>\n    describe(e.exception).foreach(err.println) // tui4s: allowed\n    err.flush(); 1\n  }\nprivate def describe(e: Throwable): Chunk[String] = e match\n  case e: TuiError    => Chunk(e.getMessage.nn) ++ Maybe(e.getCause).map(c => s\"  cause: $c\").toChunk\n  case _: Interrupted => Chunk(\"interrupted\")\n  case other          => Throwables.lines(other)\n```",
+     "risk": "Text on stderr and exit code (TuiAppTest checks them)",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/Tui.scala:106,109",
+     "construct": "Sync.Unsafe.defer around LogSink(...) and sink.finish(err()), neither of which needs AllowUnsafe",
+     "what": "Creates the run's sink and finishes it in a Sync.ensure.",
+     "why": "A bracket for the sink, which also covers a run that failed before the terminal was set up.",
+     "klass": "REPLACE",
+     "replacement": "`Sync.acquireReleaseWith(LogSink.open(options.logFile))(s => Sync.defer(s.finish(err()))) { sink => ... }`. This uses plain Sync and no AllowUnsafe.",
+     "risk": "None",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/Tui.scala:123-129",
+     "construct": "Result.Panic(e: TuiError) => Result.fail(e)",
+     "what": "Turns a TuiError that the canvas threw (a terminal write failed) into the typed failure of the run.",
+     "why": "The draw path uses an exception for a typed error (canvas slice).",
+     "klass": "REPLACE",
+     "replacement": "After the canvas write returns `Unit < (Sync & Abort[TuiError])` (canvas slice), delete this match and keep `Abort.run[TuiError](...).map(r => TuiLog.flush(2.seconds).andThen(Abort.get(r)))`. Until then this is a correct adapter.",
+     "risk": "Error typing of Tui.run (public behavior)",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/Tui.scala:145",
+     "construct": "Sync.Unsafe.defer(opened.foreach(_.close()))",
+     "what": "The release of the session: restores the terminal.",
+     "why": "Session.close takes AllowUnsafe. It is synchronous so that the hook thread can run the same release.",
+     "klass": "KEEP-EDGE",
+     "replacement": "None. This is the one session-release seam.",
+     "risk": "Terminal restore",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/Tui.scala:160-165",
+     "construct": "null check on session.inputFailure: Throwable | Null",
+     "what": "Fails the run with TerminalIO when the input thread failed.",
+     "why": "Session keeps the failure of the input thread as a nullable field.",
+     "klass": "REPLACE",
+     "replacement": "`Sync.defer(Maybe(session.inputFailure)).map(_.fold(Kyo.unit)(f => Abort.fail(TuiError.TerminalIO(f))))`. Better: Session exposes `inputFailure: Maybe[Throwable]`.",
+     "risk": "None",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/TuiError.scala:13",
+     "construct": "enum TuiError(message: String, cause: Throwable | Null)",
+     "what": "The parameter of the base constructor is nullable.",
+     "why": "No reason: all four cases pass a non-null `error`.",
+     "klass": "REPLACE",
+     "replacement": "`enum TuiError(message: String, cause: Throwable) extends Exception(message, cause)`. The erasure is the same and users cannot call the enum's base constructor, so the public shape gets better. Confirm with versionPolicyCheck (MiMa and TASTy).",
+     "risk": "Public API (low)",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/TuiError.scala:61-69",
+     "construct": "c == null on the Java getCause inside a tailrec walk",
+     "what": "Finds the innermost cause (at most 16 levels, stops on a cycle).",
+     "why": "Java's getCause is nullable.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Already functional (tailrec, immutable List). `Maybe(t.getCause)` is optional.",
+     "risk": "None",
+     "cost": "S"
+    }
+   ],
+   "smells": [
+    {
+     "where": "TuiApp.scala:160 and TerminalIO.scala:145-155 (probe at TerminalIO.scala:36-45)",
+     "smell": "Two shutdown hooks do one job, and the JVM runs them at the same time ('tui4s-restore' calls release() directly, 'tui4s-stop' interrupts and waits). An exception-driven probe then has to find out afterwards which of them ended the run.",
+     "fix": "One hook in one JvmStop boundary, installed by Tui.runWith for both entry points. In order, it sets the stopping flag, interrupts the fiber, falls back to the synchronous release, and waits for restored."
+    },
+    {
+     "where": "TerminalIO.scala:136, TerminalIO.scala:179, Tui.scala:109",
+     "smell": "sink.finish is called at three places, and its idempotence hides that no one clearly owns the sink. The call in enter (136) does the same as the ensure in runWith. The call in leave (179) exists because the release on the hook thread must print before restored().",
+     "fix": "One run-once teardown (stop capture, finish sink, signal restored), owned by the session. It is the Scope finalizer and also what the single hook calls."
+    },
+    {
+     "where": "Tui.scala:97-102, TuiApp.scala:201-206, TerminalIO.scala:78-86",
+     "smell": "Test seams are default parameters that point at JVM-global singletons (Hooks.runtime, OutputCapture.realErr, OutputCapture.capturesConsole). 'The real stderr' has three shapes: by-name, () => PrintStream, and () => PrintStream again.",
+     "fix": "One `private[tui4s] final case class Host(crossterm: Crossterm, hooks: Hooks, err: () => PrintStream, consoleCaptured: () => Boolean)` with `Host.live`, passed as one parameter."
+    },
+    {
+     "where": "LogSink.scala:62 (callers OutputCapture.scala:200, TuiLog.scala:36-45, TerminalIO.scala:108)",
+     "smell": "Boolean blindness: line(text, important: Boolean). 'important' means 'print after the restore when there is no file'.",
+     "fix": "`enum Keep { case UntilRestore, FileOnly }`, or two methods: sink.output(text) and sink.log(text, level)."
+    },
+    {
+     "where": "OutputCapture.scala:110, TuiLog.scala:48-72, Session.inputFailure read at Tui.scala:163, TuiError.scala:13",
+     "smell": "null is used as a sentinel at tui4s's own boundaries, not only at Java calls.",
+     "fix": "Maybe everywhere tui4s owns the type. Keep null checks only on Java returns (getCause, System.out)."
+    },
+    {
+     "where": "Tui.scala:143, testkit/Headless.scala:316, Session.scala:194, Runner.scala:572",
+     "smell": "The clamps of TuiOptions (inboxCapacity.max(1), pollInterval at least 1 ms, pendingTimeout at least 0) are spread over 4 files, and inboxCapacity.max(1) is duplicated in Tui and Headless.",
+     "fix": "One `private[tui4s] def normalized: TuiOptions` (or an internal RunConfig.from(options)) that is applied once at run start, next to the Scaladoc rules."
+    },
+    {
+     "where": "FrameStats.scala:28 (focus: String = \"\")",
+     "smell": "A stringly-typed public field ('an id, or the tree position') with \"\" as the 'no focus' sentinel.",
+     "fix": "`Option[String]`, or a Focus ADT (Id | Path), at the next minor version with Compatibility.None. Do not change it now: it is public API."
+    },
+    {
+     "where": "OutputCapture.scala:193",
+     "smell": "The MaxLine cut tests for UTF-8 continuation bytes ((b & 0xc0) != 0x80), but the charset is the stream's own charset. A UTF-16 stream would be cut in the wrong places.",
+     "fix": "Cut on a character boundary through the charset's decoder, or state and enforce UTF-8 or ASCII-compatible charsets only."
+    },
+    {
+     "where": "OutputCapture.scala:163-182",
+     "smell": "After install() (TuiApp pins it for the life of the JVM), every System.out and System.err write on every thread takes the global OutputCapture monitor, also when no capture runs (for example a println in onExit).",
+     "fix": "Fast path: read a @volatile snapshot of `active`. When it is empty, pass through without the lock. Take the lock only when a capture is active."
+    },
+    {
+     "where": "TuiLog.scala:42-45, TuiApp.scala:205",
+     "smell": "Stack-trace rendering is duplicated: once into a StringWriter for the sink, once with printStackTrace(err).",
+     "fix": "One `internal.Throwables.lines(t): Chunk[String]`."
+    },
+    {
+     "where": "OutputCapture.scala:34,39,72-85",
+     "smell": "forwards and streams record the same objects twice, and the out and err branches are copy-paste. Also (plausible, not tested): the check `ne out && ne originalOut` does not see an older forwarder. A program that restores a saved older forwarder therefore gets a forwarder of a forwarder, and realErr then returns a forwarder.",
+     "fix": "One `all: Chunk[Fwd]` and one forwarder(sys, cur, real) function. Decide the rule for a stream that is already one of ours with `all.exists(_.stream eq sys)`."
+    },
+    {
+     "where": "Tui.scala:106,109 and TuiApp.scala:154",
+     "smell": "Effects are wider than needed. Sync.Unsafe.defer is used where Sync.defer is enough. AllowUnsafe.embrace.danger covers the whole body of block, but only KyoApp.Unsafe.runAndBlock needs it.",
+     "fix": "Use Sync.defer, and limit the embrace to the runAndBlock call."
+    },
+    {
+     "where": "TuiLog.scala:37",
+     "smell": "The time stamp is read at drain time on Kyo's log daemon fiber, not at the log call. Kyo's ConsoleLogger renders Log.Event.timestamp, but Event is private[kyo].",
+     "fix": "Use Clock.live.unsafe and state the skew (milliseconds) in the Scaladoc. Upstream: ask Kyo for a public Event, or a timestamp parameter on Log.Unsafe."
+    }
+   ],
+   "sliceVerdict": "This slice is in better shape than the rest of the app. Most of its impure code is a real JVM boundary: the System.out/err forwarders, PrintStream, the shutdown hooks, System.exit and the Log.Unsafe backend. That code is locked with care. The public files (Tui, TuiOptions, TuiError, FrameStats, package) are already Kyo pipelines or plain data, and their public shapes need no change; only TuiError's `cause: Throwable | Null` can be tightened, with the same erasure. The real problem is the shape of the code, not its purity: 8 nullable vars in a global object and 6 in LogSink instead of one immutable state value each, null sentinels (Capture(null), t = null, inputFailure), a per-byte while loop on a ByteArrayOutputStream that is a pure fold in disguise, and a sink that is finished at three places. The change with the most value is one JVM-stop boundary: a single hook that marks the stop, interrupts the run fiber, falls back to the synchronous release and waits for restored, installed by Tui.runWith for both entry points. It removes the second hook, the exception-driven shuttingDown probe, the restored callback that goes through runWith and TerminalIO, and most of TuiApp.block. It is terminal-restore and concurrency code, so even in lean mode it needs the adversarial check and the PTY run."
+  },
+  {
+   "slice": "testkit-examples. Rubric: the provisional rubric, plus the user's functional-design and scala-functional-design skills, which loaded during this run. Read-only; no sbt.",
+   "sites": [
+    {
+     "where": "modules/core/src/main/scala/tui4s/testkit/Headless.scala:273-298, 224-270, 316-317, 327, 361-389",
+     "construct": "A sentinel value compared with `eq` (`endMark`, a fake FrameStats with seq = Long.MinValue), put back into the channel after each take; `Abort.run[Closed](...).map(_.getOrThrow)` on channels that are never closed; firstFrame polls `frames.poll` and sleeps 5 ms",
+     "what": "Signals 'the run has ended' to the methods that wait for a frame (send, nextFrame, drainFrames, firstFrame). Each method finds the mark by reference, offers it back, then panics.",
+     "why": "Review R1-8/R2-7: after the run ends, a wait must fail and not hang. The channels are `initUnscoped` and never closed, so a mark was added by hand. The `Abort[Closed]` handling can never fire: it only erases the effect from the type, and `getOrThrow` would rethrow inside `map`.",
+     "klass": "REPLACE",
+     "replacement": "// a half-closed Kyo channel already gives exactly this contract\ninbox  <- Channel.init[Msg](options.inboxCapacity.max(1))   // scoped: closes with the Scope\nframes <- Channel.init[FrameStats](1 << 16)\n...\n_ <- run.onComplete(_ => inbox.closeDiscard.andThen(\n       Sync.Unsafe.defer(discard(frames.unsafe.closeAwaitEmpty()))))  // the one Unsafe: refuse new puts; takers drain what is left, then get Closed\n\nprivate def ended(using Frame): Nothing < Abort[Nothing] =\n  Abort.panic(IllegalStateException(\"tui4s: the run has ended (a quit, or a failure of the run), so no frame comes\"))\ndef nextFrame(using Frame) = Abort.recover[Closed](_ => ended)(frames.take)\ndef drainFrames(using Frame) = Abort.recover[Closed](_ => Chunk.empty[FrameStats])(frames.drain).map(_.toVector)\nprivate def send(mk: Long => Msg)(using Frame) = seq.getAndIncrement.map { n =>\n  Abort.recover[Closed](_ => ended)(inbox.put(mk(n)).andThen(Loop.foreach(\n    frames.take.map(s => if s.cause == FrameCause.Input && s.seq == n then Loop.done(s) else Loop.continue))))\n}\nprivate def firstFrame(frames: Channel[FrameStats], run: Fiber[Unit, Scope])(using Frame) =\n  Abort.run[Closed](frames.take).map {\n    case Result.Success(_) => Kyo.unit\n    case _                 => run.get.unit   // closed only after the run completed: not a wait (OS-34)\n  }\n// deletes endMark, ended(frames), the put-back logic and the 5 ms poll loop (about 60 lines)",
+     "risk": "Concurrency: this is the end-of-run contract (OS-34, R1-8, R2-7). 'The key that ended the run still gets its frame' still holds, because closeAwaitEmpty keeps the buffered frames takeable. Closing the inbox also fixes a latent hang: today, `inbox.put` on a full inbox after the run ended never returns. No public API change. Run the existing Headless end-of-run tests.",
+     "cost": "M"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/testkit/Headless.scala:93-110 (poll), 75-79 (awaitEnd), 85-88 (awaitScreen)",
+     "construct": "`Sync.defer(java.lang.System.nanoTime())` twice and a sleep-poll loop (`Clock.let(Clock.live)(Async.sleep(5.millis))`)",
+     "what": "Wall-clock polling every 5 ms, for awaitEnd (run.done) and awaitScreen (a full Screen snapshot each time).",
+     "why": "OS-34: never join the run fiber from an interruptible wait. The live clock is used because a test can run under Clock.withTimeControl.",
+     "klass": "REPLACE",
+     "replacement": "// awaitEnd: no polling and no join. In start: ended <- Promise.init[Nothing, Unit]; _ <- run.onComplete(_ => ended.completeUnitDiscard)\ndef awaitEnd(t: Duration)(using Frame): Boolean < Async =\n  Clock.let(Clock.live)(Abort.run[Timeout](Async.timeout(t)(ended.get))).map(_.isSuccess)\n\n// awaitScreen: keep the poll, but on Kyo time instead of System.nanoTime\nprivate def poll(timeout: Duration)(cond: => Boolean < Sync)(using Frame): Boolean < Async =\n  Clock.let(Clock.live)(Clock.deadline(timeout).map { d =>\n    Loop.foreach(cond.map {\n      case true  => Loop.done(true)\n      case false => d.isOverdue.map(late => if late then Loop.done(false) else Async.sleep(5.millis).andThen(Loop.continue))\n    })\n  })\n// best (core change): the runner publishes a SignalRef[Long] of flushed frames; awaitScreen waits on `.next` instead of sleeping",
+     "risk": "Concurrency (OS-34). Ending the wait on a Promise is not a join of `run`, so the deadlock argument still holds. Test timing: keep the live clock.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/testkit/Headless.scala:322",
+     "construct": "Pure `=` binding in a for-comprehension: `runner = Runner(inbox, canvas, options, Present(frames), knobs)`",
+     "what": "Builds the Runner, whose constructor allocates mutable state (`new AtomicReference` at Runner.scala:40-41 and 98-100, `Mount(...)`), outside any effect.",
+     "klass": "REPLACE",
+     "replacement": "runner <- Sync.defer(Runner(inbox, canvas, options, Present(frames), knobs))",
+     "risk": "None. Check Tui.run (other slice) for the same pattern.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/testkit/Headless.scala:344-353 (keyOf)",
+     "construct": "`case null =>` on `EventMapping.key(...): KeyboardEvent | Null`",
+     "what": "Maps a typed character to the event the terminal would send; null means 'no mapping'.",
+     "why": "EventMapping.key (internal) returns `| Null`.",
+     "klass": "REPLACE",
+     "replacement": "Maybe(EventMapping.key(EventMapping.typed(c))).getOrElse(plain(Keyboard.Char(c)))\n// better (internal slice): EventMapping.key returns Maybe[KeyboardEvent]",
+     "risk": "None",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/testkit/Headless.scala:118-119 (screen), 127-134 (lines)",
+     "construct": "`Sync.defer(backend.synchronized { ... })` on the jatatui TestBackend",
+     "what": "Reads the mutable TestBackend under the monitor that Canvas holds while it flushes or resizes (Paint.scala:51, 70, 166), so a screen is never a torn frame.",
+     "why": "jatatui Buffer/Backend are mutable and not thread-safe. The test fiber reads while the runner fiber writes.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep, but give it one seam: today the lock protocol spans Paint.scala and Headless.scala. Add `Canvas.read[A](f: Backend => A): A < Sync` (Sync.defer + synchronized in Paint.scala) and call `canvas.read(Screen.of)` here. Also, `lines` calls `buf.cellAt(x, y)` with no `area.x/area.y` offset, while Screen.of adds them: harmless on a TestBackend (origin 0), but the two snapshot paths disagree.",
+     "risk": "Concurrency (torn frames), and terminal close ordering through Canvas.close. No API change.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/testkit/Screen.scala:130-141 (rows), 150-153 (trimEnd), 170-187 (cells)",
+     "construct": "`var skip`, `var x`, `var end`, `var col`, `var c`, and four while loops with java.lang.StringBuilder",
+     "what": "Builds the row strings (skipping the continuation cells of wide characters), trims trailing spaces, and cuts a rectangle of cells out of a row.",
+     "why": "Imperative port; no hot path. It runs only in tests: at most every 5 ms in awaitScreen, on about 3000 cells.",
+     "klass": "REPLACE",
+     "replacement": "private def trimEnd(s: String): String = s.take(s.lastIndexWhere(_ != ' ') + 1)\nprivate def rowText(syms: IndexedSeq[String]): String =\n  val (shown, _) = syms.foldLeft((Vector.empty[String], 0)) { case ((acc, skip), sym) =>\n    (if skip == 0 then acc :+ sym else acc, (skip.max(Layout.textWidth(sym)) - 1).max(0)) }\n  trimEnd(shown.mkString)\nval rows = Vector.tabulate(area.height)(y =>\n  rowText(Vector.tabulate(area.width)(x => buf.cellAt(area.x + x, area.y + y).symbol())))\nprivate def cells(row: String, x: Int, width: Int): String =\n  val (_, parts) = TextEdit.graphemes(row).foldLeft((0, Vector.empty[String])) { case ((col, acc), g) =>\n    val w = Layout.textWidth(g).max(1)\n    val part =\n      if col >= x && col + w <= x + width then g\n      else if col < x + width && col + w > x then \" \" * ((col + w).min(x + width) - col.max(x))\n      else \"\"\n    (col + w, acc :+ part) }\n  trimEnd(parts.mkString)",
+     "risk": "Low. Wide-character edge cases are covered by the existing Screen tests. Perf: test-only.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/testkit/Screen.scala:148 (width), 156-167 (graphemes)",
+     "construct": "A BreakIterator while loop with `var a`, `var b`, and a private copy of the text width",
+     "what": "A second grapheme splitter and a second width function.",
+     "why": "Copied in. The same functions exist as `tui4s.internal.TextEdit.graphemes` (TextEdit.scala:120) and `Layout.textWidth` (Layout.scala:110), both reachable from tui4s.testkit.",
+     "klass": "DELETE",
+     "replacement": "Delete both. Call TextEdit.graphemes and Layout.textWidth, so the kit measures text the way the renderer does.",
+     "risk": "None. It removes a possible drift between how the kit and the renderer measure text.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/testkit/Screen.scala:38-41, 58-64 (CellStyle.of, name)",
+     "construct": "`java.util.Optional` `isPresent` then `c.get`; reflection `getClass.getSimpleName.replaceAll(\"([a-z])([A-Z])\", ...)` for each coloured cell",
+     "what": "Converts a jatatui colour to the testkit's colour string.",
+     "why": "jatatui Color is a Java sealed interface of records (Reset, Black, ... LightBlue, Rgb, Indexed). The class name was used to avoid writing 16 cases.",
+     "klass": "REPLACE",
+     "replacement": "import scala.jdk.OptionConverters.*\ndef colour(c: java.util.Optional[JColor]): Option[String] = c.toScala.filter(_ != JColor.RESET).map(name)\nprivate def name(c: JColor): String = c match\n  case rgb: JColor.Rgb     => f\"#${rgb.r}%02x${rgb.g}%02x${rgb.b}%02x\"\n  case idx: JColor.Indexed => s\"indexed:${idx.i}\"\n  case _: JColor.Black     => \"black\"\n  case _: JColor.LightBlue => \"light-blue\"\n  // ... one case for each of the 16 named records",
+     "risk": "Low. Removes a reflection and a regex per coloured cell per screen read (awaitScreen reads every 5 ms) and the dependence on jatatui's class names.",
+     "cost": "S"
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/testkit/Screen.scala:222-227 (assertScreen)",
+     "construct": "`throw new AssertionError(...)`",
+     "what": "Fails a munit, JUnit, zio-test or weaver test with the screen diff.",
+     "why": "Those frameworks detect a failure by a thrown AssertionError. The Scaladoc says so, and points kyo-test users to diffScreen.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep. The pure diffScreen is already the core of it; assertScreen is the thin boundary to the frameworks.",
+     "risk": "None",
+     "cost": "S"
+    },
+    {
+     "where": "examples/src/main/scala/examples/todo/Todo.scala:46-62 (load), 74-82 (save)",
+     "construct": "`Abort.catching[IOException] { Files.exists(...); Files.readAllLines(...).toArray.map(_.toString) }` and `Abort.catching(Files.writeString(...))` with no Sync.defer",
+     "what": "Reads and writes the todo file.",
+     "why": "The author assumed Abort.catching suspends. In Kyo RC7 it does not: ArrowEffect.handleCont (kyo-kernel ArrowEffect.scala:131-132) evaluates the block at once (`val v0 = v`) inside a try. The file is therefore read when `Todo.app(file)` is evaluated, not when the effect runs, and the `< Sync` in the signature is only widening. Running the same program value twice reuses the first read.",
+     "klass": "REPLACE",
+     "replacement": "import scala.jdk.CollectionConverters.*\ndef load(file: String): Result[IOException, Chunk[Item]] < Sync =\n  Sync.defer(Abort.run[IOException](Abort.catching[IOException] {\n    val p = Paths.get(file)\n    if Files.exists(p) then Chunk.from(Files.readAllLines(p, UTF_8).asScala) else Chunk.empty\n  })).map(_.map(parse))\ndef save(file: String, items: Chunk[Item]): Unit < (Sync & Abort[IOException]) =\n  Sync.defer(Abort.catching[IOException](Files.writeString(Paths.get(file), render(items), UTF_8)).unit)",
+     "risk": "None in behavior today. TuiApp and Headless happen to call `ui` on the run fiber, so the timing is the same. Users copy this file, so the wrong idiom spreads.",
+     "cost": "S"
+    },
+    {
+     "where": "examples/src/main/scala/examples/todo/Todo.scala:139-211 (app; nextId AtomicInt 148; delete 171-173; move 174-179; listKeys 180-194; saveAll 195-201)",
+     "construct": "A 70-line for-comprehension: four loose SignalRefs and a separate AtomicInt, eight effect closures, two-step writes across refs, and an `(... ): Any < Async` ascription that guards against the 'lift trap'",
+     "what": "All the state and actions of the Todo app. `delete` writes `items`, then `cursor`. `move` reads `items`, then writes `cursor`. `add` makes four separate steps.",
+     "why": "Prototype style. It ignores the rules of examples/README.md ('An ordinary class can group signals, derived values, and actions') and experiments/ui-state/README.md ('Pure Var transitions applied inside an atomic SignalRef update'; eager app-scoped groups).",
+     "klass": "REPLACE",
+     "replacement": "final case class Model(items: Chunk[Item], cursor: Int, nextId: Int) derives CanEqual:\n  def add(text: String): Model = if text.isBlank then this else copy(items = items :+ Item(nextId, text.trim, false), nextId = nextId + 1)\n  def toggle: Model = at(i => Chunk(i.copy(done = !i.done)))\n  def delete: Model = at(_ => Chunk.empty).clampCursor\n  def move(d: Int): Model = copy(cursor = cursor + d).clampCursor\n  def rows: Chunk[Row] = items.zipWithIndex.map((t, i) => Row(t, i == cursor))\n  private def clampCursor = copy(cursor = cursor.max(0).min((items.size - 1).max(0)))\n  private def at(f: Item => Chunk[Item]) =\n    if items.isDefinedAt(cursor) then copy(items = items.take(cursor) ++ f(items(cursor)) ++ items.drop(cursor + 1)) else this\n\nfinal class TodoStore(file: String, model: SignalRef[Model], val draft: SignalRef[String], val status: SignalRef[String]):\n  val rows: Signal[Chunk[Row]] = model.map(_.rows)\n  val count: Signal[String]    = model.map(m => s\"${m.items.count(!_.done)} open / ${m.items.size}\")\n  def update(f: Model => Model): Unit < Sync = model.updateAndGet(f).unit   // one atomic, pure transition\n  val add: Unit < Sync = draft.get.map(t => if t.isBlank then Kyo.unit else update(_.add(t)).andThen(draft.set(\"\")))\n  val save: Unit < Sync = model.get.map(m => Abort.run[IOException](Todo.save(file, m.items)).map {\n    case Result.Success(_) => status.set(s\"saved ${m.items.size} items to $file\")\n    case Result.Failure(e) => status.set(s\"save failed: ${e.getMessage}\")\n    case Result.Panic(e)   => status.set(s\"save failed: $e\") })\n  val listKeys: KeyboardEvent => Unit < Sync = _.key match\n    case Keyboard.ArrowUp | Keyboard.Char('k')   => update(_.move(-1))\n    case Keyboard.ArrowDown | Keyboard.Char('j') => update(_.move(1))\n    case Keyboard.Space                          => update(_.toggle)\n    case Keyboard.Char('d')                      => update(_.delete)\n    case _                                       => Kyo.unit\n// app = TodoStore.init(file).map(view); the AtomicInt, atCursor and the lift-trap comment go away; Model is tested without a UI",
+     "risk": "Low. Behavior stays the same; TodoSuite and the PTY `todo` row cover it. One visible improvement: delete becomes one atomic change, so no frame shows a cursor past the end.",
+     "cost": "M"
+    },
+    {
+     "where": "examples/src/main/scala/examples/widgets/TabsView.scala:3, 34-38, 84, 90",
+     "construct": "An object-level `java.util.concurrent.atomic.AtomicLong` (`nextGroup`), incremented inside a pure-looking `def initial`; `Sync.defer(Signal.initRef(initial))` only to suspend it",
+     "what": "Gives each mounted Tabs a unique focus-group string. Dispatch groups elements by this string across the whole UI (Dispatch.scala:506).",
+     "why": "Component.initial is pure in the core API, and core's Component.ui (Component.scala:82-89) calls it under `AllowUnsafe.embrace.danger` each time `.ui` is evaluated. So the example hid a global side effect in `initial`.",
+     "klass": "REPLACE",
+     "replacement": "// identity is not state: State(selected: Int); allocate the group in an effect\ndef ui: UI < Sync =\n  for\n    group <- Random.nextStringAlphanumeric(12).map(\"tabs-\" + _)   // effect-tracked, no global state; or an app-scoped FocusIds(AtomicLong) from Env\n    state <- Signal.initRef(normalize(initialTab))\n  yield view(group, state)\n// The Tabs Component adapter cannot do this while Component.initial is pure:\n// core needs `initial: State < Sync` or a per-mount id passed to view (core slice decision)",
+     "risk": "Public API: TabsView.State changes shape (TabsViewSuite builds State(0, \"owned-test\")). The Component path depends on a change to the core Component API (P-4 final shapes). Focus behavior: groups must stay distinct per mount (TabsViewSuite:51-52).",
+     "cost": "M"
+    },
+    {
+     "where": "examples/src/main/scala/examples/widgets/TabsView.scala:28",
+     "construct": "`require(labels.nonEmpty, ...)`, which throws in the constructor",
+     "what": "Rejects an empty label list.",
+     "why": "`normalize` uses floorMod over labels.size, so zero labels would divide by zero.",
+     "klass": "REPLACE",
+     "replacement": "final class TabsView(using Frame)(first: String, rest: String*)(...)   // or labels: (String, Chunk[String])\n  private val labels: Chunk[String] = Chunk(first) ++ rest",
+     "risk": "Example API: the README code blocks pass `Seq(\"CPU\", ...)`. Update the README blocks and Widgets.tabs too.",
+     "cost": "S"
+    },
+    {
+     "where": "examples/src/main/scala/examples/widgets/TabsView.scala:49",
+     "construct": "`update.andThen(Sync.defer(onChange(next)))`",
+     "what": "Defers the user callback.",
+     "why": "Defensive suspension. It is redundant: `andThen` is an inline by-name (kyo-kernel Pending.scala:136), so `onChange(next)` is already evaluated only after `update`.",
+     "klass": "DELETE",
+     "replacement": "update.andThen(onChange(next))",
+     "risk": "None",
+     "cost": "S"
+    },
+    {
+     "where": "examples/src/main/scala/examples/printing/Printing.scala:72",
+     "construct": "`println(...)` in the body of `object PrintingApp`, which runs at object initialization",
+     "what": "A deliberate probe. The PTY rows `print` and `printlog` check that a println before the run comes before the alternate screen, and that the later prints are still captured.",
+     "why": "It tests that the TuiApp constructor installs the capture streams first.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep the probe, but say in the Scaladoc that it is a test probe and not a pattern to copy. Or move it to a PTY-only fixture main outside examples/, and keep Printing a clean example.",
+     "risk": "The PTY rows depend on it (terminal restore and output ordering).",
+     "cost": "S"
+    },
+    {
+     "where": "examples/src/main/scala/examples/printing/Printing.scala:26",
+     "construct": "Default parameter `print = line => Sync.defer(println(line))`",
+     "what": "Writes to stdout. Stdout capture is the subject of the example.",
+     "why": "It shows that a Scala println while the UI is up is captured. PrintingSuite injects a fake writer.",
+     "klass": "KEEP-EDGE",
+     "replacement": "Keep. This is the shape to copy: a side effect behind Sync.defer, passed as a function so a test can replace it.",
+     "risk": "None",
+     "cost": "S"
+    },
+    {
+     "where": "examples/src/main/scala/examples/counter/Counter.scala:12,24; counterstyles/CounterStyles.scala:8,20,60",
+     "construct": "`tui4s.Hooks.useSignal`, which is `Signal.initRef` with another name (Hooks.scala:36-39)",
+     "what": "Allocates the counter state.",
+     "why": "Prototype naming. The README quick start teaches it, while examples/README.md says 'Use the Kyo primitives directly' and TwoCounters uses Signal.initRef.",
+     "klass": "REPLACE",
+     "replacement": "count <- Signal.initRef(0)   // in Counter.ui, CounterHooks.counter, CounterStyles.ui\n// core (other slice): deprecate Hooks.useSignal instead of removing it",
+     "risk": "The README quick start region changes too (ReadmeSuite checks it), and the examples/README table row of Counter. Do not remove useSignal from core without a deprecation (public API).",
+     "cost": "S"
+    }
+   ],
+   "smells": [
+    {
+     "where": "modules/core/src/main/scala/tui4s/testkit/Headless.scala:25-28, 52, 224-241",
+     "smell": "The 'one driver fiber only' rule in the class Scaladoc exists because every waiter scans one shared frame channel for its sequence number. A second caller can take the frame that the first one waits for.",
+     "fix": "Request-response with a Promise per message. `Msg.Key(ev, done: Promise[Nothing, FrameStats])`; the runner completes it when it flushes that Input frame, and `send` is `inbox.put(Msg.Key(ev, p)).andThen(p.get)`. This drops the `seq` AtomicLong and the scan loop, and lets two fibers drive the kit. It changes Msg and Runner (core internal, concurrency review)."
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/testkit/Headless.scala:330",
+     "smell": "`Scope.ensure(h.quit.andThen(h.awaitEnd(5.seconds)))` discards the Boolean, so a run that does not stop in 5 s passes silently. The scoped Fiber.init release then interrupts it and waits again.",
+     "fix": "On false, panic or log 'the run did not end within 5 s after quit', so a leaked or stuck run fails the test instead of slowing it down."
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/testkit/Headless.scala:145-150, 190, 203",
+     "smell": "Boolean flags (`ctrl`, `shift`, `alt`) where kyo-ui already has `Modifiers`. `typeText` and `paste` return `Seq[FrameStats]` while `drainFrames` returns Vector (the skill's rule: never expose Seq).",
+     "fix": "`key(k: Keyboard, mods: Modifiers = Modifiers.none)` and `Vector[FrameStats]` (or Chunk) everywhere. This breaks the public API: decide before the final shape is frozen (P-4)."
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/testkit/Headless.scala:127-134 vs Screen.scala:117-146",
+     "smell": "Two snapshot paths over the same backend: `lines` (raw rows, wide-character continuation cells kept, no area offset) and `Screen.of` (trimmed, continuation cells skipped). They disagree on wide characters and on the origin.",
+     "fix": "Make `lines` a projection of one snapshot (Screen keeps raw rows next to the trimmed ones), or state the difference in the Scaladoc. Only one caller uses it (AppsTest.scala:58)."
+    },
+    {
+     "where": "modules/core/src/main/scala/tui4s/testkit/Screen.scala:20-29, 198",
+     "smell": "Stringly-typed colours in the public CellStyle ('#rrggbb', 'indexed:n', 'light-blue'). diffScreen trims with `replaceAll(\"\\\\s+$\", \"\")` (all whitespace), while Screen trims only ' '.",
+     "fix": "A small ADT (`enum CellColor { Rgb(r,g,b); Indexed(i); Named(AnsiColor) }`), or map to kyo-ui `Style.Color`, so tests compare with the same values the app sets. This breaks the public API (P-4). Use one `trimEnd` in both places."
+    },
+    {
+     "where": "examples/src/main/scala/examples/dashboard/Dashboard.scala:25, 30-37, 56-64, 103-107",
+     "smell": "Parallel structures indexed by Int: `series: Seq[String]`, `Metrics.now: Chunk[Double]` and `history: Chunk[Chunk[Double]]`, read with `series(t)`, `_.now(t)` and `_.history(t)`, and combined with a zip in tick.",
+     "fix": "`enum Series(val label: String) { case Cpu extends Series(\"CPU\") ... }` and `Metrics(samples: Chunk[Sample])` with `Sample(now: Double, history: Chunk[Double])`. The tab panel takes a Series, not an index."
+    },
+    {
+     "where": "examples/src/main/scala/examples/dashboard/Dashboard.scala:42, 92-97, 115, 149-155",
+     "smell": "Log lines are `(Int, String)` tuples, numbered twice: by the stream's `i`, and again by `l.lastOption.fold(1)(_._1 + 1)` in the foreach. The list is keyed by `_._1.toString`.",
+     "fix": "The stream emits `LogLine(n: Int, text: String)`, and the foreach is `s.logs.updateAndGet(l => (l :+ line).takeRight(6)).unit`."
+    },
+    {
+     "where": "examples: twocounters/TwoCounters.scala:41, counterstyles/CounterStyles.scala:63, todo/Todo.scala:204, dashboard/Dashboard.scala:122 vs counter/Counter.scala:23, printing/Printing.scala:25",
+     "smell": "Two ways to quit. Some examples take `quit: Unit < Sync` as a parameter (explicit and testable); others call the ambient `Tui.quit`, a Local that runner.scoped sets (a hidden dependency).",
+     "fix": "Use the quit parameter in every example (Headless.start and Tui.run already supply it). Keep Tui.quit documented for deep call sites only."
+    },
+    {
+     "where": "examples: twocounters/TwoCounters.scala:22-31, counterstyles/CounterStyles.scala:19-28 and 37-45",
+     "smell": "Three copies of the same bordered counter box. The examples exist to show different ways to own state, and the copies hide that.",
+     "fix": "Put one `CounterView.box(label: String, count: SignalRef[Int]): UI` in examples.counter. Each example then shows only where `count` comes from (Signal.initRef in a function, a hook component, a Component)."
+    },
+    {
+     "where": "examples/src/main/scala/examples/todo/Todo.scala:92, 116, 199",
+     "smell": "Effect types wider than needed: `add: => Any < Async` (a by-name parameter around a value that is already an effect) and `onKey: KeyboardEvent => Any < Async`. A typed error is shown as `Result.toString` ('save failed: Failure(...)').",
+     "fix": "Use `add: Unit < Async` and `onKey: KeyboardEvent => Unit < Async`. Only the kyo-ui call site accepts Any. Show `e.getMessage` (see the TodoStore sketch)."
+    },
+    {
+     "where": "examples/src/main/scala/examples/dashboard/Dashboard.scala:45, 56, 68, 88",
+     "smell": "Explicit `(using Frame)` on init, tick, sampler and logStream, but not on view or app. examples/README.md says that application code lets Kyo derive the Frame.",
+     "fix": "Drop `(using Frame)` from the app-level defs. Keep it only on reusable library code (Widgets, TabsView)."
+    }
+   ],
+   "sliceVerdict": "This slice is in better shape than the rest of the app: the examples have almost no raw `while` or `var`, and Dashboard, Widgets and the counters already use the target style (scoped Fiber.init, Loop, Stream and Emit, Signal-derived views). The worst impurity is in two examples users copy. Todo.load and Todo.save rely on Abort.catching, which does not suspend in Kyo RC7, so the file IO is not deferred. TabsView hides a JVM-global AtomicLong inside a pure-looking `initial`. In the testkit, Headless rebuilds by hand, with a reference-compared sentinel, two 5 ms sleep-poll loops, and `Abort[Closed]` handling that can never fire, what a half-closed Kyo Channel and a Promise give natively. Screen.scala has four hand-written loops and private copies of TextEdit.graphemes and Layout.textWidth. The one change with the most value is to rewrite Todo as an app-scoped TodoStore over a pure Model updated with `SignalRef.updateAndGet`, with `Sync.defer` around the file IO: it is the template users copy, and today it breaks the state rules of the repo's own READMEs. The second is to close the Headless frame channel when the run ends, which deletes about 60 lines of sentinel and polling code and keeps the end-of-run contract."
+  }
+ ],
+ "plan": {
+  "verdict": "The app is not \"whiles everywhere\". The five audits found 93 impure sites. There are about a dozen real while loops, and all of them are in edge files, TextEdit or Screen. The reactive tree and Layout are already immutable values threaded through Kyo Loop, folds and recursion. The user's verdict still holds for the shape of the code. The edge code is written like Java: 9 volatile or nullable fields in Session, TerminalIO and Crossterm, 14 more in OutputCapture and LogSink, four hand-written copies of \"run every step, keep the first error\" with three different catch policies, and exceptions for expected outcomes. Runner and Mount use java.util.concurrent atomics and a weak synchronized set where Kyo AtomicRef, Fiber.use and a pure World field do the same job. Paint looks pure but mutates the jatatui buffer while it decides what to draw. The examples that users copy teach wrong idioms: Abort.catching does not suspend in RC7, and TabsView hides global state. The plan keeps 29 sites as real boundaries in one package, tui4s.internal.edge. It keeps 3 justified kernel functions, replaces about 50 sites with Kyo or plain functional forms, and deletes 13. Phases P1 to P4 give most of the value for about half of the diff. P5, the pure painter, is the largest single change. P6, a single JVM stop hook, is the riskiest step and can be skipped. I spot-checked 10 audit claims in the code and in the Kyo RC7 sources, and all of them held. One premise did not hold: kyo-test RC7 has no property-test API (the jar has no PropertyTest or Gen), so the property tests need a decision.",
+  "counts": "| Slice | Sites | KEEP-EDGE | KEEP-KERNEL | REPLACE | DELETE | Cost S / M / L | Smells | Phases | Est. lines changed |\n|---|---|---|---|---|---|---|---|---|---|\n| runtime (Runner, Session, TerminalIO, Crossterm, InputPort, Knobs, SchedulerProbe, spi) | 23 | 7 | 1 (Knobs/Settle/InputPort: already clean) | 13 | 2 | 17 / 6 / 0 | 11 | P1, P2, P3 | ~1,350 |\n| reactive tree (Mount, Dispatch, Render, World, ComponentSpec, Props, EventMapping, Component, Hooks) | 14 | 3 | 0 | 8 | 3 | 13 / 1 / 0 | 13 | P1, P2 (P7 optional) | ~400 (+~1,200 in P7) |\n| layout-paint (Layout, Paint, Geometry, TextEdit) | 15 | 4 (2 of them become KEEP-KERNEL: Canvas.write, Canvas.diff) | 0 | 7 | 4 | 13 / 1 / 1 | 13 | P1, P5 | ~1,400 |\n| io-surface (OutputCapture, LogSink, TuiLog, TuiApp, Tui, TuiError, ...) | 24 | 11 | 0 (LineSplit scan becomes KEEP-KERNEL) | 11 | 2 | 20 / 4 / 0 | 13 | P1, P3, P6 | ~1,050 |\n| testkit-examples (Headless, Screen, Todo, TabsView, Dashboard, counters, Printing) | 17 | 4 | 0 | 11 | 2 | 14 / 3 / 0 | 11 | P1, P4 | ~850 |\n| P0 guard rails (lint, script, package moves) | - | - | - | - | - | S | - | P0 | ~250 + 9 file moves |\n| **Total** | **93** | **29** | **1 (3 after the plan)** | **50** | **13** | **77 / 15 / 1** | **61** | | **~5,300 for P0-P6 (+2,700 / -2,600); ~7,000 with P7** |\n\nPer phase: P0 ~250, P1 ~750, P2 ~520, P3 ~950, P4 ~770, P5 ~1,200, P6 ~900, P7 (optional) ~1,700. Raw grep in main sources (comment lines excluded, false positives remain): while 13, var 47, null 86, as/isInstanceOf 13, synchronized 24, AllowUnsafe/Sync.Unsafe 21, java.util.concurrent 10.\n\nSpot-checks (all CONFIRMED): (1) Runner.stop's unmountAll(last) only interrupts the watchers of w.regions, and interruptAll covers the whole gauge, so last/remember is redundant (Runner.scala:40-64, Mount.scala:591-609). (2) Session.releaseError is written at :127 and never read. (3) TuiApp.scala:107 repeats applyIfUnset from the constructor at :59. (4) kyo Fiber.init awaits the fiber in its release (Fiber.scala:139-145), and Fiber.use is acquireReleaseWith(initUnscoped)(_.interrupt) (:159-174). (5) ArrowEffect.handleCont forces `val v0 = v` at once, so Todo.load and Todo.save run their IO when the value is built. (6) Channel.closeAwaitEmpty exists in its safe and unsafe forms. (7) measuredKids does not filter the Tr children of a tbody and drops the tbody regions, unlike rowsOf (Layout.scala:340-347 vs 575-581). (8) The flush seam spins on nanoTime inside the backend monitor (Paint.scala:175-184). (9) `case _ =>` after Abort.run[Closed] turns a Panic into Msg.Quit (Runner.scala:211-213). (10) unarmedRegions mutates the ConcurrentHashMap outside any effect (Mount.scala:38-46). Also: core is unreleased (no core-v* tag) and its compat.sbt is already Compatibility.None.",
+  "principles": [
+   "P1 No impure syntax outside the edge. Main code (core and examples) has no var, while/do, null literal, `| Null` type, return, throw, asInstanceOf/isInstanceOf, synchronized, @volatile, java.util.concurrent, Thread, System.*, Runtime.*, AllowUnsafe, Sync.Unsafe or .unsafe, except in tui4s.internal.edge and in the allowlisted lines below. Check: scalafixAll --check with DisableSyntax, plus scripts/purity-check.sh.",
+   "P2 Every KEEP-KERNEL function is marked. It carries a `// KERNEL:` marker that names the hot path and a measured number (for example cells per frame and renderNanos). Its mutation is local and nothing escapes. A pure reference test or property compares it with a spec. Check: purity-check fails on a kernel suppression without a KERNEL reason. The list holds exactly Canvas.write, Canvas.diff and LineSplit.feed.",
+   "P3 One seam for each foreign operation. An edge API returns `A < Sync` or `A < (Sync & Abort[TuiError])`. The only synchronous exceptions are the release that a JVM hook must run (Session.close, JvmStop), and its Scaladoc names the restore guarantees G1-G11 that it keeps. Check: no AllowUnsafe parameter in a signature outside edge/.",
+   "P4 Null stops at the Java line. A Scala-owned type is never nullable. A Java result that can be null becomes Maybe(javaCall()) on the line of the call. Check: regex `\\|\\s*Null` outside edge/ is 0.",
+   "P5 Errors are values. Expected failures are Abort[TuiError] or Result. A throw is allowed only to rethrow a VirtualMachineError and for the framework AssertionError in Screen.assertScreen. A Panic is never mapped to a clean quit or swallowed by `case _` after Abort.run. Check: noThrows plus review, and a grep for `case _\\s*=>` right after Abort.run.",
+   "P6 Shared state is allocated in an effect. Concurrent state is a Kyo AtomicRef, AtomicBoolean, Channel, Promise or SignalRef that an `X.init: X < Sync` creates, never a constructor body or an object field. The only exceptions are the three allowlisted JVM globals: the OutputCapture state, the ComponentSpec weak registry and the JvmStop flag. Check: lint plus a review of each `new` in a class body.",
+   "P7 Every fiber has an owner and a stop path. It runs under Fiber.use or Fiber.init, or Mount.fork puts it in the gauge (removed on completion). Fiber.initUnscoped appears only in Mount.fork. Check: grep for initUnscoped finds exactly 1 site, and liveFibers == 0 after every run in the tests.",
+   "P8 A fiber's failure is visible. A failure or a non-interrupt Panic of a background fiber goes to Log.error (the file sink, never stdout) or into a typed result. Check: a test where a failing useEffect writes one ERROR line.",
+   "P9 Time comes from Kyo Clock. Outside edge/, use Clock.nowMonotonic and Clock.deadline, not System.nanoTime, so that tests can control time. Check: the System.* regex.",
+   "P10 Effects are no wider than used. A function that only allocates or reads is `< Sync`, not `< Async`, and Sync.defer is used where Sync.Unsafe.defer is not needed. Check: review item. For a public signature, run versionPolicyCheck.",
+   "P11 Domain meaning is typed. New or changed code uses enums or records, not Boolean flags, string tags or positional tuples (SessionStep, Click, Keep, Mode, Entered, LogLine). Check: review item.",
+   "P12 A function that becomes pure gets a property test against a spec or an oracle: TextEdit, LineSplit, Paint.plan (with the old painter as the oracle), the Todo Model and the LogSink ring. Check: each phase's exit lists its properties.",
+   "P13 The restore contract is executable. The step order and the guarantees G1-G11 stay in the Session Scaladoc. Each one has a SessionTest or TerminalIOTest assertion or a PTY row. Any change under edge/ runs the PTY kit once (53 rows, 68 screen checks, kill -TERM 143, kill -INT 130)."
+  ],
+  "phases": [
+   {
+    "name": "P0 Guard rails and the edge package (no logic change)",
+    "scope": "(1) Create tui4s.internal.edge. Use git mv with no logic edits: Session.scala (split InputThread.scala out of it), TerminalIO.scala (split JvmHooks.scala out of it: Hooks and Hooks.runtime), Crossterm.scala, OutputCapture.scala, LogSink.scala, TuiLog.scala and SchedulerProbe.scala. Cut the Canvas class out of Paint.scala into edge/Canvas.scala. (2) Add DisableSyntax and regex rules to .scalafix.conf (see enforcement) and add `scalafixAll --check` to the `check` alias. (3) Add scripts/purity-check.sh and project/purity-baseline.txt (sites per file), and run the script in CI next to version-order-test.sh. A file outside edge/ that still has sites gets a file-level `// scalafix:off DisableSyntax  // TODO-PURITY(Pn)` header. The phase that cleans the file deletes the header. (4) Decide how property tests run (see open questions) and add the test dependency.",
+    "value": "Every later phase becomes measurable, because the baseline can only go down. While the rewrite runs, no new while, var, null or unsafe call can land outside edge/. The moves come first, so the later diffs show logic changes and not file moves.",
+    "cost": "S: about 250 changed lines of config, script and imports, plus 9 file moves. Shape 4 (an Opus implementer, one reviewer, a fixer).",
+    "risk": "Low. The moves break a plain git blame (use --follow). Nothing in the public API moves. Core is unreleased and at Compatibility.None, so versionPolicyCheck accepts the moved private[tui4s] classes. Scalafix DisableSyntax is a syntactic rule and works on Scala 3.",
+    "tests": "sbt check (0 warnings; CI adds -Werror) and the full suite. The results must not change. There is no PTY run, because no logic changes.",
+    "exit": "scalafixAll --check and purity-check.sh are green. The baseline file is committed. The TODO-PURITY headers list exactly the files that P1 to P6 own."
+   },
+   {
+    "name": "P1 Cheap wins: deletes, nulls to Maybe, casts to patterns, two bug fixes",
+    "scope": "DELETE: Session.releaseError; the second SchedulerDefaults.applyIfUnset at TuiApp.scala:107; LogSink.toFile; the local discard in ComponentSpec; reclaim.removed(path) at Mount.scala:416; Geometry's Rect.isEmpty, area, union and Sides.all; the always-empty third element of measuredKids; the 14 discard(canvas.text(...)) calls (text returns Unit until P5) and `case li: Li` with discard(li); move Render.scala to the test sources; Screen's private graphemes and width (call TextEdit.graphemes and Layout.textWidth); the Sync.defer around onChange in TabsView.\nNULL to Maybe: EventMapping.apply returns Maybe[Msg] and key returns Maybe[KeyboardEvent] (callers: the Session input loop, Headless.keyOf); Crossterm.read = Maybe(jni.read()); TuiLog.write(t: => Maybe[Throwable]), which also stops the throwable from being evaluated when the level is off; OutputCapture.start returns Maybe[Capture]; Session.inputFailure returns Maybe[Throwable], and Tui.inputFailed folds it; TuiError(message, cause: Throwable), which has the same erasure.\nCASTS to patterns: `case fe: Foreach[a, ?]` in Mount (and in Runner's Source.Many); rowsOf returns (Item, Tr), and the Text test becomes a match; Dispatch's enterSubmits becomes a match, and `enum Click { Submits, NoSubmit }` replaces `submits: Boolean`; Dispatch's Maybe.get calls become fold and getOrElse.\nRESULT: the matches at Runner.scala:211-213 and :475-487 name Failure(Closed) and Failure(Timeout), and a Panic propagates.\nSMALL PURE REWRITES: TextEdit.boundaries becomes an IArray built from an Iterator; singleLine uses replace, map and filterNot; wordStart becomes tailrec; Screen's rows, trimEnd and cells become folds; CellStyle matches the JColor records exhaustively (no reflection, no regex); SchedulerDefaults.applyTo does filter, then foreach; enterCommands and leaveCommands come from one List[Mode]; enum SessionStep (RecordingControl logs the same kebab-case names).\nEXAMPLES: Todo.load and Todo.save wrap the IO in Sync.defer; Counter and CounterStyles use Signal.initRef.\nBUG FIX: measuredKids and tableSize use one rowsOf, so the regions of a tbody reach regionOwner.",
+    "value": "About 40 null sites, 8 of the 11 casts, 13 dead or redundant pieces and 7 of the about 13 while loops (TextEdit 3, Screen 4) go, for the lowest cost of any phase. Two bugs are fixed. A `table(tbody(foreach(sig)(tr(...))))` no longer stays stale (PLAUSIBLE; no test covers it today). A defect in inbox.take becomes a reported failure instead of a clean exit 0. The Todo template stops teaching that Abort.catching suspends.",
+    "cost": "M in total, made of S items. About +300/-450 lines. Shape 4 (an Opus implementer, one reviewer, a fixer). It can be two PRs: core, then examples.",
+    "risk": "Low. The Panic change is visible: the exit code is 1 with a report, not 0. The restore still runs first, because the bracket owns it. Keep every case of the sealed crossterm Java types, so that the -Wconf exhaustivity error in modules/core/build.sbt still works. The TuiError signature and the TabsView label change are public, but nothing is released yet.",
+    "tests": "EventMappingTest, DispatchTest, TextEditTest, ScreenTest, ScreenSuite, GoldenScreenTest, RelayoutTest, RunnerSuite, PasteTest, TuiRunTest, NativeLoadErrorTest, TodoSuite and ReadmeSuite. New negative control: a RelayoutTest with a foreach inside a tbody that must update after a signal write. It must fail on main. New properties: TextEdit.boundaries agrees with a reference split on random strings (with combining marks, ZWJ emoji and surrogate pairs); singleLine output has no ISO control character, and no other char changes; insert then remove at the same caret gives the same text back.",
+    "exit": "Outside edge/, 0 `| Null` in Scala-owned signatures. asInstanceOf remains only at Runner.scala:362 and :379 (P7) and in the one Component state helper. TextEdit and Screen have 0 while loops. The TODO-PURITY headers of TextEdit, Screen, Layout, Geometry, Dispatch, EventMapping and Todo are gone. The baseline is lower. CI is green with 0 warnings."
+   },
+   {
+    "name": "P2 Runner and Mount state on Kyo primitives",
+    "scope": "Runner: delete last and remember (6 calls), stopped, ticker and the manual track of the tick. `run` becomes `scoped(Sync.ensure(mount.interruptAll)(Fiber.use(repairTick)(tick => Sync.defer(mount.track(tick)).andThen(<initial walk, settle, frame, Loop(w1)(step)>))))`. Fiber.use interrupts at release and does not wait, unlike Fiber.init. repairTick = Abort.run[Closed](Loop.forever(Async.sleep(knobs.repairInterval).andThen(inbox.put(Msg.Repair)))).unit. Runner.init and Mount.init allocate in `< Sync` (a Kyo AtomicBoolean for quitRequested; Tui.scala:148 and Headless.scala:322 become `runner <- Runner.init(...)`). nanos and the frame timestamp at :672 come from Clock.nowMonotonic. SchedulerProbe.quiescent is Sync.defer around a foldLeft, and the probe-then-drain order is explicit in the flatMap.\nMount: final class Gauge(live: AtomicRef[Set[Fiber[Any, Nothing]]]). add = live.updateAndGet(_ + f).andThen(f.onComplete(_ => live.updateAndGet(_ - f).unit)), and interruptAll = live.get.map(foreachDiscard(_.interrupt)). The unarmed map becomes `World.unarmed: Map[Loc, Long]`: Mount.walk adds an entry, the runner removes it when it absorbs Msg.Armed, and the watcher only posts Armed. Tui4sTrack holds `Fiber => Unit < Sync`. One `fork(label, onFail)(v)` helper starts the watcher, the hook body and onMount, and it logs Failure and a non-interrupt Panic with Log.error.",
+    "value": "Runner and Mount import nothing from java.util.concurrent: 4 atomics, 1 synchronizedSet over a WeakHashMap and 1 ConcurrentHashMap go. About 40 lines and two review-fix windows (R2-1, R2-2) disappear. Hook and onMount failures stop being silent. The armkey bookkeeping becomes a pure function of World. Strong references with removal on completion close a latent hole (PLAUSIBLE): a fiber parked on Async.never whose region was dropped is reachable only from the weak set, so GC could collect it before interruptAll, and then its Scope finalizers never run.",
+    "cost": "M. About +220/-300 lines in Runner, Mount, World, Hooks, Tui, Headless and their tests.",
+    "risk": "Concurrency and the end order of a run. Keep the step loop on the calling fiber; do not use Async.race, because SchedulerProbe assumes that only the caller runs. stop must not wait. Keep probe-then-drain. Every watcher, hook and onMount fiber must enter the gauge. World.unarmed is a superset of the old map, so verify can only re-read more often, never less. Shape: an implementer, one reviewer and one adversarial skeptic (Opus, as lean mode says for runtime reviews).",
+    "tests": "WatcherTest, ComponentTest, HooksTest (liveFibers == 0 after each run), SeamTest (armkey), SettleTest, QuitTest, RunnerSuite, HeadlessTest and the stress suite, then one PTY run. New negative control: a hook fiber parked on Async.never, whose region a step drops, is interrupted at stop and its Scope.ensure runs, with System.gc() between the drop and the stop. If it does not fail on main, keep it as a regression test and say so in the PR. New: a failing useEffect body writes exactly one ERROR line to the sink.",
+    "exit": "Runner.scala and Mount.scala have 0 java.util.concurrent, 0 synchronized and no mutable `new` in a class body. Fiber.initUnscoped appears only in Mount.fork. Their TODO-PURITY headers are gone, except for a line marker on the two Msg.Content casts (P7). The gauge tests and the PTY run are green."
+   },
+   {
+    "name": "P3 The terminal boundary: one Release, an immutable Entered, the hook first",
+    "scope": "In edge/: `Release.all(steps: (() => Unit)*): Outcome(first: Maybe[Throwable], interrupted: Boolean)` with one catch policy (everything except VirtualMachineError). Session.close, the undo of TerminalIO.enter, TerminalIO.leave and Session.open all use it. Session.close keeps its monitor (G6) with a plain field that the monitor guards, and the CAS goes. join becomes tailrec to a deadline (bound 2*poll+50 ms, G3), and its interrupt goes into Outcome. TerminalControl.enter returns Result[TuiError, (Backend, Entered)]. It is built from a List of acquires, and each acquire returns (Maybe[Undo], Result). A half-done command list keeps its undo. Entered(capture, warning) replaces the 4 @volatile fields. Delete inHook and the 'once' reset at TerminalIO.scala:189. FakeHooks.remove must then ignore a remove during a shutdown, as the Hooks contract says. NativeCrossterm.load() returns Result[TuiError, Crossterm] (type-state), so the volatile nullable jni field and the IllegalStateException branch go. Session.open stays one Sync.Unsafe.defer (G10), with no var, staged with Result.catching. InputThread stays a platform daemon thread. Its loop body becomes tailrec with a Chunk batch, `stopped` reads inbox.unsafe.closed() in place of `running`, and the failure goes into an AtomicRef.Unsafe[Maybe[Throwable]]. Register the restore hook first. It undoes only what is entered so far, through an AtomicRef.Unsafe[Entered] that grows at each step.",
+    "value": "The code that the user calls badly written becomes one documented seam. 9 volatile or var fields go, as do the four copies of 'run every step, keep the first error' with three catch policies, the exceptions for expected outcomes (NotATerminal, NativeAccessDenied) and the mutable undo stack. Two restore gaps close. A LinkageError in an early release step no longer skips control.leave. A SIGTERM during enter under plain Tui.run now restores the terminal.",
+    "cost": "M to L. About +450/-500 lines, with FakeCrossterm, RecordingControl, TerminalIOTest and SessionTest.",
+    "risk": "Terminal restore, the highest class. Keep the step order G1-G4, G5 (every step runs), G6 (a second caller waits on the monitor), G7 (the interrupt flag is set again at the end), G8 (no Kyo scheduler in the release), G9 (Scope.run inside the use of the bracket), G10 (the acquire is one step) and G11 (a failure between raw mode and the hook undoes everything). Lock order: the Session monitor, then the Canvas monitor. Shape: an implementer, one reviewer and an adversarial skeptic on the restore paths (Opus, per lean mode).",
+    "tests": "SessionTest (the order logs input-stopped, input-joined, input-hung), TerminalIOTest (leave order, the half-done command list), NativeTerminalTest, NativeLoadErrorTest, the TuiAppTest hook tests and TuiRunTest. New negative controls, because these are bug fixes, and each must fail on main: FakeHooks fires the hook between raw mode and the canvas, and the fake terminal ends restored; a LinkageError from canvas.close still runs leave. Then run the PTY kit once: 53 terminal rows and 68 screen checks, with the kill -TERM (143) and kill -INT (130) restore rows.",
+    "exit": "TerminalIO, Crossterm and Session have no var, except Session's `closed` field that the monitor guards, and no `| Null`. Release.all is the only multi-step release. Every AllowUnsafe and Sync.Unsafe of the run path is in edge/, plus the session release seam at Tui.scala:145. PTY: 53/53 rows and 68/68 screen checks."
+   },
+   {
+    "name": "P4 Testkit and the example templates",
+    "scope": "Headless: create the inbox and frames channels with a scoped Channel.init. When the run completes, close the inbox and call closeAwaitEmpty on frames (one Unsafe line). Then a wait after the end fails with one panic ('the run has ended'), and the frames already in the buffer can still be taken. Delete endMark, ended(frames), the put-back logic and the 5 ms poll in firstFrame (about 60 lines). awaitEnd waits on a Promise that run.onComplete completes, under Async.timeout on the live clock. awaitScreen polls with Clock.deadline, not System.nanoTime. Scope.ensure(quit, awaitEnd) reports a run that does not stop within 5 s. Canvas.read(f) replaces Headless's own backend.synchronized.\nExamples: Todo becomes a pure `Model` (add, toggle, delete, move, rows) behind one TodoStore that calls model.updateAndGet(f): one atomic transition. The AtomicInt nextId and the two-step writes go. TabsView.State no longer uses the global AtomicLong; the group id comes from an effect (the Component adapter waits for the core decision). TabsView takes (first, rest*) in place of require. Dashboard gets a Series enum and a LogLine record. The three counter examples share one CounterView.box. Every example takes `quit` as a parameter.",
+    "value": "The code that users copy teaches the right idioms: effects deferred, one atomic pure transition, no global state. The testkit stops building by hand what Kyo's Channel close and Promise already give. It also fixes a latent hang: after the run ended, inbox.put on a full inbox never returned.",
+    "cost": "M. About +350/-420 lines.",
+    "risk": "The Headless end-of-run contract (OS-34, R1-8, R2-7) is concurrency code. The key that ended the run must still get its frame, and no wait may join the run fiber from an interruptible wait. The TabsView State and constructor changes touch the README code blocks, which ReadmeSuite checks. Shape: an implementer, a reviewer and a skeptic for Headless; shape 4 for the examples.",
+    "tests": "The HeadlessTest end-of-run tests (send, nextFrame and drainFrames after the end; the torn-frame test), AppsTest, WriteSeamTest, TodoSuite, TabsViewSuite, the counter suites, ReadmeSuite and PrintingSuite, plus the PTY todo, tabs and print rows. New properties on the Todo Model: after any random sequence of add, toggle, delete and move, 0 <= cursor < max(1, size), ids are unique and increasing, and at most one row is selected.",
+    "exit": "The testkit has 0 eq sentinels, 0 System.nanoTime calls and no sleep-poll loop, except the Clock-based poll of awaitScreen. The examples have no object-level mutable state. The TODO-PURITY headers of Headless, Screen, Todo and TabsView are gone."
+   },
+   {
+    "name": "P5 A pure painter and one Canvas seam",
+    "scope": "Paint.plan(laid, env, damage) returns FramePlan(ops: Chunk[Op], dirty: Vector[Rect], subtrees: Int). It is a pure fold that threads its accumulator with Chunk.append, never ++. `enum Op { Clear, Fill, Run, Glyph, Text }`. A border is 4 Run ops and 4 Glyph ops, so the op count is O(nodes), never O(cells). edge/Canvas has: init(backend): Canvas < Sync; draw(plan): FrameOut(cells, sent, subtrees) < (Sync & Abort[TuiError]), where an IOException becomes TuiError.TerminalIO through Abort.catching inside Sync.defer; resize(size), with the same type; size: Size < Sync; read(f); and close()(using AllowUnsafe). The private write(op): Int and diff(dirty) are the two KEEP-KERNEL loops. Delete the writes counter and takeWrites, the throw in Canvas.terminalIO, the Panic(TuiError) remap at Tui.scala:126 and the flush busy-spin: a test-only TestBackend decorator in Headless splits the rows, or at least use parkNanos. Runner.frame widens to `< (Async & Abort[TuiError])` and builds FrameStats once.",
+    "value": "The largest pure-looking but impure code becomes a pure function with property tests. Today it makes 25 direct mutations of a foreign buffer while it decides what to draw. All per-cell mutation then sits in two documented kernel functions. The last exception used for control flow and the busy-spin in production code go.",
+    "cost": "L. About +700/-500 lines, with about 200 lines of property tests and the test oracle.",
+    "risk": "Performance of the per-frame path: one small Op for each text line, border side or decoration. Measure renderNanos and allocations (FrameStats, LeakProbe, the stress suite) on main and on the branch, and put both numbers in the PR. Terminal: no frame after close (Canvas.closed under the Canvas monitor, G1), and Headless reads under the same monitor (the torn-frame test). SessionTest.scala:224-239 calls canvas.put and canvas.flush directly, so it must move to draw. Shape 4, plus one skeptic who reviews only the Canvas monitor and close.",
+    "tests": "GoldenScreenTest, ScreenTest, RenderTest, WriteSeamTest, HeadlessTest (torn frame), SessionTest and the FrameStats tests, then one PTY run. New properties, with the old painter kept in the test sources as the oracle: (a) for generated UI trees and damage lists, Canvas.draw(Paint.plan(...)) gives the same Buffer as the old Paint.apply; (b) every op is inside its clip and inside the screen; (c) a second draw of the same plan sends 0 updates; (d) overlapping dirty rects send each cell at most once; (e) a Text op never splits a grapheme, which covers the latent drop(skip) bug in Canvas.text.",
+    "exit": "Paint.scala has no Canvas call and no method that returns Unit. Canvas is the only main file that touches jatatui Buffer or Cell. The two kernels carry KERNEL markers with the measured numbers. Tui.scala has no Panic remap. renderNanos is within the agreed budget."
+   },
+   {
+    "name": "P6 One JVM stop and the output sinks (optional for the hook half)",
+    "scope": "One hook, 'tui4s-stop', in edge/JvmStop. Tui.runWith installs it for both entry points. The hook sets a stopping flag and interrupts the run fiber. If `restored` does not count down within about 200 ms (a fiber stuck in System.exit), it calls the synchronous release, and then it waits up to 2 s. Delete the second hook 'tui4s-restore', the restored callback that runWith and TerminalIO pass along, and the add-and-remove probe in Hooks.shuttingDown, which becomes a read of the flag. Most of TuiApp.block goes: KyoApp.Unsafe.runAndBlock with a narrow embrace. OutputCapture: one immutable State value under the existing lock (8 vars become 1), the forwarders kept once (all: Chunk[Fwd]), and one forwarder function for out and err. LineSplit is a pure value with feed and drain, and the scan inside feed is the third KEEP-KERNEL. LogSink.open(file): LogSink < Sync, with `enum State { ToFile, ToRing, Done }` (6 vars become 1, and the impossible combinations can no longer be written). The session teardown is the one owner of sink.finish (3 call sites become 1). Tui.runWith acquires the sink with Sync.acquireReleaseWith (no Sync.Unsafe). `enum Keep` replaces `important: Boolean`. One Throwables.lines serves TuiLog and TuiApp.report, and report becomes pure.",
+    "value": "The duplicated hook pair, which the JVM runs concurrently, goes, and so does the exception-driven shutdown probe. 14 vars in two JVM-global objects become 2 state values. The per-byte while loop over a ByteArrayOutputStream becomes a pure splitter with property tests.",
+    "cost": "M. About +450/-450 lines.",
+    "risk": "The highest of all phases: the terminal restore under SIGTERM, SIGINT, SIGHUP and System.exit, the exit codes 130 and 143, the onExit skip, what is printed after the restore and in which order, and the println capture (scala.Console binds its stream once). The flag sees only the stops that run our hook. A stop after the run ended is no longer seen, which is safe because the terminal is already restored. Shape: an implementer, one reviewer and an adversarial skeptic on the hook and release paths (Opus, per lean mode). If the user prefers, do only the OutputCapture and LogSink half and keep the two hooks.",
+    "tests": "TuiAppTest: the three hook tests, the exit codes and the onExit skip (it now waits for hooks.added.size == 1, not 2). OutputCaptureTest (CR, CRLF, MaxLine, drain), the LogSink tests and TerminalIOTest. Then the full PTY kit: 53 rows, 68 screen checks, kill -TERM 143, kill -INT 130 and the print and printlog rows. New properties: LineSplit gives the same lines for every chunking of the same bytes; no line contains '\\r' or '\\n'; the MaxLine cut never splits a UTF-8 sequence; the LogSink ring keeps at most `capacity` lines, and kept + dropped == the number of lines written.",
+    "exit": "Main has one Runtime.addShutdownHook call site. No exception is used to detect a shutdown. OutputCapture and LogSink each have one var. sink.finish has one caller. The full PTY kit is green."
+   },
+   {
+    "name": "P7 (optional, decide after P6) Typed data model",
+    "scope": "(a) Typed messages: Msg.Single(region, gen, ui), Items(region, gen, items) and Value(region, gen, value). Each watcher posts the case for its kind, so Runner.apply needs no cast. (b) A sealed Region ADT, one case per source (Reactive, Many[A], Bound[A], Local[A], Comp). It replaces RegionState, Content and Source, and it deletes the 7 Vector.empty placeholders, the gen-0 sentinel and the items that are kept twice (in items and in Content.Many). Paint gets a typed BoundValue. (c) World splits into Tree, Input, Damage and StepStats, and backlog and quit move into the Runner's Loop state. (d) Optionally, `opaque type Loc = Vector[Step]` with a Step enum.",
+    "value": "The last 2 casts and every Any payload go, and so does the copy-paste in Dispatch (12 copies of regions.updated, 3 copies of 'store the runner's own value'). The value is in the design; there is little purity left to gain.",
+    "cost": "L. About +900/-800 lines in Mount, Dispatch, Runner, Layout, Paint and World.",
+    "risk": "Wide changes in the reactive tree and in the workaround for the lost wakeup of Kyo RC7 (TODO #8 and #9). Do it after P2 and P5, when the moving parts are already pure. Shape 4, plus one skeptic on (a), because (a) changes the watcher messages.",
+    "tests": "The whole suite, with focus on DispatchTest, RelayoutTest, SeamTest and WatcherTest. New property: for a generated UI tree, a mount and then a remount with the same tree leave World unchanged.",
+    "exit": "internal has 0 asInstanceOf, except the one Component state helper. Msg, Content and World hold no Any."
+   }
+  ],
+  "enforcement": "1) Scalafix, which is already in project/plugins.sbt. Extend .scalafix.conf:\nrules = [OrganizeImports, DisableSyntax]\nDisableSyntax {\n  noVars = true, noNulls = true, noReturns = true, noWhileLoops = true,\n  noAsInstanceOf = true, noIsInstanceOf = true, noThrows = true, noFinalize = true\n  regex = [\n    { id = unsafe,    pattern = \"AllowUnsafe|Sync\\\\.Unsafe|embrace\\\\.danger|\\\\.unsafe\\\\.\", message = \"unsafe Kyo API: only in tui4s.internal.edge\" }\n    { id = jvmSync,   pattern = \"synchronized|@volatile|java\\\\.util\\\\.concurrent|new Thread|\\\\bThread\\\\(\", message = \"use Kyo AtomicRef, Channel, Promise or Fiber\" }\n    { id = jvmGlobal, pattern = \"System\\\\.(nanoTime|currentTimeMillis|getProperty|setProperty|getenv|exit|out|err|setOut|setErr)|Runtime\\\\.getRuntime\", message = \"use Kyo Clock, or move it into the edge\" }\n    { id = nullType,  pattern = \"\\\\|\\\\s*Null\\\\b\", message = \"use Maybe; convert on the Java line\" }\n  ]\n}\nGive the test sources their own config (Test / scalafixConfig := Some(file(\".scalafix-test.conf\"))) with only OrganizeImports, because tests may use fakes and latches. Add `scalafixAll --check` to the `check` alias in build.sbt, so that CI runs it.\n\n2) Scope the allowance to the boundary. Each file in modules/core/src/main/scala/tui4s/internal/edge/ starts with `// scalafix:off DisableSyntax` and one `// EDGE:` line that names the foreign API it wraps. Outside edge/, a suppression is a line or block `// scalafix:ok` (or off/on) with a reason, and only at these allowlisted places: spi/SchedulerDefaults.applyIfUnset (it runs before any Kyo class loads), TuiApp.scala (the constructor's JVM setup, the `arguments` var, System.exit), the ComponentSpec weak registry and ComponentSpec.ownState (the kyo-ui AST and Signal are sealed), the one Component state cast helper, the closeAwaitEmpty line in testkit/Headless, Screen.assertScreen's throw, and the Printing probe println. A KEEP-KERNEL suppression must say `KERNEL: <hot path>, <measured number>`, and only these 3 functions may have one: Canvas.write, Canvas.diff, LineSplit.feed.\n\n3) scripts/purity-check.sh runs in CI next to version-order-test.sh. It fails when (a) a scalafix:off, scalafix:ok or SuppressWarnings(\"scalafix appears outside edge/ and the allowlist; (b) a KERNEL marker has no reason or names a function that is not in the list; (c) a TODO-PURITY(Pn) header is still in a file whose phase is done; (d) the count per file is higher than project/purity-baseline.txt (a ratchet: each phase lowers the baseline in its own PR). It also checks two counts: grep for Fiber.initUnscoped finds exactly 1 site (Mount.fork), and Runtime.addShutdownHook has 1 site after P6.\n\n4) A review checklist for every PR that touches main code (one line each in the PR body, per lean mode):\n- Is a new impure line in edge/, or is it an allowlisted KERNEL with its number?\n- Is shared state created in `X.init: X < Sync` and not in a constructor?\n- Does every new fiber have an owner and a stop path?\n- Does no `case _` after Abort.run hide a Panic?\n- Is each effect no wider than used (Sync vs Async)?\n- Are new domain values enums or records, not Booleans or strings?\n- Does a newly pure function have a property test?\n- If edge/ changed: do the SessionTest order logs pass unchanged, and did one PTY run pass with the 143/130 rows?\n- If a public signature changed: is versionPolicyCheck green, and is the change listed in the PR?\n- Is the Scaladoc of each edge type still correct about G1 to G11?",
+  "notWorthIt": [
+   "Session.close as one synchronous release under a JVM monitor, with a bounded Thread.join. A JVM shutdown hook has no fiber. Scope finalizers run on Async and would need the Kyo scheduler during the shutdown, and Fiber.init awaits its fibers. Clean up only the inside (P3).",
+   "The input thread as a platform daemon thread. The native crossterm read() cannot be interrupted. A daemon thread whose poll hangs does not keep the JVM alive. A JNI poll on a Kyo worker would count as load in SchedulerProbe, so every settle would run until its max of 100 ms per frame.",
+   "The message form Msg.InputFailed for an input failure. It drops a failure that comes after a Msg.Quit, but today that case fails with TerminalIO. An AtomicRef.Unsafe[Maybe[Throwable]] keeps the behavior for less cost.",
+   "The ComponentSpec weak identity registry. The kyo-ui AST and kyo.Signal are sealed, so there is no other side channel. Making node() effectful would change the public return types (Hooks.component: UI and the conversion to HtmlChildVal).",
+   "The Component state cast. Component#State is path-dependent, and a full fix needs a `given Tag[State]` on the public Component. Keep one cast in one helper. Optionally add the class to the key so that two classes cannot share one state.",
+   "SchedulerDefaults.applyIfUnset and the TuiApp constructor's side effects. They must run before the first Kyo class initializes and before scala.Console binds its stream, so no Kyo effect can wrap them.",
+   "The `arguments` var and System.exit in TuiApp. `args` is a pure public accessor, written once before the run fiber starts (KyoApp does the same). A Local or Env would make it effectful. System.exit is the end of the process, and Runtime.halt would skip the restore.",
+   "Canvas's back and front buffers and its closed flag under a monitor. jatatui Buffer and Cell are foreign and mutable, and close comes from a JVM hook thread. Only a blocking monitor can wait for a draw in progress. P5 only moves them into one file.",
+   "The FFM isatty downcall, the JNI load classification, and the .nn calls on Java returns (Runtime.getRuntime, System.out, charset, getCause). These are true foreign boundaries. The tailrec walk over the causes is already functional.",
+   "Screen.assertScreen's throw of AssertionError. munit, JUnit, zio-test and weaver detect a failure only by that exception, and the pure diffScreen is already the core.",
+   "The Layout perf traps (Laid.without filters the whole map; subtrees are measured again at every level; wrap is computed again in paint) and the regex compiled for each RawHtml. Layout is already pure, so they are not purity work. Do them only with a profile, as a separate perf PR.",
+   "Moving every change-log comment out of the source (89 lines starting with 'claude 2026-10-..' in the reactive slice alone). The user's own CLAUDE.md marks AI edits the same way, so this looks like a convention. Leave them unless the user decides otherwise (see open questions).",
+   "A lock-free fast path in the OutputCapture forwarder, the UTF-16 aware MaxLine cut, and TuiLog's time stamp through Clock.live.unsafe. Each one has a small gain for its risk. State the limits in the Scaladoc instead.",
+   "The Headless Promise-per-message protocol, which would let two fibers drive the kit. It changes Msg and Runner (concurrency review) for a testkit convenience. Revisit it with P7.",
+   "The scala.language.implicitConversions `implicit def` on Component, changed to a given Conversion. It is public API churn for a small gain. Do it only in the P-4 API batch, if at all."
+  ],
+  "openQuestions": [
+   "Property tests: kyo-test 1.0.0-RC7 has no property API (its jar has no PropertyTest or Gen, which contradicts the Kyo row of the scala-functional-design table). Should core add ScalaCheck as a Test-scope dependency, driven from kyo-test leaves through org.scalacheck.Test.check(...).passed? Or should it use a small seeded generator helper with no shrinking?",
+   "Package name and moves: is tui4s.internal.edge the right name for the boundary package? Do you accept git mv of about 9 files in P0, which affects plain git blame?",
+   "The change-log comments ('// claude yyyy-mm-dd: created/changed ...', about 89 lines in the reactive slice): are they a convention to keep? Or may each phase delete the ones in the code it rewrites and move the history to the PR text?",
+   "Public API shapes, which are cheap now because core is unreleased and at Compatibility.None (P-4 final shapes): TuiError's cause becomes non-null (recommended, same erasure); the Hooks return types narrow to `< (Sync & Scope)` (recommended; check versionPolicyCheck); Headless.key(k, mods: Modifiers) and Vector in place of Seq; a CellColor ADT in place of the strings in CellStyle; FrameStats.focus as an Option or a Focus ADT. Which of these go into this rewrite?",
+   "TabsView needs a unique focus group for each mount, but Component.initial is pure. Should core get `initial: State < Sync` or a per-mount id passed to view? Or should the example drop the Component adapter?",
+   "P6, the single JVM stop hook: should it go in now? It is the riskiest step, and the current two-hook design passes the 143 and 130 PTY rows. The other option is the OutputCapture and LogSink half only.",
+   "P5 perf budget: what renderNanos and allocation regress is acceptable for the pure painter (proposal: at most +10% on the stress suite, measured on main and on the branch)?",
+   "P7 (Region ADT, typed Msg, World split): is it part of this rewrite, or a later design PR? Until it lands, the two Msg.Content casts in Runner stay, each with a line marker.",
+   "Should the lint and purity-check.sh also cover modules/zio and modules/cats? This plan did not audit them. A grep found 0 AllowUnsafe or unsafe hits in their main sources."
+  ]
+ }
+}
