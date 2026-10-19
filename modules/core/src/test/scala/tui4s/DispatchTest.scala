@@ -36,7 +36,7 @@ class DispatchTest extends RunnerSuite:
     }
 
     /** The focus of the frame `f` (the id of the focused element). */
-    private def focusOf(f: FrameStats): String = f.focus
+    private def focusOf(f: FrameStats): String = f.focus.getOrElse("")
 
     "Tab moves in document order (a positive tabIndex first) and wraps; Shift-Tab goes back" in {
       for
@@ -153,7 +153,7 @@ class DispatchTest extends RunnerSuite:
                     ),
                   )
           t    <- h.key(Keyboard.Tab)
-          _     = assert(t.focus == "c", s"focus after Tab: ${t.focus}")
+          _     = assert(t.focus.contains("c"), s"focus after Tab: ${t.focus}")
           // no focusable element: the key goes to the first element, a
           // disabled button
           h2   <- Headless.start(20, 3, TuiOptions(autoFocus = false))(_ =>

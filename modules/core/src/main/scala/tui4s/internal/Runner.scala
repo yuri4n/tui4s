@@ -730,7 +730,9 @@ private[tui4s] final class Runner(
                   case Present(_) if idle && cause == FrameCause.Background =>
                     Kyo.unit // nothing happened: no frame
                   case Present(ch) =>
-                    val focus = w1.focus.fold("") { f =>
+                    // claude 2026-10-19: changed: None when nothing has the
+                    // focus, not "" (P1b, A5 c)
+                    val focus = w1.focus.map { f =>
                       w1.laid.nodes.get(f).map(_.kind) match
                           case Some(Kind.El(e)) =>
                             e.attrs.identifier.getOrElse(f.showLoc)

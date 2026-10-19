@@ -86,7 +86,7 @@ class AppsTest extends RunnerSuite:
                    s2.text,
                  )
           t   <- h.key(Keyboard.Tab)
-          _    = assert(t.focus == "list", s"focus after Tab: ${t.focus}")
+          _    = assert(t.focus.contains("list"), s"focus after Tab: ${t.focus}")
           _   <- h.key(Keyboard.ArrowDown)
           _   <- h.key(Keyboard.Space)
           s3  <- h.screen

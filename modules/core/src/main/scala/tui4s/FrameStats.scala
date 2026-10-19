@@ -24,8 +24,16 @@ final case class FrameStats(
     handleNanos: Long = 0,
     settleNanos: Long = 0,
     renderNanos: Long = 0,
-    /** The focused element: its `id`, or its tree position when it has none. */
-    focus: String = "",
+    /** The focused element: its `id`, or its tree position when it has none.
+      * `None` when no element has the focus.
+      *
+      * {{{
+      * for f <- h.key(Keyboard.Tab)
+      * yield assert(f.focus.contains("save"))
+      * }}}
+      */
+    // claude 2026-10-19: changed: an Option, not "" for no focus (P1b, A5 c)
+    focus: Option[String] = None,
     /** `System.nanoTime` at the end of the flush (so a caller can measure from
       * the moment it sent the event).
       */
