@@ -1,6 +1,5 @@
 // scalafix:off DisableSyntax
 // EDGE: the jatatui Buffer and Backend (the kernels Canvas.write and Canvas.diff)
-// claude 2026-10-19: created (P5): the one Canvas seam
 package tui4s.internal
 
 import jatatui.core.backend.{Backend, TestBackend}
@@ -41,6 +40,7 @@ import scala.jdk.CollectionConverters.*
   *     the backend: `flush` and `resize` check `closed` under the monitor. The
   *     release restores the terminal only after the last frame.
   */
+// claude 2026-10-19: created (P5): the one Canvas seam
 private[tui4s] final class Canvas private (
     back: Buffer,
     front: Buffer,
@@ -149,17 +149,20 @@ private[tui4s] final class Canvas private (
     /** Sends the changed cells of `plan` to the terminal ([[diff]], then one
       * draw and a flush of the backend), in one hold of the backend's monitor.
       * Returns the number of cells sent (`FrameStats.flushed`): 0 when no cell
-      * changed, and then nothing goes to the backend. After `close` nothing is
-      * drawn. A write that fails is [[tui4s.TuiError.TerminalIO]].
+      * changed, and then nothing goes to the backend. After `close` it is 0:
+      * nothing is drawn and the shown cells do not change. A write that fails
+      * is [[tui4s.TuiError.TerminalIO]].
       *
       * With the test seam (`Knobs.flushSeam`), the draw goes one row of cells
       * at a time, with a pause (a park, not a spin) of the seam between them.
       */
     def flush(plan: Plan): Result[TuiError, Int] =
       backend.synchronized {
-        val updates = diff(plan.spans)
-        if updates.isEmpty || closed then Result.succeed(updates.size)
-        else terminalIO(draw(updates)).map(_ => updates.size)
+        if closed then Result.succeed(0)
+        else
+            val updates = diff(plan.spans)
+            if updates.isEmpty then Result.succeed(0)
+            else terminalIO(draw(updates)).map(_ => updates.size)
       }
 
     private def draw(updates: Vector[BufferUpdate]): Unit =
@@ -227,6 +230,7 @@ private[tui4s] final class Canvas private (
       catch case e: java.io.IOException => Result.fail(TuiError.TerminalIO(e))
 end Canvas
 
+// claude 2026-10-19: created (P5)
 private[tui4s] object Canvas:
     /** @param flushSeam
       *   the test seam `Knobs.flushSeam` (zero in a real run)

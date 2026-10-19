@@ -7,10 +7,13 @@ import kyo.test.prop.Gen
 import tui4s.internal.*
 
 /** Random kyo-ui trees for the oracle properties of the frame path (PF-a). A
-  * tree has elements, texts, fragments and the two kinds of regions (`Reactive`
-  * and `Foreach`). Each region has two contents: scene A shows the first one,
-  * scene B the second one. A step from scene A to scene B is a change of every
-  * region, as the runner sees it.
+  * tree has elements, texts, fragments, decorated elements (inputs, a button,
+  * a select, a rule, an image, lists with markers) and the two kinds of
+  * regions (`Reactive` and `Foreach`). Each region has two contents: scene A
+  * shows the first one, scene B the second one. A step from scene A to scene
+  * B is a change of every region, as the runner sees it. In scene A the first
+  * text input has the focus and the caret is at its first grapheme; in scene
+  * B no element has the focus.
   *
   * All generators are explicit values (no `Gen.derive`, no given `Gen`).
   */
@@ -25,13 +28,21 @@ object UiGen:
         case Reac(a: Spec, b: Spec)
         case Each(a: List[(String, Spec)], b: List[(String, Spec)])
 
-    /** A UI and the contents of its regions in scene A and in scene B. */
+        /** A decorated element: `kind` is 0 to 9 (see [[decorated]]). */
+        // claude 2026-10-19: created (P5): the decorations of the painter
+        case Deco(kind: Int)
+
+    /** A UI, the contents of its regions and inputs in scene A and in scene
+      * B, and the first text input of scene A (it has the focus there).
+      */
+    // claude 2026-10-19: changed (P5): the focus of scene A
     final case class Built(
         ui: UI,
         a: Map[Loc, Content],
         b: Map[Loc, Content],
+        focus: Option[Loc] = None,
     ):
-        def sceneA(size: Size): Scene = scene(a, size)
+        def sceneA(size: Size): Scene = Scene(a.get, focus, size, _ => 0)
         def sceneB(size: Size): Scene = scene(b, size)
 
     def scene(contents: Map[Loc, Content], size: Size): Scene =
@@ -42,8 +53,12 @@ object UiGen:
       Gen.int.map(i => lo + Math.floorMod(i, hi - lo + 1))
 
     /** One word of a text: ASCII, an empty word (two spaces), a long token, a
-      * wide CJK character, an emoji (a surrogate pair) and a combining mark.
+      * wide CJK character, an emoji (a surrogate pair), a combining mark, and
+      * two glyphs wider than 2 cells (jatatui adds the widths of the code
+      * points of a cluster): a ZWJ family (6 cells) and an emoji with a skin
+      * tone (4 cells).
       */
+    // claude 2026-10-19: changed (P5): the glyphs wider than 2 cells
     val word: Gen[String] = Gen.oneOf(
       "a",
       "bb",
@@ -55,6 +70,8 @@ object UiGen:
       "中文",
       "👍",
       "é",
+      "👨‍👩‍👧",
+      "👍🏽",
     )
 
     /** A text of 0 to 6 words, one space between them. */
@@ -95,6 +112,7 @@ object UiGen:
             2 -> Gen
               .zip(items(depth, txt), items(depth, txt))
               .map(Spec.Each(_, _)),
+            2 -> between(0, 9).map(Spec.Deco(_)),
           )
 
     /** A screen size: 1 to 40 columns, 1 to 20 rows. */
@@ -124,6 +142,32 @@ object UiGen:
             case other                 => other
     end styled
 
+    /** The value of a text input in scene A: wider than its field (20 cells),
+      * with a wide character at the caret. In scene B the value is empty, so
+      * the placeholder shows.
+      */
+    private val inputA = "中文 a-long-token-without-spaces"
+
+    /** The element of a [[Spec.Deco]]: 0 a button, 1 a checked checkbox, 2 a
+      * radio, 3 a text input with a placeholder (its value comes from the
+      * scene), 4 a select, 5 a rule, 6 an image, 7 a list with discs, 8 a list
+      * with numbers, 9 a range input.
+      */
+    // claude 2026-10-19: created (P5)
+    def decorated(kind: Int)(using Frame): UI =
+      kind match
+          case 0 => button("ok")
+          case 1 => checkbox.checked(true)
+          case 2 => radio
+          case 3 => input.placeholder("type")
+          case 4 =>
+            select.value("b")(option.value("a")("a"), option.value("b")("bee"))
+          case 5 => hr
+          case 6 => img(ImgSrc.Path("p.png"), "pic")
+          case 7 => ul(li("a"), li("中")).style(_.listStyle(_.disc))
+          case 8 => ol(li("x"), li("y")).style(_.listStyle(_.decimal))
+          case _ => rangeInput.value(30.0)
+
     private def withKids(el: Element, cs: Chunk[UI]): UI = el match
         case d: Div                => d.copy(children = cs)(using d.frame)
         case d: P                  => d.copy(children = cs)(using d.frame)
@@ -132,10 +176,21 @@ object UiGen:
         case d: Ul                 => d.copy(children = cs)(using d.frame)
         case other                 => other
 
-    /** Builds the UI of `s` at `path` and the contents of its regions. */
+    /** Builds the UI of `s` at `path`, the contents of its regions and inputs,
+      * and the focus of scene A.
+      */
+    // claude 2026-10-19: changed (P5): the decorated elements and the focus
     def build(s: Spec, path: Loc)(using Frame): Built =
       s match
           case Spec.Txt(t)              => Built(UI.Ast.Text(t), Map.empty, Map.empty)
+          case Spec.Deco(3)             =>
+            Built(
+              decorated(3),
+              Map(path -> Content.Value(inputA)),
+              Map(path -> Content.Value("")),
+              Some(path),
+            )
+          case Spec.Deco(k)             => Built(decorated(k), Map.empty, Map.empty)
           case Spec.Box(tag, style, ks) =>
             val built =
               ks.zipWithIndex.map((k, i) => build(k, path.child(i)))
@@ -143,6 +198,7 @@ object UiGen:
               withKids(styled(tag, style), Chunk.from(built.map(_.ui))),
               built.foldLeft(Map.empty[Loc, Content])(_ ++ _.a),
               built.foldLeft(Map.empty[Loc, Content])(_ ++ _.b),
+              built.flatMap(_.focus).headOption,
             )
           case Spec.Frag(ks)            =>
             val built =
@@ -151,6 +207,7 @@ object UiGen:
               Fragment[UI](Chunk.from(built.map(_.ui))),
               built.foldLeft(Map.empty[Loc, Content])(_ ++ _.a),
               built.foldLeft(Map.empty[Loc, Content])(_ ++ _.b),
+              built.flatMap(_.focus).headOption,
             )
           case Spec.Reac(a, b)          =>
             val ia = build(a, path.content)
@@ -159,6 +216,7 @@ object UiGen:
               Reactive[UI](Signal.initConst[UI](UI.Ast.Text(""))),
               ia.a.updated(path, Content.Single(ia.ui)),
               ib.b.updated(path, Content.Single(ib.ui)),
+              ia.focus,
             )
           case Spec.Each(as, bs)        =>
             val ia = as.map((k, s) => (k, build(s, path.item(k))))
@@ -179,6 +237,7 @@ object UiGen:
                   path,
                   Content.Many(ib.map((k, b) => (k, b.ui)).toVector),
                 ),
+              ia.flatMap(_._2.focus).headOption,
             )
 
     /** A root element (at `Loc.root`) of at most `depth` levels, with its

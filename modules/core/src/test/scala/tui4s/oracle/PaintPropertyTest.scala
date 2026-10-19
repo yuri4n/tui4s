@@ -6,8 +6,9 @@ import kyo.test.prop.{Gen, PropertyTest}
 import tui4s.internal.*
 
 /** P5, the pure painter against the old painter ([[PaintOracle]], A9). For a
-  * random UI (texts with wide characters, emoji and combining marks) and a
-  * random screen size:
+  * random UI (texts with wide characters, emoji, combining marks and glyphs
+  * wider than 2 cells; the decorated elements of [[UiGen.decorated]], with a
+  * focused text input in scene A) and a random screen size:
   *   - a full frame gives the cells of the old painter, cell by cell with the
   *     style (symbol, colours, modifiers), and the same measures (cells
   *     written, cells flushed, subtrees painted);
