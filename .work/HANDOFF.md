@@ -117,6 +117,7 @@
   USER MUST KNOW: the app opts in to Anthropic server-side fallbacks for the default model (header
   anthropic-beta: server-side-fallback-2026-07-01, field fallbacks: "default"; Anthropic.fallbacks in Wires.scala);
   the OpenAI default id 'gpt-5' is unchecked data; effort/thinking not sent; the run log file has the umask mode.
+- RULE (user, 2026-10-19): after L4 lands, STOP: report it, do not start L5, wait for the user (they will /compact).
 - NEXT: L4 (3 agents): the standalone Scala.js build of the assistant (D5), Theme (D8) in tui4s-widgets rendered to
   one Stylesheet for both platforms, JS interpreters (fetch SSE, localStorage key with a warning), units em/pct.
 - (history) L3 ran as 3 agents: shared crossProject (domain + UI, kyo-ui/use/widgets only), tui main
