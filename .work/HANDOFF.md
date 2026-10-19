@@ -1,7 +1,10 @@
 ## 2026-10-19: FULL PROGRAM LAUNCHED (D17-D19, see DECISIONS.md sixteenth round)
 
 - Branch `chore/cleanup-7p2rll` at 4ab4068 (skills removed, CI workflow_dispatch). No PRs (D18).
-- Running: L0-P1 workflow (55 P1 sites, A10, isatty LinkageError, probe interval, /tmp/jni-* leak, JMH exclusion).
+- P1 DONE, pushed 95bcf2a (30 files, +837/-356; 57 sites removed, suppressions 105 -> 49; RunOptions = A10; Tty LinkageError;
+  blockingMonitorMinIntervalNs 20 ms with the reason in SchedulerDefaults; /tmp/jni-* copy removed after load on Linux via
+  /proc/self/maps; JMH excluded; 240 core tests, 49 examples, PTY 121/121, 0 warnings). CI run started by workflow_dispatch.
+- D20 cheap cadence: next = PF-a + P1b, one agent.
 - Upstream drafts land in `.work/upstream/` (the user posts them).
 <!-- claude 2026-10-19: created this item -->
 
