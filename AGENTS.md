@@ -175,13 +175,13 @@ nothing.
   widgets in `tui4s.widgets` (`modules/widgets`). These modules are plain
   kyo-ui code for the JVM and Scala.js, with no dependency on tui4s-core. A
   composable takes its lifetime from the `Scope` of its caller, never from a
-  hidden global. The widgets of `examples.widgets` move to `tui4s.widgets`
-  in L2b. `TabsView` uses public Kyo
-  APIs only; `Tabs` adapts it to tui4s component mounting. There is no separate
-  UI core repository. tui4s owns terminal rendering, input, and its retained
-  mount identity. Ordinary Kyo UI construction and terminal mounting have
-  different state lifetimes; document the difference.
-  <!-- claude 2026-10-19: changed: composables and widgets go in the modules use and widgets (L2a) -->
+  hidden global. A widget may use the composables; tui4s-widgets depends on
+  tui4s-use. `tui4s.widgets.Tabs` uses public Kyo APIs only;
+  `examples.widgets.Tabs` adapts it to tui4s component mounting. There is no
+  separate UI core repository. tui4s owns terminal rendering, input, and its
+  retained mount identity. Ordinary Kyo UI construction and terminal mounting
+  have different state lifetimes; document the difference.
+  <!-- claude 2026-10-19: changed: composables and widgets go in the modules use and widgets (L2a); Tabs moved to tui4s.widgets, widgets depends on use (L2b) -->
 - Use only Kyo's public APIs. Do not use a package name or reflection to reach
   private Kyo implementation members.
 - An ordinary Scala class can group signals, derived values, and actions.

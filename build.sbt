@@ -167,7 +167,8 @@ def crossAggregate(id: String, m: CrossProject): Project =
     )
 
 // claude 2026-10-19: created (L2a): the composables (tui4s.use) and the
-// widgets (tui4s.widgets); widgets does not depend on use (L2b decides)
+// widgets (tui4s.widgets); changed: widgets depends on use on both platforms
+// (L2b): the lists take useSelection, the modal useDialog, ...
 lazy val useCross     = crossModule("use").settings(
   // kyo-system (Path, Command): the files of usePersisted and the process
   // of useProcess on the JVM. kyo-ui brings it already; the module names it
@@ -179,7 +180,7 @@ lazy val useCross     = crossModule("use").settings(
 lazy val useJVM       = useCross.jvm
 lazy val useJS        = useCross.js
 lazy val use          = crossAggregate("use", useCross)
-lazy val widgetsCross = crossModule("widgets")
+lazy val widgetsCross = crossModule("widgets").dependsOn(useCross)
 lazy val widgetsJVM   = widgetsCross.jvm
 lazy val widgetsJS    = widgetsCross.js
 lazy val widgets      = crossAggregate("widgets", widgetsCross)

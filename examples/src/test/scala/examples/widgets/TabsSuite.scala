@@ -4,6 +4,7 @@ import kyo.*
 import kyo.UI.*
 import munit.FunSuite
 import tui4s.testkit.{Headless, Screen}
+import tui4s.widgets.Model
 
 class TabsSuite extends FunSuite:
 
@@ -42,12 +43,13 @@ class TabsSuite extends FunSuite:
       assert(second.contains("[panel=1]") && bold(second, "Two"), second.text)
     }
 
-    test("initialTab wraps; arrows select their focused destination") {
+    // claude 2026-10-19: changed: the first tab of a local Model (L2b)
+    test("a local first tab wraps; arrows select their focused destination") {
       val (initial, next, entered) = run {
         for
             h       <- Headless.start(40, 5)(_ =>
                          new Tabs("One", "Two", "Three")(
-                           initialTab = -1,
+                           selected = Model.Local(-1),
                            panel = panel,
                          ).ui,
                        )
@@ -158,6 +160,7 @@ class TabsSuite extends FunSuite:
       assertEquals(panels(secondChanged), Vector("[panel=1]", "[panel=1]"))
     }
 
+    // claude 2026-10-19: changed: a controlled Model (L2b)
     test(
       "a parent callback accepts or rejects requests and controls later changes",
     ) {
@@ -167,7 +170,7 @@ class TabsSuite extends FunSuite:
             requests <- Signal.initRef(Vector.empty[Int])
             h        <- Headless.start(40, 5)(_ =>
                           new Tabs("One", "Two", "Three")(
-                            selected = Some(selected),
+                            selected = Model.Controlled(selected),
                             onChange = next =>
                               requests
                                 .updateAndGet(_ :+ next)

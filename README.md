@@ -186,11 +186,13 @@ are typed Scala callbacks; Kyo `Emit` separates event-producing logic from its
 handler when needed. An ordinary class of signals and actions can be a shared
 store, with Kyo `Env` or `Layer` supplying it to the app.
 
-The Dashboard's reusable `examples.widgets.Tabs` owns its selection by default.
-Supply `selected = Some(signal)` and `onChange = next => ...` when the parent
-owns it. The parent decides whether to accept a request.
-`Widgets.tabs(ref, "One", "Two")` connects a writable signal directly. `TabsView` provides the same
-widget as a plain Kyo UI construction effect; `Tabs` adds tui4s mount lifetime.
+<!-- claude 2026-10-19: changed this paragraph (L2b): Tabs is in tui4s-widgets, its selection is a Model -->
+The tabs of the Dashboard (`tui4s.widgets.Tabs`) own their selection by
+default. The `Model` of a widget says who owns its value:
+`selected = Model.Bound(ref)` lets the widget write the parent's ref, and
+`selected = Model.Controlled(signal)` with `onChange = next => ...` lets the
+parent accept or reject each request. `tui4s.widgets.Tabs` is a plain Kyo UI
+construction effect; `examples.widgets.Tabs` adds the tui4s mount lifetime.
 
 The [state and events guide](examples/README.md#state-and-events-with-kyo)
 contains complete examples of native bindings, local and controlled tabs,

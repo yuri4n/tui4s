@@ -6,6 +6,7 @@ import munit.FunSuite
 import pini4s.*
 import tui4s.Hooks.component
 import tui4s.testkit.Headless
+import tui4s.widgets.Model
 
 class StateStoreSuite extends FunSuite:
 
@@ -13,11 +14,12 @@ class StateStoreSuite extends FunSuite:
         import AllowUnsafe.embrace.danger
         KyoApp.Unsafe.runAndBlock(30.seconds)(v).getOrThrow
 
+    // claude 2026-10-19: changed: a bound Model, not a signal and its set
+    // (L2b)
     private def sharedTabs(name: String)(using StateStore, Frame): UI < Sync =
       useState("tabs.selected")(0).map(selected =>
         new Tabs("One", "Two")(
-          selected = Some(selected),
-          onChange = selected.set,
+          selected = Model.Bound(selected),
           panel = index => span(s"[$name=$index]"),
         ).ui,
       )

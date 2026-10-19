@@ -7,8 +7,8 @@ import kyo.UI.*
   * they also render in a browser. A library of UI functions, not an app: it has
   * no main and no start script; the Dashboard (`examples.dashboard`) uses it.
   */
-// claude 2026-10-13: changed (T2, RC-33): the Scaladoc says that this is a
-// library (no main)
+// claude 2026-10-19: changed: a library with no main (T2, RC-33); the tabs
+// helpers went away: Model.Bound gives the same (L2b)
 object Widgets:
 
     private val blocks = "▁▂▃▄▅▆▇█"
@@ -37,21 +37,4 @@ object Widgets:
 
     def sparkline(values: Signal[Chunk[Double]], color: Style.Color): UI =
       values.render(vs => span(sparklineText(vs)).style(_.color(color)))
-
-    /** Tabs with component-owned selection. Use [[Tabs]] for a panel slot, an
-      * initial tab, a change callback, or a parent-owned selection signal.
-      */
-    // claude 2026-10-19: changed: the labels are `first, rest*` (P1b, A5 g)
-    def tabs(first: String, rest: String*)(using Frame): UI =
-      new Tabs(first, rest*)().ui
-
-    /** A two-way binding to a parent's state. */
-    // claude 2026-10-19: changed: the labels are `first, rest*` (P1b, A5 g)
-    def tabs(selected: SignalRef[Int], first: String, rest: String*)(using
-        Frame,
-    ): UI =
-      new Tabs(first, rest*)(
-        selected = Some(selected),
-        onChange = selected.set,
-      ).ui
 end Widgets

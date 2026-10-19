@@ -16,13 +16,14 @@ package.
 | Dashboard      | `examples.dashboard.DashboardApp`          | `examples/target/bin/dashboard`     | Tabs, a gauge and a sparkline fed by a sampler (250 ms), a log pane fed by a stream (400 ms); the arrows, or Tab and Space or Enter, change the tab; `p` pauses the sampler and shows a toast; `?` opens the help (a box over the screen; Esc closes it); `q` quits. The log pane scrolls (Tab reaches it; the arrows, PageUp, PageDown, Home, End). In a terminal of 120 columns or more, the tabs and the log are side by side (`Tui.size`). The keys `p`, `?` and `q` are a keymap (`Keymap.of`; the help box lists them), and the status line says how long ago the last sample came (`useNow`, `timeAgo`). |
 | Printing       | `examples.printing.PrintingApp`            | `examples/target/bin/printing [--log file] [--fail-on-f]` | A `println` while the UI is up does not reach the screen: the lines come after the terminal is restored, or go to the log file. This is also true after a `println` before the run (the app prints one line when it starts). `args` and `options` of a `TuiApp`. The test aid `--fail-on-f` makes `f` fail the UI: exit code 1, and the failure comes after the restore. |
 | Forms          | `examples.forms.FormsApp`                  | `examples/target/bin/forms`         | The native inputs in one form: a text input with `maxLength`, a password, a number with `min`, `max` and `step`, a range, two checkboxes, two radios of one group, a select, a dropdown, a textarea of 3 rows, a read-only and a disabled field, Submit and Reset. Enter submits the form (in the textarea too: Alt-Enter or Ctrl-J gives a new line), and the result shows under the form; Esc quits (README "Forms and inputs"). |
-| Widgets        | none (a library)                           | none                                | Reusable gauge and sparkline helpers, Kyo-only `TabsView`, and the terminal `Tabs` component adapter in `examples.widgets`. |
+| Widgets        | none (a library)                           | none                                | The terminal `Tabs` component adapter of `tui4s.widgets.Tabs` in `examples.widgets`. |
 | Native recipes | none (a library)                           | none                                | Five things that need no composable, each in one or two lines of native Kyo: a toggle, a counter, an interval, a timer that pauses (`Signal.observe`), a derived value (README "You may not need a composable"). |
 | Recipes        | none (a library)                           | none                                | One small UI for each other composable of tui4s-use: a search (`debounced`, `useAsync`), a progress (`throttled`), an autosave (`useDebouncedFn`), a streamed answer (`useStreamText`), a long list (`useSelection`, `useScrollWindow`), a delete that asks (`useDialog`), a setting that stays (`usePersisted`), the output of a program (`useProcess`). README "More composables, one recipe each". |
 
 <!-- claude 2026-10-19: changed the Printing row: the test aid --fail-on-f -->
 <!-- claude 2026-10-19: created the Forms row (L1c) -->
 <!-- claude 2026-10-19: changed the rows of Todo and Dashboard: the composables of tui4s-use; created the rows of the Native recipes and of the Recipes (L2a, L2a review) -->
+<!-- claude 2026-10-19: changed: the Widgets row and the Tabs examples of the section below; Tabs is in tui4s-widgets and takes a Model (L2b) -->
 
 ## State and events with Kyo
 
@@ -30,8 +31,8 @@ Use the Kyo primitives directly. A `SignalRef[A]` owns a mutable value; its
 `Signal[A]` interface supplies reactive reads. Derive values with `map` or
 `combineLatest`, pass signals to kyo-ui, and update references from typed
 callbacks. The examples below are independent objects that can be copied into
-the examples project. `Tabs`, `TabsView`, and `Widgets` are reusable example
-code, not published tui4s-core APIs.
+the examples project. `tui4s.widgets.Tabs` is in the published module
+tui4s-widgets; `examples.widgets.Tabs` is its tui4s adapter in this project.
 
 ### Native state and input bindings
 
@@ -99,13 +100,14 @@ The parent can own the selection instead:
 import kyo.*
 import kyo.UI.*
 import examples.widgets.Tabs
+import tui4s.widgets.Model
 
 object ControlledTabsExample:
     def ui: UI < Sync =
       Signal.initRef(0).map { selected =>
         div(
           new Tabs("CPU", "Memory", "Network")(
-            selected = Some(selected),
+            selected = Model.Controlled(selected),
             onChange = next =>
               if next == 2 then () else selected.set(next),
             panel = index => p(s"Selected metric: $index"),
@@ -115,36 +117,35 @@ object ControlledTabsExample:
       }
 ```
 
-When `selected` is supplied, Tabs renders that signal and sends requests to
-`onChange: Int => Unit < Async`. It does not write a second selection value.
+With `Model.Controlled(signal)`, Tabs renders that signal and sends requests
+to `onChange: Int => Any < Async`. It does not write a second selection value.
 This parent rejects user requests for Network by leaving the reference alone;
 the separate button shows that an external write still updates the tabs.
-Providing `selected` without a callback makes selection read-only. `initialTab`
-applies only to locally owned selection.
+A controlled model without a callback makes selection read-only.
+`Model.Local(index)` gives a locally owned selection its first tab.
 
 Indices wrap into the label range, including the index passed to `onChange`
 and the panel function. Labels must be nonempty. `heading: UI` and
 `panel: Int => UI` are ordinary typed parameters: the panel is a scoped slot
 without another slot abstraction.
 
-`Widgets.tabs("One", "Two")` is the short form with local state.
-`Widgets.tabs(selectedRef, "One", "Two")` supplies the ref as a signal and
-writes accepted requests straight back to it. Use `Tabs` directly for a panel, heading,
-custom change handler, or initial selection.
+`Model.Bound(selectedRef)` gives the widget the parent's ref: the widget
+writes each request to it, then calls `onChange`, as a native `.value(ref)`
+binding does. A change to the tab that shows already runs nothing.
 
 ### Construction and mount lifetime
 
-`TabsView` contains the widget behavior using public Kyo APIs only. Its `ui`
-method returns an allocation effect, `UI < Sync`:
+`tui4s.widgets.Tabs` contains the widget behavior using public Kyo APIs only.
+Its `ui` method returns an allocation effect, `UI < Sync`:
 
 ```scala
 import kyo.*
 import kyo.UI.*
-import examples.widgets.TabsView
+import tui4s.widgets.Tabs
 
 object PortableTabsExample:
     def ui: UI < Sync =
-      new TabsView("Overview", "Details")(
+      Tabs("Overview", "Details")(
         panel = index => span(s"Panel $index"),
       ).ui
 ```
@@ -156,9 +157,10 @@ another widget. This behavior is exercised through public Kyo UI trees and
 event callbacks without a terminal. This project's widget tests do not claim
 a browser integration test.
 
-`Tabs` wraps `TabsView` in `tui4s.Component`. Its `ui` returns a plain UI node;
+`examples.widgets.Tabs` wraps `tui4s.widgets.Tabs` in `tui4s.Component`. Its
+`ui` returns a plain UI node;
 the terminal runner allocates state at mount, keeps it across parent renders,
-and drops it at unmount. Its `onMount` runs `TabsView.mount`, an effect that
+and drops it at unmount. Its `onMount` runs `Tabs.mount`, an effect that
 gives the mounted state a fresh focus group (Kyo `Random`, no global counter). This retained identity is a tui4s lifecycle feature.
 Use the portable construction effect with another runner; do not assume that
 runner implements tui4s mounting. Kyo `Scope` already provides resource cleanup;
@@ -220,6 +222,7 @@ requires a new store abstraction:
 import kyo.*
 import kyo.UI.*
 import examples.widgets.Tabs
+import tui4s.widgets.Model
 
 object OrdinaryStoreExample:
     final class DashboardStore(val selected: SignalRef[Int]):
@@ -233,7 +236,7 @@ object OrdinaryStoreExample:
       Env.use[DashboardStore] { dashboard =>
         div(
           new Tabs("CPU", "Memory", "Network")(
-            selected = Some(dashboard.selected),
+            selected = Model.Controlled(dashboard.selected),
             onChange = index => dashboard.select(index),
           ).ui,
           p(dashboard.summary),
@@ -260,13 +263,13 @@ import kyo.*
 import kyo.UI.*
 import pini4s.*
 import examples.widgets.Tabs
+import tui4s.widgets.Model
 
 object KeyedStoreExample:
     def tabs(using StateStore): UI < Sync =
       useState("dashboard.currentTab")(0).map { selected =>
         new Tabs("CPU", "Memory", "Network")(
-          selected = Some(selected),
-          onChange = index => selected.set(index),
+          selected = Model.Bound(selected),
         ).ui
       }
 
@@ -298,8 +301,8 @@ argument.
 Clone with `--recurse-submodules`, or run
 `git submodule update --init --recursive` in an existing checkout, to fetch
 `vendor/pini4s`. The shared-store examples use its local sbt project; no
-published artifact is needed. `TabsView` uses Kyo only; its terminal `Tabs`
-adapter uses tui4s.
+published artifact is needed. `tui4s.widgets.Tabs` uses Kyo only; its
+terminal adapter `examples.widgets.Tabs` uses tui4s.
 
 From the repository root, enter the Nix development shell and stage the apps:
 

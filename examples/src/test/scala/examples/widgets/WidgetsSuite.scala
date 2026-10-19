@@ -4,6 +4,7 @@ import kyo.*
 import kyo.UI.*
 import munit.FunSuite
 import tui4s.testkit.Headless
+import tui4s.widgets.Model
 
 /** The widgets: the text of the gauge and of the sparkline (pure functions),
   * and the tabs on the headless test kit.
@@ -34,12 +35,15 @@ class WidgetsSuite extends FunSuite:
       assertEquals(Widgets.sparklineText(Chunk(-1.0, 2.0)), "▁█")
     }
 
+    // claude 2026-10-19: changed: a bound Model, not Widgets.tabs (L2b)
     test("tabs: Enter on a tab selects it; the selected tab is bold") {
       val (first, second)                          = run {
         for
             selected <- Signal.initRef(0)
             h        <- Headless.start(40, 3)(_ =>
-                          Widgets.tabs(selected, "One", "Two", "Three"),
+                          new Tabs("One", "Two", "Three")(
+                            selected = Model.Bound(selected),
+                          ).ui,
                         )
             first    <- h.screen
             _        <- h.key(Keyboard.ArrowRight) // the focus group
