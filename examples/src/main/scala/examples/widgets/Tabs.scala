@@ -35,4 +35,10 @@ final class Tabs(using Frame)(first: String, rest: String*)(
     def initial: State = widget.initial
 
     def view(state: SignalRef[State]): UI = widget.view(state)
+
+    /** Gives the mount its own keyboard focus group ([[TabsView.mount]]). */
+    // claude 2026-10-19: created (P4): the group comes from an effect at the
+    // mount
+    override def onMount(state: SignalRef[State]): Any < (Async & Scope) =
+      widget.mount(state)
 end Tabs

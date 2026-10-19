@@ -63,7 +63,7 @@ class TabsViewSuite extends FunSuite:
     ) {
       val (before, requests, shown) = run {
         for
-            state    <- Signal.initRef(TabsView.State(0, "owned-test"))
+            state    <- Signal.initRef(TabsView.State(0, Present("owned-test")))
             seen     <- Signal.initRef(Vector.empty[(Int, Int)])
             widget    = new TabsView("One", "Two", "Three")(
                           onChange = next =>

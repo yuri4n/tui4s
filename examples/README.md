@@ -154,7 +154,8 @@ a browser integration test.
 
 `Tabs` wraps `TabsView` in `tui4s.Component`. Its `ui` returns a plain UI node;
 the terminal runner allocates state at mount, keeps it across parent renders,
-and drops it at unmount. This retained identity is a tui4s lifecycle feature.
+and drops it at unmount. Its `onMount` runs `TabsView.mount`, an effect that
+gives the mounted state a fresh focus group (Kyo `Random`, no global counter). This retained identity is a tui4s lifecycle feature.
 Use the portable construction effect with another runner; do not assume that
 runner implements tui4s mounting. Kyo `Scope` already provides resource cleanup;
 mount effects belong in `Component.onMount` or `Hooks.component`, where tui4s

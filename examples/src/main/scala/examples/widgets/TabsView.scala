@@ -3,8 +3,6 @@ package examples.widgets
 import kyo.*
 import kyo.UI.*
 
-import java.util.concurrent.atomic.AtomicLong // scalafix:ok DisableSyntax.jvmSync; P4: the group id comes from an effect
-
 /** Tabs built only from Kyo signals, UI values, and callbacks. Each execution
   * of [[ui]] owns fresh selection state unless a parent supplies `selected`.
   * The panel receives the selected index as a scoped slot.
@@ -15,7 +13,8 @@ import java.util.concurrent.atomic.AtomicLong // scalafix:ok DisableSyntax.jvmSy
   * Requests are normalized to the label count before the callback runs.
   *
   * Runtime adapters can allocate [[initial]] at mount, retain that state during
-  * parent renders, and pass it to [[view]]. The constructor captures the
+  * parent renders, and pass it to [[view]]; they run [[mount]] once per mount,
+  * which gives the state its keyboard focus group. The constructor captures the
   * caller's diagnostic `Frame` for later rendering and event effects.
   *
   * The labels come first: `first` and then the `rest`, so a widget without a
@@ -39,11 +38,25 @@ final class TabsView(using Frame)(first: String, rest: String*)(
     private def normalize(index: Int): Int =
       Math.floorMod(index, labels.size)
 
-    /** Fresh local state with a distinct keyboard focus group per mount. */
+    /** Fresh local state, with no focus group yet: [[mount]] gives it one. */
+    // claude 2026-10-19: changed: no focus group; it comes from an effect at
+    // the mount (P4)
     def initial: TabsView.State =
-      TabsView.State(
-        normalize(initialTab),
-        s"tabs-${TabsView.nextGroup.incrementAndGet()}",
+      TabsView.State(normalize(initialTab), Absent)
+
+    /** The effect of a mount: gives `state` a fresh keyboard focus group when
+      * it has none, so two mounted tabs do not move the focus of each other.
+      * Run it once per mount.
+      */
+    // claude 2026-10-19: created (P4): the group comes from an effect
+    def mount(state: SignalRef[TabsView.State]): Unit < Sync =
+      TabsView.newGroup.map(group =>
+        state
+          .updateAndGet(s =>
+            if s.focusGroup.isEmpty then s.copy(focusGroup = Present(group))
+            else s,
+          )
+          .unit,
       )
 
     /** Builds a reactive UI from state retained by its caller or renderer. */
@@ -64,8 +77,11 @@ final class TabsView(using Frame)(first: String, rest: String*)(
               selection.render { current =>
                 nav.style(_.gap(1.px))(
                   fragment(labels.zipWithIndex.map { (label, index) =>
-                    button(label)
-                      .focusGroup(group)
+                    // claude 2026-10-19: changed: no group until the mount
+                    // gives one (P4)
+                    val tab = button(label)
+                    group
+                      .fold(tab)(tab.focusGroup)
                       .onKeyDown {
                         case KeyboardEvent(Keyboard.ArrowLeft, _, _)  =>
                           select(index - 1)
@@ -86,14 +102,36 @@ final class TabsView(using Frame)(first: String, rest: String*)(
         )
     end view
 
-    /** Allocates fresh local state whenever this effect executes. Keep the
-      * returned UI during ordinary reactive updates. Use [[initial]] and
-      * [[view]] for a renderer's retained component mount lifecycle.
+    /** Allocates fresh local state and a fresh focus group whenever this
+      * effect executes. Keep the returned UI during ordinary reactive updates.
+      * Use [[initial]], [[mount]] and [[view]] for a renderer's retained
+      * component mount lifecycle.
       */
-    def ui: UI < Sync = Sync.defer(Signal.initRef(initial)).map(view)
+    // claude 2026-10-19: changed: the group comes from an effect (P4)
+    def ui: UI < Sync =
+      TabsView.newGroup
+        .map(group =>
+          Signal.initRef(
+            TabsView.State(normalize(initialTab), Present(group)),
+          ),
+        )
+        .map(view)
 end TabsView
 
 object TabsView:
-    final case class State(selected: Int, focusGroup: String) derives CanEqual
+    /** The state of one mounted widget.
+      *
+      * @param selected
+      *   the selected tab
+      * @param focusGroup
+      *   the keyboard focus group of the tab buttons; absent until
+      *   [[TabsView.mount]] gives one
+      */
+    // claude 2026-10-19: changed: the focus group is a Maybe (P4)
+    final case class State(selected: Int, focusGroup: Maybe[String])
+        derives CanEqual
 
-    private val nextGroup = new AtomicLong()
+    /** A fresh focus group name from Kyo's `Random`: no global counter. */
+    // claude 2026-10-19: created (P4): the group comes from an effect
+    private def newGroup(using Frame): String < Sync =
+      Random.nextStringAlphanumeric(12).map("tabs-" + _)
