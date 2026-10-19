@@ -58,6 +58,7 @@ end TerminalControl
 private[tui4s] final class Session private (
     val canvas: Canvas,
     control: TerminalControl,
+    // claude 2026-10-19: changed: the checked options (RunOptions, A10)
     runOpts: RunOptions,
     inbox: Channel[Msg],
     thread: InputThread | Null,
@@ -101,11 +102,15 @@ private[tui4s] final class Session private (
           safely(Session.closeInbox(inbox))
           if thread != null then
               safely(control.step("input-stopped"))
+              // claude 2026-10-19: changed: the checked poll interval
+              // (RunOptions, A10)
               safely {
                 if join(thread, 2L * runOpts.pollMillis + 50) then
                     control.step("input-joined")
                 else control.step("input-hung")
               }
+          end if
+          // claude 2026-10-19: changed: the options of RunOptions (A10)
           safely(control.leave(runOpts.options))
           if interrupted then Thread.currentThread().interrupt()
     }

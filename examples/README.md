@@ -369,11 +369,12 @@ Both launch paths start an app in its own JVM, using `$JAVA_HOME/bin/java` or
   scheduler values. With them the runner gives fewer split frames under load
   and uses less CPU when the app is idle, and the app starts faster (Kyo does
   not measure its CPU-time counter for about 90 ms).
-  <!-- claude 2026-10-19: changed (C2): blockingMonitorMinIntervalNs --> A `TuiApp` also sets them in code
+  A `TuiApp` also sets them in code
   (`tui4s.spi.SchedulerDefaults`, before the app's own code), each one that
   no flag and no environment variable sets;
   `-Dtui4s.schedulerDefaults=false` turns this off. An app with a main of its
   own (`counterkyo`) needs them as JVM flags.
+  <!-- claude 2026-10-19: changed (C2): blockingMonitorMinIntervalNs -->
 
 Put more JVM options in `JAVA_OPTS`, for example
 `JAVA_OPTS=-Dkyo.Log.defaultLevel=info examples/target/bin/counter`. Give the

@@ -382,6 +382,8 @@ private[tui4s] final class Mount(
             for
                 state   <- w1.comps.get((path, key)) match
                                case Some(ref) =>
+                                 // claude 2026-10-19: changed: one KEEP
+                                 // helper, no cast (P1)
                                  Kyo.lift(Mount.stateRef[c.State](ref))
                                case None      =>
                                  given CanEqual[c.State, c.State] =
@@ -409,6 +411,7 @@ private[tui4s] final class Mount(
                              path :+ "~",
                              w1.copy(
                                regions = w1.regions.updated(path, region),
+                               // claude 2026-10-19: changed: no cast (P1)
                                comps = w1.comps.updated((path, key), state),
                              ),
                              reclaim.removed(path),
@@ -615,7 +618,7 @@ private[tui4s] object Mount:
       */
     // claude 2026-10-19: created: the one cast of the component state (P1)
     def stateRef[S](ref: SignalRef[?]): SignalRef[S] =
-      ref.asInstanceOf[SignalRef[S]] // scalafix:ok DisableSyntax.asInstanceOf; KEEP: true by construction (one stateKey has one State type: Component.stateKey)
+      ref.asInstanceOf[SignalRef[S]] // scalafix:ok DisableSyntax.asInstanceOf; KEEP: the contract of Component.stateKey (one key at one position has one State type)
 end Mount
 
 /** The live-fiber gauge of the running app, for the fibers that the hooks start

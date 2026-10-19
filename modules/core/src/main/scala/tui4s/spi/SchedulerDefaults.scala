@@ -19,8 +19,10 @@ package tui4s.spi
   * about 90 ms (on Linux it gives 12.8 ms). tui4s sets 20 ms, so there is no
   * measurement (measured: the first frame comes about 70 to 100 ms sooner). The
   * reasons for 20 ms:
-  *   - It is the scan interval of tui4s (`blockingMonitorIntervalNs`), so the
-  *     periodic scans do not change.
+  *   - It is the scan interval of tui4s (`blockingMonitorIntervalNs`), so on
+  *     Linux the periodic scans do not change. With a counter of 15.6 ms
+  *     (Windows), the measurement gives 25.6 ms, so the scans now come more
+  *     often: every 20 ms, not every 25.6 ms.
   *   - It is more than the known counter resolutions (10 ms on Linux, 15.6 ms
   *     on Windows). A value below the resolution can make a running worker look
   *     blocked, because two scans that are too near see the same CPU time.
@@ -29,7 +31,8 @@ package tui4s.spi
   *
   * The cost: when the monitor is woken (a fiber on a blocked worker is
   * interrupted), the next scan comes at least 20 ms after the last one, not
-  * 12.8 ms.
+  * after the measured value (12.8 ms on Linux; 2 ms when the counter is finer
+  * than 2 ms).
   */
 // claude 2026-10-13: changed (T2, review R1-5): the Scaladoc only (no SPEC
 // section; TuiApp, not the facades' classes, which do not exist yet); the code

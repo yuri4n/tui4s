@@ -38,8 +38,11 @@ private[tui4s] trait Crossterm:
 
     /** False when stdin is not a terminal. crossterm then uses `/dev/tty` for
       * raw mode and input, so [[enableRawMode]] alone does not see a piped or
-      * redirected stdin. True when it cannot be known (Windows).
+      * redirected stdin. True when it cannot be known (Windows, or a native
+      * image without the registration of the isatty downcall: the NotATerminal
+      * check is then skipped).
       */
+    // claude 2026-10-19: changed: the Scaladoc, a native image (C1)
     def stdinIsTerminal(): Boolean
 
     /** Raw mode: no line buffering, no echo, no signals from Ctrl-C. */
@@ -207,6 +210,7 @@ end NativeCopy
   * same native access as the crossterm library, so call it after that loaded.
   */
 private[tui4s] object Tty:
+    // claude 2026-10-19: changed: the link through Tty.link (C1)
     private lazy val handle: Option[MethodHandle] =
       if java.lang.System
             .getProperty("os.name", "")
@@ -231,6 +235,7 @@ private[tui4s] object Tty:
           }
 
     /** True when `fd` is a terminal; `None` when this cannot be known. */
+    // claude 2026-10-19: changed: through Tty.call (C1)
     def isatty(fd: Int): Option[Boolean] = handle.flatMap(call(_, fd))
 
     /** The downcall handle that `find` links; `None` when the link fails, also

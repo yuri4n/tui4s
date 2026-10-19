@@ -461,6 +461,8 @@ private[tui4s] final class Runner(
                 // difference, so that a negative `nanoTime` cannot overflow
                 // (`pendingNanos` and `waited` are not negative)
                 val waited = now - frameStart
+                // claude 2026-10-19: changed: the checked timeout
+                // (RunOptions, A10)
                 val left   =
                   if waited <= 0L then runOpts.pendingNanos
                   else runOpts.pendingNanos - waited
