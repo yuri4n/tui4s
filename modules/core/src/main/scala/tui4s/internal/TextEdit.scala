@@ -4,6 +4,30 @@ import kyo.UI.{Keyboard, KeyboardEvent}
 
 import java.text.BreakIterator
 
+/** Whether a field takes edits: `Edit`, or `ReadOnly` (kyo-ui's `readOnly`: the
+  * caret moves, the text stays).
+  */
+// claude 2026-10-19: created (L1c): an ADT, not a Boolean
+private[tui4s] enum FieldAccess derives CanEqual:
+    case Edit, ReadOnly
+
+/** The rules of a field for its edits: its access, the most grapheme clusters
+  * that it holds (`max`; `Int.MaxValue` when there is no limit), and the texts
+  * that it can hold (`valid`; a number field holds a number). An insert is cut
+  * to the clusters that fit; an edit whose result is not `valid` changes
+  * nothing.
+  */
+// claude 2026-10-19: created (L1c)
+private[tui4s] final case class Rules(
+    access: FieldAccess,
+    max: Int,
+    valid: String => Boolean,
+)
+
+private[tui4s] object Rules:
+    /** A field with no rule: it takes every edit. */
+    val free: Rules = Rules(FieldAccess.Edit, Int.MaxValue, _ => true)
+
 /** The editing of a single-line text input by grapheme clusters: what a reader
   * sees as one character ("é" written as e + U+0301, "👍🏽", a flag), not a
   * UTF-16 char. So Left, Right, Backspace and Delete never split a character. A
@@ -30,35 +54,36 @@ private[tui4s] object TextEdit:
       *   - Ctrl-U removes the text before the caret, Ctrl-K the text after the
       *     caret, Ctrl-W the word before the caret.
       *
-      * With `readOnly`, only the moves work.
+      * The edits follow `rules` ([[Rules]]): with `FieldAccess.ReadOnly` only
+      * the moves work.
       */
+    // claude 2026-10-19: changed: the rules of the field, not a Boolean (L1c)
     def key(
         text: String,
         caret: Int,
         ev: KeyboardEvent,
-        readOnly: Boolean,
+        rules: Rules,
     ): (String, Int) =
-        val bounds = boundaries(text)
-        val size   = bounds.length - 1
-        val at     = caret.max(0).min(size)
-        val same   = (text, at)
-        val m      = ev.modifiers
-        val plain  = !m.ctrl && !m.alt && !m.meta
-        val ctrl   = m.ctrl && !m.alt && !m.meta
+        val bounds                                 = boundaries(text)
+        val size                                   = bounds.length - 1
+        val at                                     = caret.max(0).min(size)
+        val same                                   = (text, at)
+        val m                                      = ev.modifiers
+        val plain                                  = !m.ctrl && !m.alt && !m.meta
+        val ctrl                                   = m.ctrl && !m.alt && !m.meta
+        def ins(s: String): (String, Int)          =
+          insert(text, bounds, at, s, rules)
+        def rem(from: Int, to: Int): (String, Int) =
+          remove(text, bounds, from, to, at, rules)
         ev.key match
             case Keyboard.Char(c) if plain                        =>
-              if readOnly || Character.isISOControl(c) then same
-              else insert(text, bounds, at, c.toString)
-            case Keyboard.Space if plain                          =>
-              if readOnly then same else insert(text, bounds, at, " ")
-            case Keyboard.Unknown(raw) if plain && printable(raw) =>
-              if readOnly then same else insert(text, bounds, at, raw)
+              if Character.isISOControl(c) then same else ins(c.toString)
+            case Keyboard.Space if plain                          => ins(" ")
+            case Keyboard.Unknown(raw) if plain && printable(raw) => ins(raw)
             case Keyboard.Backspace                               =>
-              if readOnly || at == 0 then same
-              else remove(text, bounds, at - 1, at)
+              if at == 0 then same else rem(at - 1, at)
             case Keyboard.Delete                                  =>
-              if readOnly || at >= size then same
-              else remove(text, bounds, at, at + 1)
+              if at >= size then same else rem(at, at + 1)
             case Keyboard.ArrowLeft                               => (text, (at - 1).max(0))
             case Keyboard.ArrowRight                              => (text, (at + 1).min(size))
             case Keyboard.Home                                    => (text, 0)
@@ -67,15 +92,11 @@ private[tui4s] object TextEdit:
               c.toLower match
                   case 'a' => (text, 0)
                   case 'e' => (text, size)
-                  case 'u' =>
-                    if readOnly || at == 0 then same
-                    else remove(text, bounds, 0, at)
-                  case 'k' =>
-                    if readOnly || at >= size then same
-                    else remove(text, bounds, at, size)
+                  case 'u' => if at == 0 then same else rem(0, at)
+                  case 'k' => if at >= size then same else rem(at, size)
                   case 'w' =>
-                    if readOnly || at == 0 then same
-                    else remove(text, bounds, wordStart(text, bounds, at), at)
+                    if at == 0 then same
+                    else rem(wordStart(text, bounds, at), at)
                   case _   => same
             case _                                                => same
         end match
@@ -83,19 +104,19 @@ private[tui4s] object TextEdit:
 
     /** The text and the caret after a paste of `s` at the caret: one edit. Line
       * breaks and tabs become spaces; other control characters are dropped (see
-      * [[singleLine]]).
+      * [[singleLine]]). The edit follows `rules`: the paste is cut by clusters
+      * to the room that `rules.max` leaves.
       */
+    // claude 2026-10-19: changed: the rules of the field, not a Boolean (L1c)
     def paste(
         text: String,
         caret: Int,
         s: String,
-        readOnly: Boolean,
+        rules: Rules,
     ): (String, Int) =
         val bounds = boundaries(text)
         val at     = caret.max(0).min(bounds.length - 1)
-        val clean  = singleLine(s)
-        if readOnly || clean.isEmpty then (text, at)
-        else insert(text, bounds, at, clean)
+        insert(text, bounds, at, singleLine(s), rules)
     end paste
 
     /** The number of graphemes of `s`. */
@@ -142,39 +163,65 @@ private[tui4s] object TextEdit:
       * empty, no control character, and not ASCII (the DOM names of the other
       * keys, `Shift`, `F13`, `Unidentified`, are ASCII words).
       */
-    private def printable(raw: String): Boolean =
+    def printable(raw: String): Boolean =
       raw.nonEmpty && raw.exists(_ > '\u007f') &&
         !raw.exists(Character.isISOControl)
 
-    /** Inserts `s` at the grapheme `at`; the caret goes after `s`. */
-    private def insert(
+    /** Inserts `s` at the grapheme `at`; the caret goes after `s`. Under
+      * `rules`: nothing in a read-only field; `s` is cut to its first clusters
+      * that fit in `rules.max` (the cut is by clusters, so no character is
+      * split); nothing when the result is not `rules.valid`.
+      */
+    // claude 2026-10-19: changed: the rules of the field (L1c)
+    def insert(
         text: String,
         bounds: Array[Int],
         at: Int,
         s: String,
+        rules: Rules,
     ): (String, Int) =
-        val off     = bounds(at)
-        val updated = text.substring(0, off) + s + text.substring(off)
-        // a combining mark can join the grapheme before it, so the caret is
-        // the number of graphemes up to the end of `s`
-        val before  = count(updated.substring(0, off + s.length))
-        (updated, before.min(count(updated)))
+        val room = rules.max.toLong - (bounds.length - 1)
+        val cut  =
+          if room <= 0 then ""
+          else if room >= Int.MaxValue then s
+          else graphemes(s).take(room.toInt).mkString
+        if rules.access == FieldAccess.ReadOnly || cut.isEmpty then (text, at)
+        else
+            val off     = bounds(at)
+            val updated = text.substring(0, off) + cut + text.substring(off)
+            // a combining mark can join the grapheme before it, so the caret
+            // is the number of graphemes up to the end of `cut`
+            val before  = count(updated.substring(0, off + cut.length))
+            if !rules.valid(updated) then (text, at)
+            else (updated, before.min(count(updated)))
+        end if
     end insert
 
-    /** Removes the graphemes `from until to`; the caret goes to `from`. */
-    private def remove(
+    /** Removes the graphemes `from until to`; the caret goes to `from`. Under
+      * `rules`: nothing (the caret stays at `caret`) in a read-only field, or
+      * when the result is not `rules.valid`.
+      */
+    // claude 2026-10-19: changed: the rules of the field (L1c)
+    def remove(
         text: String,
         bounds: Array[Int],
         from: Int,
         to: Int,
+        caret: Int,
+        rules: Rules,
     ): (String, Int) =
-      (text.substring(0, bounds(from)) + text.substring(bounds(to)), from)
+        val updated =
+          text.substring(0, bounds(from)) + text.substring(bounds(to))
+        if rules.access == FieldAccess.ReadOnly || !rules.valid(updated) then
+            (text, caret)
+        else (updated, from)
+    end remove
 
     /** The start of the word before the caret (Ctrl-W): skip white space, then
       * everything up to the previous white space.
       */
     // claude 2026-10-19: changed: a tailrec walk back (purity plan, P1)
-    private def wordStart(text: String, bounds: Array[Int], at: Int): Int =
+    def wordStart(text: String, bounds: Array[Int], at: Int): Int =
         def blankAt(i: Int): Boolean          =
           text.substring(bounds(i), bounds(i + 1)).isBlank
         // Goes back from `i` while the grapheme on the left is blank (for

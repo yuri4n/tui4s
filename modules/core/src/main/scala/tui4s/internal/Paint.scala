@@ -632,6 +632,71 @@ private[tui4s] object Paint:
           case Present(UI.Bound.Const(v)) => v
           case _                          => ""
 
+    /** The ops of a textarea with the view `v` ([[Layout.areaView]]): each row
+      * of the port is an underlined field, and the visual lines of the text
+      * ([[AreaText]]) from the row of the offset fill it, clipped to the port.
+      * An empty textarea with no focus shows its placeholder, dim and italic.
+      * The focused textarea shows its caret: a reversed cell at the row and the
+      * column of the caret (the glyph at the caret when it fits, else a space;
+      * at the right edge when the caret is after the last cell).
+      */
+    // claude 2026-10-19: created (L1c)
+    private def area(
+        env: Scene,
+        n: Node,
+        ta: Textarea,
+        v: View,
+        style: JStyle,
+        focused: Boolean,
+        clip: Rect,
+    ): Vector[Op] =
+        val value     = textValue(env, n.path, ta)
+        val field     =
+          style.withAddModifier(jatatui.core.style.Modifier.UNDERLINED)
+        val hint      = value.isEmpty && !focused
+        val shown     = if hint then ta.placeholder.getOrElse("") else value
+        val textStyle =
+          if hint then
+              field
+                .withAddModifier(jatatui.core.style.Modifier.DIM)
+                .withAddModifier(jatatui.core.style.Modifier.ITALIC)
+          else field
+        val gs        = TextEdit.graphemes(shown)
+        val lines     = AreaText.linesOf(gs, v.port.w)
+        val port      = v.port.intersect(clip)
+        val rows      = (0 until v.port.h).toVector.flatMap { i =>
+          val y     = v.port.y + i
+          val blank = (v.port.x until v.port.right).toVector.flatMap(x =>
+            put(x, y, " ", field, port),
+          )
+          val line  = lines
+            .lift(v.offset.y + i)
+            .fold("")(l => gs.slice(l.start, l.end).mkString)
+          blank ++ text(v.port.x, y, line, textStyle, port)
+        }
+        val cursor    =
+          if !focused then Vector.empty
+          else
+              val c   = env.caret(n.path).max(0).min(gs.size)
+              val r   = AreaText.row(lines, c)
+              val col = lines.lift(r).fold(0)(AreaText.column(gs, _, c))
+              val x   = v.port.x + col.min((v.port.w - 1).max(0))
+              val g   = gs
+                .lift(c)
+                .filter(g =>
+                  !AreaText.isBreak(g) && col + Layout.textWidth(g) <= v.port.w,
+                )
+                .getOrElse(" ")
+              put(
+                x,
+                v.port.y + r - v.offset.y,
+                g,
+                field.withAddModifier(jatatui.core.style.Modifier.REVERSED),
+                port,
+              ).toVector
+        rows ++ cursor
+    end area
+
     /** The ops of what the runner draws for an element besides its children:
       * brackets, fields, boxes, markers.
       */
@@ -730,6 +795,11 @@ private[tui4s] object Paint:
                   .map(i => if i == pos then "●" else "─")
                   .mkString,
                 style,
+              )
+            // claude 2026-10-19: created (L1c): the lines of a textarea
+            case ta: Textarea   =>
+              n.view.fold(Vector.empty[Op])(v =>
+                area(env, n, ta, v, style, focused, clip),
               )
             case ti: TextInput  =>
               // the caret is a grapheme index (World.carets); the text scrolls

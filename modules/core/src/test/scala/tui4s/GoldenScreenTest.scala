@@ -481,6 +481,37 @@ class GoldenScreenTest extends ScreenSuite:
           "─────●──────",
         )
       }
+      // claude 2026-10-19: created (L1c)
+      "a textarea of 3 rows wraps its lines at the spaces, by cells; the view of a long text shows the caret, with the scroll indicator" in {
+        val at = Loc.root.child(0)
+        val ui =
+          div(textarea.value("one two three 中文 four").style(_.width(8.px)))
+        // four lines in 3 rows: the caret is after "four", so the view starts
+        // at the second line; the indicator takes the last column (a heavy
+        // track: the textarea has the focus)
+        assertScreen(
+          ui,
+          8,
+          3,
+          """three  ┃
+            |中 文    █
+            |four   █""".stripMargin,
+          focus = Some(at),
+          carets = Map(at -> Int.MaxValue),
+        )
+        val b  = buffer(ui, 8, 3, Some(at), Map(at -> Int.MaxValue))
+        assert(b.cellAt(4, 2).modifier.contains(Modifier.REVERSED))
+        assert(b.cellAt(0, 0).modifier.contains(Modifier.UNDERLINED))
+        // with no focus the view starts at the first line
+        assertScreen(
+          ui,
+          8,
+          3,
+          """one two█
+            |three  █
+            |中 文    │""".stripMargin,
+        )
+      }
     }
 
     "decorations" - {

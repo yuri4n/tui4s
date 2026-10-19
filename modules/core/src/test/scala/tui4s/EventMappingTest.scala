@@ -15,7 +15,7 @@ import tui.crossterm.{
   MouseEvent,
   MouseEventKind,
 }
-import tui4s.internal.{EventMapping, Msg, Size}
+import tui4s.internal.{AreaText, EventMapping, Msg, Size}
 import tui4s.testkit.ScriptedInput
 
 /** crossterm records to runner messages, built without the native library:
@@ -116,6 +116,21 @@ class EventMappingTest extends Test[Any]:
     // binding must match what a terminal can send. So the mapping gives ONE
     // form per key: a test that binds `Char('a')` with `shift`, or a
     // `Keyboard.Unknown("BackTab")`, would bind a key that never comes.
+    // claude 2026-10-19: created (L1c): the newline keys of a textarea (D7)
+    "the newline keys of a textarea: Alt-Enter and Shift-Enter keep the modifier (a terminal with the kitty protocol or modifyOtherKeys reports Shift); Ctrl-J is Char('j') with Ctrl; a plain Enter is no newline key" in {
+      val table = Seq[(CEvent, KeyboardEvent)](
+        key(KeyCode.Enter(), Alt)            -> kb(Keyboard.Enter, alt),
+        key(KeyCode.Enter(), Shift)          -> kb(Keyboard.Enter, shift),
+        key(KeyCode.Char('j'), Ctrl)         -> kb(Keyboard.Char('j'), ctrl),
+        key(KeyCode.Char('J'), Ctrl | Shift) ->
+          kb(Keyboard.Char('j'), Modifiers(ctrl = true, shift = true)),
+      )
+      assert(wrongOf(table).isEmpty, wrongOf(table).mkString("\n"))
+      assert(table.take(3).forall((_, k) => AreaText.isNewline(k)))
+      assert(!AreaText.isNewline(kb(Keyboard.Enter)))
+      assert(!AreaText.isNewline(kb(Keyboard.Enter, ctrl)))
+    }
+
     "canonical events: Shift gives the upper-case char, Ctrl the lower-case one, BackTab is Shift-Tab" in {
       val letters = ('a' to 'z') ++ ('A' to 'Z')
       val bad     = letters.flatMap { c =>

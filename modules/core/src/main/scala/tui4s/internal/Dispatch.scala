@@ -16,10 +16,11 @@ import tui4s.TerminalSize
   *   2. Then the default action of the focused element: Tab / Shift-Tab move
   *      the focus (inside a `focusTrap` if any), ArrowLeft / ArrowRight move it
   *      inside a `focusGroup`, a text input edits its value (the bound
-  *      `SignalRef` is written BEFORE `onInput`), Enter / Space activate a
-  *      button or link (a click that bubbles: kyo-ui's Click rule, see
-  *      [[activateClick]]), toggle a checkbox or radio (`onChange`), cycle a
-  *      select; Enter inside a `form` runs `onSubmit`.
+  *      `SignalRef` is written BEFORE `onInput`), a textarea edits its lines
+  *      ([[AreaText]]; its newline keys are in [[editArea]]), Enter / Space
+  *      activate a button or link (a click that bubbles: kyo-ui's Click rule,
+  *      see [[activateClick]]), toggle a checkbox or radio (`onChange`), cycle
+  *      a select; Enter inside a `form` runs `onSubmit`.
   *   3. Then the scroll of a navigation key (the scroll keys of a browser, see
   *      [[scrollOrReveal]]): when the element did not use the key itself, the
   *      innermost viewport of the chain that can move that way scrolls; else
@@ -37,8 +38,7 @@ import tui4s.TerminalSize
   * Every write of a bound `SignalRef` goes through one function, [[writeBound]]
   * (plan 0.3).
   */
-// claude 2026-10-13: changed (C3, plan 0.3): the knobs (the hook of the write
-// seam)
+// claude 2026-10-19: changed: the Scaladoc names the textarea (L1c)
 private[tui4s] final class Dispatch(
     quit: Unit < Sync,
     knobs: Knobs = Knobs.default,
@@ -120,21 +120,27 @@ private[tui4s] final class Dispatch(
               defaults(w, target, targetEl, ch, ev),
             )
 
-    /** A bracketed paste: ONE edit of the focused text input (a textarea too):
-      * the text goes in at the caret, line breaks and tabs become spaces, other
-      * control characters are dropped ([[TextEdit.paste]]); then the bound
-      * write and `onInput` once. It is never a submit and never runs a key
-      * handler. A paste on any other element does nothing (kyo-ui has no paste
-      * event).
+    /** A bracketed paste: ONE edit of the focused text input or textarea: the
+      * text goes in at the caret; in a text input, line breaks and tabs become
+      * spaces ([[TextEdit.paste]]); a textarea keeps the line breaks
+      * ([[AreaText.paste]]); other control characters are dropped. Then the
+      * bound write and `onInput` once. It is never a submit and never runs a
+      * key handler. A paste on any other element does nothing (kyo-ui has no
+      * paste event).
       */
-    // claude 2026-10-13: created (C3, RC-14 part)
+    // claude 2026-10-19: changed: the textarea (L1c)
     def onPaste(w: World, text: String)(using Frame): World < Async =
       w.focus.flatMap(p => w.laid.nodes.get(p).map(n => (p, n.kind))) match
           case Some((p, Kind.El(ti: TextInput))) if !Props.isDisabled(ti) =>
             val value             = currentText(w, p, ti)
             val caret             = caretOf(w, p, value)
-            val (next, nextCaret) =
-              TextEdit.paste(value, caret, text, ti.readOnly.getOrElse(false))
+            // claude 2026-10-19: changed: the rules of the field; a textarea
+            // keeps the line breaks (L1c)
+            val (next, nextCaret) = ti match
+                case _: Textarea =>
+                  AreaText.paste(value, caret, text, rulesOf(ti))
+                case _           =>
+                  TextEdit.paste(value, caret, text, rulesOf(ti))
             // claude 2026-10-19: changed: the field scrolls into view (L1a)
             commitText(
               w.copy(reveal = Reveal.Now),
@@ -194,12 +200,17 @@ private[tui4s] final class Dispatch(
                   // Dispatch.scala:180, :204): a button's Enter submits
                   // through its click (the Click rule), not here too
                   // claude 2026-10-19: changed: a match, no isInstanceOf (P1)
+                  // claude 2026-10-19: changed: a newline key of a
+                  // textarea does not submit (L1c)
                   val submit                = form.filter(_ =>
                     isKey(ev, Keyboard.Enter) && (e match
                         case _: Select | _: Button => false
+                        case _: Textarea           => !AreaText.isNewline(ev)
                         case _                     => true),
                   )
                   val action: World < Async = e match
+                      case ta: Textarea                         =>
+                        editArea(w, target, ta, ev, form.nonEmpty)
                       case ti: TextInput                        => editText(w, target, ti, ev)
                       // claude 2026-10-19: changed: the Click of the element,
                       // not a Boolean (P1)
@@ -349,15 +360,71 @@ private[tui4s] final class Dispatch(
     ): World < Async =
         val value             = currentText(w, p, ti)
         val caret             = caretOf(w, p, value)
-        val readOnly          = ti.readOnly.getOrElse(false)
-        val (next, nextCaret) = TextEdit.key(value, caret, ev, readOnly)
+        val rules             = rulesOf(ti)
+        // claude 2026-10-19: changed: the rules of the field (L1c)
+        val (next, nextCaret) = TextEdit.key(value, caret, ev, rules)
         // claude 2026-10-13: changed (review R2-5): no onChange on a
         // read-only input (kyo-ui ignores a Change on a read-only target)
-        if next == value && isKey(ev, Keyboard.Enter) && !readOnly then
+        if next == value && isKey(ev, Keyboard.Enter) &&
+            rules.access == FieldAccess.Edit
+        then
             safe("onChange", runWith(ti.onChange, value))
               .andThen(moveCaret(w, p, caret, nextCaret))
         else commitText(w, p, ti, value, caret, next, nextCaret)
     end editText
+
+    /** The key `ev` on the textarea at `p` ([[AreaText]]). A newline key
+      * (Alt-Enter, Shift-Enter, Ctrl-J: [[AreaText.isNewline]]) inserts a line
+      * break. A plain Enter (no modifier) inserts a line break when no form
+      * holds the textarea, as in a browser; in a form it is the commit
+      * (`onChange` with the text, not on a read-only textarea) and the form
+      * submits (kyo-ui's keydown rule: "Enter key bubbling to Form triggers
+      * onSubmit"; the chat composer of an app relies on it). Enter with Ctrl or
+      * Meta inserts nothing. The other keys move the caret by visual lines in
+      * the port of the view of the textarea, or edit as in a text input.
+      */
+    // claude 2026-10-19: created (L1c)
+    private def editArea(
+        w: World,
+        p: Loc,
+        ta: Textarea,
+        ev: KeyboardEvent,
+        inForm: Boolean,
+    )(using Frame): World < Async =
+        val value             = currentText(w, p, ta)
+        val caret             = caretOf(w, p, value)
+        val rules             = rulesOf(ta)
+        val port              = w.laid.nodes.get(p).flatMap(_.view).map(_.port)
+        val enter             = isKey(ev, Keyboard.Enter) && !AreaText.isNewline(ev)
+        val breaks            = AreaText.isNewline(ev) ||
+          (enter && !inForm && ev.modifiers == Modifiers.none)
+        val (next, nextCaret) =
+          if breaks then AreaText.newline(value, caret, rules)
+          else
+              AreaText.key(
+                value,
+                caret,
+                ev,
+                port.fold(1)(_.w),
+                port.fold(1)(_.h),
+                rules,
+              )
+        if enter && inForm then
+            if rules.access == FieldAccess.Edit then
+                safe("onChange", runWith(ta.onChange, value)).andThen(w)
+            else w
+        else commitText(w, p, ta, value, caret, next, nextCaret)
+    end editArea
+
+    /** The rules of the edits of `ti` ([[Rules]]): read-only or not. */
+    // claude 2026-10-19: created (L1c)
+    private def rulesOf(ti: TextInput): Rules =
+      Rules(
+        if ti.readOnly.getOrElse(false) then FieldAccess.ReadOnly
+        else FieldAccess.Edit,
+        Int.MaxValue,
+        _ => true,
+      )
 
     /** The caret of the text input at `p` with the text `value`: a grapheme
       * index; no entry is the end of the text.

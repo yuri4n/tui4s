@@ -14,11 +14,11 @@ import kyo.*
 private[tui4s] object Render:
 
     /** The screen buffer after one frame of `ui` on `w` x `h` cells, with the
-      * scroll offsets `scroll` of its viewports and the custom properties of
-      * `sheet`.
+      * scroll offsets `scroll` of its viewports, the custom properties of
+      * `sheet`, and the caret of each text input of `carets` (a grapheme index;
+      * 0 when none).
       */
-    // claude 2026-10-19: changed: the scroll offsets (L1a); the stylesheet
-    // (L1b)
+    // claude 2026-10-19: changed: the carets of the text inputs (L1c)
     def buffer(
         ui: UI,
         w: Int,
@@ -26,6 +26,7 @@ private[tui4s] object Render:
         focus: Option[Loc] = None,
         scroll: Map[Loc, Offset] = Map.empty,
         sheet: Stylesheet = Stylesheet.empty,
+        carets: Map[Loc, Int] = Map.empty,
     ): Buffer =
         val backend = TestBackend(w, h)
         val canvas  = Canvas(backend)
@@ -33,7 +34,7 @@ private[tui4s] object Render:
           _ => None,
           focus,
           Size(w, h),
-          _ => 0,
+          p => carets.getOrElse(p, 0),
           p => scroll.getOrElse(p, Offset.zero),
           CssVars.of(sheet)._1,
         )
@@ -56,13 +57,14 @@ private[tui4s] object Render:
       }
 
     /** The rows of the screen after one frame of `ui` on `w` x `h` cells. */
-    // claude 2026-10-19: changed: the scroll offsets (L1a)
+    // claude 2026-10-19: changed: the carets (L1c)
     def text(
         ui: UI,
         w: Int,
         h: Int,
         focus: Option[Loc] = None,
         scroll: Map[Loc, Offset] = Map.empty,
+        carets: Map[Loc, Int] = Map.empty,
     ): Vector[String] =
-      lines(buffer(ui, w, h, focus, scroll))
+      lines(buffer(ui, w, h, focus, scroll, carets = carets))
 end Render

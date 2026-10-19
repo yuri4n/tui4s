@@ -254,13 +254,15 @@ private[tui4s] object Scroll:
         .nextOption()
 
     /** True when the element `e` uses the key `k` itself, so the key does not
-      * scroll: a text input moves its caret (the arrows, Home and End), a
-      * select cycles (Up and Down), a member of a focus group moves the focus
-      * (Left and Right).
+      * scroll: a textarea moves its caret (all the keys), a text input moves
+      * its caret (the arrows, Home and End), a select cycles (Up and Down), a
+      * member of a focus group moves the focus (Left and Right).
       */
+    // claude 2026-10-19: changed: a textarea uses every navigation key (L1c)
     def consumes(e: Element, k: ScrollKey): Boolean =
         val group = e.attrs.focusGroup.nonEmpty
         e match
+            case _: UI.Ast.Textarea  => true
             case _: UI.Ast.TextInput =>
               k match
                   case ScrollKey.PageUp | ScrollKey.PageDown => false
@@ -281,14 +283,23 @@ private[tui4s] object Scroll:
     /** The offsets that a frame keeps: the offset of each viewport of `scroll`
       * that `laid` still has, as its layout clamped it. A viewport that
       * unmounted loses its entry (it starts at 0 when it comes back); an offset
-      * of 0 has no entry.
+      * of 0 has no entry. The view of the node `focus` is kept too: a textarea
+      * moves its own view to show its caret ([[Layout.areaView]]).
       */
-    def kept(laid: Laid, scroll: Map[Loc, Offset]): Map[Loc, Offset] =
-      scroll.flatMap((p, _) =>
-        laid.nodes
-          .get(p)
-          .flatMap(_.view)
-          .map(v => p -> v.offset)
-          .filter(_._2 != Offset.zero),
-      )
+    // claude 2026-10-19: changed: the view of the focused node too (the
+    // caret of a textarea moves its view, L1c)
+    def kept(
+        laid: Laid,
+        scroll: Map[Loc, Offset],
+        focus: Option[Loc] = None,
+    ): Map[Loc, Offset] =
+      (scroll.keySet ++ focus).iterator
+        .flatMap(p =>
+          laid.nodes
+            .get(p)
+            .flatMap(_.view)
+            .map(v => p -> v.offset)
+            .filter(_._2 != Offset.zero),
+        )
+        .toMap
 end Scroll

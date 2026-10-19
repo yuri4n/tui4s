@@ -1206,17 +1206,70 @@ private[tui4s] object Layout:
       * the padding box (as the classic scrollbar of a browser). Only then the
       * content box loses that column, and the kids are measured again in the
       * narrower width.
+      *
+      * A textarea has no kids: its text is the content of a view of its own
+      * ([[areaView]]).
       */
-    // claude 2026-10-19: created (L1a): the one arrange of layoutChildren and
-    // relayout, with the indicator column; changed: the kids out of the flow
-    // and the positioned kids (L1b, see `positioned`)
+    // claude 2026-10-19: changed: the view of a textarea (L1c)
     def arrangeKids(
         node: Node,
         env: Scene,
         root: UI,
         find: Loc => Option[Node],
     ): Arranged =
-      positioned(node, arrangeFlow(node, env, root), env, find)
+      node.kind match
+          case Kind.El(ta: Textarea) =>
+            Arranged(
+              Vector.empty,
+              Vector.empty,
+              Vector.empty,
+              Vector.empty,
+              node.content.w,
+              Some(areaView(node, ta, env)),
+            )
+          case _                     =>
+            positioned(node, arrangeFlow(node, env, root), env, find)
+
+    /** The view of a textarea: its content is its text in visual lines
+      * ([[AreaText.lines]]), as wide as the port. The vertical axis scrolls
+      * (`auto`); the horizontal axis does not (the lines wrap). The scroll
+      * indicator takes the right column of the padding box when the lines do
+      * not fit, as for a viewport (3 rows or more). The offset is the one of
+      * `env`, clamped; when the textarea has the focus, the offset moves the
+      * least distance that shows the row of the caret ([[Scroll.nearest]]), so
+      * the caret follows an edit, a move and a resize. The frame keeps the
+      * offset ([[Scroll.kept]]).
+      */
+    // claude 2026-10-19: created (L1c)
+    def areaView(node: Node, ta: Textarea, env: Scene): View =
+        val box     = node.content
+        val text    = Paint.textValue(env, node.path, ta)
+        val gs      = TextEdit.graphemes(text)
+        val all     = AreaText.linesOf(gs, box.w)
+        val showBar = node.props.scrollbarWidth != ScrollbarWidth.none &&
+          box.h >= 3 && box.w >= 2 && all.size > box.h
+        val pad     = node.rect.inset(node.props.border.fold(Sides.zero)(_.sides))
+        val port    = if showBar then box.copy(w = box.w - 1) else box
+        val lines   = if showBar then AreaText.linesOf(gs, port.w) else all
+        val view0   = View(
+          Offset.zero,
+          Size(port.w, lines.size.max(port.h)),
+          port,
+          Option.when(showBar)(Rect(pad.right - 1, pad.y, 1, pad.h)),
+          Overflow.hidden,
+          Overflow.auto,
+        )
+        val start   = view0.clamp(env.scroll(node.path))
+        val offset  =
+          if !env.focus.contains(node.path) then start
+          else
+              val caret = env.caret(node.path).max(0).min(gs.size)
+              val row   = AreaText.row(lines, caret)
+              start.copy(y =
+                Scroll.nearest(start.y, row, 1, port.h, view0.max.y),
+              )
+        view0.copy(offset = offset)
+    end areaView
 
     /** The flow arrange of [[arrangeKids]]: the kids out of the flow get an
       * empty rect here.

@@ -693,7 +693,8 @@ private[tui4s] final class Runner private (
     // claude 2026-10-19: created (L1a)
     private def reveal(w: World): (World, Vector[Damage]) =
         val target          = Scroll.target(w.laid, w.focus)
-        val kept            = Scroll.kept(w.laid, w.scroll)
+        // claude 2026-10-19: changed: the view of the focus too (L1c)
+        val kept            = Scroll.kept(w.laid, w.scroll, w.focus)
         val (scroll, moved) =
           if target == w.followed && w.reveal == Reveal.OnMove then
               (kept, Vector.empty)
@@ -707,7 +708,11 @@ private[tui4s] final class Runner private (
         else
             val (laid, dmg) =
               relayoutIn(w1, moved, (w1.laid, Vector.empty), w1.env)
-            (w1.copy(laid = laid, scroll = Scroll.kept(laid, scroll)), dmg)
+            (
+              w1.copy(laid = laid, scroll = Scroll.kept(laid, scroll, w.focus)),
+              dmg,
+            )
+        end if
     end reveal
 
     /** The layout of what changed, and its damage. */

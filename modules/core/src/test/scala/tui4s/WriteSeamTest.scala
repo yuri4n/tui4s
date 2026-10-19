@@ -59,8 +59,8 @@ class WriteSeamTest extends RunnerSuite:
           option.value("b")("b"),
           option.value("c")("c"),
         ),
-        // claude 2026-10-13: created (review R1-5, R2-6): plan 0.3 names the
-        // textarea (kyo-ui RC7: a TextInput, edited as one line)
+        // claude 2026-10-19: changed: the textarea is a TextInput of kyo-ui
+        // RC7, edited in lines (L1c; plan 0.3 names it)
         textarea.value(r.area).style(_.width(10.px)),
       )
 

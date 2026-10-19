@@ -683,6 +683,113 @@ class DispatchTest extends RunnerSuite:
             s"${s3.row(0)} ${caretAt(s3)}",
           )
     }
+
+    /** The cell of the caret of `s`: the reversed cell (column, row). */
+    // claude 2026-10-19: created (L1c)
+    private def caretOf(s: Screen): Option[(Int, Int)] =
+      (for
+          y <- s.rows.indices
+          x <- 0 until s.rows(y).length
+          if s.styleAt(x, y).reversed
+      yield (x, y)).headOption
+
+    // claude 2026-10-19: created (L1c)
+    "a textarea outside a form: Alt-Enter, Ctrl-J, Shift-Enter and a plain Enter insert a line break; its view of 3 rows follows the caret" in {
+      for
+          ref <- Signal.initRef("")
+          h   <- Headless.start(12, 3)(_ =>
+                   textarea.value(ref).style(_.width(10.px)),
+                 )
+          _   <- h.typeText("a")
+          _   <- h.key(Keyboard.Enter, Modifiers(alt = true))
+          _   <- h.typeText("b")
+          _   <- h.key(Keyboard.Char('j'), Modifiers(ctrl = true))
+          _   <- h.typeText("c")
+          _   <- h.key(Keyboard.Enter, Modifiers(shift = true))
+          _   <- h.typeText("d")
+          _   <- h.key(Keyboard.Enter)
+          _   <- h.typeText("e")
+          v   <- ref.get
+          s   <- h.screen
+      yield
+          assert(v == "a\nb\nc\nd\ne", v)
+          // five lines in a port of 3 rows: the view shows the last three
+          // (the scroll indicator takes the last column), and the caret is
+          // after "e"
+          assert(
+            s.rows.map(_.take(1)) == Vector("c", "d", "e"),
+            s.rows.mkString("\n"),
+          )
+          assert(caretOf(s) == Some((1, 2)), s"${caretOf(s)}")
+    }
+
+    // claude 2026-10-19: created (L1c)
+    "a textarea in a form: Enter submits the form (onChange with the text first) and inserts nothing; Alt-Enter inserts a line break and does not submit" in {
+      for
+          ref     <- Signal.initRef("hi")
+          sent    <- Signal.initRef(Vector.empty[String])
+          changed <- Signal.initRef(Vector.empty[String])
+          h       <- Headless.start(20, 4)(_ =>
+                       form.onSubmit(
+                         ref.get.map(t => sent.updateAndGet(_ :+ t).unit),
+                       )(
+                         textarea
+                           .value(ref)
+                           .onChange(t => changed.updateAndGet(_ :+ t).unit),
+                       ),
+                     )
+          _       <- h.key(Keyboard.Enter, Modifiers(alt = true))
+          _       <- h.typeText("x")
+          s1      <- sent.get
+          _       <- h.key(Keyboard.Enter)
+          v       <- ref.get
+          s2      <- sent.get
+          c       <- changed.get
+      yield assert(
+        s1.isEmpty && v == "hi\nx" && s2 == Vector("hi\nx") &&
+          c == Vector("hi\nx"),
+        s"$s1 $v $s2 $c",
+      )
+    }
+
+    // claude 2026-10-19: created (L1c)
+    "a textarea: Up, Down, PageUp and PageDown move the caret by visual lines and keep its column; the view scrolls the least distance that shows the caret" in {
+      for
+          ref <- Signal.initRef("l0\nl1\nl2\nl3\nl4 long\nl5")
+          h   <- Headless.start(12, 3)(_ =>
+                   textarea.value(ref).style(_.width(10.px)),
+                 )
+          // the caret starts at the end of the text: the view shows l3 to l5
+          s0  <- h.screen
+          _   <- h.key(Keyboard.PageUp)
+          s1  <- h.screen
+          _   <- h.key(Keyboard.ArrowUp)
+          _   <- h.key(Keyboard.ArrowUp)
+          s2  <- h.screen
+          _   <- h.key(Keyboard.ArrowDown)
+          s3  <- h.screen
+          _   <- h.key(Keyboard.PageDown)
+          _   <- h.key(Keyboard.End)
+          s4  <- h.screen
+          v   <- ref.get
+      yield
+          def firsts(s: Screen) = s.rows.map(_.take(2))
+          assert(firsts(s0) == Vector("l3", "l4", "l5"), s0.rows.mkString("\n"))
+          assert(caretOf(s0) == Some((2, 2)), s"${caretOf(s0)}")
+          // PageUp: 3 rows up, to l2 at the same column; the view starts at l2
+          assert(firsts(s1) == Vector("l2", "l3", "l4"), s1.rows.mkString("\n"))
+          assert(caretOf(s1) == Some((2, 0)), s"${caretOf(s1)}")
+          // two rows up: l0, the view starts at l0
+          assert(firsts(s2) == Vector("l0", "l1", "l2"), s2.rows.mkString("\n"))
+          assert(caretOf(s2) == Some((2, 0)), s"${caretOf(s2)}")
+          // one down: l1 shows already, so the view does not move
+          assert(firsts(s3) == Vector("l0", "l1", "l2"), s3.rows.mkString("\n"))
+          assert(caretOf(s3) == Some((2, 1)), s"${caretOf(s3)}")
+          // PageDown to l4 at column 2, End to the end of "l4 long"
+          assert(firsts(s4) == Vector("l2", "l3", "l4"), s4.rows.mkString("\n"))
+          assert(caretOf(s4) == Some((7, 2)), s"${caretOf(s4)}")
+          assert(v == "l0\nl1\nl2\nl3\nl4 long\nl5")
+    }
 end DispatchTest
 
 /** A Kyo log backend that keeps the lines at level error (with the message of
