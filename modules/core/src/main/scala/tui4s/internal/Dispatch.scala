@@ -128,20 +128,18 @@ private[tui4s] final class Dispatch(
       * key handler. A paste on any other element does nothing (kyo-ui has no
       * paste event).
       */
-    // claude 2026-10-19: changed: the textarea (L1c)
+    // claude 2026-10-19: changed: the field scrolls into view (L1a); the rules
+    // of the field, and a textarea keeps the line breaks (L1c)
     def onPaste(w: World, text: String)(using Frame): World < Async =
       w.focus.flatMap(p => w.laid.nodes.get(p).map(n => (p, n.kind))) match
           case Some((p, Kind.El(ti: TextInput))) if !Props.isDisabled(ti) =>
             val value             = currentText(w, p, ti)
             val caret             = caretOf(w, p, value)
-            // claude 2026-10-19: changed: the rules of the field; a textarea
-            // keeps the line breaks (L1c)
             val (next, nextCaret) = ti match
                 case _: Textarea =>
                   AreaText.paste(value, caret, text, rulesOf(ti))
                 case _           =>
                   TextEdit.paste(value, caret, text, rulesOf(ti))
-            // claude 2026-10-19: changed: the field scrolls into view (L1a)
             commitText(
               w.copy(reveal = Reveal.Now),
               p,
@@ -196,17 +194,14 @@ private[tui4s] final class Dispatch(
             el match
                 case Some(e) if focused && !Props.isDisabled(e) =>
                   val form                  = ch.collectFirst { case (_, f: Form) => f }
-                  // claude 2026-10-13: changed (PR #13 review: Codex,
-                  // Dispatch.scala:180, :204): a button's Enter submits
-                  // through its click (the Click rule), not here too
-                  // claude 2026-10-19: changed: a match, no isInstanceOf (P1)
-                  // claude 2026-10-19: changed: a newline key of a
-                  // textarea does not submit (L1c)
+                  // a button's Enter submits through its click (the Click
+                  // rule), not here too; the DOM keeps Enter on a dropdown
+                  // from the form; a newline key of a textarea does not submit
+                  // claude 2026-10-19: changed: the dropdown and the newline
+                  // keys of a textarea (L1c)
                   val submit                = form.filter(_ =>
                     isKey(ev, Keyboard.Enter) && (e match
                         case _: Select | _: Button => false
-                        // claude 2026-10-19: created (L1c): the DOM keeps
-                        // Enter on a dropdown from the form
                         case _: Dropdown           => false
                         case _: Textarea           => !AreaText.isNewline(ev)
                         case _                     => true),
@@ -224,7 +219,7 @@ private[tui4s] final class Dispatch(
                       case ri: RangeInput if RangeKey.of(ev).nonEmpty     =>
                         moveRange(w, target, ri, RangeKey.of(ev))
                       case ta: Textarea                                   =>
-                        editArea(w, target, ta, ev, form.nonEmpty)
+                        editArea(w, target, ta, ev, AreaEnter.of(form))
                       case ti: TextInput                                  => editText(w, target, ti, ev)
                       // claude 2026-10-19: changed: the Click of the element,
                       // not a Boolean (P1)
@@ -237,7 +232,7 @@ private[tui4s] final class Dispatch(
                             ev,
                             Keyboard.ArrowDown,
                           ) || isKey(ev, Keyboard.ArrowUp) =>
-                        cycle(w, target, s, !isKey(ev, Keyboard.ArrowUp))
+                        cycle(w, target, s, if isKey(ev, Keyboard.ArrowUp) then -1 else 1)
                       case d: Dropdown
                           if activate(ev) || isKey(ev, Keyboard.ArrowDown) ||
                             isKey(ev, Keyboard.ArrowUp) =>
@@ -247,7 +242,7 @@ private[tui4s] final class Dispatch(
                           d.options.toVector.map(_._1),
                           d.value,
                           d.onChange,
-                          !isKey(ev, Keyboard.ArrowUp),
+                          if isKey(ev, Keyboard.ArrowUp) then -1 else 1,
                         )
                       case _
                           if (isKey(ev, Keyboard.ArrowLeft) || isKey(
@@ -386,11 +381,11 @@ private[tui4s] final class Dispatch(
         val value             = currentText(w, p, ti)
         val caret             = caretOf(w, p, value)
         val rules             = rulesOf(ti)
-        // claude 2026-10-19: changed: the rules of the field (L1c)
         val (next, nextCaret) = TextEdit.key(value, caret, ev, rules)
-        // claude 2026-10-13: changed (review R2-5): no onChange on a
-        // read-only input (kyo-ui ignores a Change on a read-only target)
-        // claude 2026-10-19: changed: the commit of a number field (L1c)
+        // no onChange on a read-only input (kyo-ui ignores a Change on a
+        // read-only target); a number field commits its number
+        // claude 2026-10-19: changed: the rules of the field; the commit of a
+        // number field (L1c)
         if next == value && isKey(ev, Keyboard.Enter) &&
             rules.access == FieldAccess.Edit
         then
@@ -427,13 +422,15 @@ private[tui4s] final class Dispatch(
 
     /** The key `ev` on the textarea at `p` ([[AreaText]]). A newline key
       * (Alt-Enter, Shift-Enter, Ctrl-J: [[AreaText.isNewline]]) inserts a line
-      * break. A plain Enter (no modifier) inserts a line break when no form
-      * holds the textarea, as in a browser; in a form it is the commit
-      * (`onChange` with the text, not on a read-only textarea) and the form
-      * submits (kyo-ui's keydown rule: "Enter key bubbling to Form triggers
-      * onSubmit"; the chat composer of an app relies on it). Enter with Ctrl or
-      * Meta inserts nothing. The other keys move the caret by visual lines in
-      * the port of the view of the textarea, or edit as in a text input.
+      * break. A plain Enter (no modifier) does what `enter` says
+      * ([[AreaEnter]]): outside a form it inserts a line break, as in a
+      * browser; in a form it is the commit (`onChange` with the text, not on a
+      * read-only textarea) and the form submits (kyo-ui's keydown rule: "Enter
+      * key bubbling to Form triggers onSubmit"; the chat composer of an app
+      * relies on it). Enter with Ctrl or Meta inserts nothing. The other keys
+      * move the caret by visual lines in the port of the view of the textarea,
+      * or edit as in a text input. When the focus leaves a textarea whose text
+      * changed, `onChange` runs too ([[setFocus]]).
       */
     // claude 2026-10-19: created (L1c)
     private def editArea(
@@ -441,15 +438,15 @@ private[tui4s] final class Dispatch(
         p: Loc,
         ta: Textarea,
         ev: KeyboardEvent,
-        inForm: Boolean,
+        enter: AreaEnter,
     )(using Frame): World < Async =
         val value             = currentText(w, p, ta)
         val caret             = caretOf(w, p, value)
         val rules             = rulesOf(ta)
         val port              = w.laid.nodes.get(p).flatMap(_.view).map(_.port)
-        val enter             = isKey(ev, Keyboard.Enter) && !AreaText.isNewline(ev)
+        val plain             = isKey(ev, Keyboard.Enter) && !AreaText.isNewline(ev)
         val breaks            = AreaText.isNewline(ev) ||
-          (enter && !inForm && ev.modifiers == Modifiers.none)
+          (plain && enter == AreaEnter.Breaks && ev.modifiers == Modifiers.none)
         val (next, nextCaret) =
           if breaks then AreaText.newline(value, caret, rules)
           else
@@ -461,9 +458,10 @@ private[tui4s] final class Dispatch(
                 port.fold(1)(_.h),
                 rules,
               )
-        if enter && inForm then
+        if plain && enter == AreaEnter.Submits then
             if rules.access == FieldAccess.Edit then
-                safe("onChange", runWith(ta.onChange, value)).andThen(w)
+                safe("onChange", runWith(ta.onChange, value))
+                  .andThen(w.copy(edited = None))
             else w
         else commitText(w, p, ta, value, caret, next, nextCaret)
     end editArea
@@ -490,7 +488,9 @@ private[tui4s] final class Dispatch(
       * browser's `stepUp` and `stepDown` ([[NumberText.step]]: by `step`,
       * clamped to `min` and `max`). It is an edit (the bound write and
       * `onInput`) and a commit (`onChangeNumeric`), as the DOM runner
-      * dispatches both. Nothing on a read-only field.
+      * dispatches both. Nothing on a read-only field, and nothing when the
+      * text does not change (a step at `max` or `min`), as a browser fires no
+      * event then.
       */
     // claude 2026-10-19: created (L1c)
     private def stepNumber(w: World, p: Loc, ni: NumberInput, steps: Int)(using
@@ -507,18 +507,27 @@ private[tui4s] final class Dispatch(
             ni.max.toOption,
           )
           val caret     = caretOf(w, p, value)
-          commitText(w, p, ni, value, caret, next, TextEdit.count(next))
-            .map(w1 =>
-              safe("onChangeNumeric", runWith(ni.onChangeNumeric, v.toDouble))
-                .andThen(w1),
-            )
+          // claude 2026-10-19: changed: no event when the text stays (L1c
+          // review)
+          if next == value then w
+          else
+              commitText(w, p, ni, value, caret, next, TextEdit.count(next))
+                .map(w1 =>
+                  safe(
+                    "onChangeNumeric",
+                    runWith(ni.onChangeNumeric, v.toDouble),
+                  ).andThen(w1),
+                )
+          end if
 
     /** A key of [[RangeKey]] on the range at `p`: its value (the bound ref, the
-      * constant, else `min`) moves by its steps or to an end, clamped to `min`
-      * and `max` (0 and 100 when none, as in HTML), with `step` (1 when none).
-      * When the value changes: the bound write, then `onChange`.
+      * constant, else `min`) moves by its steps or to an end, with `step` (1
+      * when none), on the grid of the steps from `min`, inside `min` and `max`
+      * (0 and 100 when none, as in HTML; [[NumberText.onGrid]]). When the
+      * value changes: the bound write, then `onChange`.
       */
-    // claude 2026-10-19: created (L1c)
+    // claude 2026-10-19: created (L1c); changed: the grid of the steps (L1c
+    // review)
     private def moveRange(
         w: World,
         p: Loc,
@@ -534,13 +543,14 @@ private[tui4s] final class Dispatch(
                   case Present(UI.Bound.Const(c)) => c
                   case _                          => lo
         val at                 = BigDecimal.decimal(now)
+        val step               = ri.step.toOption
         val next               = k match
             case Some(RangeKey.Steps(n)) =>
-              NumberText.stepBy(at, n, ri.step.toOption, Some(lo), Some(hi))
+              NumberText.stepBy(at, n, step, None, None)
             case Some(RangeKey.Low)      => BigDecimal.decimal(lo)
             case Some(RangeKey.High)     => BigDecimal.decimal(hi)
             case None                    => at
-        val v                  = next.toDouble
+        val v                  = NumberText.onGrid(next, step, lo, hi).toDouble
         val write: Unit < Sync = ri.value match
             case Present(UI.Bound.Ref(ref)) => writeBound(p, ref, v)
             case _                          => Kyo.unit
@@ -587,7 +597,9 @@ private[tui4s] final class Dispatch(
 
     /** One edit of the text input at `p`: the new caret, then (when the text
       * changed) the runner's own copy of the text, the bound write through
-      * [[writeBound]], and `onInput` once, in this order.
+      * [[writeBound]], and `onInput` once, in this order. The first edit of a
+      * textarea since it got the focus keeps its text before the edit
+      * (`World.edited`), for the change at its blur ([[setFocus]]).
       */
     // claude 2026-10-13: created (C3; the second half of the prototype's
     // editText, shared with the paste)
@@ -616,8 +628,15 @@ private[tui4s] final class Dispatch(
                     Vector.empty,
                     None,
                   )
-            val w2                 =
-              w1.copy(regions = w1.regions.updated(p, stored)).markNode(p)
+            // claude 2026-10-19: created (L1c review): the text of a textarea
+            // before its first edit
+            val first              = ti match
+                case _: Textarea if !w1.edited.exists(_._1 == p) =>
+                  Some((p, value))
+                case _                                         => w1.edited
+            val w2                 = w1
+              .copy(regions = w1.regions.updated(p, stored), edited = first)
+              .markNode(p)
             // claude 2026-10-13: changed (C3, plan 0.3): the write seam
             val write: Unit < Sync = ti.value match
                 case Present(UI.Bound.Ref(ref)) => writeBound(p, ref, next)
@@ -662,7 +681,9 @@ private[tui4s] final class Dispatch(
           .andThen(w.copy(regions = w.regions.updated(p, stored)).markNode(p))
     end toggle
 
-    private def cycle(w: World, p: Loc, s: Select, forward: Boolean)(using
+    // claude 2026-10-19: changed: the direction is a step (1 or -1), not a
+    // Boolean (L1c review)
+    private def cycle(w: World, p: Loc, s: Select, dir: Int)(using
         Frame,
     ): World < Async =
       cycleValues(
@@ -671,21 +692,22 @@ private[tui4s] final class Dispatch(
         s.children.toVector.collect { case o: Opt => o.value.getOrElse("") },
         s.value,
         s.onChange,
-        forward,
+        dir,
       )
 
-    /** The next value of a picker (a select, a dropdown) with the values
-      * `values` and its value `value`: the bound write, then `onChange`.
+    /** The value `dir` steps (1 or -1, with a wrap) after the value `value` of
+      * a picker (a select, a dropdown) with the values `values`: the bound
+      * write, then `onChange`.
       */
     // claude 2026-10-19: changed: the values of any picker, not only a select
-    // (L1c: the dropdown)
+    // (L1c: the dropdown); the direction is a step, not a Boolean (L1c review)
     private def cycleValues(
         w: World,
         p: Loc,
         values: Vector[String],
         value: Maybe[UI.Bound[String]],
         onChange: Maybe[String => Any < Async],
-        forward: Boolean,
+        dir: Int,
     )(using Frame): World < Async =
       if values.isEmpty then w
       else
@@ -697,7 +719,7 @@ private[tui4s] final class Dispatch(
                     case _                          => values.head
           val i                  = values.indexOf(now).max(0)
           val next               = values(
-            (i + (if forward then 1 else -1) + values.size) % values.size,
+            Math.floorMod(i + dir, values.size),
           )
           // claude 2026-10-13: changed (C3, plan 0.3): the write seam
           val write: Unit < Sync = value match
@@ -713,6 +735,11 @@ private[tui4s] final class Dispatch(
 
     // ---- focus ----
 
+    /** Moves the focus to `next`. With `runHandlers`: when the old element is
+      * a textarea whose text changed since it got the focus, its `onChange`
+      * with the text (the DOM's change event, which a blur fires); then both
+      * forms of `onBlur` of the old element and of `onFocus` of the new one.
+      */
     def setFocus(w: World, next: Option[Loc], runHandlers: Boolean)(using
         Frame,
     ): World < Async =
@@ -728,6 +755,17 @@ private[tui4s] final class Dispatch(
           // Focus and Blur rules; the event has no modifiers (a focus move)
           def mouseOf(e: Element): MouseEvent     =
             MouseEvent(e.attrs.identifier, Modifiers.none)
+          // claude 2026-10-19: created (L1c review): the change of a textarea
+          // at its blur
+          val change                              =
+            (w.edited, old.flatMap(q => el(Some(q)).map((q, _)))) match
+                case (Some((q, before)), Some((o, ta: Textarea)))
+                    if runHandlers && q == o =>
+                  val now = currentText(w, o, ta)
+                  if now != before then
+                      safe("onChange", runWith(ta.onChange, now))
+                  else Kyo.unit
+                case _ => Kyo.unit
           val blur                                = if runHandlers then
               el(old).fold(Kyo.unit)(e =>
                 safe("onBlur", run(e.attrs.onBlur)).andThen(
@@ -742,9 +780,9 @@ private[tui4s] final class Dispatch(
                 ),
               )
           else Kyo.unit
-          val w1                                  = w.copy(focus = next)
+          val w1                                  = w.copy(focus = next, edited = None)
           val w2                                  = (old.toList ++ next.toList).foldLeft(w1)(_.markNode(_))
-          blur.andThen(focus).andThen(w2)
+          change.andThen(blur).andThen(focus).andThen(w2)
 
     private def moveFocus(w: World, dir: Int)(using Frame): World < Async =
         val all   = Layout.focusOrder(w.laid)
@@ -789,6 +827,19 @@ end Dispatch
 /** The steps of a number field for a key: ArrowUp 1, ArrowDown -1 (no
   * modifier); none for another key.
   */
+/** What a plain Enter does in a textarea: in a form it commits the text and
+  * submits the form (`Submits`); outside a form it inserts a line break
+  * (`Breaks`), as in a browser.
+  */
+// claude 2026-10-19: created (L1c review): an ADT, not a Boolean
+private[tui4s] enum AreaEnter derives CanEqual:
+    case Submits, Breaks
+
+private[tui4s] object AreaEnter:
+    /** `Submits` when a form holds the textarea, else `Breaks`. */
+    def of(form: Option[Form]): AreaEnter =
+      form.fold(AreaEnter.Breaks)(_ => AreaEnter.Submits)
+
 // claude 2026-10-19: created (L1c)
 private[tui4s] object NumberSteps:
     def of(ev: KeyboardEvent): Option[Int] =

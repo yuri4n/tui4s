@@ -3,8 +3,8 @@
 It replays the bytes that the apps wrote into a grid of cells, so a check can read the SCREEN after a partial repaint
 (the runner sends only the changed cells, with cursor moves between them). It handles: printable UTF-8 (wide
 characters take 2 cells), CR, LF, BS, TAB, CSI cursor moves (H f A B C D E F G d), erase (J K X P @), save and restore
-of the cursor (ESC 7/8, CSI s/u), the alternate screen (CSI ?1049h/l, ?47, ?1047), and line scroll at the bottom.
-Colours and other modes (SGR, ?25, ?2004, OSC) are read and ignored.
+of the cursor (ESC 7/8, CSI s/u), the alternate screen (CSI ?1049h/l, ?47, ?1047), the cursor shown or hidden
+(CSI ?25h/l), and line scroll at the bottom. Colours and other modes (SGR, ?2004, OSC) are read and ignored.
 
 Usage: python3 vt.py <session.log> [rows cols]   -> prints a snapshot of the screen at each @@MARK name@@ line.
 """
@@ -30,6 +30,8 @@ class Screen:
         self.saved_main = (0, 0)
         self.alt_entered = 0
         self.alt_left = 0
+        # claude 2026-10-19: created (L1c review): the cursor shown (CSI ?25h) or hidden (CSI ?25l)
+        self.cursor_shown = True
 
     def blank(self):
         return [[" "] * self.cols for _ in range(self.rows)]
@@ -100,6 +102,9 @@ class Screen:
         if private == "?":
             on = final == "h"
             for p in nums:
+                # claude 2026-10-19: created (L1c review)
+                if p == 25 and final in "hl":
+                    self.cursor_shown = on
                 if p in (1049, 1047, 47) and final in "hl":
                     if on and not self.in_alt:
                         self.saved_main = (self.row, self.col)
@@ -218,6 +223,20 @@ def replay(path, rows=30, cols=100):
         name, seg = parts[i], parts[i + 1]
         scr.feed(seg)
         out.append((name, seg, "\n".join("".join(c for c in r if c is not None).rstrip() for r in scr.alt), scr.in_alt))
+    return out
+
+
+# claude 2026-10-19: created (L1c review)
+def cursors(path, rows=30, cols=100):
+    """Returns {mark: (row, column, shown)}: the terminal cursor at the END of the segment after each mark."""
+    raw = open(path, "rb").read().decode("utf-8", "replace")
+    parts = MARK.split(raw)
+    scr = Screen(rows, cols)
+    scr.feed(parts[0])
+    out = {}
+    for i in range(1, len(parts) - 1, 2):
+        scr.feed(parts[i + 1])
+        out[parts[i]] = (scr.row, scr.col, scr.cursor_shown)
     return out
 
 

@@ -16,9 +16,7 @@ import tui4s.internal.{Content, Dir, Loc, Props, Rect, Scene, Size, TextAttrs}
   * gone. `Content` and `Scene` are the ones of the runner (their new fields
   * have defaults that this copy does not read). Do not change it: for a UI that
   * uses none of the new properties, the new layout must give the same rects
-  * (`LayoutPropertyTest`). One change (L1c): the clears of `relayout` are cut
-  * to the clip of the painter (`damageClip`), the fix of the painter bug of
-  * L1b.
+  * (`LayoutPropertyTest`).
   */
 // claude 2026-10-19: created (L1a): a private copy of the old layout
 object LayoutOracle:
@@ -807,26 +805,6 @@ object LayoutOracle:
           *   direct items to lay out again even if they look unchanged (focus
           *   moved, a bound value changed)
           */
-        /** The clip of the painter for a kid of `from`: the content boxes of
-          * `from` and of its owners, and the screen. The one change in this
-          * copy (L1c, the fix of the painter bug of L1b): the old code did not
-          * cut its clears, so a kid that overflowed its owner cleared cells
-          * that the paint did not give back.
-          */
-        // claude 2026-10-19: created (L1c): the clip of the clears
-        def damageClip(laid: Laid, from: Option[Loc]): Option[Rect] =
-            @annotation.tailrec
-            def up(q: Option[Loc], acc: Option[Rect]): Option[Rect] =
-              q.flatMap(laid.nodes.get) match
-                  case None    => acc
-                  case Some(n) =>
-                    val box = n.kind match
-                        case Kind.Screen => n.rect
-                        case _           => n.content
-                    up(n.owner, Some(acc.fold(box)(_.intersect(box))))
-            up(from, None)
-        end damageClip
-
         def relayout(
             laid: Laid,
             container: Loc,
@@ -877,15 +855,10 @@ object LayoutOracle:
                   val removed            = node.kids.filterNot(newPaths.contains)
                   val afterRemove        =
                     removed.foldLeft(laid)((l, p) => l.without(p))
-                  // claude 2026-10-19: changed (L1c): the clears are cut to
-                  // the clip of the painter (see damageClip)
-                  val clip               = damageClip(laid, Some(container))
-                  def clear(r: Rect)     =
-                    Damage.Clear(clip.fold(r)(r.intersect), node.bgForKids)
                   val removedDamage      = removed.flatMap(p =>
                     laid.nodes
                       .get(p)
-                      .map(n => clear(n.rect)),
+                      .map(n => Damage.Clear(n.rect, node.bgForKids)),
                   )
                   val (laid2, damage)    = kids
                     .zip(rects)
@@ -908,10 +881,10 @@ object LayoutOracle:
                             val cleared = old.fold(l)(o => l.without(o.path))
                             val placed  = place(m, r, ctx, i, env, root, cleared)
                             val dmg     = old
-                              .map(o => clear(o.rect))
+                              .map(o => Damage.Clear(o.rect, node.bgForKids))
                               .toVector ++
                               Vector(
-                                clear(r),
+                                Damage.Clear(r, node.bgForKids),
                                 Damage.Paint(m.item.path),
                               )
                             (placed, d ++ dmg)
@@ -936,16 +909,10 @@ object LayoutOracle:
                       case (Some(owner), true) =>
                         relayout(laid3, owner, Set(container), env, root)
                       case _                   =>
-                        // claude 2026-10-19: changed (L1c): cut to the clip
-                        // of the painter
-                        val above      = damageClip(laid3, node.owner)
                         val selfDamage =
                           if propsChanged then
                               Vector(
-                                Damage.Clear(
-                                  above.fold(node.rect)(node.rect.intersect),
-                                  node.bgUnder,
-                                ),
+                                Damage.Clear(node.rect, node.bgUnder),
                                 Damage.Paint(container),
                               )
                           else Vector.empty

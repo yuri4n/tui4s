@@ -3,8 +3,9 @@ package tui4s.internal
 /** The text of a number field (kyo-ui's `NumberInput`) and the steps of a
   * number field and of a range (kyo-ui's `RangeInput`). Pure functions.
   *
-  * The grammar: an optional sign (`+` or `-`) first, then digits with at most
-  * one decimal point (`.`). A field holds a [[partial]] text while the user
+  * The grammar: an optional minus sign (`-`) first, then digits with at most
+  * one decimal point (`.`), as the valid floating-point number of HTML (it has
+  * no `+`). A field holds a [[partial]] text while the user
   * types it (`""`, `"-"`, `"1."`, `".5"`); the text is a number when it also
   * has a digit ([[parse]]). Other characters (a letter, a second sign, a second
   * point, a space, an exponent) are not typed.
@@ -19,18 +20,18 @@ private[tui4s] object NumberText:
     /** True when `s` can be the text of a number field while the user types:
       * the grammar of the object, with no digit needed.
       */
+    // claude 2026-10-19: changed: no plus sign, as in HTML (L1c review)
     def partial(s: String): Boolean =
-        val body  =
-          if s.startsWith("+") || s.startsWith("-") then s.drop(1) else s
+        val body  = s.stripPrefix("-")
         val parts = body.split("\\.", -1).toVector
         parts.size <= 2 && parts.forall(_.forall(c => c >= '0' && c <= '9'))
 
     /** The number of `s`, when `s` is [[partial]] and has a digit. */
     def parse(s: String): Option[BigDecimal] =
+      // claude 2026-10-19: changed: no plus sign (L1c review)
       Option.when(partial(s) && s.exists(_.isDigit)) {
-        val body = s.stripPrefix("+")
-        val sign = if body.startsWith("-") then "-" else ""
-        val abs  = body.stripPrefix("-")
+        val sign = if s.startsWith("-") then "-" else ""
+        val abs  = s.stripPrefix("-")
         // "1." and ".5" are numbers: write them as "1.0" and "0.5"
         BigDecimal(
           sign + (if abs.startsWith(".") then "0" + abs else abs) +
@@ -56,6 +57,29 @@ private[tui4s] object NumberText:
         val by = BigDecimal.decimal(step.filter(_ > 0).getOrElse(1.0))
         clamp(v + by * steps, min, max)
     end stepBy
+
+    /** `v` on the grid of the steps of `step` (1 when none or not positive)
+      * from `min`, inside `min` and `max`, as HTML puts the value of a range on
+      * its steps: the nearest value `min + k * step` (the upper one at a tie),
+      * at least `min` and at most the largest such value not above `max`.
+      * `min` when `max` is below `min`.
+      */
+    // claude 2026-10-19: created (L1c review): the grid of a range
+    def onGrid(
+        v: BigDecimal,
+        step: Option[Double],
+        min: Double,
+        max: Double,
+    ): BigDecimal =
+        val by   = BigDecimal.decimal(step.filter(_ > 0).getOrElse(1.0))
+        val lo   = BigDecimal.decimal(min)
+        val hi   = BigDecimal.decimal(max)
+        def at(k: BigDecimal): BigDecimal = lo + by * k
+        def floor(x: BigDecimal): BigDecimal =
+          x.setScale(0, BigDecimal.RoundingMode.FLOOR)
+        if hi < lo then lo
+        else at(floor((v - lo) / by + BigDecimal("0.5"))).max(lo).min(at(floor((hi - lo) / by)))
+    end onGrid
 
     /** `v` clamped to `min` and `max` (no bound when none). */
     def clamp(

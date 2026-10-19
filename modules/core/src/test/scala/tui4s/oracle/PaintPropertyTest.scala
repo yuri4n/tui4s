@@ -20,8 +20,14 @@ import tui4s.internal.*
   *     `CullPropertyTest` checks the left edge by the clip law);
   *   - every op of a plan lies inside the spans of the plan, and a second paint
   *     of the same arguments gives the same plan (determinism).
+  *
+  * One change on purpose (L1c, the fix of the painter bug of L1b): the caret
+  * cell of the focused text input shows a space, not the glyph at the caret,
+  * when that glyph does not fit in the field or in the clip. The old painter
+  * stays as it was; the test changes that one cell of its screen
+  * ([[caretDelta]]) before the compare.
   */
-// claude 2026-10-19: created (P5, A9)
+// claude 2026-10-19: created (P5, A9); changed: the caret delta (L1c review)
 class PaintPropertyTest extends PropertyTest[Any]:
     import PaintPropertyTest.*
     override protected def numSamples: Int = 200
@@ -34,6 +40,7 @@ class PaintPropertyTest extends PropertyTest[Any]:
         val now  = Now(size)
         val o    = old.frame(laid, env, PaintOracle.full(size))
         val n    = now.frame(laid, env, PaintOracle.full(size))
+        patch(old.backend, caretDelta(laid, env, screen(size)))
         assert(now.cells == old.cells)
         assert(n == o)
       }
@@ -44,6 +51,7 @@ class PaintPropertyTest extends PropertyTest[Any]:
         val now                    = Now(size)
         val o0                     = old.frame(laidA, b.sceneA(size), PaintOracle.full(size))
         val n0                     = now.frame(laidA, b.sceneA(size), PaintOracle.full(size))
+        patch(old.backend, caretDelta(laidA, b.sceneA(size), screen(size)))
         val o1                     = old.frame(laidB, b.sceneB(size), damage)
         val n1                     = now.frame(laidB, b.sceneB(size), damage)
         assert(now.cells == old.cells)
@@ -59,6 +67,7 @@ class PaintPropertyTest extends PropertyTest[Any]:
         val oldC = PaintOracle.Canvas(oldB)
         kids.foreach(k => PaintOracle.Paint.paintNode(oldC, laid, env, k, clip))
         discard(oldC.flush(Vector(full)))
+        patch(oldB, caretDelta(laid, env, clip.intersect(full)))
         val ops  = kids.foldLeft(Vector.empty[Op])((o, k) =>
           Paint.paintNode(o, laid, env, k, clip.intersect(full)),
         )
@@ -94,6 +103,47 @@ object PaintPropertyTest:
           UiGen.between(0, 20),
         )
         .map((y, w, h) => Rect(0, y, w, h))
+
+    /** The screen of `size`. */
+    def screen(size: Size): Rect = Rect(0, 0, size.w, size.h)
+
+    /** The L1c change of the painter in a frame of `laid` and `env` painted
+      * inside `clip`: the cell of the caret of the focused text input when
+      * the glyph at the caret does not fit in the field or in the clip of the
+      * field. There the old painter put the glyph (a wide glyph named a cell
+      * outside the field); the new painter puts a space. None when the glyph
+      * fits, or when the cell is outside the clip (neither painter writes it).
+      */
+    // claude 2026-10-19: created (L1c review): the delta of the frozen oracle
+    def caretDelta(laid: Laid, env: Scene, clip: Rect): Option[(Int, Int)] =
+      env.focus.flatMap(laid.nodes.get).flatMap { n =>
+        n.kind match
+            case Kind.El(_: UI.Ast.Textarea) => None
+            case Kind.El(ti: UI.Ast.TextInput) =>
+              val r      = n.rect.inset(n.props.border.fold(Sides.zero)(_.sides))
+              val glyphs = Paint.fieldGlyphs(env, n, ti)
+              val caret  = env.caret(n.path).max(0).min(glyphs.size)
+              val scroll = Paint.fieldScroll(glyphs, caret, r.w)
+              val x      = r.x + scroll._2
+              val area   = n.rect
+                .intersect(Paint.clipOf(laid, n.path))
+                .intersect(clip)
+              val inside =
+                x >= area.x && x < area.right && r.y >= area.y && r.y < area.bottom
+              glyphs
+                .lift(caret)
+                .map(Layout.textWidth)
+                .filter(w => scroll._2 + w > r.w || x + w > area.right)
+                .flatMap(_ => Option.when(inside)((x, r.y)))
+            case _ => None
+      }
+
+    /** The old painter's screen on `backend` with the L1c change at `cell`:
+      * the symbol there is a space (the style stays: the reversed caret).
+      */
+    // claude 2026-10-19: created (L1c review)
+    def patch(backend: TestBackend, cell: Option[(Int, Int)]): Unit =
+      cell.foreach((x, y) => discard(backend.buffer().cellAt(x, y).setSymbol(" ")))
 
     /** The pure painter and the canvas on a `TestBackend`. */
     final class Now(size: Size):

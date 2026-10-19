@@ -168,7 +168,7 @@ private[tui4s] object Paint:
       * (a viewport scrolled it away).
       */
     // claude 2026-10-19: created (L1c)
-    def caretCell(laid: Laid, env: Scene): Option[(Int, Int)] =
+    def caretCell(laid: Laid, env: Scene): Option[CursorCell] =
       env.focus.flatMap(laid.nodes.get).flatMap { n =>
         val r    = n.rect.inset(n.props.border.fold(Sides.zero)(_.sides))
         val cell = n.kind match
@@ -191,9 +191,11 @@ private[tui4s] object Paint:
           .intersect(n.kind match
               case Kind.El(_: Textarea) => n.view.fold(r)(_.port)
               case _                    => r)
-        cell.filter((x, y) =>
-          x >= box.x && x < box.right && y >= box.y && y < box.bottom,
-        )
+        cell
+          .filter((x, y) =>
+            x >= box.x && x < box.right && y >= box.y && y < box.bottom,
+          )
+          .map(CursorCell(_, _))
       }
 
     /** The glyphs of the value of the field `ti` at `n`: its grapheme clusters,
@@ -202,7 +204,7 @@ private[tui4s] object Paint:
       */
     // claude 2026-10-19: created (L1c)
     def fieldGlyphs(env: Scene, n: Node, ti: TextInput): Vector[String] =
-        val value = textValue(env, n.path, ti)
+        val value = env.textValue(n.path, ti)
         ti match
             case _: PasswordInput => TextEdit.graphemes(value).map(_ => "•")
             case _                => TextEdit.graphemes(value)
@@ -234,7 +236,7 @@ private[tui4s] object Paint:
         ta: Textarea,
         v: View,
     ): ((Int, Int), String) =
-        val gs    = TextEdit.graphemes(textValue(env, n.path, ta))
+        val gs    = TextEdit.graphemes(env.textValue(n.path, ta))
         val lines = AreaText.linesOf(gs, v.port.w)
         val c     = env.caret(n.path).max(0).min(gs.size)
         val row   = AreaText.row(lines, c)
@@ -698,42 +700,14 @@ private[tui4s] object Paint:
         cells.flatMap((x, y, sym) => put(x, y, sym, style, clip))
     end border
 
-    private def boundValue(env: Scene, p: Loc): Option[Any] =
-      env.content(p) match
-          case Some(Content.Value(v)) => Some(v)
-          case _                      => None
-
-    def textValue(env: Scene, p: Loc, ti: TextInput): String =
-      ti.value match
-          case Present(UI.Bound.Ref(_))   =>
-            boundValue(env, p).map(_.toString).getOrElse("")
-          case Present(UI.Bound.Const(v)) => v
-          case _                          => boundValue(env, p).map(_.toString).getOrElse("")
-
-    def checkedValue(env: Scene, p: Loc, bi: BooleanInput): Boolean =
-      bi.checked match
-          case Present(UI.Bound.Ref(_))   => boundValue(env, p).contains(true)
-          case Present(UI.Bound.Const(v)) => v
-          case _                          => false
-
-    def pickerValue(
-        env: Scene,
-        p: Loc,
-        value: Maybe[UI.Bound[String]],
-    ): String =
-      value match
-          case Present(UI.Bound.Ref(_))   =>
-            boundValue(env, p).map(_.toString).getOrElse("")
-          case Present(UI.Bound.Const(v)) => v
-          case _                          => ""
-
     /** The ops of a textarea with the view `v` ([[Layout.areaView]]): each row
       * of the port is an underlined field, and the visual lines of the text
       * ([[AreaText]]) from the row of the offset fill it, clipped to the port.
       * An empty textarea with no focus shows its placeholder, dim and italic.
       * The focused textarea shows its caret: the terminal cursor at its cell
       * ([[caretCell]]), or with [[CaretLook.Cell]] a reversed cell there
-      * ([[areaCaret]]).
+      * ([[areaCaret]]; a space when its glyph does not fit in the port and the
+      * clip).
       */
     // claude 2026-10-19: created (L1c)
     private def area(
@@ -742,10 +716,10 @@ private[tui4s] object Paint:
         ta: Textarea,
         v: View,
         style: JStyle,
-        focused: Boolean,
         clip: Rect,
     ): Vector[Op] =
-        val value     = textValue(env, n.path, ta)
+        val focused   = env.focus.contains(n.path)
+        val value     = env.textValue(n.path, ta)
         val field     =
           style.withAddModifier(jatatui.core.style.Modifier.UNDERLINED)
         val hint      = value.isEmpty && !focused
@@ -769,8 +743,6 @@ private[tui4s] object Paint:
             .fold("")(l => gs.slice(l.start, l.end).mkString)
           blank ++ text(v.port.x, y, line, textStyle, port)
         }
-        // claude 2026-10-19: changed: the reversed cell only when the terminal
-        // cursor does not show the caret (L1c)
         val cursor    =
           if !focused || env.look != CaretLook.Cell then Vector.empty
           else
@@ -778,7 +750,7 @@ private[tui4s] object Paint:
               put(
                 x,
                 y,
-                g,
+                if x + Layout.textWidth(g) <= port.right then g else " ",
                 field.withAddModifier(jatatui.core.style.Modifier.REVERSED),
                 port,
               ).toVector
@@ -814,14 +786,14 @@ private[tui4s] object Paint:
               at(
                 r.x,
                 r.y,
-                if checkedValue(env, n.path, cb) then "[x]" else "[ ]",
+                if env.checkedValue(n.path, cb) then "[x]" else "[ ]",
                 style,
               )
             case rb: Radio      =>
               at(
                 r.x,
                 r.y,
-                if checkedValue(env, n.path, rb) then "(•)" else "( )",
+                if env.checkedValue(n.path, rb) then "(•)" else "( )",
                 style,
               )
             case _: Hr          => at(r.x, r.y, "─" * r.w, style)
@@ -835,7 +807,7 @@ private[tui4s] object Paint:
                 style.withAddModifier(jatatui.core.style.Modifier.DIM),
               )
             case s: Select      =>
-              val v      = pickerValue(env, n.path, s.value)
+              val v      = env.pickerValue(n.path, s.value)
               val labels = s.children.toVector.collect { case o: Opt =>
                 (
                   o.value.getOrElse(""),
@@ -853,7 +825,7 @@ private[tui4s] object Paint:
               // arrow stays in the last cell with a wide label (L1a)
               at(r.x, r.y, fit(label, r.w - 1) + "▾", style)
             case d: Dropdown    =>
-              val v     = pickerValue(env, n.path, d.value)
+              val v     = env.pickerValue(n.path, d.value)
               val label = d.options.toVector
                 .find(_._1 == v)
                 .map(_._2)
@@ -868,7 +840,7 @@ private[tui4s] object Paint:
               val v   = (ri.value match
                   case Present(UI.Bound.Const(c)) => Some(c)
                   case _                          =>
-                    boundValue(env, n.path).collect { case d: Double => d }
+                    env.boundValue(n.path).collect { case d: Double => d }
               )
                 .getOrElse(0.0)
               val lo  = ri.min.getOrElse(0.0)
@@ -887,7 +859,7 @@ private[tui4s] object Paint:
             // claude 2026-10-19: created (L1c): the lines of a textarea
             case ta: Textarea   =>
               n.view.fold(Vector.empty[Op])(v =>
-                area(env, n, ta, v, style, focused, clip),
+                area(env, n, ta, v, style, clip),
               )
             case ti: TextInput  =>
               // the caret is a grapheme index (World.carets); the text scrolls
@@ -928,12 +900,15 @@ private[tui4s] object Paint:
                   put(x, r.y, " ", field, clip),
                 )
               // claude 2026-10-19: changed: the glyph at the caret shows only
-              // when it fits in the field; a wide glyph in the last cell (a
-              // field of 1 cell) named a cell outside the field (L1c: the
-              // painter bug of L1b)
+              // when it fits in the field and in the clip; a wide glyph in the
+              // last cell (a field of 1 cell) named a cell outside the field
+              // (L1c: the painter bug of L1b; L1c review: the clip)
               val atCaret   = glyphs
                 .lift(caret)
-                .filter(g => scroll._2 + Layout.textWidth(g) <= r.w)
+                .filter(g =>
+                  scroll._2 + Layout.textWidth(g) <= r.w &&
+                    r.x + scroll._2 + Layout.textWidth(g) <= clip.right,
+                )
                 .getOrElse(" ")
               // claude 2026-10-19: changed: the reversed cell only when the
               // terminal cursor does not show the caret (L1c)

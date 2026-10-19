@@ -74,8 +74,8 @@ private[tui4s] final case class RowSpan(y: Int, x: Int, right: Int)
   * @param roots
   *   the number of subtrees painted (`FrameStats.subtrees`)
   * @param cursor
-  *   the cell (column, row) of the terminal cursor: the caret of the focused
-  *   text input or textarea (with [[CaretLook.Cursor]]); none hides the cursor
+  *   the cell of the terminal cursor: the caret of the focused text input or
+  *   textarea (with [[CaretLook.Cursor]]); none hides the cursor
   */
 // claude 2026-10-19: changed: the cell of the terminal cursor (L1c)
 private[tui4s] final case class Plan(
@@ -83,11 +83,15 @@ private[tui4s] final case class Plan(
     ops: Vector[Op],
     spans: Vector[RowSpan],
     roots: Int,
-    cursor: Option[(Int, Int)] = None,
+    cursor: Option[CursorCell] = None,
 ):
     /** The number of cell writes of the plan (`FrameStats.repainted`). */
     def cells: Int = ops.foldLeft(0)(_ + _.cells)
 end Plan
+
+/** The cell (column `x`, row `y`) of the terminal cursor of a plan. */
+// claude 2026-10-19: created (L1c review): a named cell, not a tuple
+private[tui4s] final case class CursorCell(x: Int, y: Int) derives CanEqual
 
 /** How a frame shows the caret of the focused text input or textarea: `Cursor`,
   * the terminal cursor at the cell of the caret (the plan carries the cell; the

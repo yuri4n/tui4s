@@ -41,7 +41,9 @@ end Content
   * of the stylesheet of the run ([[CssVars]]): the screen has them. `look` says
   * how the frame shows the caret ([[CaretLook]]).
   */
-// claude 2026-10-19: changed: the look of the caret (L1c)
+// claude 2026-10-19: changed: the look of the caret (L1c); the values of the
+// inputs, which the layout and the painter read (L1c review: from Paint, so
+// Layout does not call Paint)
 private[tui4s] final case class Scene(
     content: Loc => Option[Content],
     focus: Option[Loc],
@@ -50,7 +52,37 @@ private[tui4s] final case class Scene(
     scroll: Loc => Offset = _ => Offset.zero,
     vars: CssVars = CssVars.empty,
     look: CaretLook = CaretLook.Cell,
-)
+):
+    /** The value that the runner holds for the bound element at `p`. */
+    def boundValue(p: Loc): Option[Any] =
+      content(p) match
+          case Some(Content.Value(v)) => Some(v)
+          case _                      => None
+
+    /** The text of the text input `ti` at `p`: its bound value or its
+      * constant.
+      */
+    def textValue(p: Loc, ti: TextInput): String =
+      ti.value match
+          case Present(UI.Bound.Const(v)) => v
+          case _                          => boundValue(p).map(_.toString).getOrElse("")
+
+    /** The state of the checkbox or radio `bi` at `p`. */
+    def checkedValue(p: Loc, bi: BooleanInput): Boolean =
+      bi.checked match
+          case Present(UI.Bound.Ref(_))   => boundValue(p).contains(true)
+          case Present(UI.Bound.Const(v)) => v
+          case _                          => false
+
+    /** The value of a picker (a select, a dropdown) at `p` with the value
+      * `value`.
+      */
+    def pickerValue(p: Loc, value: Maybe[UI.Bound[String]]): String =
+      value match
+          case Present(UI.Bound.Ref(_))   => boundValue(p).map(_.toString).getOrElse("")
+          case Present(UI.Bound.Const(v)) => v
+          case _                          => ""
+end Scene
 
 private[tui4s] enum Kind:
     case Screen
@@ -1244,7 +1276,7 @@ private[tui4s] object Layout:
     // claude 2026-10-19: created (L1c)
     def areaView(node: Node, ta: Textarea, env: Scene): View =
         val box     = node.content
-        val text    = Paint.textValue(env, node.path, ta)
+        val text    = env.textValue(node.path, ta)
         val gs      = TextEdit.graphemes(text)
         val all     = AreaText.linesOf(gs, box.w)
         val showBar = node.props.scrollbarWidth != ScrollbarWidth.none &&

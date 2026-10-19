@@ -133,6 +133,10 @@ private[tui4s] final case class World(
     // claude 2026-10-19: created (L1b): the warnings that the run logged
     // (Warnings.scan), each one once
     warned: Set[Warn] = Set.empty,
+    // claude 2026-10-19: created (L1c review): the focused textarea that the
+    // user edited, with its text before the first edit since it got the
+    // focus; its blur runs onChange when the text changed (Dispatch.setFocus)
+    edited: Option[(Loc, String)] = None,
 ):
     // claude 2026-10-19: changed: the terminal cursor shows the caret (L1c)
     def env: Scene =

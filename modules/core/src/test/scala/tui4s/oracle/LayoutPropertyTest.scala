@@ -18,9 +18,15 @@ import tui4s.internal.*
   * (a `span` is a row too); a UI in which a text wraps in a row (in scene A or
   * in scene B) is not compared. A width on a column keeps the old rule, so it
   * is compared.
+  *
+  * One change of the damage on purpose (L1c, the fix of the painter bug of
+  * L1b): a clear is cut to the clip of the painter, so a kid that overflows its
+  * owner does not clear cells that the paint does not give back. The old layout
+  * stays as it was; the test cuts its clears in the same way ([[cutClears]])
+  * before the compare.
   */
 // claude 2026-10-19: created (L1a); changed: the widths and the one changed
-// default (L1a review)
+// default (L1a review); the cut clears (L1c review)
 class LayoutPropertyTest extends PropertyTest[Any]:
     import LayoutPropertyTest.*
     override protected def numSamples: Int = 200
@@ -80,8 +86,10 @@ object LayoutPropertyTest:
         case LayoutOracle.Damage.Paint(p)     => s"paint ${p.showLoc}"
 
     /** The step of [[PaintPropertyTest.stepped]] on the old layout: scene B
-      * after the relayout of the owners of the changed regions, and the damage.
+      * after the relayout of the owners of the changed regions, and the damage
+      * with its clears cut as the new layout cuts them ([[cutClears]]).
       */
+    // claude 2026-10-19: changed: the cut clears (L1c review)
     def oldStepped(
         b: UiGen.Built,
         size: Size,
@@ -95,8 +103,70 @@ object LayoutPropertyTest:
                   case Some(owner) =>
                     val (l2, d2) = LayoutOracle.Layout
                       .relayout(l, owner, Set.empty, b.sceneB(size), b.ui)
-                    (l2, d ++ d2)
+                    (l2, d ++ cutClears(l, l2, owner, d2))
                   case None        => (l, d)
           }
     end oldStepped
+
+    /** The L1c change of the damage, applied to the damage `d` of one relayout
+      * of the old layout at `at` (from `pre` to `post`). The relayout goes up
+      * from `at` while the natural size or the props of a node change; only
+      * the damage of the node `top` where it stops is kept. So each clear of
+      * `d` clears a kid of `top` (a removed kid, the old or the new box of a
+      * kid): the new layout cuts it to the content boxes of `top` and of its
+      * owners ([[contentClip]]). The clear just before `Paint(top)` clears
+      * `top` itself: it is cut to the content boxes of the owners of `top`.
+      */
+    // claude 2026-10-19: created (L1c review): the delta of the frozen oracle
+    def cutClears(
+        pre: LayoutOracle.Laid,
+        post: LayoutOracle.Laid,
+        at: Loc,
+        d: Vector[LayoutOracle.Damage],
+    ): Vector[LayoutOracle.Damage] =
+        val t    = top(pre, post, at)
+        val kids = contentClip(post, Some(t))
+        val self = contentClip(post, post.nodes.get(t).flatMap(_.owner))
+        d.zipWithIndex.map {
+          case (LayoutOracle.Damage.Clear(r, bg), i) =>
+            val clip = d.lift(i + 1) match
+                case Some(LayoutOracle.Damage.Paint(p)) if p == t => self
+                case _                                            => kids
+            LayoutOracle.Damage.Clear(clip.fold(r)(r.intersect), bg)
+          case (other, _)                            => other
+        }
+    end cutClears
+
+    /** The node where a relayout of the old layout at `at` stops: the first
+      * node on the way up from `at` whose natural size and props are the same
+      * before (`pre`) and after (`post`), or the node with no owner.
+      */
+    // claude 2026-10-19: created (L1c review)
+    @annotation.tailrec
+    def top(pre: LayoutOracle.Laid, post: LayoutOracle.Laid, at: Loc): Loc =
+      (pre.nodes.get(at), post.nodes.get(at)) match
+          case (Some(a), Some(b))
+              if a.natural != b.natural || a.props != b.props =>
+            b.owner match
+                case Some(o) => top(pre, post, o)
+                case None    => at
+          case _ => at
+
+    /** The clip of the painter for a kid of `from` in the old layout: the
+      * content boxes of `from` and of its owners, and the screen. None when
+      * `from` is none or not in `laid`.
+      */
+    // claude 2026-10-19: created (L1c review)
+    def contentClip(laid: LayoutOracle.Laid, from: Option[Loc]): Option[Rect] =
+        @annotation.tailrec
+        def up(q: Option[Loc], acc: Option[Rect]): Option[Rect] =
+          q.flatMap(laid.nodes.get) match
+              case None    => acc
+              case Some(n) =>
+                val box = n.kind match
+                    case LayoutOracle.Kind.Screen => n.rect
+                    case _                        => n.content
+                up(n.owner, Some(acc.fold(box)(_.intersect(box))))
+        up(from, None)
+    end contentClip
 end LayoutPropertyTest

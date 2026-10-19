@@ -350,13 +350,21 @@ if {[first_frame "dashboard" "Dashboard"]} {
 back_at_prompt "dashboard"
 stty_compare "dash"
 
-# ---- Forms: the first screen, then Esc
-# claude 2026-10-19: created (L1c)
+# ---- Forms: the first screen (the terminal cursor in the name field), 10
+# Tabs to the textarea, a Alt-Enter b Ctrl-J c (three lines), Enter (the
+# submit), then Esc
+# claude 2026-10-19: created (L1c); changed: the cursor, the newline keys and
+# the submit (L1c review)
 stty_save forms before
 mark "forms-start"
 run_app "$bin/forms"
 if {[first_frame "forms" "Sign up"]} {
     pump 500
+    mark "forms-tabs"
+    for {set i 0} {$i < 10} {incr i} { send "\t"; pump 150 }
+    pump 300
+    mark "forms-lines"; send "a\x1b\rb\nc"; pump 800
+    mark "forms-enter"; send "\r"; pump 800
     mark "forms-esc"; send "\x1b"
 }
 back_at_prompt "forms"

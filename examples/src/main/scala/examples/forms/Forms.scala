@@ -9,11 +9,11 @@ import kyo.UI.*
 import tui4s.{Tui, TuiApp, maxLength}
 
 /** A sign-up form with the native inputs of kyo-ui: a text input, a password, a
-  * number, a range, two checkboxes, two radios, a select, a textarea of 3 rows,
-  * a read-only and a disabled field, and the Submit and Reset buttons. Tab
-  * moves between the fields. Enter in a field submits the form (also in the
-  * textarea: Alt-Enter or Ctrl-J there gives a new line). The result shows
-  * under the form. Esc quits.
+  * number, a range, two checkboxes, two radios, a select, a dropdown, a
+  * textarea of 3 rows, a read-only and a disabled field, and the Submit and
+  * Reset buttons. Tab moves between the fields. Enter in a field submits the
+  * form (also in the textarea: Alt-Enter or Ctrl-J there gives a new line).
+  * The result shows under the form. Esc quits.
   */
 object Forms:
 
@@ -37,32 +37,43 @@ object Forms:
           updates <- Signal.initRef(false)
           plan    <- Signal.initRef("free")
           colour  <- Signal.initRef("blue")
+          size    <- Signal.initRef("m")
           message <- Signal.initRef("")
           result  <- Signal.initRef("Fill the form, then press Enter.")
       yield
+          def yesNo(on: Boolean, what: String): String =
+            if on then what else s"no $what"
           val submit: Unit < Sync                      =
             for
                 n <- name.get
                 s <- secret.get
                 a <- age.get
                 v <- volume.get
+                l <- news.get
+                u <- updates.get
                 p <- plan.get
                 c <- colour.get
+                z <- size.get
                 m <- message.get
-                l <- news.get.map(on => if on then "news" else "no news")
                 _ <- result.set(
-                       s"Sent: $n, ${s.length} secret chars, age $a, " +
-                         s"volume ${v.toInt}, $l, $p, $c, " +
+                       s"Sent: $n, ${yesNo(s.nonEmpty, "secret")}, age $a, " +
+                         s"volume ${v.toInt}, ${yesNo(l, "news")}, " +
+                         s"${yesNo(u, "updates")}, $p, $c, size $z, " +
                          s"${m.linesIterator.size} message lines",
                      )
             yield ()
+          // Reset gives every field its first value
           val reset: Unit < Sync                       =
             Kyo
               .foreach(Seq(name, secret, message))(_.set(""))
               .andThen(age.set("30"))
               .andThen(volume.set(50.0))
+              .andThen(news.set(true))
+              .andThen(updates.set(false))
               .andThen(plan.set("free"))
-              .andThen(result.set("The form is empty again."))
+              .andThen(colour.set("blue"))
+              .andThen(size.set("m"))
+              .andThen(result.set("The form has its first values again."))
           // two radios of one group: the plan is the state; each radio shows
           // it and asks to change it
           def choice(value: String, label: String): UI =
@@ -101,6 +112,11 @@ object Forms:
                   option.value("blue")("Blue"),
                   option.value("green")("Green"),
                 ),
+              ),
+              field(
+                "Size",
+                dropdown("s" -> "Small", "m" -> "Medium", "l" -> "Large")
+                  .value(size),
               ),
               field(
                 "Message",

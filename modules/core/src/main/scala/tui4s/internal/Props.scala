@@ -279,15 +279,18 @@ private[tui4s] final case class Border(
   *     plan.
   *   - `NumberInput` (`min`, `max`, `step`, `onChangeNumeric`; its `value` is a
   *     `String`). The old runner: a free text. Implement: the keys accept
-  *     digits, one sign and one decimal point (`NumberText`); ArrowUp and
-  *     ArrowDown change the value by `step` (1 when none), clamped to `min` and
-  *     `max`. The DOM writes the text of each edit to the bound ref, and on a
+  *     digits, one minus sign and one decimal point (`NumberText`; HTML has no
+  *     `+`); ArrowUp and ArrowDown change the value by `step` (1 when none),
+  *     clamped to `min` and `max`, and a step that changes nothing runs no
+  *     callback. The DOM writes the text of each edit to the bound ref, and on a
   *     step or a commit the number as kyo-ui formats it (`NumberFormat`: "3",
   *     "2.5") and calls `onChangeNumeric`. The runner does the same.
   *   - `Textarea`. The old runner: one line, as a text input. Implement: lines
   *     that wrap by cells, a caret that moves by lines, a viewport of its own
   *     (`AreaText`). Its height is the definite `height` of its style, else 3
-  *     rows (kyo-ui has no `rows`).
+  *     rows (kyo-ui has no `rows`). Its `onChange` runs on Enter in a form,
+  *     and at its blur after an edit that changed the text (the DOM's change
+  *     event).
   *   - `Checkbox`, `Radio` (`checked`, `onChange`; the `name` of a radio). The
   *     old runner: Space and Enter toggle a checkbox and check a radio. Keep.
   *     The `name` of a radio makes no group: the DOM leaves the group to the
@@ -302,7 +305,8 @@ private[tui4s] final case class Border(
   *     The old runner: a track and a thumb, and no key. Keep the look.
   *     Implement: ArrowLeft, ArrowRight, ArrowDown and ArrowUp move it by
   *     `step`, PageUp and PageDown by 10 steps, Home and End to `min` and
-  *     `max`.
+  *     `max`. The value stays on the grid of the steps from `min`, as HTML
+  *     keeps the value of a range on its steps.
   *   - `DateInput`, `TimeInput`, `ColorInput`, `FileInput`. The old runner: an
   *     empty box that takes the focus and no key. Keep, and warn once in a run
   *     ([[Warn.UnsupportedElement]]).

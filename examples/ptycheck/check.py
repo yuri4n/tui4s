@@ -310,12 +310,35 @@ check("dashboard: back at 100x30 the boxes are 100 wide again, and the help line
       screen("dash-big"))
 restored("dash-q", "dashboard q")
 
-# Forms: the first screen, then Esc
-# claude 2026-10-19: created (L1c)
+# Forms: the first screen with the terminal cursor in the name field; 10 Tabs to the textarea; a, Alt-Enter, b,
+# Ctrl-J, c (three lines); Enter submits the form; Esc
+# claude 2026-10-19: created (L1c); changed: the cursor, the newline keys and the submit (L1c review)
+cursor_at = vt.cursors(session)
 fs = screen("forms-start")
 check("forms: first screen has the title, the name field, the number 30, the checked news box, the Free radio and Submit",
       all(t in fs for t in ("Sign up", "Name", "[x] news", "(•) Free", "[ Submit ]")) and "30" in line_with("forms-start", "Age"),
       fs)
+
+
+def field_cell(mark, label):
+    """The (row, column) of the first cell of the field of `label` (the label takes 9 cells, then a gap of 1)."""
+    return (row_of(mark, label), line_with(mark, label).find(label) + 10)
+
+
+check("forms: the terminal cursor shows in the empty name field",
+      cursor_at.get("forms-start") == field_cell("forms-start", "Name") + (True,),
+      f"cursor {cursor_at.get('forms-start')}, name field {field_cell('forms-start', 'Name')}")
+check("forms: after 10 Tabs the terminal cursor shows in the empty textarea",
+      cursor_at.get("forms-tabs") == field_cell("forms-tabs", "Message") + (True,),
+      f"cursor {cursor_at.get('forms-tabs')}, textarea {field_cell('forms-tabs', 'Message')}")
+mrow, mcol = field_cell("forms-lines", "Message")
+area = [l[mcol:].strip() for l in screen("forms-lines").splitlines()[mrow:mrow + 3]] if mrow >= 0 else []
+check("forms: a, Alt-Enter, b, Ctrl-J, c give the three lines a, b, c in the textarea", area == ["a", "b", "c"],
+      screen("forms-lines"))
+check("forms: the terminal cursor follows the caret to the end of the third line",
+      cursor_at.get("forms-lines") == (mrow + 2, mcol + 1, True), f"cursor {cursor_at.get('forms-lines')}")
+check("forms: Enter in the textarea submits the form (the result has 3 message lines)",
+      "3 message lines" in " ".join(screen("forms-enter").split()), screen("forms-enter"))
 restored("forms-esc", "forms esc")
 
 # INFO: the classes that the start script of the Counter loads (-Xlog:class+load), no PASS or FAIL

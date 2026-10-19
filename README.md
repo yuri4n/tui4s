@@ -478,7 +478,7 @@ the ignored properties. In a test, `Headless.awaitLog` gives the lines.
 
 <!-- claude 2026-10-19: created this section (L1c): the code block is the text of the region "forms" of the Forms example (ReadmeSuite checks it) -->
 The Forms example (`examples/src/main/scala/examples/forms/Forms.scala`)
-puts every native input of the terminal in one form. The inputs are plain
+puts the native inputs of the terminal in one form. The inputs are plain
 kyo-ui elements with their `.value(ref)` and `.checked(ref)` bindings; the
 only tui4s name is `maxLength`:
 
@@ -489,11 +489,11 @@ import kyo.UI.*
 import tui4s.{Tui, TuiApp, maxLength}
 
 /** A sign-up form with the native inputs of kyo-ui: a text input, a password, a
-  * number, a range, two checkboxes, two radios, a select, a textarea of 3 rows,
-  * a read-only and a disabled field, and the Submit and Reset buttons. Tab
-  * moves between the fields. Enter in a field submits the form (also in the
-  * textarea: Alt-Enter or Ctrl-J there gives a new line). The result shows
-  * under the form. Esc quits.
+  * number, a range, two checkboxes, two radios, a select, a dropdown, a
+  * textarea of 3 rows, a read-only and a disabled field, and the Submit and
+  * Reset buttons. Tab moves between the fields. Enter in a field submits the
+  * form (also in the textarea: Alt-Enter or Ctrl-J there gives a new line).
+  * The result shows under the form. Esc quits.
   */
 object Forms:
 
@@ -517,32 +517,43 @@ object Forms:
           updates <- Signal.initRef(false)
           plan    <- Signal.initRef("free")
           colour  <- Signal.initRef("blue")
+          size    <- Signal.initRef("m")
           message <- Signal.initRef("")
           result  <- Signal.initRef("Fill the form, then press Enter.")
       yield
+          def yesNo(on: Boolean, what: String): String =
+            if on then what else s"no $what"
           val submit: Unit < Sync                      =
             for
                 n <- name.get
                 s <- secret.get
                 a <- age.get
                 v <- volume.get
+                l <- news.get
+                u <- updates.get
                 p <- plan.get
                 c <- colour.get
+                z <- size.get
                 m <- message.get
-                l <- news.get.map(on => if on then "news" else "no news")
                 _ <- result.set(
-                       s"Sent: $n, ${s.length} secret chars, age $a, " +
-                         s"volume ${v.toInt}, $l, $p, $c, " +
+                       s"Sent: $n, ${yesNo(s.nonEmpty, "secret")}, age $a, " +
+                         s"volume ${v.toInt}, ${yesNo(l, "news")}, " +
+                         s"${yesNo(u, "updates")}, $p, $c, size $z, " +
                          s"${m.linesIterator.size} message lines",
                      )
             yield ()
+          // Reset gives every field its first value
           val reset: Unit < Sync                       =
             Kyo
               .foreach(Seq(name, secret, message))(_.set(""))
               .andThen(age.set("30"))
               .andThen(volume.set(50.0))
+              .andThen(news.set(true))
+              .andThen(updates.set(false))
               .andThen(plan.set("free"))
-              .andThen(result.set("The form is empty again."))
+              .andThen(colour.set("blue"))
+              .andThen(size.set("m"))
+              .andThen(result.set("The form has its first values again."))
           // two radios of one group: the plan is the state; each radio shows
           // it and asks to change it
           def choice(value: String, label: String): UI =
@@ -583,6 +594,11 @@ object Forms:
                 ),
               ),
               field(
+                "Size",
+                dropdown("s" -> "Small", "m" -> "Medium", "l" -> "Large")
+                  .value(size),
+              ),
+              field(
                 "Message",
                 textarea.value(message).style(_.width(30.px).height(3.px)),
               ),
@@ -611,9 +627,9 @@ Tab and Shift-Tab move between the inputs. The keys of each input:
 | --- | --- |
 | `input`, `emailInput`, `telInput`, `urlInput`, `searchInput` | Type, Backspace, Delete, ArrowLeft, ArrowRight, Home, End, Ctrl-A, Ctrl-E, Ctrl-U, Ctrl-K, Ctrl-W; by grapheme clusters. A paste is one edit; a line break in it becomes a space. Enter runs `onChange` and submits the form. |
 | `passwordInput` | As `input`. Each grapheme cluster shows as one "•"; the text never reaches the screen. |
-| `numberInput` | Digits, one sign first and one decimal point. ArrowUp and ArrowDown change the value by `step` (1 when none), clamped to `min` and `max`, and run `onChangeNumeric`. Enter writes the number as kyo-ui shows it ("1." becomes "1") and runs `onChangeNumeric`. |
-| `textarea` | Lines that wrap at the spaces, by cells. ArrowUp and ArrowDown move one line and keep the column; PageUp and PageDown move by the height; Home and End go to the ends of the line; Ctrl-A and Ctrl-E to the ends of the text line between two line breaks. Alt-Enter and Ctrl-J insert a line break, and Shift-Enter too when the terminal reports Shift with Enter. A plain Enter submits the form that holds the textarea; outside a form it inserts a line break, as in a browser. A paste keeps its line breaks. A long text scrolls inside the textarea, and the view follows the caret. |
-| `rangeInput` | ArrowLeft and ArrowDown, ArrowRight and ArrowUp move by `step`; PageDown and PageUp by 10 steps; Home and End to `min` and `max` (0 and 100 when none). |
+| `numberInput` | Digits, one minus sign first and one decimal point (no `+`, as in HTML). ArrowUp and ArrowDown change the value by `step` (1 when none), clamped to `min` and `max`, and run `onChangeNumeric`. Enter writes the number as kyo-ui shows it ("1." becomes "1") and runs `onChangeNumeric`. |
+| `textarea` | Lines that wrap at the spaces, by cells. ArrowUp and ArrowDown move one line and keep the column; PageUp and PageDown move by the height; Home and End go to the ends of the line; Ctrl-A and Ctrl-E to the ends of the text line between two line breaks. Alt-Enter and Ctrl-J insert a line break, and Shift-Enter too when the terminal reports Shift with Enter. A plain Enter submits the form that holds the textarea; outside a form it inserts a line break, as in a browser. A paste keeps its line breaks. A long text scrolls inside the textarea, and the view follows the caret. When the focus leaves the textarea after an edit that changed its text, `onChange` runs with the text (the change event of a browser). |
+| `rangeInput` | ArrowLeft and ArrowDown, ArrowRight and ArrowUp move by `step`; PageDown and PageUp by 10 steps; Home and End to `min` and `max` (0 and 100 when none). The value stays on the steps from `min`, as in HTML. |
 | `checkbox`, `radio` | Space and Enter toggle a checkbox and check a radio. A group of radios is one ref of the app (the example's `plan`). |
 | `select`, `dropdown` | Space, Enter, ArrowDown and ArrowUp go to the next or the previous option. Enter does not submit the form. |
 | `button` | Space and Enter press it: a click that submits the form that holds it. |

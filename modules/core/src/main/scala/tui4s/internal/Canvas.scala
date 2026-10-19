@@ -51,9 +51,9 @@ private[tui4s] final class Canvas private (
     private var closed = false
 
     // claude 2026-10-19: created (L1c): the terminal cursor that the backend
-    // shows (None: not known, before the first flush and after a resize);
-    // read and written only under the backend's monitor
-    private var shown: Option[Option[(Int, Int)]] = None
+    // shows (Unknown before the first flush and after a resize); read and
+    // written only under the backend's monitor
+    private var shown: Canvas.Shown = Canvas.Shown.Unknown
 
     def size: Size = Size(back.area.width, back.area.height)
 
@@ -170,18 +170,19 @@ private[tui4s] final class Canvas private (
         if closed then Result.succeed(0)
         else
             val updates = diff(plan.spans)
-            if updates.isEmpty && shown.contains(plan.cursor) then
+            val cursor  = Canvas.Shown.of(plan.cursor)
+            if updates.isEmpty && shown == cursor then
                 Result.succeed(0)
             else
                 terminalIO {
                   if updates.nonEmpty then draw(updates)
                   plan.cursor match
-                      case Some((x, y)) =>
-                        backend.setCursorPosition(Position(x, y))
+                      case Some(c) =>
+                        backend.setCursorPosition(Position(c.x, c.y))
                         backend.showCursor()
-                      case None         => backend.hideCursor()
+                      case None    => backend.hideCursor()
                   backend.flush()
-                  shown = Some(plan.cursor)
+                  shown = cursor
                 }.map(_ => updates.size)
             end if
       }
@@ -208,7 +209,7 @@ private[tui4s] final class Canvas private (
         front.resize(area)
         front.reset()
         // claude 2026-10-19: created (L1c): the next flush places the cursor
-        shown = None
+        shown = Canvas.Shown.Unknown
         if closed then Result.unit
         else
             terminalIO {
@@ -279,4 +280,17 @@ private[tui4s] object Canvas:
           flushSeam.toNanos,
         )
     end apply
+
+    /** The terminal cursor that the backend shows: `Unknown` (before the first
+      * flush, after a resize), `Hidden`, or `At` a cell.
+      */
+    // claude 2026-10-19: created (L1c review): an ADT, not a nested Option
+    enum Shown derives CanEqual:
+        case Unknown
+        case Hidden
+        case At(cell: CursorCell)
+
+    object Shown:
+        /** The cursor that a plan with the cursor `c` shows. */
+        def of(c: Option[CursorCell]): Shown = c.fold(Shown.Hidden)(Shown.At(_))
 end Canvas

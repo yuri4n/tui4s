@@ -34,22 +34,21 @@ group; Enter and Space press a button (a click that bubbles to the ancestors'
 or a radio and cycle a select; Enter in a form submits it; a handler in its
 event form (`onClick(e => ...)`, `onFocus(e => ...)`, `onSubmit(e => ...)`)
 runs as its action form does; a text input edits by grapheme clusters
-(Ctrl-A, E, U, K, W too); a textarea edits lines that wrap
-(`internal.AreaText`): Alt-Enter, Ctrl-J and a reported Shift-Enter insert a
-line break, and a plain Enter submits its form (outside a form it inserts a
-line break); a bracketed paste is one edit; Ctrl-C and
-`tui4s.Tui.quit` end the run. The password, number, range and dropdown
-inputs have their own keys, `tui4s.maxLength` limits a text field, and the
-terminal cursor shows the caret (`internal.Plan.cursor`).
-<!-- claude 2026-10-19: changed: the textarea and the inputs (L1c) -->
-`tui4s.Tui.run` runs a UI in the real terminal: it enters raw mode and the alternate screen (`internal.TerminalIO`,
-`internal.Session`), an input thread maps the crossterm events to kyo-ui keys,
-pastes and resizes (`internal.EventMapping`), the runner draws on a crossterm
-backend, and the release restores the terminal in every way that a run ends
-(also from a JVM shutdown hook). The headless test kit
-`tui4s.testkit.Headless` runs an app without a terminal: a test sends keys
-(`press`, `key`, `char`, `typeText`, `paste`) or writes the app's
-`SignalRef`s, and reads `testkit.Screen`. Components come in two styles.
+(Ctrl-A, E, U, K, W too); a bracketed paste is one edit; Ctrl-C and
+`tui4s.Tui.quit` end the run. A textarea edits lines that wrap
+(`internal.AreaText`). Alt-Enter, Ctrl-J and a reported Shift-Enter insert a
+line break in it. A plain Enter submits its form. Outside a form, a plain
+Enter inserts a line break. The password, number, range and dropdown inputs
+have their own keys. `tui4s.maxLength` limits a text field. The terminal
+cursor shows the caret (`internal.Plan.cursor`). `tui4s.Tui.run` runs a UI in
+the real terminal: it enters raw mode and the alternate screen
+(`internal.TerminalIO`, `internal.Session`), an input thread maps the
+crossterm events to kyo-ui keys, pastes and resizes (`internal.EventMapping`),
+the runner draws on a crossterm backend, and the release restores the
+terminal in every way that a run ends (also from a JVM shutdown hook). The
+headless test kit `tui4s.testkit.Headless` runs an app without a terminal: a
+test sends keys (`press`, `key`, `char`, `typeText`, `paste`) or writes the
+app's `SignalRef`s, and reads `testkit.Screen`. Components come in two styles.
 Hooks (`tui4s.Hooks`): a component is a function that returns `UI < Sync` or
 `UI < (Sync & Scope)`, with `Signal.initRef` (a piece of state; the old
 `useSignal` only renames it and is deprecated), `useHold`, `useFold`,
@@ -77,6 +76,7 @@ sealed.
 <!-- claude 2026-10-13: changed these lines: the two component styles, the state key, `when`, the pending frame (C4) -->
 <!-- claude 2026-10-19: changed: the hooks need Sync & Scope (P1b, A5 e) -->
 <!-- claude 2026-10-19: changed: Signal.initRef, useSignal is deprecated (P1b, A5 f) -->
+<!-- claude 2026-10-19: changed: the textarea and the inputs (L1c) -->
 An element with `position` absolute or fixed is a layer out of the flex
 flow. kyo-ui's `overlay` and `dropdown` are layers too. The offsets of a
 layer place it in its containing block. The flow paints first. Then the

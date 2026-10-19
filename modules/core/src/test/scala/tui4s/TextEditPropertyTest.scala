@@ -133,8 +133,8 @@ class TextEditPropertyTest extends PropertyTest[Any]:
 
     // claude 2026-10-19: created (L1c)
     "NumberText: the grammar of a number field" - {
-      // The text of a number field while the user types: an optional sign
-      // first, then digits with at most one point.
+      // The text of a number field while the user types: an optional minus
+      // sign first, then digits with at most one point.
       forAll(numberish)(s => assert(NumberText.partial(s) == grammar(s)))
 
       // A number: the grammar and a digit; its value is the value of
@@ -161,6 +161,23 @@ class TextEditPropertyTest extends PropertyTest[Any]:
           TextEdit.key(t, c, kb(Keyboard.Char(ch)), rules)
         }
         assert(grammar(typed._1))
+      }
+
+      // claude 2026-10-19: created (L1c review): the grid of a range. The
+      // value is on a step from min, inside min and max, and no grid value
+      // inside them is nearer to the clamped value.
+      forAll(grid) { (v, step, lo, span) =>
+        val hi = lo + span
+        val r  = NumberText.onGrid(BigDecimal(v), Some(step.toDouble), lo, hi)
+        val k  = (r - lo) / step
+        val c  = BigDecimal(v).max(lo).min(hi)
+        assert(k.isWhole && r >= lo && r <= hi, s"$r")
+        assert(
+          (BigDecimal(lo) to BigDecimal(hi) by BigDecimal(step)).forall(g =>
+            (g - c).abs >= (r - c).abs,
+          ),
+          s"$r",
+        )
       }
     }
 
@@ -228,7 +245,7 @@ object TextEditPropertyTest:
           .map(_.take(8).mkString)
         val valid = Gen
           .zip3(
-            Gen.oneOf("", "+", "-"),
+            Gen.oneOf("", "-"),
             Gen.list(Gen.oneOf('0', '3', '9')).map(_.take(4).mkString),
             Gen.oneOf("", ".", ".5", ".25"),
           )
@@ -236,14 +253,33 @@ object TextEditPropertyTest:
         Gen.frequency(1 -> any, 1 -> valid)
     end numberish
 
-    /** The grammar of a number field, written as a count: an optional sign
-      * first, then digits and at most one point.
+    /** A value of -50 to 150, a step of 1 to 30, a min of 0 to 10 and a span
+      * (max - min) of 0 to 100, for the grid of a range.
       */
-    // claude 2026-10-19: created (L1c)
+    // claude 2026-10-19: created (L1c review)
+    val grid: Gen[(Int, Int, Int, Int)] =
+      Gen
+        .zip(
+          Gen.zip(Gen.int, Gen.int),
+          Gen.zip(Gen.int, Gen.int),
+        )
+        .map { case ((a, b), (c, d)) =>
+          (
+            Math.floorMod(a, 201) - 50,
+            Math.floorMod(b, 30) + 1,
+            Math.floorMod(c, 11),
+            Math.floorMod(d, 101),
+          )
+        }
+
+    /** The grammar of a number field, written as a count: an optional minus
+      * sign first, then digits and at most one point.
+      */
+    // claude 2026-10-19: created (L1c); changed: no plus sign (L1c review)
     def grammar(s: String): Boolean =
         val body = s.headOption match
-            case Some('+') | Some('-') => s.drop(1)
-            case _                     => s
+            case Some('-') => s.drop(1)
+            case _         => s
         body.count(_ == '.') <= 1 && body.forall(c =>
           c == '.' || c.isDigit && c <= '9' && c >= '0',
         )

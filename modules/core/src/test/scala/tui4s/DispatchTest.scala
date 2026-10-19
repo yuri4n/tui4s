@@ -804,8 +804,13 @@ class DispatchTest extends RunnerSuite:
           t1   <- ref.get
           _    <- h.key(Keyboard.ArrowUp)
           t2   <- ref.get
-          _    <- Kyo.foreach(1 to 5)(_ => h.key(Keyboard.ArrowUp))
+          // claude 2026-10-19: changed: a step at max gives no callback (L1c
+          // review)
+          _    <- Kyo.foreach(1 to 4)(_ => h.key(Keyboard.ArrowUp))
           t3   <- ref.get
+          n3   <- nums.get.map(_.size)
+          _    <- h.key(Keyboard.ArrowUp)
+          n4   <- nums.get.map(_.size)
           _    <- h.key(Keyboard.ArrowDown)
           t4   <- ref.get
           _    <- h.key(Keyboard.Backspace)
@@ -817,11 +822,13 @@ class DispatchTest extends RunnerSuite:
       yield
           // "x" and the second point are not taken
           assert(t1 == "-1.52", t1)
-          // a step from -1.52 is clamped to min 0; five more stop at max 2
+          // a step from -1.52 is clamped to min 0; four more reach max 2, and
+          // a step at max changes nothing and runs no callback
           assert(t2 == "0" && t3 == "2" && t4 == "1.5", s"$t2 $t3 $t4")
+          assert(n4 == n3, s"$n3 $n4")
           // "1." is a number that the user still types; Enter commits it
           assert(t5 == "1." && t6 == "1", s"$t5 $t6")
-          assert(ns.lastOption.contains(1.0) && ns.size == 8, s"$ns")
+          assert(ns.lastOption.contains(1.0) && ns.size == 7, s"$ns")
           assert(s.row(0).startsWith("1"), s.row(0))
     }
 
@@ -952,6 +959,104 @@ class DispatchTest extends RunnerSuite:
           )
           assert(s4.cursor.isEmpty, s"${s4.cursor}")
           assert(!reversed(s0) && !reversed(s2), s0.rows.mkString("\n"))
+    }
+
+    // claude 2026-10-19: created (L1c review)
+    "a textarea: onChange runs with the text when the focus leaves it after an edit (the DOM change event); a blur with the same text runs none" in {
+      for
+          ref     <- Signal.initRef("")
+          changed <- Signal.initRef(Vector.empty[String])
+          h       <- Headless.start(20, 4)(_ =>
+                       div(
+                         textarea
+                           .value(ref)
+                           .onChange(t => changed.updateAndGet(_ :+ t).unit),
+                         button("ok"),
+                       ),
+                     )
+          _       <- h.typeText("ab")
+          c0      <- changed.get
+          _       <- h.key(Keyboard.Tab)
+          c1      <- changed.get
+          // back to the textarea (Tab wraps), then away with no edit
+          _       <- h.key(Keyboard.Tab)
+          _       <- h.key(Keyboard.Tab)
+          c2      <- changed.get
+          // an edit that gives the same text back
+          _       <- h.key(Keyboard.Tab)
+          _       <- h.typeText("x")
+          _       <- h.key(Keyboard.Backspace)
+          _       <- h.key(Keyboard.Tab)
+          c3      <- changed.get
+      yield assert(
+        c0.isEmpty && c1 == Vector("ab") && c2 == c1 && c3 == c1,
+        s"$c0 $c1 $c2 $c3",
+      )
+    }
+
+    // claude 2026-10-19: created (L1c review)
+    "a paste into a textarea: one edit (one onInput); CR LF and CR become line breaks and a tab a space; the caret ends after the paste and the view follows it" in {
+      for
+          ref    <- Signal.initRef("")
+          inputs <- Signal.initRef(0)
+          h      <- Headless.start(12, 3)(_ =>
+                      textarea
+                        .value(ref)
+                        .onInput(_ => inputs.updateAndGet(_ + 1).unit)
+                        .style(_.width(10.px)),
+                    )
+          _      <- h.paste("x\r\ny\tz\r1\n2")
+          v      <- ref.get
+          n      <- inputs.get
+          s      <- h.screen
+      yield
+          assert(v == "x\ny z\n1\n2" && n == 1, s"$v $n")
+          // four lines in a port of 3 rows: the view shows the last three
+          assert(
+            s.rows.map(_.take(3).trim) == Vector("y z", "1", "2"),
+            s.rows.mkString("\n"),
+          )
+          assert(caretOf(s) == Some((1, 2)), s"${caretOf(s)}")
+    }
+
+    // claude 2026-10-19: created (L1c review)
+    "a textarea in a viewport: PageUp and PageDown move its caret and its own view; the viewport around it does not scroll" in {
+      for
+          ref <- Signal.initRef("l0\nl1\nl2\nl3\nl4\nl5\nl6")
+          h   <- Headless.start(14, 4)(_ =>
+                   div.style(_.height(4.px).overflow(_.auto))(
+                     textarea.value(ref).style(_.width(10.px).height(3.px)),
+                     p("below 1"),
+                     p("below 2"),
+                     p("below 3"),
+                   ),
+                 )
+          s0  <- h.screen
+          _   <- h.key(Keyboard.PageUp)
+          s1  <- h.screen
+          _   <- h.key(Keyboard.PageDown)
+          s2  <- h.screen
+      yield
+          def firsts(s: Screen) = s.rows.map(_.take(2))
+          // the caret starts at the end: the view of the textarea shows l4 to
+          // l6, and the viewport shows its first row under it
+          assert(
+            firsts(s0) == Vector("l4", "l5", "l6", "be"),
+            s0.rows.mkString("\n"),
+          )
+          assert(caretOf(s0) == Some((2, 2)), s"${caretOf(s0)}")
+          // PageUp: 3 rows up, to l3; the viewport stays at its top
+          assert(
+            firsts(s1) == Vector("l3", "l4", "l5", "be"),
+            s1.rows.mkString("\n"),
+          )
+          assert(caretOf(s1) == Some((2, 0)), s"${caretOf(s1)}")
+          // PageDown: back to l6
+          assert(
+            firsts(s2) == Vector("l4", "l5", "l6", "be"),
+            s2.rows.mkString("\n"),
+          )
+          assert(caretOf(s2) == Some((2, 2)), s"${caretOf(s2)}")
     }
 
     // claude 2026-10-19: created (L1c)

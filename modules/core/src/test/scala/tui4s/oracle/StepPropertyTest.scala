@@ -2,7 +2,8 @@ package tui4s.oracle
 
 import kyo.*
 import kyo.UI.*
-import kyo.test.prop.PropertyTest
+import kyo.UI.Ast.Div
+import kyo.test.prop.{Gen, PropertyTest}
 import tui4s.internal.*
 
 /** An incremental frame against a full frame (L1c, the painter bug of L1b). The
@@ -17,9 +18,17 @@ import tui4s.internal.*
   * them back. Now [[Layout.damageClip]] is the clip of the painter. A second
   * cause: the caret cell of a focused field put a wide glyph into a field of 1
   * cell, so its hidden half named a cell outside the field.
+  *
+  * The property runs on three kinds of UIs: the random trees of [[UiGen]]
+  * (the box styles of the old layout, the widths and the viewports); the same
+  * trees with fixed layers over them, one of them in a region that moves it or
+  * takes it away, and a dropdown ([[OverlayPropertyTest.withLayers]]); and the
+  * same trees with a textarea after them, which has the focus and lines that
+  * wrap in scene A ([[withArea]]). The step adds the damage of the layers
+  * that moved, as the runner does.
   */
 // claude 2026-10-19: created (L1c): the negative controls and the property
-// of the painter bug of L1b
+// of the painter bug of L1b; changed: the layers and the textarea (L1c review)
 class StepPropertyTest extends PropertyTest[Any]:
     import StepPropertyTest.*
     override protected def numSamples: Int = 200
@@ -91,6 +100,18 @@ class StepPropertyTest extends PropertyTest[Any]:
         val (step, full) = frames(b, size)
         assert(step == full)
       }
+
+      // claude 2026-10-19: created (L1c review): the layers of L1b
+      forAll(OverlayPropertyTest.withLayers, UiGen.size) { (b, size) =>
+        val (step, full) = frames(b, size)
+        assert(step == full, s"step:\n${show(step)}\nfull:\n${show(full)}")
+      }
+
+      // claude 2026-10-19: created (L1c review): a focused textarea
+      forAll(withArea, UiGen.size) { (b, size) =>
+        val (step, full) = frames(b, size)
+        assert(step == full, s"step:\n${show(step)}\nfull:\n${show(full)}")
+      }
     }
 end StepPropertyTest
 
@@ -129,11 +150,45 @@ object StepPropertyTest:
         ).mkString,
       ).mkString("\n")
 
+    /** A random UI (at `Loc.root.child(0)`) and a textarea of 3 rows and 4 to
+      * 16 cells after it. In scene A the textarea has the focus and a value of
+      * four lines, with wide glyphs, that wrap; in scene B its value has two
+      * lines.
+      */
+    // claude 2026-10-19: created (L1c review)
+    val withArea: Gen[UiGen.Built] =
+      Gen
+        .zip(UiGen.spec(4, UiGen.text, styles), UiGen.between(4, 16))
+        .map { (spec, w) =>
+          val inner     = UiGen.build(spec, Loc.root.child(0))
+          val area      = Loc.root.child(1)
+          val root: Div = div
+          val ui        = root.copy(children =
+            Chunk[UI](
+              inner.ui,
+              textarea.style(_.width(w.px).height(3.px)),
+            ),
+          )(using root.frame)
+          UiGen.Built(
+            ui,
+            inner.a.updated(
+              area,
+              Content.Value(
+                "one two three\n中文 four 👍🏽\nfive six seven eight\nnine",
+              ),
+            ),
+            inner.b.updated(area, Content.Value("x\ny")),
+            Some(area),
+          )
+        }
+
     /** The step from scene A to scene B as the runner does it: the owner of
       * each changed region (not under another changed region) is laid out
       * again, then the owner of each changed input value and of the element
-      * that loses the focus, with that node forced.
+      * that loses the focus, with that node forced; then the damage of the
+      * layers that moved, came or went ([[Layout.layerDamage]]).
       */
+    // claude 2026-10-19: changed: the damage of the layers (L1c review)
     def step(b: UiGen.Built, size: Size, laidA: Laid): (Laid, Vector[Damage]) =
         val sceneB   = b.sceneB(size)
         val dirty    = UiGen.changed(b)
@@ -148,12 +203,15 @@ object StepPropertyTest:
                     (l2, d ++ d2)
                   case None        => (l, d)
           }
-        (ns ++ b.focus.toVector).foldLeft((l1, d1)) { case ((l, d), p) =>
-          l.nodes.get(p).flatMap(_.owner) match
-              case Some(owner) =>
-                val (l2, d2) = Layout.relayout(l, owner, Set(p), sceneB, b.ui)
-                (l2, d ++ d2)
-              case None        => (l, d)
-        }
+        val (l2, d2) =
+          (ns ++ b.focus.toVector).foldLeft((l1, d1)) { case ((l, d), p) =>
+            l.nodes.get(p).flatMap(_.owner) match
+                case Some(owner) =>
+                  val (l3, d3) =
+                    Layout.relayout(l, owner, Set(p), sceneB, b.ui)
+                  (l3, d ++ d3)
+                case None        => (l, d)
+          }
+        (l2, d2 ++ Layout.layerDamage(laidA, l2))
     end step
 end StepPropertyTest
