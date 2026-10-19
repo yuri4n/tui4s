@@ -18,10 +18,10 @@ replaces tui-scala. tui4s has no UI DSL of its own: the DSL is kyo-ui.
 | `modules/zio`   | `zio`      | `io.github.yuri4n::tui4s-zio`    | a ZIO DSL over kyo-ui (planned)         | `zio-v<semver>`  | yes       |
 | `modules/cats`  | `cats`     | `io.github.yuri4n::tui4s-cats`   | a Cats Effect DSL over kyo-ui (planned) | `cats-v<semver>` | yes       |
 | `modules/use`   | `use` (`useJVM`, `useJS`) | `io.github.yuri4n::tui4s-use` (JVM and Scala.js) | kyo-ui (composables) | `use-v<semver>` | yes |
-| `modules/widgets` | `widgets` (`widgetsJVM`, `widgetsJS`) | `io.github.yuri4n::tui4s-widgets` (JVM and Scala.js) | kyo-ui (widgets, L2b) | `widgets-v<semver>` | yes |
+| `modules/widgets` | `widgets` (`widgetsJVM`, `widgetsJS`) | `io.github.yuri4n::tui4s-widgets` (JVM and Scala.js) | kyo-ui (widgets, on tui4s-use) | `widgets-v<semver>` | yes |
 | `examples`      | `examples` | none                             | -                                       | none             | no        |
 | `docs`          | none       | none (Nuxt Docus site)           | -                                       | none             | no        |
-<!-- claude 2026-10-19: created the rows of use and widgets (L2a) -->
+<!-- claude 2026-10-19: created the rows of use and widgets (L2a); changed: the widgets row (L2b) -->
 
 The core uses Kyo and kyo-ui (both at `Versions.kyo`). The `zio` and `cats`
 modules will let ZIO and Cats Effect users write tui4s apps without Kyo types
@@ -182,6 +182,17 @@ nothing.
   retained mount identity. Ordinary Kyo UI construction and terminal mounting
   have different state lifetimes; document the difference.
   <!-- claude 2026-10-19: changed: composables and widgets go in the modules use and widgets (L2a); Tabs moved to tui4s.widgets, widgets depends on use (L2b) -->
+- A widget of tui4s-widgets takes typed props (named parameters with
+  defaults), a `Model` for its value (`Local`: the widget owns it; `Bound`:
+  the parent's `SignalRef`, written before `onChange`; `Controlled`: the
+  parent's `Signal`, and `onChange` asks), and function slots. It takes its
+  colours from the `--tui4s-*` custom properties (`Colors`), and it also
+  shows its state with a mark (`›`, `[x]`, bold text). Its pure rules are in
+  its companion, with module tests (kyo-test, on the JVM and on Node.js). The
+  gallery example (`examples.gallery`) shows each widget: a new widget gets a
+  place in a family of the gallery, a leaf in `GallerySuite`, and its family
+  region in the README (`ReadmeSuite` checks it).
+  <!-- claude 2026-10-19: created this item (L2b) -->
 - Use only Kyo's public APIs. Do not use a package name or reflection to reach
   private Kyo implementation members.
 - An ordinary Scala class can group signals, derived values, and actions.
@@ -255,7 +266,7 @@ nothing.
 | `sbt examples/Universal/stage`       | Stages native-packager launchers and runtime JARs in `examples/target/universal/stage`. |
 | `sbt examples/Universal/packageBin`  | Creates the examples ZIP distribution under `examples/target/universal`. |
 | `sbt examples/launchers`             | Stages the distribution and writes compatible `examples/target/bin/<package>` launchers plus the PTY classpath. |
-| `examples/target/bin/<app>`          | Runs an example in the real terminal (its own JVM): `counter`, `counterkyo`, `twocounters`, `counterstyles`, `todo`, `dashboard`, `printing`, `forms`. |
+| `examples/target/bin/<app>`          | Runs an example in the real terminal (its own JVM): `counter`, `counterkyo`, `twocounters`, `counterstyles`, `todo`, `dashboard`, `printing`, `forms`, `gallery`. |
 | `examples/ptycheck/run.sh`           | Runs the real-terminal checklist in a pseudo-terminal (CI job `terminal`). |
 <!-- claude 2026-10-19: created the rows of use/test and useJS/compile; changed: Node.js in the shell (L2a) -->
 

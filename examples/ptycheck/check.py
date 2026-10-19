@@ -341,6 +341,15 @@ check("forms: Enter in the textarea submits the form (the result has 3 message l
       "3 message lines" in " ".join(screen("forms-enter").split()), screen("forms-enter"))
 restored("forms-esc", "forms esc")
 
+# Gallery: the first screen; ArrowDown on the family list shows the data family; Ctrl-Q quits
+# claude 2026-10-19: created (L2b)
+check("gallery: first screen has the title, the family list and the panel of the containers",
+      all(t in screen("gallery-start") for t in ("tui4s widgets", "Families", "› Containers", "A border style")),
+      screen("gallery-start"))
+check("gallery: ArrowDown on the family list shows the data family (the list and the gauge)",
+      all(t in screen("gallery-down") for t in ("› Data", "ListView (", "42%")), screen("gallery-down"))
+restored("gallery-q", "gallery ctrl-q")
+
 # INFO: the classes that the start script of the Counter loads (-Xlog:class+load), no PASS or FAIL
 classload = os.path.join(os.path.dirname(os.path.abspath(session)), "classload.log")
 if os.path.exists(classload):

@@ -981,6 +981,286 @@ The output and the exit code of a program (`useProcess`, on the JVM):
       }
 ```
 
+## Widgets (tui4s-widgets)
+
+<!-- claude 2026-10-19: created this section (L2b): the code blocks are the text of the regions of the gallery example (ReadmeSuite checks them) -->
+`io.github.yuri4n::tui4s-widgets` has widgets: plain kyo-ui functions for the
+JVM and Scala.js. They use the composables of tui4s-use and do not depend on
+tui4s-core, so a widget works in the terminal and on the web. Add it next to
+tui4s-core:
+
+```scala
+libraryDependencies += "io.github.yuri4n" %% "tui4s-widgets" % "<version>"
+// a Scala.js or a cross-built project:
+libraryDependencies += "io.github.yuri4n" %%% "tui4s-widgets" % "<version>"
+```
+
+The rules of every widget:
+
+- A `Model` says who owns the value of a widget. `Model.Local(initial)`: the
+  widget owns it. `Model.Bound(ref)`: the parent owns a `SignalRef`; the
+  widget writes it, then calls `onChange`, as a native `.value(ref)` does.
+  `Model.Controlled(signal)`: the parent owns a signal; `onChange` asks, and
+  the parent accepts (it writes the source) or rejects. A list owns its
+  `Selection` of tui4s-use, or takes the parent's (`ListView.of`).
+- A widget that only builds a UI is a `UI`. A widget that allocates state is
+  `UI < Sync`, and one that starts a fiber is `UI < (Sync & Scope)`. Build a
+  widget once, where its state lives (the start of the app, the body of a
+  component), not in a `render` closure.
+- The Scaladoc of each widget that takes the focus has its keys. A list keeps
+  the focus and names its selected row with `aria-activedescendant`, so the
+  runner scrolls that row into view. A layer (a modal, a menu, the palette)
+  is a kyo-ui `position` layer with `focusTrap`, `focusAuto` and
+  `focusRestore`; Esc closes it, and its keys do not reach the app.
+- The colours are custom properties: `--tui4s-accent`, `--tui4s-muted`,
+  `--tui4s-border`, `--tui4s-surface`, `--tui4s-selection`,
+  `--tui4s-success`, `--tui4s-warning` and `--tui4s-danger`.
+  `Colors.defaults` has a value for each one: give it to the run
+  (`override def stylesheet = Colors.defaults` in a `TuiApp`), or give your
+  own `Stylesheet.vars` with these names. With no value, a widget keeps its
+  marks (`›`, `[x]`, bold text) and shows no colour.
+
+The gallery example (`examples/target/bin/gallery`) shows every widget with
+live state: the family list at the left (the arrows, or F1 to F5), the
+widgets of the family at the right (Tab goes from widget to widget), and the
+hints of its keymap at the bottom (Ctrl-P opens the command palette over that
+keymap; Ctrl-Q quits). Each family is one function of the gallery.
+
+### Containers
+
+`Panel` (a border style, a title on the border), `SplitPane` (the arrows on its divider resize it), `Accordion` (`Mode.One` or `Mode.Many`) and `Tabs`:
+
+<!-- from: examples/src/main/scala/examples/gallery/Gallery.scala#containers -->
+```scala
+    /** The containers: a panel, a split pane, an accordion and tabs. */
+    def containers(using Frame): UI < Sync =
+      for
+          split <- SplitPane(
+                     Panel(title = "Left")(span("files")),
+                     Panel(title = "Right")(span("preview")),
+                   )(size = Model.Local(40))
+          acc   <- Accordion(
+                     Accordion.Section("General", span("Name and email.")),
+                     Accordion.Section("Advanced", span("Cache and logs.")),
+                   )()
+          tabs  <- Tabs("One", "Two", "Three")(
+                     panel = i => span(s"The panel of tab ${i + 1}."),
+                   ).ui
+      yield div.style(_.gap(1.px))(
+        Panel(title = "Panel")(span("A border style and a title on it.")),
+        labeled("SplitPane (Tab to the divider, then ←/→)", split),
+        labeled("Accordion", acc),
+        labeled("Tabs", tabs),
+      )
+```
+
+### Data
+
+The charts (`Sparkline`, `Gauge`, `ProgressBar`, `BarChart`, `Spinner`), `ListView` (`ListView.virtual` builds only the rows of the window of a long list), `DataTable` (the keys 1 to 9 sort), `TreeView` and `Pager` (a search, and a follow mode for a log):
+
+<!-- from: examples/src/main/scala/examples/gallery/Gallery.scala#data -->
+```scala
+    /** The data widgets: the charts, a list, a table, a tree and a pager. */
+    def data(using Frame): UI < (Sync & Scope) =
+      for
+          fruits  <-
+            Signal.initRef(Chunk("apple", "banana", "cherry", "date", "elder"))
+          list    <- ListView(fruits, identity[String], height = 3)(span(_))
+          table   <- DataTable(
+                       Signal.initConst(langs),
+                       _.name,
+                       DataTable.Column("Name", _.name, DataTable.Width.Fixed(8)),
+                       DataTable.Column(
+                         "Year",
+                         _.year.toString,
+                         order = Present(Ordering.by(_.year)),
+                       ),
+                       DataTable.Column("Kind", _.kind, DataTable.Width.Fill),
+                     )(height = 3)
+          tree    <- TreeView(
+                       Signal.initConst(
+                         Chunk(
+                           TreeView.Node(
+                             "src",
+                             Chunk(
+                               TreeView.Node("Main.scala"),
+                               TreeView.Node("Ui.scala"),
+                             ),
+                           ),
+                           TreeView.Node("README.md"),
+                         ),
+                       ),
+                       identity[String],
+                       height = 4,
+                     )(span(_))
+          log     <- Pager(
+                       Signal.initConst(
+                         Chunk.from((1 to 40).map(i => s"event $i: served")),
+                       ),
+                       height = 3,
+                     )
+          spinner <- Spinner(label = "working")
+      yield div.style(_.gap(1.px))(
+        div.style(_.row.gap(2.px))(
+          Sparkline(Signal.initConst(Chunk(0.1, 0.4, 0.9, 0.6, 0.3))),
+          Gauge(Signal.initConst(0.42), width = 10),
+          ProgressBar(Signal.initConst(3), Signal.initConst(10), width = 10),
+          spinner,
+        ),
+        BarChart(
+          Signal.initConst(Chunk("Mon" -> 3.0, "Tue" -> 7.5, "Wed" -> 5.0)),
+          width = 20,
+        ),
+        labeled("ListView (↑/↓, PgUp/PgDn, Home/End)", list),
+        labeled("DataTable (1 to 3 sort)", table),
+        labeled("TreeView (→ opens, ← closes)", tree),
+        labeled("Pager (f follows, n/N next match)", log),
+      )
+```
+
+### Input
+
+`SearchBox` (its `query` is debounced), `Autocomplete` (a dropdown layer; `Match.Prefix`, `Contains` or `Fuzzy`), `Checklist`, `RadioGroup`, `NumberStepper` and `DateField`:
+
+<!-- from: examples/src/main/scala/examples/gallery/Gallery.scala#input -->
+```scala
+    /** The input widgets: a search box, an autocomplete, a checklist, a radio
+      * group, a number stepper and a date field.
+      */
+    def input(using Frame): UI < (Sync & Scope) =
+      for
+          search <- SearchBox()
+          auto   <- Autocomplete(
+                      Signal.initConst(langs.map(_.name)),
+                      matcher = Autocomplete.Match.Fuzzy,
+                      placeholder = "a language",
+                    )
+          tasks  <- Checklist(
+                      Signal.initConst(
+                        Chunk("write the widgets", "write the tests"),
+                      ),
+                      identity[String],
+                      height = 2,
+                    )(span(_))
+          size   <- RadioGroup("Small", "Medium", "Large")()
+          count  <- NumberStepper(value = Model.Local(3), min = 0, max = 10)
+          date   <- DateField()
+      yield div.style(_.gap(1.px))(
+        labeled(
+          "SearchBox",
+          div(search.view, span(search.query.map(q => s"query: $q"))),
+        ),
+        labeled("Autocomplete (↓, Enter)", auto),
+        labeled("Checklist (Space)", tasks),
+        labeled("RadioGroup (↑/↓)", size),
+        labeled("NumberStepper (↑/↓, PgUp/PgDn)", count),
+        labeled("DateField", date),
+      )
+```
+
+### Feedback
+
+`StatusBar`, `KeyHints` (the hints of a `Keymap`), `CommandPalette` (a search over the bindings of a `Keymap`), `Modal.confirm` and `Modal.prompt` (over `useDialog`; `ask` never waits) and `Toasts`. The app builds the layers once, and its root holds their views:
+
+<!-- from: examples/src/main/scala/examples/gallery/Gallery.scala#feedback -->
+```scala
+    /** The feedback widgets: a status bar, key hints, the command palette, a
+      * confirm, a prompt and toasts.
+      */
+    def feedback(layers: Layers)(using Frame): UI < Sync =
+      for
+          answer <- Signal.initRef("no answer yet")
+          name   <- Signal.initRef("notes.txt")
+      yield div.style(_.gap(1.px))(
+        labeled(
+          "StatusBar",
+          StatusBar(
+            Signal.initConst("gallery.scala  120 lines"),
+            right = span("UTF-8"),
+          ),
+        ),
+        labeled(
+          "KeyHints",
+          KeyHints.of(Chunk("↑/k" -> "up", "↓/j" -> "down", "Enter" -> "open")),
+        ),
+        labeled(
+          "CommandPalette",
+          div.style(_.row)(
+            button("Open the palette (Ctrl-P)").onClick(layers.palette.open),
+          ),
+        ),
+        labeled(
+          "Modal.confirm and Modal.prompt",
+          div.style(_.row.gap(2.px))(
+            button("Delete").onClick(
+              layers.confirm.ask("Delete the file?")(yes =>
+                answer.set(if yes then "deleted" else "kept"),
+              ),
+            ),
+            span(answer),
+            button("Rename").onClick(
+              layers.prompt.ask("New name?")(n => n.fold(Kyo.unit)(name.set)),
+            ),
+            span(name.map(n => s"name: $n")),
+          ),
+        ),
+        labeled(
+          "Toasts",
+          div.style(_.row)(
+            button("Show a toast").onClick(
+              layers.toasts.show("Saved", Toasts.Level.Success),
+            ),
+          ),
+        ),
+      )
+```
+
+### Navigation
+
+`Menu.bar` (a dropdown of a `Keymap` for each menu), `Tooltip` (on focus), `Breadcrumbs`, `Pagination`, `Tags` and `Wizard`:
+
+<!-- from: examples/src/main/scala/examples/gallery/Gallery.scala#navigation -->
+```scala
+    /** The navigation widgets: a menu bar, a tooltip, breadcrumbs, pagination,
+      * tags and a wizard.
+      */
+    def navigation(using Frame): UI < Sync =
+      for
+          done  <- Signal.initRef("nothing chosen")
+          file   = Keymap.of(
+                     Binding.of("New", Chord.ctrl('n'))(done.set("File › New")),
+                     Binding.of("Open", Chord.ctrl('o'))(done.set("File › Open")),
+                   )
+          help   =
+            Keymap.of(
+              Binding.of("About", Chord(Keyboard.F12))(done.set("Help › About")),
+            )
+          menu  <- Menu.bar(Menu.Group("File", file), Menu.Group("Help", help))
+          tip   <- Tooltip("Saves the file")(button("Save"))
+          path  <- Signal.initRef(Chunk("home", "docs", "widgets"))
+          crumb <-
+            Breadcrumbs(path, onPick = i => path.updateAndGet(_.take(i + 1)))
+          page  <- Signal.initRef(0)
+          pages <- Pagination(Signal.initConst(12), page = Model.Bound(page))
+          tags  <- Tags(tags = Model.Local(Chunk("scala", "kyo")))
+          steps <- Wizard(
+                     Wizard.Step("Account", span("Pick a user name.")),
+                     Wizard.Step("Profile", span("Add a photo.")),
+                     Wizard.Step("Done", span("All set.")),
+                   )(onFinish = done.set("wizard finished"))
+      yield div.style(_.gap(1.px))(
+        labeled("Menu (↓ opens, Enter runs)", div(menu, span(done))),
+        labeled("Tooltip (on focus)", tip),
+        labeled("Breadcrumbs", crumb),
+        labeled(
+          "Pagination (←/→)",
+          div(pages, span(page.map(p => s"page ${p + 1} of 12"))),
+        ),
+        labeled("Tags (Enter adds, Delete removes)", tags),
+        labeled("Wizard", steps),
+      )
+```
+
 ## Modules
 
 Each module is released on its own, with its own version.
@@ -991,8 +1271,8 @@ Each module is released on its own, with its own version.
 | `io.github.yuri4n::tui4s-zio`    | ZIO users (planned).                   |
 | `io.github.yuri4n::tui4s-cats`   | Cats Effect users (planned).           |
 | `io.github.yuri4n::tui4s-use`    | Composables over Kyo signals, for the JVM and Scala.js. It does not need tui4s-core. |
-| `io.github.yuri4n::tui4s-widgets` | Widgets for the JVM and Scala.js (planned). It does not need tui4s-core. |
-<!-- claude 2026-10-19: created the two rows above (L2a) -->
+| `io.github.yuri4n::tui4s-widgets` | Widgets for the JVM and Scala.js, on tui4s-use. It does not need tui4s-core. |
+<!-- claude 2026-10-19: created the two rows above (L2a); changed: the widgets row (L2b) -->
 
 ## Requirements
 

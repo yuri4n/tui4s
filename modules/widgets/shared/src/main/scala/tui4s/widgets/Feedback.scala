@@ -21,7 +21,7 @@ object StatusBar:
         .style(_.row.gap(2.px).bg(Colors.surface).padding(0.px, 1.px))(
           left.render(t =>
             span(t)
-              .style(Looks.oneLine.flexGrow(1).flexShrink(1).minWidth(0.px)),
+              .style(Looks.preLine.flexGrow(1).flexShrink(1).minWidth(0.px)),
           ),
           div(right).style(_.flexShrink(0)),
         )
@@ -40,17 +40,20 @@ object KeyHints:
     /** The hints of the bindings of `keymap` that have a help text. */
     def apply(keymap: Keymap)(using Frame): UI = of(keymap.help)
 
-    /** The hints `hints` (the chords and the help text of each). */
+    /** The hints `hints` (the chords and the help text of each). A margin of
+      * two cells, not a `gap`, keeps the hints apart: a `gap` also puts rows
+      * between the wrapped lines, as in CSS.
+      */
     def of(hints: Chunk[(String, String)])(using Frame): UI =
       div
         .role("note")
-        .style(_.row.flexWrap(_.wrap).gap(2.px))(
+        .style(_.row.flexWrap(_.wrap))(
           UI.fragment(
             hints.map((k, h) =>
               span(
                 span(k).style(_.bold.color(Colors.accent)),
                 span(s" $h").style(Looks.muted),
-              ),
+              ).style(_.margin(0.px, 2.px, 0.px, 0.px)),
             )*,
           ),
         )
@@ -309,6 +312,10 @@ end Modal
   * for toasts <- Toasts()
   * yield div(button("Save").onClick(save.andThen(toasts.show("saved", Toasts.Level.Success))), toasts.view)
   * }}}
+  *
+  * @param view
+  *   the layer of the toasts (empty while none shows); put it anywhere in the
+  *   app
   */
 // claude 2026-10-19: created (L2b)
 final class Toasts private (

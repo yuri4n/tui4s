@@ -307,7 +307,7 @@ object Tags:
             v.value.current.map(ts => v.change(f(ts)))
           div
             .role("list")
-            .style(_.row.flexWrap(_.wrap).gap(1.px))(
+            .style(_.row.flexWrap(_.wrap))(
               v.value.render(ts =>
                 UI.fragment(
                   ts.zipWithIndex.map((t, i) =>
@@ -328,6 +328,7 @@ object Tags:
                         Style
                           .bg(Colors.selection)
                           .padding(0.px, 1.px)
+                          .margin(0.px, 1.px, 0.px, 0.px)
                           .focus(_.bold.color(Colors.accent)),
                       ),
                   )*,

@@ -368,9 +368,9 @@ object NumberStepper:
 end NumberStepper
 
 /** A date typed as text (`YYYY-MM-DD`) and checked as the user types: under the
-  * field, "✓" and the date (`--tui4s-success`), or "✗" and the problem
-  * (`--tui4s-danger`). `onDate` gets each valid date. The text is a
-  * [[Model.Writable]].
+  * field (when it is not empty), "✓" and the date (`--tui4s-success`), or "✗"
+  * and the problem (`--tui4s-danger`). `onDate` gets each valid date. The text
+  * is a [[Model.Writable]].
   *
   * {{{
   * DateField(onDate = d => due.set(d))
@@ -410,8 +410,8 @@ object DateField:
               .value(ref)
               .placeholder("YYYY-MM-DD")
               .onInput(t => parse(t).fold(_ => Kyo.unit, d => onDate(d))),
-            ref.render(t =>
-              if t.isEmpty then span("YYYY-MM-DD").style(Looks.muted)
+            ref.render[UI](t =>
+              if t.isEmpty then UI.empty
               else
                   parse(t) match
                       case Right(d) =>
