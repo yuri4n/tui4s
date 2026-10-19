@@ -21,6 +21,7 @@ edge=(
   modules/core/src/main/scala/tui4s/internal/Crossterm.scala
   modules/core/src/main/scala/tui4s/internal/LogSink.scala
   modules/core/src/main/scala/tui4s/internal/OutputCapture.scala
+  modules/core/src/main/scala/tui4s/internal/ReleaseStack.scala
   modules/core/src/main/scala/tui4s/internal/SchedulerProbe.scala
   modules/core/src/main/scala/tui4s/internal/Session.scala
   modules/core/src/main/scala/tui4s/internal/TerminalIO.scala
