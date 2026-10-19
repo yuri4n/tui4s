@@ -105,7 +105,21 @@
   Open (small): core should watch modules/{runner,app,testkit} for the version policy -> fold into L3's build touch.
   Local checkouts switching to the branch: `sbt runner/clean core/clean` once (stale target/ after the git mv).
 - h34s is OUT OF SCOPE for this session (user, 2026-10-19: it was the wrong chat). Do not carry its discussion forward.
-- NEXT: L3 examples.assistant (3 agents): shared crossProject (domain + UI, kyo-ui/use/widgets only), tui main
+- L3 DONE, pushed fc7b31f (52 files, +6359/-27; modules/assistant cross module: pure domain with laws (Transcript
+  fold, title rule, SSE split law, codec round trip), services as traits (ChatProvider, Secrets, ConversationStore,
+  AppLog) with JVM interpreters (kyo-http seam KyoHttp with followRedirects(false) + a 5-min idle limit, SecretsJvm:
+  env or a 0600 key file, FileStorage) and in-memory ones for tests; Anthropic + OpenAI SSE wires with fixtures; one
+  store; UI on tui4s-widgets; main examples.assistant.AssistantApp (--fake); 13 Headless leaves; PTY row assistant;
+  README 'A real app: the assistant'. Tests: 675 kyo-test leaves (runner 210, core 179, use 92, widgets 108,
+  assistant 86) + 123 examples; PTY 164/164). Review: 1 blocking (redirects carried the key: fixed + negative
+  control), 6 should, 7 nits, all applied. The fix agent was killed by a user interruption of the orchestrator's turn;
+  a finalizer agent finished it (lesson: check the workflow state after any interruption).
+  USER MUST KNOW: the app opts in to Anthropic server-side fallbacks for the default model (header
+  anthropic-beta: server-side-fallback-2026-07-01, field fallbacks: "default"; Anthropic.fallbacks in Wires.scala);
+  the OpenAI default id 'gpt-5' is unchecked data; effort/thinking not sent; the run log file has the umask mode.
+- NEXT: L4 (3 agents): the standalone Scala.js build of the assistant (D5), Theme (D8) in tui4s-widgets rendered to
+  one Stylesheet for both platforms, JS interpreters (fetch SSE, localStorage key with a warning), units em/pct.
+- (history) L3 ran as 3 agents: shared crossProject (domain + UI, kyo-ui/use/widgets only), tui main
   (TuiApp), providers Anthropic/OpenAI (JVM SSE over kyo-http) + scripted fake; keys from env or a 0600 file only.
 - (history) L1 ran in three workflows (cheap cadence: implementer + API/examples reviewer + fixer, Opus): L1a viewport scroll
   and clip, wrap and ellipsis, wide characters; L1b overlay and z-order, terminal-size Signal, Color.Var, FlexWrap and
