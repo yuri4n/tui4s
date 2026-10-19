@@ -31,7 +31,10 @@ class WarningsTest extends RunnerSuite:
             lines.mkString("\n"),
           )
           assert(count("DisplayProp(table)") == 1, lines.mkString("\n"))
-          assert(count("var(--accent) has no colour value") == 1, lines.mkString("\n"))
+          assert(
+            count("var(--accent) has no colour value") == 1,
+            lines.mkString("\n"),
+          )
           assert(lines.size == 3, lines.mkString("\n"))
       end for
     }

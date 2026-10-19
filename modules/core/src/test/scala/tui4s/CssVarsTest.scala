@@ -65,18 +65,20 @@ class CssVarsTest extends Test[Any]:
     // claude 2026-10-19: created (L1b review): CSS computes a var() where the
     // custom property is declared
     "a var() takes its value where it is declared: a scoped override does not show through a derived variable" in {
-      val (v, _)                           = CssVars.of(
+      val (v, _)                          = CssVars.of(
         Stylesheet
           .vars("accent" -> "var(--brand)", "brand" -> "#000000")
           .scopedVars(Selector.cls("x"), "brand" -> "#ffffff")
           .scopedVars(Selector.cls("y"), "own" -> "var(--brand)"),
       )
       def at(el: UI.Ast.Element): CssVars = v.enter(el)
-      val black                            = CssColor.Of(Some(JColor.Rgb(0, 0, 0)))
-      val white                            = CssColor.Of(Some(JColor.Rgb(255, 255, 255)))
+      val black                           = CssColor.Of(Some(JColor.Rgb(0, 0, 0)))
+      val white                           = CssColor.Of(Some(JColor.Rgb(255, 255, 255)))
       assert(v.color("accent") == black)
       assert(at(div.cssClass("x")).color("accent") == black)
       assert(at(div.cssClass("x")).color("brand") == white)
-      assert(at(div.cssClass("x")).enter(div.cssClass("y")).color("own") == white)
+      assert(
+        at(div.cssClass("x")).enter(div.cssClass("y")).color("own") == white,
+      )
     }
 end CssVarsTest

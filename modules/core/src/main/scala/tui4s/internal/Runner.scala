@@ -580,10 +580,9 @@ private[tui4s] final class Runner private (
       *      is the rule of kyo-ui's client, which compares the paths of the
       *      `focusAuto` elements. On the first frame every element is new, as
       *      the native autofocus of a page; the option `autoFocus` does not
-      *      stop the seed. Only the subtrees of
-      *      `roots` (the nodes that this layout made) can hold a new element,
-      *      so the search looks there, and it finds the focus order only when
-      *      it finds one.
+      *      stop the seed. Only the subtrees of `roots` (the nodes that this
+      *      layout made) can hold a new element, so the search looks there, and
+      *      it finds the focus order only when it finds one.
       *   3. Else the focus stays when its element can still take it; else, with
       *      `autoFocus`, the first element with `focusAuto(true)` takes it,
       *      else the first element in focus order.
@@ -603,18 +602,19 @@ private[tui4s] final class Runner private (
             case Kind.El(e) => f(e)
             case _          => false
           }
-        def has(p: Loc)(f: UI.Ast.Element => Boolean): Boolean = in(w.laid)(p)(f)
-        def auto(p: Loc): Boolean                              = has(p)(_.attrs.focusAuto.getOrElse(false))
-        def wasAuto(p: Loc): Boolean                           =
+        def has(p: Loc)(f: UI.Ast.Element => Boolean): Boolean         =
+          in(w.laid)(p)(f)
+        def auto(p: Loc): Boolean                                      = has(p)(_.attrs.focusAuto.getOrElse(false))
+        def wasAuto(p: Loc): Boolean                                   =
           in(before)(p)(_.attrs.focusAuto.getOrElse(false))
-        val gone                                               = w.seeds.takeWhile(s => !w.laid.nodes.contains(s.at))
-        val kept                                               = w.seeds.drop(gone.size)
-        val now                                                = gone
+        val gone                                                       = w.seeds.takeWhile(s => !w.laid.nodes.contains(s.at))
+        val kept                                                       = w.seeds.drop(gone.size)
+        val now                                                        = gone
           .flatMap(_.back)
           .find(Layout.isFocusable(w.laid, _))
           .orElse(w.focus)
-        lazy val order                                         = Layout.focusOrder(w.laid)
-        val fresh                                              = Loc
+        lazy val order                                                 = Layout.focusOrder(w.laid)
+        val fresh                                                      = Loc
           .tops(roots)
           .iterator
           .flatMap(w.laid.under)

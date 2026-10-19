@@ -107,11 +107,10 @@
   * a `Color.Var` with no value warn too. The values `DisplayProp` block, inline
   * and inlineBlock change nothing and give no warning: the element keeps its
   * flex layout, where a browser uses block or inline flow. The warnings go to
-  * the logger of the
-  * run (`TuiOptions.logFile`, or the lines printed after the restore), never to
-  * the screen; `Headless.awaitLog` gives them to a test. `StyleTableTest`
-  * compares this list with the surface list of kyo-ui and with the runner, so
-  * they do not drift.
+  * the logger of the run (`TuiOptions.logFile`, or the lines printed after the
+  * restore), never to the screen; `Headless.awaitLog` gives them to a test.
+  * `StyleTableTest` compares this list with the surface list of kyo-ui and with
+  * the runner, so they do not drift.
   *   - honored: `Align`, `AlignSelf`, `BgColor`, `BorderColorProp`,
   *     `BorderRadiusProp`, `BorderStyleProp`, `BorderWidthProp`, `Bottom`,
   *     `DisabledProp`, `DisplayProp`, `FlexDirectionProp`, `FlexGrowProp`,

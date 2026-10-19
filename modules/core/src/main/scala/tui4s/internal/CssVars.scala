@@ -26,18 +26,17 @@ private[tui4s] enum CssColor derives CanEqual:
   * The values of an element are the values of its parent, with the blocks whose
   * selector matches the element declared over them, in the order of the
   * stylesheet (a later block wins). The screen has the `:root` blocks. A
-  * `var()` in a declared value takes its value at the element that declares
-  * it, as CSS computes it: with `Stylesheet.vars("brand" -> "#000000",
-  * "accent" -> "var(--brand)")`, a block for `.x` that declares `brand` again
-  * does not change `accent` on `.x`. A declared value whose `var()` has no
-  * value and no fallback gives no value. A value
-  * is read as a colour: `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`,
-  * `rgb(r, g, b)`, `rgba(r, g, b, a)` (no colour below an alpha of 0.5, as
-  * [[Props.color]] does), `transparent` (no colour), or `var(--other)` and
-  * `var(--other, <fallback>)` (at most 8 steps deep). kyo-ui's `Color.Var` has
-  * no fallback value of its own: a name with no value is `CssColor.Unset`, and
-  * the colour is not set (the element inherits its text colour, and has no
-  * background).
+  * `var()` in a declared value takes its value at the element that declares it,
+  * as CSS computes it: with `Stylesheet.vars("brand" -> "#000000", "accent" ->
+  * "var(--brand)")`, a block for `.x` that declares `brand` again does not
+  * change `accent` on `.x`. A declared value whose `var()` has no value and no
+  * fallback gives no value. A value is read as a colour: `#rgb`, `#rgba`,
+  * `#rrggbb`, `#rrggbbaa`, `rgb(r, g, b)`, `rgba(r, g, b, a)` (no colour below
+  * an alpha of 0.5, as [[Props.color]] does), `transparent` (no colour), or
+  * `var(--other)` and `var(--other, <fallback>)` (at most 8 steps deep).
+  * kyo-ui's `Color.Var` has no fallback value of its own: a name with no value
+  * is `CssColor.Unset`, and the colour is not set (the element inherits its
+  * text colour, and has no background).
   *
   * The selectors that the runner matches are one simple selector each: `.class`
   * (kyo-ui's `cssClass`), `#id` (`id`), `[data-name]` and `[data-name="value"]`
@@ -153,9 +152,9 @@ private[tui4s] object CssVars:
 
     /** The values of an element whose parent has `values` and that declares
       * `pairs` (a later pair wins). A `var()` in a declared value takes its
-      * value here, from the values of the parent and of the element. A
-      * declared value whose `var()` has no value and no fallback gives no
-      * value, and a cycle gives none.
+      * value here, from the values of the parent and of the element. A declared
+      * value whose `var()` has no value and no fallback gives no value, and a
+      * cycle gives none.
       */
     // claude 2026-10-19: created (L1b review)
     def declare(
@@ -166,6 +165,7 @@ private[tui4s] object CssVars:
         pairs.map(_._1).distinct.foldLeft(values) { (acc, k) =>
           substitute(here, here(k), 8).fold(acc - k)(v => acc + (k -> v))
         }
+    end declare
 
     /** The value `v` with a `var()` (the whole value) replaced by its value in
       * `values`, else by its fallback, at most `depth` steps deep.

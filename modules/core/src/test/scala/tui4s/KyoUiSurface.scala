@@ -90,8 +90,8 @@ object KyoUiSurface:
 
         /** The cases of `kyo.internal.CssStyleRenderer.renderProp` whose CSS
           * the runner copies or matches: `PositionProp` (the boxes of `overlay`
-          * and `dropdown` in `Props.position`) and `DisplayProp` (the values
-          * of `Warnings`).
+          * and `dropdown` in `Props.position`) and `DisplayProp` (the values of
+          * `Warnings`).
           */
         // claude 2026-10-19: created (L1b review)
         val cssCases: List[String] = List("PositionProp", "DisplayProp")
@@ -654,10 +654,10 @@ object KyoUiSurface:
           */
         // claude 2026-10-19: created (L1b review)
         def cssItems: List[Item] =
-            val r                       =
+            val r                     =
               ctx.findStaticModuleClass("kyo.internal.CssStyleRenderer")
-            val cases                   = List.newBuilder[CaseDef]
-            def collect(x: Any): Unit   = x match
+            val cases                 = List.newBuilder[CaseDef]
+            def collect(x: Any): Unit = x match
                 case m: Match                            => discard(cases ++= m.cases)
                 case t: Tree                             => t.productIterator.foreach(collect)
                 case l: List[?]                          => l.foreach(collect)
@@ -671,16 +671,21 @@ object KyoUiSurface:
               }
               .flatMap(_.tree)
               .foreach(collect)
-            def text(t: Tree): String   =
+            def text(t: Tree): String =
                 val sb = new java.lang.StringBuilder
                 walk(t, sb, Array(1))
                 sb.toString
-            val all                     = cases.result()
+            val all                   = cases.result()
             RuleNames.cssCases.map { name =>
               all.filter(c => text(c.pattern).contains(name)) match
-                  case Nil => Item("css", s"${full(r)}.renderProp.$name", "MISSING")
+                  case Nil =>
+                    Item("css", s"${full(r)}.renderProp.$name", "MISSING")
                   case cs  =>
-                    Item("css", s"${full(r)}.renderProp.$name", fingerprintOf(cs))
+                    Item(
+                      "css",
+                      s"${full(r)}.renderProp.$name",
+                      fingerprintOf(cs),
+                    )
             }
         end cssItems
 

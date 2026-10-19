@@ -230,8 +230,8 @@ private[tui4s] final case class Border(
   *     (`Mount.walk` walks it), so their state stays. Now: `HiddenProp` as
   *     before; `flex` and `inlineFlex` keep the flex layout of kyo-ui's base
   *     CSS. `block`, `inline` and `inlineBlock` are accepted and change
-  *     nothing: the element keeps its flex layout (an `inline` span stays a
-  *     row of text), where a browser uses block or inline flow. They give no
+  *     nothing: the element keeps its flex layout (an `inline` span stays a row
+  *     of text), where a browser uses block or inline flow. They give no
   *     warning. `listItem`, `table`, `tableRow` and `tableCell` change nothing
   *     and warn (see [[Warnings]]).
   *   - `flexWrap` (`FlexWrap`: wrap, noWrap; CSS `flex-wrap`). kyo-ui has no
@@ -240,8 +240,8 @@ private[tui4s] final case class Border(
   *     high as its tallest item, and the lines stack from the cross start.
   *     kyo-ui's DOM sets no `align-content`, so the browser uses `normal`,
   *     which acts as `stretch` when the container wraps. The runner does the
-  *     same: when the container has more cross space than its lines, each
-  *     line gets an equal part of the free space.
+  *     same: when the container has more cross space than its lines, each line
+  *     gets an equal part of the free space.
   *   - `Color.Var(name)` (`Color.variable(name)`; CSS `var(--name)`). The case
   *     has no fallback value. kyo-ui declares a custom property only in a
   *     `Stylesheet`: `Stylesheet.vars(name -> value)` is a `:root` block, and

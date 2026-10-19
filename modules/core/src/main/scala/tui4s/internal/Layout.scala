@@ -1052,8 +1052,9 @@ private[tui4s] object Layout:
       * `stretch` in a flex container that wraps. The rects come back in the
       * items' own order.
       *
-      * For example, in `div.style(_.row.flexWrap(_.wrap).height(3.px))(span("a"))`
-      * the one line is 3 rows high, and the span stretches to 3 rows.
+      * For example, in
+      * `div.style(_.row.flexWrap(_.wrap).height(3.px))(span("a"))` the one line
+      * is 3 rows high, and the span stretches to 3 rows.
       */
     // claude 2026-10-19: created (L1b); the lines stretch (review)
     private def wrapped(

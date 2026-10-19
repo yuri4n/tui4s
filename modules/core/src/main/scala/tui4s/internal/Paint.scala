@@ -50,13 +50,13 @@ import kyo.UI.Ast.*
   *
   * The cost of whole rows: a damaged root under a layer makes the plan repaint
   * and diff each row that it touches, across the full width of the screen. A
-  * full-screen modal (`position(_.overlay)`) is over every root, so a tick of
-  * a region under it, or a repair tick, repaints and diffs every row of that
+  * full-screen modal (`position(_.overlay)`) is over every root, so a tick of a
+  * region under it, or a repair tick, repaints and diffs every row of that
   * region. The terminal gets only the cells that changed. Whole rows are the
-  * simple safe choice: a clip inside a row could cut a wide glyph, and the
-  * flow would not give it back. A narrower band (the x range of the damage
-  * and of the layer boxes in those rows, out to the nearest glyph boundary)
-  * is a task for the benchmarks (L5).
+  * simple safe choice: a clip inside a row could cut a wide glyph, and the flow
+  * would not give it back. A narrower band (the x range of the damage and of
+  * the layer boxes in those rows, out to the nearest glyph boundary) is a task
+  * for the benchmarks (L5).
   */
 // claude 2026-10-19: changed (P5): a pure function to a Plan; the canvas
 // writes the plan; changed: the layers and the damage rule (L1b)
