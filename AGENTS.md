@@ -267,14 +267,18 @@ tests then allow 1 split frame).
 - The fibers that a component or a hook starts end with the run: the body of
   a hook component and `Component.onMount` (started by `internal.Mount`), and
   the fibers of `useEffect`, `useInterval`, `useHold` and `useFold` (they
-  call `internal.Tui4sTrack`) join the live-fiber gauge of the run, and the
-  end of the run interrupts them (`Mount.interruptAll`), also a fiber of a
-  hook at the top of the app, whose `Scope` closes later. A new hook or a
-  new mount that starts a fiber adds it to the gauge in the same way, and a
-  test checks the gauge after an interrupted run and after a quit
-  (`ComponentTest`). The unmount of a component interrupts its fiber, so its
-  `Scope` closes and its effects stop.
+  call `internal.Tui4sTrack`) join the live-fiber gauge of the run
+  (`internal.FiberGauge`, one Kyo `AtomicRef`), and the end of the run
+  interrupts them (`FiberGauge.close`), also a fiber of a hook at the top of
+  the app, whose `Scope` closes later. A fiber that joins a closed gauge is
+  interrupted at once. A new hook or a new mount that starts a fiber starts
+  it with `FiberGauge.fork` or `Tui4sTrack.init`: the start and the add are
+  one bracket, so an interrupt cannot land between them. A test checks the
+  gauge after an interrupted run and after a quit (`ComponentTest`). The
+  unmount of a component interrupts its fiber, so its `Scope` closes and its
+  effects stop.
   <!-- claude 2026-10-13: created this item (C4, RC-8) -->
+  <!-- claude 2026-10-19: changed (P2, A7): FiberGauge, the one bracket -->
 - jatatui 0.31.0's JNI cuts a typed character outside the Basic Multilingual
   Plane (an emoji) to 16 bits: such a key arrives wrong. A bracketed paste
   keeps it (`internal.EventMapping` Scaladoc).

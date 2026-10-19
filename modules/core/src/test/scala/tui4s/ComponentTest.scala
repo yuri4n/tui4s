@@ -4,7 +4,7 @@ import jatatui.core.backend.TestBackend
 import kyo.*
 import kyo.UI.*
 import tui4s.Hooks.*
-import tui4s.internal.{Canvas, Knobs, Msg, RunOptions, Runner}
+import tui4s.internal.{Canvas, FiberGauge, Knobs, Msg, RunOptions, Runner}
 import tui4s.spi.Settle
 import tui4s.testkit.{Headless, Screen}
 
@@ -51,8 +51,9 @@ class ComponentTest extends ComponentSuite:
           ends   <- Sync.defer(AtomicInteger(0))
           inbox  <- Channel.initUnscoped[Msg](1024)
           canvas <- Sync.defer(Canvas(TestBackend(60, 12)))
-          // claude 2026-10-19: changed: Runner takes RunOptions (A10)
-          runner  = Runner(inbox, canvas, RunOptions.of(TuiOptions()), Absent)
+          // claude 2026-10-19: changed: Runner.init with RunOptions (A10, P2)
+          runner <-
+            Runner.init(inbox, canvas, RunOptions.of(TuiOptions()), Absent)
           ui      = div(
                       span("effects"),
                       component(hookBody(ticks, ends)),
@@ -148,8 +149,8 @@ class ComponentTest extends ComponentSuite:
           a      <- Signal.initRef(0)
           inbox  <- Channel.initUnscoped[Msg](1024)
           canvas <- Sync.defer(Canvas(TestBackend(60, 12)))
-          // claude 2026-10-19: changed: Runner takes RunOptions (A10)
-          runner  = Runner(inbox, canvas, RunOptions.of(options), Absent)
+          // claude 2026-10-19: changed: Runner.init with RunOptions (A10, P2)
+          runner <- Runner.init(inbox, canvas, RunOptions.of(options), Absent)
           ui      = div(
                       a.render(n =>
                         if n == 2 then component(hookBody(ticks, ends))
@@ -184,6 +185,52 @@ class ComponentTest extends ComponentSuite:
           assert(live0 >= 5, s"fibers before the interrupt: $live0")
           assert(ms >= 0L, "effect fibers stay after the interrupt")
       end for
+    }
+
+    // ---- the gauge (P2, amendment A7) ----
+
+    // claude 2026-10-19: created (P2, A7): the close of FiberGauge
+    "gauge: a fiber that joins the gauge after its close is interrupted at once (fork and add)" in {
+      for
+          g      <- FiberGauge.init
+          _      <- g.close
+          forked <- g.fork(Async.never[Unit])
+          plain  <- Fiber.initUnscoped(Async.never[Unit])
+          _      <- g.add(plain)
+          ms     <- waitFor(2.seconds)(forked.done.map(a => plain.done.map(a && _)))
+          live   <- g.live
+      yield
+          assert(ms >= 0L, "a fiber added after the close still runs")
+          assert(live == 0, s"the closed gauge counts $live live fibers")
+      end for
+    }
+
+    // claude 2026-10-19: created (P2, A7): adds that race with the close
+    "gauge: a close during adds leaves no live fiber (50 rounds of 20 forks and one close behind a latch)" in {
+      def round(using Frame): (Long, Int) < Async =
+        for
+            g       <- FiberGauge.init
+            go      <- Latch.init(1)
+            forkers <- Kyo.foreach(1 to 20)(_ =>
+                         Fiber.initUnscoped(
+                           go.await.andThen(g.fork(Async.never[Unit])),
+                         ),
+                       )
+            closer  <- Fiber.initUnscoped(go.await.andThen(g.close))
+            _       <- go.release
+            forked  <- Kyo.foreach(forkers)(_.get)
+            _       <- closer.get
+            ms      <- waitFor(2.seconds)(
+                         Kyo.foldLeft(forked)(true)((ok, f) => f.done.map(ok && _)),
+                       )
+            live    <- g.live
+        yield (ms, live)
+      Kyo.foreach(1 to 50)(_ => round).map { rounds =>
+        val bad = rounds.zipWithIndex.filter { case ((ms, live), _) =>
+          ms < 0L || live != 0
+        }
+        assert(bad.isEmpty, s"rounds with a live fiber: $bad")
+      }
     }
 
     // ---- the state key (plan 0.2, FC-17) ----

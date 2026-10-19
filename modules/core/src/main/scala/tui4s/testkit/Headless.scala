@@ -337,7 +337,8 @@ object Headless:
           /* claude 2026-10-12: changed (PR #11 review: Codex,
            * Headless.scala:88): the seam */
           canvas  <- Sync.defer(Canvas(backend, knobs.flushSeam))
-          runner   = Runner(inbox, canvas, runOpts, Present(frames), knobs)
+          // claude 2026-10-19: changed: Runner.init (P2, A7)
+          runner  <- Runner.init(inbox, canvas, runOpts, Present(frames), knobs)
           seq     <- AtomicLong.init(1L)
           run     <- Fiber.init(runner.scoped(ui(runner.quit).map(runner.run)))
           // claude 2026-10-13: created (review R1-8, R2-7): the end mark after

@@ -10,21 +10,12 @@ import tui4s.Component
   * synchronously (so the first frame needs no scheduler round trip) and starts
   * one watcher fiber that posts every later value to the runner's inbox.
   */
-// claude 2026-10-12: changed: `knobs` (the test seams)
+// claude 2026-10-19: changed: the gauge of the run, a parameter (P2, A7)
 private[tui4s] final class Mount(
     inbox: Channel[Msg],
+    gauge: FiberGauge,
     knobs: Knobs = Knobs.default,
 ):
-
-    // claude 2026-10-12: created (R1, RC-8): the fibers this run started that
-    // have not ended, for the live-fiber gauge of the tests. Weak, so that the
-    // gauge itself keeps no fiber alive.
-    private val started =
-      java.util.Collections.synchronizedSet( // scalafix:ok DisableSyntax.jvmSync; P2: a Gauge on a Kyo AtomicRef (A7)
-        java.util.Collections.newSetFromMap(
-          new java.util.WeakHashMap[Fiber[Any, Nothing], java.lang.Boolean](),
-        ),
-      )
 
     // claude 2026-10-12: created (D-16, armkey): the regions whose watcher has
     // not armed yet (path -> gen). Until the arm, a write is not seen by the
@@ -45,24 +36,6 @@ private[tui4s] final class Mount(
         }.toSet
     end unarmedRegions
 
-    /** Adds a fiber of this run to the gauge. */
-    private[tui4s] def track(f: Fiber[Any, Nothing]): Unit =
-      discard(started.add(f))
-
-    /** The fibers of this run that have not ended (the watchers and the fibers
-      * the runner tracked): the R1 gauge for tests.
-      */
-    private[tui4s] def liveFibers(using Frame): Int < Sync =
-        import scala.jdk.CollectionConverters.*
-        Sync
-          .defer(started.synchronized(started.asScala.toList)) // scalafix:ok DisableSyntax.jvmSync; P2: a Gauge on a Kyo AtomicRef (A7)
-          .map(fs =>
-            Kyo.foldLeft(fs)(0)((n, f) =>
-              f.done.map(d => if d then n else n + 1),
-            ),
-          )
-    end liveFibers
-
     // claude 2026-10-13: created (C4, the C2 cut back): the hook mount posts
     // its content with it
     private def post(path: Loc, gen: Long, v: Any)(using
@@ -72,15 +45,13 @@ private[tui4s] final class Mount(
 
     // claude 2026-10-12: changed: the watcher joins the gauge and runs the own
     // loop below, not `Signal.observe`
+    // claude 2026-10-19: changed: the gauge starts the watcher (P2, A7)
     private def watch[A](signal: Signal[A], path: Loc, gen: Long)(using
         Frame,
     ): Fiber[Any, Nothing] < Sync =
       Sync
         .defer(discard(unarmed.put(path, java.lang.Long.valueOf(gen))))
-        .andThen(
-          Fiber.initUnscoped(Abort.run[Closed](loop(signal, path, gen)).unit),
-        )
-        .map(f => Sync.defer { track(f); f })
+        .andThen(gauge.fork(Abort.run[Closed](loop(signal, path, gen)).unit))
 
     // TODO(#8): go back to `signal.observe` when Kyo fixes the leak of
     // `Signal.observe` (one `Async.race` per value in a long-lived fiber keeps
@@ -407,13 +378,13 @@ private[tui4s] final class Mount(
                       case _                 => w1
                 case _ =>
                   val (gen, w1) = w.gen
-                  // claude 2026-10-13: changed (C4, RC-8): the fiber joins the
-                  // gauge (R1 option b)
-                  // claude 2026-10-13: changed (C4, review R2-5): a body that
-                  // fails posts an empty UI, so the frame does not wait for
-                  // content that cannot come (the failure is not logged yet)
-                  Fiber
-                    .initUnscoped(
+                  // A body that fails posts an empty UI, so the frame does not
+                  // wait for content that cannot come (the failure is not
+                  // logged yet).
+                  // claude 2026-10-19: changed: the gauge starts the fiber and
+                  // adds it in one bracket (P2, A7)
+                  gauge
+                    .fork(
                       Abort
                         .run[Throwable](
                           Scope.run(
@@ -427,7 +398,6 @@ private[tui4s] final class Mount(
                           case _                 => post(path, gen, UI.empty)
                         },
                     )
-                    .map(f => Sync.defer { track(f); f })
                     .map { fiber =>
                       w1.copy(
                         regions = w1.regions.updated(
@@ -452,8 +422,8 @@ private[tui4s] final class Mount(
       * `onMount` returns and closes when the fiber ends (the unmount, or the
       * end of the run, interrupts it). The fiber joins the gauge.
       */
-    // claude 2026-10-13: created (C4, P-6): the prototype's start of the
-    // effects, out of mountComponent; it joins the gauge (RC-8)
+    // claude 2026-10-19: changed: the gauge starts the fiber and adds it in
+    // one bracket (P2, A7)
     private def startEffects(
         c: Component,
         state: SignalRef[c.State],
@@ -467,7 +437,7 @@ private[tui4s] final class Mount(
           // the mount ends (an interrupt), as for a hook component: it closed
           // when onMount returned, so an interval or a resource that onMount
           // started ended at once
-          Fiber.initUnscoped(
+          gauge.fork(
             Abort
               .run[Throwable](
                 Scope.run(c.onMount(state).andThen(Async.never[Unit])),
@@ -475,7 +445,6 @@ private[tui4s] final class Mount(
               .unit,
           ),
         )
-        .map(f => Sync.defer { track(f); f })
 
     /** Replaces the content of the region at `path` (already updated in `w`),
       * mounting the regions in its new content and unmounting the old ones it
@@ -559,21 +528,6 @@ private[tui4s] final class Mount(
       Kyo.foreachDiscard(w.regions.values.toSeq)(r =>
         r.watcher.fold(Kyo.unit)(_.interrupt.unit),
       )
-
-    /** Interrupts every fiber of this run that the gauge still holds (a done
-      * fiber ignores the interrupt). The runner calls it when the run stops: a
-      * watcher that a step started inside a settle or a verify pass is in the
-      * step's state only until the next `remember`, so an interrupt that lands
-      * there would leave it parked on `nextWith` for ever. A live watcher is
-      * strongly reachable from its signal, so the weak set holds it. It does
-      * not wait.
-      */
-    // claude 2026-10-12: created (review R2-1)
-    private[tui4s] def interruptAll(using Frame): Unit < Sync =
-        import scala.jdk.CollectionConverters.*
-        Sync
-          .defer(started.synchronized(started.asScala.toList)) // scalafix:ok DisableSyntax.jvmSync; P2: a Gauge on a Kyo AtomicRef (A7)
-          .map(fs => Kyo.foreachDiscard(fs)(_.interrupt.unit))
 end Mount
 
 private[tui4s] object Mount:
@@ -643,21 +597,28 @@ end Mount
   * ([[tui4s.Hooks]]: `useEffect`, `useInterval`, `useHold`, `useFold`). A
   * `Local`, so it reaches the construction of the UI, the bodies of the hook
   * components, the `onMount` of a [[tui4s.Component]], and the fibers that they
-  * start. Such a fiber joins the gauge of [[Mount]], so the end of the run
-  * interrupts it (`Mount.interruptAll`), also when the `Scope` that owns it
+  * start. Such a fiber joins the [[FiberGauge]] of the run, so the end of the
+  * run interrupts it (`FiberGauge.close`), also when the `Scope` that owns it
   * closes later (the kit's) or never closes (an interrupt that lands inside a
-  * step). Outside a run it does nothing.
+  * step). Outside a run it is a plain `Fiber.init`.
   */
-// claude 2026-10-13: created (C4, RC-8: R1 option b for the hooks)
+// claude 2026-10-19: changed: the Local holds the FiberGauge; `init` starts the
+// fiber and adds it in one bracket (P2, A7)
 private[tui4s] object Tui4sTrack:
-    private val local: Local[Fiber[Any, Nothing] => Unit] = Local.init(_ => ())
+    private val local: Local[Maybe[FiberGauge]] = Local.init(Absent)
 
-    def let[A, S](track: Fiber[Any, Nothing] => Unit)(v: A < S)(using
-        Frame,
-    ): A < S =
-      local.let(track)(v)
+    def let[A, S](gauge: FiberGauge)(v: A < S)(using Frame): A < S =
+      local.let(Present(gauge))(v)
 
-    /** Adds `f` to the gauge of the run that runs the caller. */
-    def apply(f: Fiber[Any, Nothing])(using Frame): Unit < Sync =
-      local.use(t => Sync.defer(t(f)))
+    /** Starts `v` in a fiber of the enclosing `Scope` (as `Fiber.init`: the
+      * close of the `Scope` interrupts the fiber and waits for it) and adds the
+      * fiber to the gauge of the run that runs the caller. The start and the
+      * add are one bracket (as in `FiberGauge.fork`).
+      */
+    def init(v: => Any < Async)(using Frame): Unit < (Sync & Scope) =
+      local.use {
+        case Present(g) =>
+          Sync.acquireReleaseWith(Fiber.init(v))(g.add)(_ => ())
+        case Absent     => Fiber.init(v).unit
+      }
 end Tui4sTrack

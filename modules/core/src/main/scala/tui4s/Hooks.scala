@@ -71,11 +71,11 @@ object Hooks:
         Frame,
         Tag[Emit[Chunk[A]]],
     ): Signal[A] < (Sync & Scope) =
-      // claude 2026-10-13: changed (C4, RC-8): the fiber joins the gauge of the
-      // run (R1 option b)
+      // claude 2026-10-19: changed: Tui4sTrack.init: the fiber joins the gauge
+      // of the run in one bracket (P2, A7)
       for
           ref <- Signal.initRef(initial)
-          _   <- Fiber.init(stream.foreach(ref.set)).map(Tui4sTrack(_))
+          _   <- Tui4sTrack.init(stream.foreach(ref.set))
       yield ref
 
     /** A signal folding `stream` into a state. The stream runs in a fiber while
@@ -95,13 +95,13 @@ object Hooks:
         Frame,
         Tag[Emit[Chunk[A]]],
     ): Signal[S] < (Sync & Scope) =
-      // claude 2026-10-13: changed (C4, RC-8): the fiber joins the gauge of the
-      // run (R1 option b)
+      // claude 2026-10-19: changed: Tui4sTrack.init: the fiber joins the gauge
+      // of the run in one bracket (P2, A7)
       for
           ref <- Signal.initRef(initial)
-          _   <- Fiber
-                   .init(stream.foreach(a => ref.updateAndGet(s => f(s, a))))
-                   .map(Tui4sTrack(_))
+          _   <- Tui4sTrack.init(
+                   stream.foreach(a => ref.updateAndGet(s => f(s, a))),
+                 )
       yield ref
 
     /** Runs `effect` in a fiber that lives as long as the enclosing `Scope`
@@ -122,9 +122,9 @@ object Hooks:
     def useEffect(effect: => Any < (Async & Scope))(using
         Frame,
     ): Unit < (Sync & Scope) =
-      // claude 2026-10-13: changed (C4, RC-8): the fiber joins the gauge of the
-      // run (R1 option b)
-      Fiber.init(Scope.run(effect)).map(Tui4sTrack(_))
+      // claude 2026-10-19: changed: Tui4sTrack.init: the fiber joins the gauge
+      // of the run in one bracket (P2, A7)
+      Tui4sTrack.init(Scope.run(effect))
 
     /** Runs `action` every `period` while the enclosing `Scope` is open.
       *

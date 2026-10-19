@@ -20,17 +20,21 @@ import tui4s.{FrameCause, FrameStats}
   */
 // claude 2026-10-13: changed: the Scaladoc names the dispatcher (C3)
 // claude 2026-10-19: changed: the checked options (RunOptions, amendment A10)
-private[tui4s] final class Runner(
+// claude 2026-10-19: changed: built by `Runner.init`, with the gauge of the
+// run (P2, A7)
+private[tui4s] final class Runner private (
     inbox: Channel[Msg],
     canvas: Canvas,
     runOpts: RunOptions,
     stats: Maybe[Channel[FrameStats]],
-    knobs: Knobs = Knobs.default,
+    knobs: Knobs,
+    gauge: FiberGauge,
 ):
     private val options = runOpts.options
 
     // claude 2026-10-12: changed: the mount gets the test seams
-    private val mount = Mount(inbox, knobs)
+    // claude 2026-10-19: changed: and the gauge (P2, A7)
+    private val mount = Mount(inbox, gauge, knobs)
 
     private def nanos(using Frame): Long < Sync =
       Sync.defer(java.lang.System.nanoTime()) // scalafix:ok DisableSyntax.jvmGlobal; P2: Clock.nowMonotonic
@@ -44,7 +48,8 @@ private[tui4s] final class Runner(
       Sync.defer { last.set(Some(w)); w }
 
     /** The fibers of this run that have not ended: a gauge for tests (R1). */
-    private[tui4s] def liveFibers(using Frame): Int < Sync = mount.liveFibers
+    // claude 2026-10-19: changed: the FiberGauge (P2, A7)
+    private[tui4s] def liveFibers(using Frame): Int < Sync = gauge.live
 
     /** Stops every fiber of the run: the watchers of the last world, the tick,
       * and then every fiber of the run that still lives (the watchers that a
@@ -54,6 +59,7 @@ private[tui4s] final class Runner(
     // claude 2026-10-12: changed (review R2-1, R2-2): `stopped` is set first
     // (the tick reads it); `interruptAll` over the gauge set closes the window
     // between a watcher start inside a step and the next `remember`
+    // claude 2026-10-19: changed: the close of the FiberGauge (P2, A7)
     private def stop(using Frame): Unit < Sync =
       Sync
         .defer { stopped.set(true); last.get() }
@@ -61,7 +67,7 @@ private[tui4s] final class Runner(
         .andThen(
           Sync.defer(ticker.get()).map(_.fold(Kyo.unit)(_.interrupt.unit)),
         )
-        .andThen(mount.interruptAll)
+        .andThen(gauge.close)
 
     // claude 2026-10-12: created (review R2-2, R2-8 b): set by `stop` (the tick
     // ends at its next wake-up, also when `ticker` was never set) and by
@@ -91,8 +97,9 @@ private[tui4s] final class Runner(
       */
     // claude 2026-10-13: created (C3, RC-2 part; the prototype's scoped)
     // claude 2026-10-13: changed (C4, RC-8): the gauge (Tui4sTrack)
+    // claude 2026-10-19: changed: the FiberGauge (P2, A7)
     def scoped[A, S](v: => A < S)(using Frame): A < S =
-      Tui4sQuit.let(quit)(Tui4sTrack.let(mount.track)(v))
+      Tui4sQuit.let(quit)(Tui4sTrack.let(gauge)(v))
 
     // claude 2026-10-12: created (K29): the repair tick fiber
     private val ticker =
@@ -135,8 +142,9 @@ private[tui4s] final class Runner(
     def run(root: UI)(using Frame): Unit < Async =
       scoped(Sync.ensure(stop) {
         for
-            tick <- Fiber.initUnscoped(repairTick)
-            _    <- Sync.defer { mount.track(tick); ticker.set(Some(tick)) }
+            // claude 2026-10-19: changed: the gauge starts the tick (P2, A7)
+            tick <- gauge.fork(repairTick)
+            _    <- Sync.defer(ticker.set(Some(tick)))
             t0   <- nanos
             w0   <- mount
                       .walk(
@@ -757,4 +765,20 @@ private[tui4s] final class Runner(
             }
           }
     end frame
+end Runner
+
+private[tui4s] object Runner:
+    /** A runner with a new gauge of its own. */
+    // claude 2026-10-19: created (P2, A7): the gauge is a Kyo AtomicRef, so it
+    // is made in `Sync`
+    def init(
+        inbox: Channel[Msg],
+        canvas: Canvas,
+        runOpts: RunOptions,
+        stats: Maybe[Channel[FrameStats]],
+        knobs: Knobs = Knobs.default,
+    )(using Frame): Runner < Sync =
+      FiberGauge.init.map(g =>
+        new Runner(inbox, canvas, runOpts, stats, knobs, g),
+      )
 end Runner

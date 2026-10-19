@@ -155,11 +155,13 @@ object Tui:
         Sync.acquireReleaseWith(Session.open(options, control, None, inbox))(
           opened => Sync.Unsafe.defer(opened.foreach(_.close())), // scalafix:ok DisableSyntax.unsafe; P3: the release stack (A1)
         ) { opened =>
+          // claude 2026-10-19: changed: Runner.init (P2, A7)
           Abort.get(opened).map { session =>
-            val runner = Runner(inbox, session.canvas, options, Absent)
-            Scope
-              .run(runner.scoped(ui(runner.quit).map(runner.run)))
-              .andThen(inputFailed(session))
+            Runner.init(inbox, session.canvas, options, Absent).map { runner =>
+              Scope
+                .run(runner.scoped(ui(runner.quit).map(runner.run)))
+                .andThen(inputFailed(session))
+            }
           }
         }
       }

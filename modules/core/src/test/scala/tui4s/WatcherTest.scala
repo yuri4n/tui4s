@@ -67,8 +67,9 @@ class WatcherTest extends RunnerSuite:
           r      <- refs
           inbox  <- Channel.initUnscoped[Msg](1024)
           canvas <- Sync.defer(Canvas(TestBackend(60, 12)))
-          // claude 2026-10-19: changed: Runner takes RunOptions (A10)
-          runner  = Runner(inbox, canvas, RunOptions.of(TuiOptions()), Absent)
+          // claude 2026-10-19: changed: Runner.init with RunOptions (A10, P2)
+          runner <-
+            Runner.init(inbox, canvas, RunOptions.of(TuiOptions()), Absent)
           fiber  <- Fiber.initUnscoped(runner.run(app(r)))
           // the mount is done when its 5 watchers (and the tick) are live
           _      <- waitFor(5.seconds)(runner.liveFibers.map(_ >= 6))
@@ -97,8 +98,8 @@ class WatcherTest extends RunnerSuite:
           r      <- refs
           inbox  <- Channel.initUnscoped[Msg](1024)
           canvas <- Sync.defer(Canvas(TestBackend(60, 12)))
-          // claude 2026-10-19: changed: Runner takes RunOptions (A10)
-          runner  = Runner(inbox, canvas, RunOptions.of(options), Absent)
+          // claude 2026-10-19: changed: Runner.init with RunOptions (A10, P2)
+          runner <- Runner.init(inbox, canvas, RunOptions.of(options), Absent)
           fiber  <- Fiber.initUnscoped(runner.run(app(r)))
           _      <- waitFor(5.seconds)(runner.liveFibers.map(_ >= 6))
           _      <- Async.sleep(100.millis) // the arm steps of the start pass

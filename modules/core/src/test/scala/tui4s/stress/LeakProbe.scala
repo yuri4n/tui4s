@@ -48,10 +48,10 @@ class LeakProbe extends StressSuite:
                                inbox  <- Channel.initUnscoped[Msg](1024)
                                canvas <-
                                  Sync.defer(Canvas(TestBackend(100, 30)))
-                               // claude 2026-10-19: changed: Runner takes
-                               // RunOptions (A10)
-                               runner  =
-                                 Runner(
+                               // claude 2026-10-19: changed: Runner.init
+                               // with RunOptions (A10, P2)
+                               runner <-
+                                 Runner.init(
                                    inbox,
                                    canvas,
                                    RunOptions.of(TuiOptions()),
