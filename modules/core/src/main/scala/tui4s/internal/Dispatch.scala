@@ -259,8 +259,7 @@ private[tui4s] final class Dispatch(
               if !Scroll.consumes(e, k) &&
                 !ch.exists((_, a) => Scroll.preventsScroll(a)) =>
             Scroll.byKey(w.laid, ch.map(_._1), k) match
-                case Some((p, o)) =>
-                  w.copy(scroll = w.scroll.updated(p, o)).markNode(p)
+                case Some((p, o)) => w.scrollTo(p, o)
                 case None         => w
           case _ => w.copy(reveal = Reveal.Now)
 

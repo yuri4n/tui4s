@@ -57,8 +57,8 @@ private[tui4s] object Paint:
 
     /** The plan of one frame: the clears of `damage` first, then the paint of
       * each root of `damage` that is not under another root. The spans of the
-      * plan are the rects of the clears and of the roots, on the screen of
-      * `env`.
+      * plan are the rects of the clears and of the roots (each cut to its
+      * clip), on the screen of `env`.
       */
     // claude 2026-10-19: changed (P5): the clears and the roots give ops; the
     // clip of a root is cut to the screen
@@ -75,8 +75,12 @@ private[tui4s] object Paint:
         val ops    = top.foldLeft(ops0)((ops, p) =>
           paintNode(ops, laid, env, p, clipOf(laid, p).intersect(screen)),
         )
-        val rects  =
-          clears.map(_.rect) ++ top.flatMap(p => laid.nodes.get(p).map(_.rect))
+        // claude 2026-10-19: changed: the span of a root is cut to its clip,
+        // so a root inside a viewport names only cells of the port (L1a
+        // review)
+        val rects  = clears.map(_.rect) ++ top.flatMap(p =>
+          laid.nodes.get(p).map(_.rect.intersect(clipOf(laid, p))),
+        )
         Plan(env.screen, ops, Plan.rowSpans(rects, screen), top.size)
     end apply
 
@@ -163,9 +167,16 @@ private[tui4s] object Paint:
               // claude 2026-10-19: changed: the kids of a viewport are clipped
               // to its port (L1a)
               val inner = n.port.intersect(clip)
-              // claude 2026-10-19: created (L1a): the scroll indicator
-              val bar   = n.view.toVector
-                .flatMap(v => indicator(BarLook.of(n.props), v, area))
+              // claude 2026-10-19: created (L1a): the scroll indicator; a
+              // focused viewport has a heavy track (L1a review)
+              val look  = BarLook.of(n.props)
+              val bar   = n.view.toVector.flatMap(v =>
+                indicator(
+                  if env.focus.contains(n.path) then look.focused else look,
+                  v,
+                  area,
+                ),
+              )
               n.kids.foldLeft(
                 ops ++ fill ++ frame ++ decorate(laid, env, n, e, area),
               )((o, k) => paintNode(o, laid, env, k, inner)) ++ bar
@@ -210,7 +221,14 @@ private[tui4s] object Paint:
         trackStyle: JStyle,
         thumb: String,
         thumbStyle: JStyle,
-    )
+    ):
+        /** The look of the indicator of a focused viewport: a heavy track
+          * ("┃"), as a focused border becomes heavy. It is the focus mark of a
+          * viewport with no border.
+          */
+        // claude 2026-10-19: created (L1a review)
+        def focused: BarLook = copy(track = "┃")
+    end BarLook
 
     object BarLook:
         /** The default look of the indicator of an element with the props `p`:

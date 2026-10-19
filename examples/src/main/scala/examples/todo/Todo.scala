@@ -24,9 +24,6 @@ import java.nio.file.{Files, Paths}
   */
 // claude 2026-10-19: changed: the Scaladoc names the scroll and the ellipsis
 // (L1a)
-// claude 2026-10-13: changed (T2, RC-33): the Scaladoc names the keys; a file
-// that cannot be read is in the status line (the prototype showed "loaded 0
-// items")
 object Todo:
 
     final case class Item(id: Int, text: String, done: Boolean) derives CanEqual
@@ -111,7 +108,8 @@ object Todo:
       )
 
     // claude 2026-10-19: created the region below (L1a): the README section
-    // "Scroll, wrap and ellipsis" shows it
+    // "Scroll, wrap and ellipsis" shows it; the list is built again only for
+    // a new selection, and the body needs no `tabIndex(-1)` (L1a review)
     // region: scroll
     /** One line of text: a longer text ends with "…" at the edge of its box
       * (CSS `overflow: hidden`, `text-overflow: ellipsis`,
@@ -138,38 +136,44 @@ object Todo:
         )
 
     /** The list keeps the focus while the arrows move the selection:
-      * `aria-activedescendant` names the selected row, so the viewport around
-      * the list scrolls to it, and `preventScrollKeys` keeps the arrows from
-      * scrolling it too.
+      * `aria-activedescendant` names the selected row (`selected`, its id), so
+      * the viewport around the list scrolls to it, and `preventScrollKeys`
+      * keeps the arrows from scrolling it too. kyo-ui's `aria` takes a fixed
+      * value, so the list is built again when `selected` changes; a toggle or
+      * an add changes only its rows (the `foreachKeyed`).
       */
     def list(
+        selected: Signal[String],
         rows: Signal[Chunk[Row]],
         onKey: KeyboardEvent => Any < Async,
     ): UI =
-      rows
-        .map(_.find(_.selected).fold("")(r => s"item-${r.item.id}"))
-        .map(selected =>
-          ul.id("list")
-            .tabIndex(0)
-            .preventScrollKeys
-            .aria("activedescendant", selected)
-            .onKeyDown(onKey)
-            .style(
-              _.border(1.px, Style.Color.slate)
-                .minHeight(4.px)
-                .focus(_.border(1.px, Style.Color.blue)),
-            )(
-              rows.foreachKeyed(_.item.id.toString)(row),
-            ): UI,
-        )
+      selected.map(id =>
+        ul.id("list")
+          .tabIndex(0)
+          .preventScrollKeys
+          .aria("activedescendant", id)
+          .onKeyDown(onKey)
+          .style(
+            _.border(1.px, Style.Color.slate)
+              .minHeight(4.px)
+              .focus(_.border(1.px, Style.Color.blue)),
+          )(
+            rows.foreachKeyed(_.item.id.toString)(row),
+          ): UI,
+      )
 
     /** The list and the input bar under it, in a viewport that takes the free
-      * rows and scrolls (`overflowY: auto`; `tabIndex(-1)`: it is not a tab
-      * stop, its list and input are).
+      * rows and scrolls (`overflowY: auto`). It is not a tab stop, because it
+      * holds focusable elements (its list and its input).
       */
     def body(list: UI, input: UI): UI =
-      div.tabIndex(-1).style(_.overflowY(_.auto).flexGrow(1))(list, input)
+      div.style(_.overflowY(_.auto).flexGrow(1))(list, input)
     // endregion: scroll
+
+    /** The id of the row at `cursor`, or "" when there is none. */
+    // claude 2026-10-19: created (L1a review)
+    def rowId(items: Chunk[Item], cursor: Int): String =
+      items.lift(cursor).fold("")(t => s"item-${t.id}")
 
     def footer(status: Signal[String]): UI =
       div(
@@ -184,66 +188,75 @@ object Todo:
     def app(file: String): UI < (Async & Scope) =
       for
           // claude 2026-10-13: changed (T2): the status of a failed load
-          result  <- load(file)
-          loaded   = result.getOrElse(Chunk.empty)
-          items   <- Signal.initRef(loaded)
-          draft   <- Signal.initRef("")
-          cursor  <- Signal.initRef(0)
-          status  <- Signal.initRef(loadStatus(file, result))
-          nextId  <- AtomicInt.init(loaded.size + 1)
-          rows     =
+          result   <- load(file)
+          loaded    = result.getOrElse(Chunk.empty)
+          items    <- Signal.initRef(loaded)
+          draft    <- Signal.initRef("")
+          cursor   <- Signal.initRef(0)
+          // claude 2026-10-19: created (L1a review): the id of the selected
+          // row; a SignalRef notifies only a new value
+          selected <- Signal.initRef(rowId(loaded, 0))
+          status   <- Signal.initRef(loadStatus(file, result))
+          nextId   <- AtomicInt.init(loaded.size + 1)
+          rows      =
             items
               .combineLatest(cursor)
               .map((ts, c) => ts.zipWithIndex.map((t, i) => Row(t, i == c)))
-          count    = items.map(ts => s"${ts.count(!_.done)} open / ${ts.size}")
-          add      = draft.get.map { text =>
-                       if text.trim.isEmpty then ()
-                       else
-                           nextId.getAndIncrement
-                             .map(id =>
-                               items.updateAndGet(_ :+ Item(id, text.trim, false)),
-                             )
-                             .andThen(draft.set(""))
-                     }
-          atCursor = (f: (Chunk[Item], Int) => Chunk[Item]) =>
-                       cursor.get.map(c =>
-                         items.updateAndGet(ts =>
-                           if c >= 0 && c < ts.size then f(ts, c) else ts,
-                         ),
-                       )
-          toggle   =
+          count     = items.map(ts => s"${ts.count(!_.done)} open / ${ts.size}")
+          select    =
+            items.get.map(ts => cursor.get.map(c => selected.set(rowId(ts, c))))
+          add       = draft.get.map { text =>
+                        if text.trim.isEmpty then ()
+                        else
+                            nextId.getAndIncrement
+                              .map(id =>
+                                items.updateAndGet(_ :+ Item(id, text.trim, false)),
+                              )
+                              .andThen(draft.set(""))
+                              .andThen(select)
+                      }
+          atCursor  = (f: (Chunk[Item], Int) => Chunk[Item]) =>
+                        cursor.get.map(c =>
+                          items.updateAndGet(ts =>
+                            if c >= 0 && c < ts.size then f(ts, c) else ts,
+                          ),
+                        )
+          toggle    =
             atCursor((ts, c) => ts.updated(c, ts(c).copy(done = !ts(c).done)))
-          delete   = atCursor((ts, c) => ts.take(c) ++ ts.drop(c + 1)).map(ts =>
-                       cursor.updateAndGet(c => c.min(ts.size - 1).max(0)),
-                     )
-          move     = (d: Int) =>
-                       items.get.map(ts =>
-                         cursor.updateAndGet(c =>
-                           (c + d).max(0).min((ts.size - 1).max(0)),
-                         ),
-                       )
+          delete    =
+            atCursor((ts, c) => ts.take(c) ++ ts.drop(c + 1))
+              .map(ts => cursor.updateAndGet(c => c.min(ts.size - 1).max(0)))
+              .andThen(select)
+          move      = (d: Int) =>
+                        items.get
+                          .map(ts =>
+                            cursor.updateAndGet(c =>
+                              (c + d).max(0).min((ts.size - 1).max(0)),
+                            ),
+                          )
+                          .andThen(select)
           // The result type is load-bearing: without it the match widens to
           // `Any`, and Kyo lifts the effects as plain values, so they never run
           // (the lift trap; AGENTS.md "Rules for code").
           // claude 2026-10-13: changed (T2): the comment names AGENTS.md (the
           // prototype named its REPORT.md)
-          listKeys = (e: KeyboardEvent) =>
-                       (e.key match
-                           case Keyboard.ArrowUp | Keyboard.Char('k')   =>
-                             move(-1)
-                           case Keyboard.ArrowDown | Keyboard.Char('j') =>
-                             move(1)
-                           case Keyboard.Space                          => toggle
-                           case Keyboard.Char('d')                      => delete
-                           case _                                       => ()
-                       ): Any < Async
-          saveAll  = items.get.map(ts =>
-                       Abort.run[java.io.IOException](save(file, ts)).map {
-                         case Result.Success(_) =>
-                           status.set(s"saved ${ts.size} items to $file")
-                         case other             => status.set(s"save failed: $other")
-                       },
-                     )
+          listKeys  = (e: KeyboardEvent) =>
+                        (e.key match
+                            case Keyboard.ArrowUp | Keyboard.Char('k')   =>
+                              move(-1)
+                            case Keyboard.ArrowDown | Keyboard.Char('j') =>
+                              move(1)
+                            case Keyboard.Space                          => toggle
+                            case Keyboard.Char('d')                      => delete
+                            case _                                       => ()
+                        ): Any < Async
+          saveAll   = items.get.map(ts =>
+                        Abort.run[java.io.IOException](save(file, ts)).map {
+                          case Result.Success(_) =>
+                            status.set(s"saved ${ts.size} items to $file")
+                          case other             => status.set(s"save failed: $other")
+                        },
+                      )
       // claude 2026-10-19: changed: the screen height, and the body that
       // scrolls (L1a)
       yield main
@@ -255,7 +268,7 @@ object Todo:
         }
         .style(_.height(100.pct))(
           header(count),
-          body(list(rows, listKeys), inputBar(draft, add)),
+          body(list(selected, rows, listKeys), inputBar(draft, add)),
           footer(status),
         )
 end Todo

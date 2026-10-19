@@ -121,8 +121,9 @@ private[tui4s] final case class Border(
   *     scroll, auto; CSS `overflow`, `overflow-x`, `overflow-y`): an element
   *     with an axis that is not `visible` is a viewport
   *     ([[Layout.arrangeKids]], [[Scroll]]). `hidden` clips, `scroll` and
-  *     `auto` also scroll (the keys, the follow-focus rule), and a viewport
-  *     that scrolls is focusable. `visible` keeps the old rule: each box clips
+  *     `auto` also scroll (the keys, the follow-focus rule). A viewport that
+  *     can scroll now and holds no focusable element is a tab stop
+  *     ([[Layout.isFocusable]]). `visible` keeps the old rule: each box clips
   *     its content to its content box. Each axis keeps its own value (CSS
   *     computes `visible` next to a non-visible axis to `auto`; the runner does
   *     not). A viewport whose content is taller than its port, with at least 3
@@ -135,7 +136,8 @@ private[tui4s] final case class Border(
   *     and `pre` never wrap. With no `whiteSpace`, a text keeps its spaces and
   *     line breaks (the old rule). A text wraps in a column, and in a row whose
   *     element has a definite `width` (CSS wraps a text in any box of a
-  *     definite width).
+  *     definite width). The row wrap changes a default: the old layout never
+  *     wrapped a text in a row.
   *   - `textWrap` (`TextWrap`: wrap, noWrap, ellipsis, balance, pretty; CSS
   *     `overflow-wrap: break-word`, `overflow-wrap: normal`,
   *     `overflow-wrap: normal; text-overflow: ellipsis`, `text-wrap: balance`,
@@ -147,7 +149,9 @@ private[tui4s] final case class Border(
   *     inherited): `ellipsis` on an element with `overflowX: hidden` paints "…"
   *     (1 cell) at the cut of each line of its texts that is wider than the
   *     text box; the cut is by cells and never splits a wide glyph. `clip` (the
-  *     default) clips by cells.
+  *     default) clips by cells. Only the texts of that element itself get the
+  *     "…" (its direct text children). CSS also cuts a text inside a nested
+  *     inline span, and with `overflow` scroll or auto; the runner does not.
   *   - The text measure counts cells: `Layout.textWidth` is jatatui's
   *     `Span.width` (2 cells for a wide character or an emoji), the wrap splits
   *     a long word by cells, the painter cuts a text into `Glyph`s, a text
@@ -156,7 +160,7 @@ private[tui4s] final case class Border(
   *     wide glyph.
   */
 // claude 2026-10-19: changed: the audit of the overflow and text-flow
-// properties (L1a)
+// properties (L1a; the tab stop, the row wrap, the direct texts: L1a review)
 private[tui4s] final case class Props(
     dir: Dir,
     /** `rowReverse` or `columnReverse`: the items go from the end. */
@@ -301,41 +305,26 @@ private[tui4s] object Props:
           case _: HiddenInput => true
           case _              => false)
 
-    /** Focusable in the terminal: kyo-ui `Focusable` elements, anchors, a
-      * viewport that scrolls (an axis with `overflow` scroll or auto, as
-      * Firefox makes a scrollable region focusable), and any element with
-      * `tabIndex >= 0`. `tabIndex(-1)` takes a viewport out of the tab order.
+    /** Focusable in the terminal from the element alone: kyo-ui `Focusable`
+      * elements, anchors, dropdowns, and any element with `tabIndex >= 0`. A
+      * viewport can be a tab stop too, but only its layout tells
+      * ([[Layout.isFocusable]]).
       */
-    // claude 2026-10-19: changed: a viewport that scrolls is focusable (L1a)
+    // claude 2026-10-19: changed: a viewport is a tab stop by its layout, not
+    // by its style (L1a review)
     def isFocusable(el: Element): Boolean =
       !isDisabled(el) && !isHidden(el) && (el.attrs.tabIndex match
           case Present(n) => n >= 0
           case Absent     =>
             el match
                 case _: Focusable | _: Anchor | _: Dropdown => true
-                case _                                      => isScroller(el))
+                case _                                      => false)
 
     /** True when `o` lets the user scroll the axis: `scroll` or `auto`. */
     // claude 2026-10-19: created (L1a)
     def scrolls(o: Overflow): Boolean = o match
         case Overflow.scroll | Overflow.auto => true
         case _                               => false
-
-    /** True when the style of `el` gives an axis `overflow` scroll or auto (the
-      * last overflow property of each axis wins, as in `applyStyle`).
-      */
-    // claude 2026-10-19: created (L1a)
-    def isScroller(el: Element): Boolean =
-        val (x, y) = el.attrs.uiStyle.props.foldLeft(
-          (Overflow.visible, Overflow.visible),
-        ) {
-          case (_, Prop.OverflowProp(v))       => (v, v)
-          case ((_, y), Prop.OverflowXProp(v)) => (v, y)
-          case ((x, _), Prop.OverflowYProp(v)) => (x, v)
-          case (acc, _)                        => acc
-        }
-        scrolls(x) || scrolls(y)
-    end isScroller
 
     /** Elements that show the focus themselves (reverse video); other
       * focusables rely on `Style.focus(...)` or a heavy border.

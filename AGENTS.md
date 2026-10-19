@@ -86,20 +86,29 @@ Each UI has a munit suite on `Headless`.
 <!-- claude 2026-10-13: changed the last sentence (T2, review R1-4): counterkyo is a KyoApp; widgets has no main -->
 <!-- claude 2026-10-19: changed: kill -HUP and 129 -->
 An element with an `overflow` axis that is not `visible` is a viewport
-(`internal.Layout.arrangeKids`, `internal.Scroll`): it clips its content, which
-has its natural size on that axis, and with `scroll` or `auto` it is focusable,
-it scrolls with the keys of the table below and with the follow-focus rule (when
-the focus or its `aria-activedescendant` moves, or after a key or a paste on the
-focused element, each viewport around it scrolls the least distance that shows
-it; D13: kyo-ui's `scrollIntoView` is private), and it shows a scroll indicator
-when its content is taller than a port of 3 rows or more, with the offset in
-`World.scroll` by `Loc`, clamped after each layout and reset at an unmount.
+(`internal.Layout.arrangeKids`, `internal.Scroll`). A viewport clips its
+content. On that axis, the content has its natural size. With `scroll` or
+`auto`, the viewport scrolls with the keys of the table below. It is a tab
+stop when its content does not fit and it holds no focusable element
+(`Layout.isFocusable`); a focused viewport draws its track heavy. The
+follow-focus rule scrolls each viewport around the focus the least distance
+that shows it. The rule runs when the focus or its `aria-activedescendant`
+moves, and after a key or a paste on the focused element (D13: kyo-ui's
+`scrollIntoView` is private). A viewport shows a scroll indicator when its
+content is taller than a port of 3 rows or more. `World.scroll` keeps the
+offset of each viewport by `Loc`. Each layout clamps the offset, and an
+unmount resets it. A scroll lays out the viewport in place (`World.scrolled`):
+its kids move, and they are not laid out again.
 The text flow (`internal.TextFlow`) honours `whiteSpace`, `textWrap` (CSS
-`overflow-wrap`) and `textOverflow` with `overflow: hidden` ("…" at the cut),
-and a text wraps in a column and in a row of a definite `width`.
-Every measure that places a glyph counts cells (`Layout.textWidth`): the caret
-and the scroll of a text input, the labels of the pickers (`Paint.fit`), the
-wrap of a long word and the ellipsis, so a wide character is never split.
+`overflow-wrap`) and `textOverflow`. The ellipsis ("…" at the cut) needs
+`overflow: hidden` on the element that holds the text. A text wraps in a
+column and in a row of a definite `width`. The row wrap is a change of the
+default: the old layout never wrapped a text in a row. A row lays out such a
+text at its final width (`Layout.settle`), so no line is lost.
+Every measure that places a glyph counts cells (`Layout.textWidth`). This
+includes the caret and the scroll of a text input, the labels of the pickers
+(`Paint.fit`), the wrap of a long word and the ellipsis. Thus a wide character
+is never split.
 
 | Key (no modifier) on the focused element or inside the viewport | Scroll |
 | --------------------------------------------------------------- | ------ |
@@ -112,7 +121,9 @@ The innermost viewport of the focus chain that can move scrolls. There is no
 scroll when the focused element uses the key (a text input: the arrows, Home
 and End; a select: ArrowUp and ArrowDown; a focus group: ArrowLeft and
 ArrowRight) or when an element of the chain has kyo-ui's `preventScrollKeys`.
-<!-- claude 2026-10-19: created the three sentences, the key table and its notes above (L1a): scroll, text flow, wide characters -->
+With no focus (`autoFocus = false` before the first Tab), a key scrolls
+nothing.
+<!-- claude 2026-10-19: created the sentences, the key table and its notes above (L1a; L1a review: short sentences, the tab stop, the row wrap, the scroll in place, no focus): scroll, text flow, wide characters -->
 
 ## UI architecture and API design
 

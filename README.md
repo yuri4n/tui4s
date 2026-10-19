@@ -199,7 +199,7 @@ require it.
 
 ## Scroll, wrap and ellipsis
 
-<!-- claude 2026-10-19: created this section (L1a): the code block is the text of the region "scroll" of the Todo example (ReadmeSuite checks it) -->
+<!-- claude 2026-10-19: created this section (L1a; the tab stop, the row wrap, the ellipsis rule, no focus, the features with no example: L1a review): the code block is the text of the region "scroll" of the Todo example (ReadmeSuite checks it) -->
 The Todo example (`examples/src/main/scala/examples/todo/Todo.scala`) puts
 its list and its input in a viewport that scrolls, and a long title ends with
 "…". These are plain kyo-ui styles:
@@ -231,44 +231,49 @@ its list and its input in a viewport that scrolls, and a long title ends with
         )
 
     /** The list keeps the focus while the arrows move the selection:
-      * `aria-activedescendant` names the selected row, so the viewport around
-      * the list scrolls to it, and `preventScrollKeys` keeps the arrows from
-      * scrolling it too.
+      * `aria-activedescendant` names the selected row (`selected`, its id), so
+      * the viewport around the list scrolls to it, and `preventScrollKeys`
+      * keeps the arrows from scrolling it too. kyo-ui's `aria` takes a fixed
+      * value, so the list is built again when `selected` changes; a toggle or
+      * an add changes only its rows (the `foreachKeyed`).
       */
     def list(
+        selected: Signal[String],
         rows: Signal[Chunk[Row]],
         onKey: KeyboardEvent => Any < Async,
     ): UI =
-      rows
-        .map(_.find(_.selected).fold("")(r => s"item-${r.item.id}"))
-        .map(selected =>
-          ul.id("list")
-            .tabIndex(0)
-            .preventScrollKeys
-            .aria("activedescendant", selected)
-            .onKeyDown(onKey)
-            .style(
-              _.border(1.px, Style.Color.slate)
-                .minHeight(4.px)
-                .focus(_.border(1.px, Style.Color.blue)),
-            )(
-              rows.foreachKeyed(_.item.id.toString)(row),
-            ): UI,
-        )
+      selected.map(id =>
+        ul.id("list")
+          .tabIndex(0)
+          .preventScrollKeys
+          .aria("activedescendant", id)
+          .onKeyDown(onKey)
+          .style(
+            _.border(1.px, Style.Color.slate)
+              .minHeight(4.px)
+              .focus(_.border(1.px, Style.Color.blue)),
+          )(
+            rows.foreachKeyed(_.item.id.toString)(row),
+          ): UI,
+      )
 
     /** The list and the input bar under it, in a viewport that takes the free
-      * rows and scrolls (`overflowY: auto`; `tabIndex(-1)`: it is not a tab
-      * stop, its list and input are).
+      * rows and scrolls (`overflowY: auto`). It is not a tab stop, because it
+      * holds focusable elements (its list and its input).
       */
     def body(list: UI, input: UI): UI =
-      div.tabIndex(-1).style(_.overflowY(_.auto).flexGrow(1))(list, input)
+      div.style(_.overflowY(_.auto).flexGrow(1))(list, input)
 ```
 
 An element with `overflow`, `overflowX` or `overflowY` other than `visible`
 is a viewport. tui4s lays out its content at its natural size on that axis,
 clips it to the box, and shows the window at the scroll offset. `hidden`
-clips and does not scroll. `scroll` and `auto` also scroll, and such a
-viewport is focusable (Tab reaches it; `tabIndex(-1)` takes it out). When
+clips and does not scroll. `scroll` and `auto` also scroll. Such a viewport
+is a tab stop when its content does not fit and it holds no focusable
+element (as in Chrome); `tabIndex(-1)` takes it out. A viewport around a
+list of buttons is not a tab stop: the keys on a button scroll it. A focused
+viewport draws its track heavy (`┃`); with no indicator, only a border
+(heavy when focused) or a `focus` style marks it. When
 its content is taller than the box and the box has 3 rows or more, a scroll
 indicator (a track with a thumb) takes its right column
 (`scrollbarWidth(_.none)` hides it, `scrollbarColor` colours it). In a
@@ -290,13 +295,24 @@ around the focused element scrolls the least distance that shows it, as a
 browser does; a key or a paste on the focused element keeps it in view too.
 A list that keeps the focus and moves a selection names the selected element
 with `aria("activedescendant", id)`, and the viewport follows that element.
+kyo-ui's `aria` takes a fixed value, so the Todo list is built again when the
+selection changes (a `SignalRef` of the selected id); a toggle or an add
+changes only its rows. With no focus (`autoFocus = false` before the first
+Tab), a key scrolls nothing.
 
 Text: `whiteSpace(_.noWrap)` keeps one line, `pre` keeps the spaces and the
 line breaks with no wrap, `preWrap` keeps them and wraps, `normal` and
 `preLine` collapse the spaces. A text wraps in a column, and in a row box of
-a definite `width`. `textOverflow(_.ellipsis)` with `overflow(_.hidden)` puts
-"…" at the cut. Every measure counts terminal cells: a wide character (CJK,
-an emoji) takes two cells, and a cut never splits it.
+a definite `width`. The row wrap is new: before, a text in a row never
+wrapped. A row that shrinks such a text makes it as high as its lines at its
+new width. `textOverflow(_.ellipsis)` with `overflow(_.hidden)` on the
+element that holds the text puts "…" at the cut. Every measure counts
+terminal cells: a wide character (CJK, an emoji) takes two cells, and a cut
+never splits it.
+
+The examples do not show `pre`, `preWrap`, `textWrap(_.noWrap)`,
+`scrollbarWidth`, `scrollbarColor` or a horizontal scroll yet; the goldens of
+`GoldenScreenTest` do.
 
 ## Modules
 

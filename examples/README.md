@@ -1,7 +1,5 @@
 # tui4s examples
 
-<!-- claude 2026-10-13: changed this file (T1): the PR 5 text for the kyo-ui Counter, the launchers and the PTY kit -->
-<!-- claude 2026-10-13: changed this file (T2, OS-50): every example, TuiApp, the rows of all the PTY cases, the human checklist of Todo and Dashboard -->
 <!-- claude 2026-10-19: changed: the rows of Todo and Dashboard name the scroll and the ellipsis (L1a) -->
 
 This project has the sample apps of tui4s. They are not published. Each app

@@ -551,16 +551,13 @@ private[tui4s] final class Runner private (
 
     // ---- layout, paint, flush ----
 
+    // claude 2026-10-19: changed: the focusable nodes of the layout (a
+    // viewport stop, L1a review)
     private def fixFocus(w: World): Option[Loc] =
-        def stillFocusable(f: Loc): Boolean = w.laid.nodes
-          .get(f)
-          .exists(_.kind match
-              case Kind.El(e) => Props.isFocusable(e)
-              case _          => false)
         w.focus match
-            case Some(f) if stillFocusable(f) => Some(f)
-            case _ if !options.autoFocus      => None
-            case _                            =>
+            case Some(f) if Layout.isFocusable(w.laid, f) => Some(f)
+            case _ if !options.autoFocus                  => None
+            case _                                        =>
               val order = Layout.focusOrder(w.laid)
               val auto  = order.find(p =>
                 w.laid.nodes.get(p).map(_.kind).exists {
@@ -585,6 +582,22 @@ private[tui4s] final class Runner private (
               val (l2, d2) = Layout.relayout(l, owner, Set(p), env, w.root)
               (l2, d ++ d2)
             case None        => (l, d)
+      }
+
+    /** Lays out again in place each viewport of `paths` after a scroll:
+      * [[Layout.relayout]] of the viewport itself moves its kids, and its owner
+      * is laid out again only when the size of the viewport changes.
+      */
+    // claude 2026-10-19: created (L1a review)
+    private def relayoutIn(
+        w: World,
+        paths: Iterable[Loc],
+        acc: (Laid, Vector[Damage]),
+        env: Scene,
+    ): (Laid, Vector[Damage]) =
+      paths.foldLeft(acc) { case ((l, d), p) =>
+        val (l2, d2) = Layout.relayout(l, p, Set.empty, env, w.root)
+        (l2, d ++ d2)
       }
 
     /** Lays out what changed, then scrolls the scroll target into view
@@ -621,7 +634,7 @@ private[tui4s] final class Runner private (
         if moved.isEmpty then (w1, Vector.empty)
         else
             val (laid, dmg) =
-              relayoutAll(w1, moved, w1.laid, Vector.empty, w1.env)
+              relayoutIn(w1, moved, (w1.laid, Vector.empty), w1.env)
             (w1.copy(laid = laid, scroll = Scroll.kept(laid, scroll)), dmg)
     end reveal
 
@@ -666,7 +679,13 @@ private[tui4s] final class Runner private (
                     (l2, d ++ d2)
                   case None        => (l, d)
           }
-          val (laid2, dmg2) = relayoutAll(w, w.dirtyNodes, laid1, dmg1, env)
+          val (laid2, dmg2) =
+            relayoutIn(
+              w,
+              w.scrolled,
+              relayoutAll(w, w.dirtyNodes, laid1, dmg1, env),
+              env,
+            )
           val w2            = w.copy(laid = laid2)
           val focus         = fixFocus(w2)
           if focus == w.focus then (w2, dmg2)
@@ -701,7 +720,10 @@ private[tui4s] final class Runner private (
         handleNs: Long = 0,
         settleNs: Long = 0,
     )(using Frame): World < Async =
-        val idle = !w.full && w.dirtyRegions.isEmpty && w.dirtyNodes.isEmpty
+        // claude 2026-10-19: changed: the viewports that a key scrolled (L1a
+        // review)
+        val idle = !w.full && w.dirtyRegions.isEmpty && w.dirtyNodes.isEmpty &&
+          w.scrolled.isEmpty
         // claude 2026-10-19: changed: the start of the render is read inside
         // the effect (P2)
         nanos.map { tr =>
@@ -738,6 +760,7 @@ private[tui4s] final class Runner private (
                     val done = w1.copy(
                       dirtyRegions = Vector.empty,
                       dirtyNodes = Set.empty,
+                      scrolled = Set.empty,
                       full = false,
                     )
                     (

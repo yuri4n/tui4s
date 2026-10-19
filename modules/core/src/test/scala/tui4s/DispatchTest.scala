@@ -453,6 +453,31 @@ class DispatchTest extends RunnerSuite:
           )
     }
 
+    // claude 2026-10-19: created (L1a review): the viewport stops
+    "a viewport is a tab stop only when it can scroll and holds no focusable element: one whose content fits and one around a button are not" in {
+      for
+          h  <- Headless.start(12, 9)(_ =>
+                  div(
+                    button("x").id("x"),
+                    div
+                      .id("fits")
+                      .style(_.height(3.px).overflowY(_.scroll))(span("one")),
+                    div
+                      .id("around")
+                      .style(_.height(2.px).overflowY(_.auto))(
+                        button("y").id("y"),
+                        span("two"),
+                        span("three"),
+                      ),
+                    div
+                      .id("log")
+                      .style(_.height(3.px).overflowY(_.scroll))(lines(5)*),
+                  ),
+                )
+          fs <- Kyo.foreach(1 to 3)(_ => h.key(Keyboard.Tab))
+      yield assert(fs.map(focusOf) == Seq("y", "log", "x"), s"$fs")
+    }
+
     "follow-focus: Tab to a button below the window scrolls the viewport the least distance that shows it; Shift-Tab scrolls back" in {
       for
           h  <- Headless.start(12, 4)(_ =>
@@ -542,6 +567,63 @@ class DispatchTest extends RunnerSuite:
       yield
           assert(fs.lastOption.map(focusOf).contains("list"), s"$fs")
           assert(shown(s) == Vector(2, 3, 4), s.text)
+    }
+
+    // claude 2026-10-19: created (L1a review): nested viewports
+    "nested viewports: at the end of the inner one PageDown scrolls the outer one; Tab to a button deep in both scrolls both, the inner one first" in {
+      for
+          h  <- Headless.start(12, 6)(_ =>
+                  div
+                    .id("outer")
+                    .style(_.height(4.px).overflowY(_.scroll))(
+                      div
+                        .id("inner")
+                        .style(_.height(2.px).overflowY(_.scroll))(lines(4)*),
+                      span("row 1"),
+                      span("row 2"),
+                      span("row 3"),
+                      span("row 4"),
+                    ),
+                )
+          f  <- h.key(Keyboard.PageDown)
+          s1 <- h.screen
+          _  <- h.key(Keyboard.PageDown)
+          s2 <- h.screen
+          h2 <- Headless.start(12, 4)(_ =>
+                  div
+                    .style(_.height(3.px).overflowY(_.scroll))(
+                      button("top").id("top"),
+                      span("row 1"),
+                      span("row 2"),
+                      span("row 3"),
+                      div
+                        .style(_.height(2.px).overflowY(_.scroll))(
+                          button("a").id("a"),
+                          span("line 1"),
+                          span("line 2"),
+                          button("b").id("b"),
+                        ),
+                    ),
+                )
+          fa <- h2.key(Keyboard.Tab)
+          sa <- h2.screen
+          fb <- h2.key(Keyboard.Tab)
+          sb <- h2.screen
+      yield
+          assert(focusOf(f) == "inner", s"$f")
+          assert(shown(s1) == Vector(3, 4, 1, 2), s1.text)
+          assert(shown(s2) == Vector(1, 2, 3, 4), s2.text)
+          assert(focusOf(fa) == "a" && focusOf(fb) == "b", s"$fa $fb")
+          assert(
+            sa.row(0).contains("row 2") && sa.row(1).contains("row 3") &&
+              sa.row(2).contains("[ a"),
+            sa.text,
+          )
+          assert(
+            sb.row(0).contains("row 3") && sb.row(1).contains("line 2") &&
+              sb.row(2).contains("[ b"),
+            sb.text,
+          )
     }
 
     "a viewport keeps its offset while it stays mounted (a render of the same shape) and starts at 0 after an unmount" in {

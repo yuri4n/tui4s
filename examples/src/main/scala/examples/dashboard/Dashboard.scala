@@ -19,9 +19,6 @@ import tui4s.{Tui, TuiApp}
   */
 // claude 2026-10-19: changed: the Scaladoc names the log pane that scrolls
 // (L1a)
-// claude 2026-10-13: changed (T2, RC-33): the Scaladoc (the prototype said
-// "tabs (Left / Right)"); the periods of the sampler and of the log are
-// parameters, so that a test can use short ones
 object Dashboard:
 
     /** The series: one tab for each. The tabs need a first label. */

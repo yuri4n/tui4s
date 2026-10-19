@@ -195,6 +195,26 @@ private[tui4s] final case class Laid(
           ),
         )
     end without
+
+    /** The screen with the node at `prefix` and its subtree moved by `dx`
+      * columns and `dy` rows: their rects, and the ports and the indicators of
+      * the viewports among them. A scroll moves the kids of a viewport so: a
+      * layout does not depend on the position of a box.
+      */
+    // claude 2026-10-19: created (L1a review)
+    def shift(prefix: Loc, dx: Int, dy: Int): Laid =
+        def move(r: Rect): Rect                             = Rect(r.x + dx, r.y + dy, r.w, r.h)
+        def go(acc: Map[Loc, Node], p: Loc): Map[Loc, Node] =
+          nodes.get(p).fold(acc) { n =>
+            val moved = n.copy(
+              rect = move(n.rect),
+              view = n.view
+                .map(v => v.copy(port = move(v.port), bar = v.bar.map(move))),
+            )
+            n.kids.foldLeft(acc.updated(p, moved))(go)
+          }
+        copy(nodes = go(nodes, prefix))
+    end shift
 end Laid
 
 private[tui4s] object Laid:
@@ -524,7 +544,9 @@ private[tui4s] object Layout:
                 val measured = flat.items.zipWithIndex.map((it, i) =>
                   measureItem(it, inner, innerH, p, env, p.listStyle, i),
                 )
-                combine(p, measured)
+                // claude 2026-10-19: changed: the heights of `settle` (L1a
+                // review)
+                combine(p, settle(p, inner, measured))
         }
         val w                              = fixedW.getOrElse(content.w + ins.h)
         val h                              = fixedH.getOrElse(content.h + ins.v)
@@ -601,6 +623,129 @@ private[tui4s] object Layout:
 
     // ---- arrange: flex positions of measured items inside a content rect ----
 
+    /** The main size of each flex item of a line of `mainSize` cells, in the
+      * order of `items`: the free cells go to the items that grow, and a
+      * deficit comes from the items that shrink, by their weights.
+      */
+    // claude 2026-10-19: created (L1a review): moved out of `arrange`, so
+    // that `settle` gives a text the width that `arrange` gives it
+    private def flexSizes(
+        dir: Dir,
+        mainSize: Int,
+        gap: Int,
+        items: Vector[Measured],
+    ): Vector[Int] =
+        val column                  = dir == Dir.Column
+        def mainOf(s: Size): Int    = if column then s.h else s.w
+        def mMain(m: Measured): Int =
+          if column then m.props.margin.v else m.props.margin.h
+        val gaps                    = gap * (items.size - 1)
+        val base                    = items.map(m => mainOf(m.size))
+        val used                    = base.sum + items.map(mMain).sum + gaps
+        val free                    = mainSize - used
+        val grows                   = items.map(_.props.grow)
+        if free > 0 && grows.sum > 0 then
+            val shares   = grows.map(g => (free * g / grows.sum).toInt)
+            val rest     = free - shares.sum
+            val lastGrow = grows.lastIndexWhere(_ > 0)
+            base.zip(shares).zipWithIndex.map { case ((b, s), i) =>
+              b + s + (if i == lastGrow then rest else 0)
+            }
+        else if free < 0 then
+            // In a column, an item without an explicit height does not
+            // shrink below its content height (CSS `min-height: auto` of
+            // flex items); the owner clips the overflow. Before, a list
+            // taller than the screen shrank EVERY item (header, input,
+            // rows) to 0 rows.
+            // claude 2026-10-19: changed: a viewport (an item whose
+            // vertical overflow is not visible) has no floor, as CSS
+            // gives a scroll container `min-height: 0` (L1a)
+            val floor   = items
+              .zip(base)
+              .map((m, b) =>
+                if column && m.props.height.isEmpty &&
+                    m.props.overflowY == Overflow.visible
+                then b
+                else 0,
+              )
+            val weights = items.zip(base).zip(floor).map { case ((m, b), f) =>
+              if b > f then m.props.shrink * b else 0.0
+            }
+            val total   = weights.sum
+            if total <= 0 then base
+            else
+                /* claude 2026-10-12: changed (PR #10 review: Codex,
+                 * Layout.scala:399): */
+                // the cuts add up to the deficit, not more. Each item
+                // loses the whole part of its share; the rest goes one
+                // cell at a time to the items with the largest fraction
+                // (the last item first when equal), never below the floor.
+                val deficit = -free
+                val exact   = weights.map(w => deficit * w / total)
+                val whole   = exact.map(_.toInt)
+                val room    = base.zip(whole).zip(floor).map { case ((b, c), f) =>
+                  (b - c - f).max(0)
+                }
+                val order   = exact
+                  .zip(whole)
+                  .zipWithIndex
+                  .map { case ((e, c), i) => (e - c, i) }
+                  .sortBy { case (frac, i) => (-frac, -i) }
+                  .map(_._2)
+                val extra   = order
+                  .foldLeft(
+                    (Vector.fill(items.size)(0), deficit - whole.sum),
+                  ) { case ((acc, left), i) =>
+                    if left > 0 && room(i) > 0 then
+                        (acc.updated(i, 1), left - 1)
+                    else (acc, left)
+                  }
+                  ._1
+                base.zip(whole.zip(extra)).zip(floor).map {
+                  case ((b, (c, x)), f) => (b - c - x).max(f).max(0)
+                }
+            end if
+        else base
+        end if
+    end flexSizes
+
+    /** The items of a row after its flex sizes. A text that wraps (a row of a
+      * definite `width`, see [[TextFlow.of]]) and that the row shrinks gets the
+      * height of its lines at its new width, as CSS lays out a flex item at its
+      * resolved main size. So the row is as high as its lines, and no line is
+      * lost. The width of the item stays: `arrange` gives it the same size
+      * again. A row that scrolls horizontally does not shrink its items.
+      *
+      * For example, in `div.style(_.row.width(10.px))("aaaa bbbb cccc",
+      * span("XYZ"))` the text is 9 cells wide and 2 lines high at 10 cells; the
+      * row shrinks it to 8 cells, so it is 3 lines high.
+      */
+    // claude 2026-10-19: created (L1a review)
+    def settle(
+        p: Props,
+        inner: Int,
+        items: Vector[Measured],
+    ): Vector[Measured] =
+        val flow = TextFlow.of(p)
+        if p.dir != Dir.Row || flow.wrap == Wrapping.Off ||
+            p.overflowX != Overflow.visible
+        then items
+        else
+            val order = if p.reverse then items.reverse else items
+            val sizes = flexSizes(Dir.Row, inner, p.gap, order)
+            items.zip(if p.reverse then sizes.reverse else sizes).map {
+              (m, s) =>
+                m.item.ui match
+                    case t: Text if s < m.size.w =>
+                      m.copy(size =
+                        m.size
+                          .copy(h = textLines(p.text(t.value), s, flow).size),
+                      )
+                    case _                       => m
+            }
+        end if
+    end settle
+
     def arrange(
         p0: Props,
         box: Rect,
@@ -635,7 +780,6 @@ private[tui4s] object Layout:
                     case Justification.end   => Justification.start
                     case j                   => j)
           val column                   = p.dir == Dir.Column
-          def mainOf(s: Size): Int     = if column then s.h else s.w
           def crossOf(s: Size): Int    = if column then s.w else s.h
           def mMain(m: Measured): Int  =
             if column then m.props.margin.v else m.props.margin.h
@@ -644,73 +788,9 @@ private[tui4s] object Layout:
           val mainSize                 = if column then box.h else box.w
           val crossSize                = if column then box.w else box.h
           val gaps                     = p.gap * (items.size - 1)
-          val base                     = items.map(m => mainOf(m.size))
-          val used                     = base.sum + items.map(mMain).sum + gaps
-          val free                     = mainSize - used
           val grows                    = items.map(_.props.grow)
-          val sizes: Vector[Int]       =
-            if free > 0 && grows.sum > 0 then
-                val shares   = grows.map(g => (free * g / grows.sum).toInt)
-                val rest     = free - shares.sum
-                val lastGrow = grows.lastIndexWhere(_ > 0)
-                base.zip(shares).zipWithIndex.map { case ((b, s), i) =>
-                  b + s + (if i == lastGrow then rest else 0)
-                }
-            else if free < 0 then
-                // In a column, an item without an explicit height does not
-                // shrink below its content height (CSS `min-height: auto` of
-                // flex items); the owner clips the overflow. Before, a list
-                // taller than the screen shrank EVERY item (header, input,
-                // rows) to 0 rows.
-                // claude 2026-10-19: changed: a viewport (an item whose
-                // vertical overflow is not visible) has no floor, as CSS
-                // gives a scroll container `min-height: 0` (L1a)
-                val floor   = items
-                  .zip(base)
-                  .map((m, b) =>
-                    if column && m.props.height.isEmpty &&
-                        m.props.overflowY == Overflow.visible
-                    then b
-                    else 0,
-                  )
-                val weights = items.zip(base).zip(floor).map {
-                  case ((m, b), f) => if b > f then m.props.shrink * b else 0.0
-                }
-                val total   = weights.sum
-                if total <= 0 then base
-                else
-                    /* claude 2026-10-12: changed (PR #10 review: Codex,
-                     * Layout.scala:399): */
-                    // the cuts add up to the deficit, not more. Each item
-                    // loses the whole part of its share; the rest goes one
-                    // cell at a time to the items with the largest fraction
-                    // (the last item first when equal), never below the floor.
-                    val deficit = -free
-                    val exact   = weights.map(w => deficit * w / total)
-                    val whole   = exact.map(_.toInt)
-                    val room    = base.zip(whole).zip(floor).map {
-                      case ((b, c), f) => (b - c - f).max(0)
-                    }
-                    val order   = exact
-                      .zip(whole)
-                      .zipWithIndex
-                      .map { case ((e, c), i) => (e - c, i) }
-                      .sortBy { case (frac, i) => (-frac, -i) }
-                      .map(_._2)
-                    val extra   = order
-                      .foldLeft(
-                        (Vector.fill(items.size)(0), deficit - whole.sum),
-                      ) { case ((acc, left), i) =>
-                        if left > 0 && room(i) > 0 then
-                            (acc.updated(i, 1), left - 1)
-                        else (acc, left)
-                      }
-                      ._1
-                    base.zip(whole.zip(extra)).zip(floor).map {
-                      case ((b, (c, x)), f) => (b - c - x).max(f).max(0)
-                    }
-                end if
-            else base
+          // claude 2026-10-19: changed: the main sizes of flexSizes (L1a review)
+          val sizes                    = flexSizes(p.dir, mainSize, p.gap, items)
           val leftover                 =
             (mainSize - sizes.sum - items.map(mMain).sum - gaps).max(0)
           val (start, between)         =
@@ -779,7 +859,8 @@ private[tui4s] object Layout:
       * while flattening.
       */
     // claude 2026-10-19: changed: the width of the kids is a parameter (the
-    // port of a viewport can be narrower than the content box, L1a)
+    // port of a viewport can be narrower than the content box, L1a); the
+    // heights of `settle` (L1a review)
     def measuredKids(
         node: Node,
         env: Scene,
@@ -825,15 +906,19 @@ private[tui4s] object Layout:
             case Kind.El(e)        =>
               val flat = itemsOf(e, node.path, env)
               (
-                flat.items.zipWithIndex.map((it, i) =>
-                  measureItem(
-                    it,
-                    inner,
-                    availH,
-                    node.props,
-                    env,
-                    node.props.listStyle,
-                    i,
+                settle(
+                  node.props,
+                  inner,
+                  flat.items.zipWithIndex.map((it, i) =>
+                    measureItem(
+                      it,
+                      inner,
+                      availH,
+                      node.props,
+                      env,
+                      node.props.listStyle,
+                      i,
+                    ),
                   ),
                 ),
                 flat.regions,
@@ -1095,7 +1180,7 @@ private[tui4s] object Layout:
             case Some(node0) =>
               /* the node's own props can change with focus; re-resolve them
                * from its owner */
-              val node                   = node0.kind match
+              val node                     = node0.kind match
                   case Kind.El(e) =>
                     val parentText = node0.owner
                       .flatMap(laid.nodes.get)
@@ -1116,12 +1201,12 @@ private[tui4s] object Layout:
                   case _          => node0
               // claude 2026-10-19: changed: the kids of `arrangeKids`, the
               // view of a viewport, and its clip of the damage (L1a)
-              val a                      = arrangeKids(node, env, root)
-              val kids                   = a.kids
-              val regions                = a.regions
-              val rects                  = a.rects
-              val tableCols              = a.tableCols
-              val ctx                    = Ctx(
+              val a                        = arrangeKids(node, env, root)
+              val kids                     = a.kids
+              val regions                  = a.regions
+              val rects                    = a.rects
+              val tableCols                = a.tableCols
+              val ctx                      = Ctx(
                 node.path,
                 node.props,
                 node.bgForKids,
@@ -1129,70 +1214,93 @@ private[tui4s] object Layout:
                 node.props.listStyle,
                 tableCols,
               )
-              val clip                   =
+              val clip                     =
                 damageClip(laid, node.owner).fold(a.view.map(_.port))(c =>
                   Some(a.view.fold(c)(v => c.intersect(v.port))),
                 )
-              def clear(r: Rect): Damage =
+              def clear(r: Rect): Damage   =
                 Damage.Clear(clip.fold(r)(r.intersect), node.bgForKids)
-              val newPaths               = kids.map(_.item.path).toSet
-              val removed                = node.kids.filterNot(newPaths.contains)
-              val afterRemove            = removed.foldLeft(laid)((l, p) => l.without(p))
-              val removedDamage          =
+              val newPaths                 = kids.map(_.item.path).toSet
+              val removed                  = node.kids.filterNot(newPaths.contains)
+              val afterRemove              = removed.foldLeft(laid)((l, p) => l.without(p))
+              val removedDamage            =
                 removed.flatMap(p => laid.nodes.get(p).map(n => clear(n.rect)))
-              val (laid2, damage)        = kids
+              // claude 2026-10-19: changed: a kid of a viewport that only
+              // moved (a scroll) moves with its subtree and is not laid out
+              // again; the count of the kids laid out again (L1a review)
+              val (laid2, damage, laidOut) = kids
                 .zip(rects)
                 .zipWithIndex
-                .foldLeft((afterRemove, removedDamage)) {
-                  case ((l, d), ((m, r), i)) =>
+                .foldLeft((afterRemove, removedDamage, 0)) {
+                  case ((l, d, n), ((m, r), i)) =>
                     val old  = laid.nodes.get(m.item.path)
-                    val keep = old.exists(o =>
+                    val same = old.filter(o =>
                       sameItem(
                         o,
                         m.item,
-                      ) && o.rect == r && o.natural == m.size && o.index == i && !force
+                      ) && o.natural == m.size && o.index == i && !force
                         .contains(m.item.path) &&
                         // claude 2026-10-12: changed (PR #10 review: Codex,
                         // Layout.scala:703): the OLD node's columns against
                         // the new ones (`ctx.cols` was built from `tableCols`)
                         o.props == m.props && o.cols == tableCols,
                     )
-                    if keep then (l, d)
-                    else
-                        val cleared = old.fold(l)(o => l.without(o.path))
-                        val placed  = place(m, r, ctx, i, env, root, cleared)
-                        val dmg     = old
-                          .map(o => clear(o.rect))
-                          .toVector ++
-                          Vector(clear(r), Damage.Paint(m.item.path))
-                        (placed, d ++ dmg)
-                    end if
+                    same match
+                        case Some(o) if o.rect == r => (l, d, n)
+                        case Some(o)
+                            if a.view.isDefined && o.rect.w == r.w &&
+                              o.rect.h == r.h && o.availW == a.inner =>
+                          (
+                            l.shift(o.path, r.x - o.rect.x, r.y - o.rect.y),
+                            d ++ Vector(
+                              clear(o.rect),
+                              clear(r),
+                              Damage.Paint(m.item.path),
+                            ),
+                            n,
+                          )
+                        case _                      =>
+                          val cleared = old.fold(l)(o => l.without(o.path))
+                          val placed  = place(m, r, ctx, i, env, root, cleared)
+                          val dmg     = old
+                            .map(o => clear(o.rect))
+                            .toVector ++
+                            Vector(clear(r), Damage.Paint(m.item.path))
+                          (placed, d ++ dmg, n + 1)
+                    end match
                 }
-              val updatedNode            =
+              val updatedNode              =
                 node.copy(kids = kids.map(_.item.path), view = a.view)
-              val laid3                  = laid2.copy(
+              val laid3                    = laid2.copy(
                 nodes = laid2.nodes.updated(container, updatedNode),
                 regionOwner = regions.foldLeft(laid2.regionOwner)((ro, r) =>
                   ro.updated(r, container),
                 ),
               )
+              val propsChanged             = node.props != node0.props
               // claude 2026-10-19: changed: a new view (a scroll, a new
-              // content size) paints the viewport again (L1a)
-              val propsChanged           =
-                node.props != node0.props || a.view != node0.view
+              // content size) paints the viewport again; the owner is laid
+              // out again only when the natural size or the props change (L1a,
+              // L1a review)
+              val viewChanged              = a.view != node0.view
               /* claude 2026-10-12: changed (PR #10 review: Codex,
                * Layout.scala:264): the */
               // owner's content height, as `measuredKids` gives it
-              val ownerH                 =
+              val ownerH                   =
                 node.owner.flatMap(laid3.nodes.get).map(_.content.h)
-              val newNatural             = naturalOf(updatedNode, ownerH, env)
+              // claude 2026-10-19: changed: no measure when no kid changed
+              // (a scroll): the natural size stays (L1a review)
+              val newNatural               =
+                if laidOut == 0 && removed.isEmpty && !propsChanged then
+                    node0.natural
+                else naturalOf(updatedNode, ownerH, env)
               (node.owner, newNatural != node0.natural || propsChanged) match
                   case (Some(owner), true) =>
                     relayout(laid3, owner, Set(container), env, root)
                   case _                   =>
                     val above      = damageClip(laid3, node.owner)
                     val selfDamage =
-                      if propsChanged then
+                      if propsChanged || viewChanged then
                           Vector(
                             Damage.Clear(
                               above.fold(node.rect)(node.rect.intersect),
@@ -1206,23 +1314,44 @@ private[tui4s] object Layout:
         end match
     end relayout
 
-    /** The focusable elements in tab order: positive `tabIndex` ascending, then
-      * document order.
+    /** The focusable nodes at `p` and under it, in document order: the elements
+      * that [[Props.isFocusable]] accepts, and the viewport stops. A viewport
+      * stop is a viewport with no `tabIndex` that can scroll now (its content
+      * is larger than its port on an axis that scrolls, as Firefox makes a
+      * scrollable region focusable) and that holds no focusable node (as Chrome
+      * skips such a scroller: the keys on the focused node inside scroll it).
+      * So a viewport whose content fits is not a tab stop, and a viewport
+      * around a list of buttons needs no `tabIndex(-1)`.
       */
+    // claude 2026-10-19: created (L1a review)
+    private def stops(laid: Laid, p: Loc): Vector[Loc] =
+      laid.nodes.get(p) match
+          case None    => Vector.empty
+          case Some(n) =>
+            val below = n.kids.flatMap(stops(laid, _))
+            val self  = n.kind match
+                case Kind.El(e) =>
+                  Props.isFocusable(e) || (below.isEmpty &&
+                    e.attrs.tabIndex.isEmpty && !Props.isDisabled(e) &&
+                    n.view.exists(_.max != Offset.zero))
+                case _          => false
+            if self then p +: below else below
+
+    /** True when the node at `p` takes the focus (see [[stops]]). */
+    // claude 2026-10-19: created (L1a review)
+    def isFocusable(laid: Laid, p: Loc): Boolean =
+      stops(laid, p).headOption.contains(p)
+
+    /** The focusable nodes in tab order (see [[stops]]): positive `tabIndex`
+      * ascending, then document order.
+      */
+    // claude 2026-10-19: changed: the viewport stops of the layout (L1a
+    // review)
     def focusOrder(laid: Laid): Vector[Loc] =
-        def walk(p: Loc): Vector[Loc] =
-          laid.nodes.get(p) match
-              case None    => Vector.empty
-              case Some(n) =>
-                val self = n.kind match
-                    case Kind.El(e) if Props.isFocusable(e) => Vector(p)
-                    case _                                  => Vector.empty
-                self ++ n.kids.flatMap(walk)
-        val all                       = walk(Loc.screen)
-        def tabIndex(p: Loc): Int     = laid.nodes.get(p).map(_.kind) match
+        val all                   = stops(laid, Loc.screen)
+        def tabIndex(p: Loc): Int = laid.nodes.get(p).map(_.kind) match
             case Some(Kind.El(e)) => e.attrs.tabIndex.getOrElse(0)
             case _                => 0
-        val positive                  = all.filter(tabIndex(_) > 0).sortBy(tabIndex)
+        val positive              = all.filter(tabIndex(_) > 0).sortBy(tabIndex)
         positive ++ all.filter(tabIndex(_) <= 0)
-    end focusOrder
 end Layout

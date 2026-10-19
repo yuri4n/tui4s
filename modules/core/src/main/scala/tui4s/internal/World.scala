@@ -113,6 +113,9 @@ private[tui4s] final case class World(
     scroll: Map[Loc, Offset] = Map.empty,
     followed: Option[Loc] = None,
     reveal: Reveal = Reveal.OnMove,
+    // claude 2026-10-19: created (L1a review): the viewports that a key
+    // scrolled in this step; the frame lays them out in place
+    scrolled: Set[Loc] = Set.empty,
 ):
     // claude 2026-10-19: changed: the scroll offsets (L1a)
     def env: Scene =
@@ -130,6 +133,13 @@ private[tui4s] final case class World(
       if dirtyRegions.contains(p) then dirtyRegions else dirtyRegions :+ p,
     )
     def markNode(p: Loc): World   = copy(dirtyNodes = dirtyNodes + p)
+
+    /** The world after a key scrolled the viewport at `p` to `o`: the frame
+      * lays out the viewport in place (its kids move), not its owner.
+      */
+    // claude 2026-10-19: created (L1a review)
+    def scrollTo(p: Loc, o: Offset): World =
+      copy(scroll = scroll.updated(p, o), scrolled = scrolled + p)
 
     /** The regions whose watcher has not armed yet: until the arm, the watcher
       * does not see a write, so an Input step verifies them. An entry of an old

@@ -35,35 +35,30 @@
   *   - Viewports (`overflow`, `overflowX`, `overflowY`): an element with an
   *     axis that is not `visible` lays out its content at its natural size on
   *     that axis and clips it to its box. `hidden` does not scroll; `scroll`
-  *     and `auto` scroll, and the element is focusable (`tabIndex(-1)` takes it
-  *     out of the tab order). A content taller than a box of 3 rows or more
-  *     shows a scroll indicator in the right column (`scrollbarWidth`,
-  *     `scrollbarColor`). The scroll offset is kept while the viewport stays
-  *     mounted, and it starts at 0 after an unmount.
+  *     and `auto` scroll. Such an element is a tab stop when its content does
+  *     not fit and it holds no focusable element (`tabIndex(-1)` takes it out);
+  *     its track is heavy while it has the focus. A content taller than a box
+  *     of 3 rows or more shows a scroll indicator in the right column
+  *     (`scrollbarWidth`, `scrollbarColor`). The scroll offset is kept while
+  *     the viewport stays mounted, and it starts at 0 after an unmount.
   *   - The keys of a viewport (on the focused element or inside it): ArrowUp
   *     and ArrowDown scroll one row, PageUp and PageDown one viewport height,
   *     Home and End to the top and to the bottom, ArrowLeft and ArrowRight one
   *     column (horizontal scroll only). The innermost viewport that can move
   *     scrolls. No scroll when the focused element uses the key (a text input,
   *     a select, a focus group) or when the focus chain has kyo-ui's
-  *     `preventScrollKeys`.
+  *     `preventScrollKeys`. With no focus, a key scrolls nothing.
   *   - Follow-focus: when the focus moves (or the element that its
   *     `aria-activedescendant` names), and after a key or a paste on the
   *     focused element, each viewport around it scrolls the least distance that
   *     shows it.
   *   - Text: `whiteSpace` (`noWrap`, `pre`, `preWrap`, `normal`, `preLine`),
   *     `textWrap` (`wrap`, `noWrap`, `ellipsis`) and `textOverflow` with
-  *     `overflow(_.hidden)` ("…" at the cut). A text wraps in a column and in a
-  *     row of a definite `width`. Every measure counts cells: a wide character
-  *     takes two, and a cut never splits it.
+  *     `overflow(_.hidden)` on the element that holds the text ("…" at the
+  *     cut). A text wraps in a column and in a row of a definite `width`. Every
+  *     measure counts cells: a wide character takes two, and a cut never splits
+  *     it.
   */
-// claude 2026-10-12: created (OS-13 part): the package Scaladoc; changed:
-// plain words instead of the pull request ids (review R1-4, R2-3); changed:
-// what this version does (signals, the headless kit)
-// claude 2026-10-13: changed: keys, Tui.quit (C3)
-// claude 2026-10-13: changed: Tui.run in the real terminal (T1)
-// claude 2026-10-13: changed: the two component styles (C4)
-// claude 2026-10-13: changed: TuiApp (T2)
-// claude 2026-10-19: changed: scroll, wrap and ellipsis, with the key table
-// (L1a)
+// claude 2026-10-19: changed: the package Scaladoc names scroll, wrap and
+// ellipsis, with the key table (L1a; the tab stop, no focus: L1a review)
 package object tui4s

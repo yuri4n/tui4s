@@ -111,10 +111,10 @@ object UiGen:
         .map(_.toList.distinctBy(_._1))
 
     /** A tree at most `depth` levels deep, with texts from `txt`, and the box
-      * styles 0 to `styles` of [[styled]] (5: no viewport; 8: with the
-      * viewports).
+      * styles 0 to `styles` of [[styled]] (5: the styles of the old layout; 7:
+      * also a width, on a column and on a row; 10: also the viewports).
       */
-    // claude 2026-10-19: changed: the last style index (L1a)
+    // claude 2026-10-19: changed: the last style index (L1a, L1a review)
     def spec(depth: Int, txt: Gen[String], styles: Int = 5): Gen[Spec] =
       if depth <= 0 then txt.map(Spec.Txt(_))
       else
@@ -145,20 +145,23 @@ object UiGen:
             case 3 => section
             case _ => ul
         val s: Style    = style match
-            case 1 => Style.border(1.px, Style.Color.slate).padding(0.px, 1.px)
-            case 2 => Style.row.gap(1.px)
-            case 3 => Style.bg(Style.Color.blue)
-            case 4 => Style.height(2.px)
-            case 5 => Style.textAlign(_.center)
-            // claude 2026-10-19: created the three viewports below (L1a)
-            case 6 => Style.height(3.px).overflowY(_.scroll)
-            case 7 => Style.height(2.px).overflow(_.hidden)
-            case 8 =>
+            case 1  => Style.border(1.px, Style.Color.slate).padding(0.px, 1.px)
+            case 2  => Style.row.gap(1.px)
+            case 3  => Style.bg(Style.Color.blue)
+            case 4  => Style.height(2.px)
+            case 5  => Style.textAlign(_.center)
+            // claude 2026-10-19: created the two widths (L1a review) and the
+            // three viewports below (L1a)
+            case 6  => Style.width(8.px)
+            case 7  => Style.row.width(9.px)
+            case 8  => Style.height(3.px).overflowY(_.scroll)
+            case 9  => Style.height(2.px).overflow(_.hidden)
+            case 10 =>
               Style
                 .height(5.px)
                 .overflow(_.auto)
                 .border(1.px, Style.Color.slate)
-            case _ => Style.empty
+            case _  => Style.empty
         el match
             case d: Div                => d.style(s)
             case d: P                  => d.style(s)

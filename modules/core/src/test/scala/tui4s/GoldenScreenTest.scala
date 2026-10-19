@@ -257,6 +257,12 @@ class GoldenScreenTest extends ScreenSuite:
         val low = div.style(_.height(2.px).overflowY(_.scroll))(lines(8)*)
         assertScreen(low, 4, 2, "l1\nl2")
       }
+      // claude 2026-10-19: created (L1a review): the focus mark of a
+      // viewport
+      "a focused viewport has a heavy track (its focus mark when it has no border)" in {
+        val ui = div.style(_.height(4.px).overflowY(_.scroll))(lines(8)*)
+        assertScreen(ui, 4, 4, "l1 █\nl2 █\nl3 ┃\nl4 ┃", focus = Some(Loc.root))
+      }
       "with a border and a padding, the indicator is in the right column of the padding box" in {
         val ui = div.style(
           _.border(1.px, _.white)
@@ -361,6 +367,16 @@ class GoldenScreenTest extends ScreenSuite:
           16,
           3,
           "one two threex",
+        )
+      }
+      // claude 2026-10-19: created (L1a review): a row shrinks a text that
+      // wraps; the text is as high as its lines at its new width
+      "a text that wraps in a row of a definite width with a sibling: the row shrinks it and it keeps all its lines" in {
+        assertScreen(
+          div.style(_.row.width(10.px))("aaaa bbbb cccc", span("XYZ")),
+          12,
+          4,
+          "aaaa\nbbbb    XY\ncccc",
         )
       }
       "textWrap(noWrap) keeps a long word whole (it overflows); textWrap(ellipsis) with overflow hidden cuts it with \"…\"" in {

@@ -13,21 +13,24 @@ import tui4s.internal.*
   *     end gives the last window, and after a step to scene B (other contents)
   *     the offsets that scene A kept are in range again; `Scroll.kept` keeps
   *     only the viewports that are still there;
-  *   - the follow-focus rule shows the target in its innermost viewport and
-  *     moves that viewport the least distance that shows it (all offsets that
-  *     show it are tried); a new layout with the new offsets puts the target at
-  *     the same content position, in the window;
+  *   - the follow-focus rule moves each viewport around the target (nested ones
+  *     too), on each axis, the least distance that shows the target (all
+  *     offsets are tried), after the moves of the viewports inside it; a new
+  *     layout with the new offsets has these offsets;
+  *   - a scroll laid out in place (the relayout of each viewport, the innermost
+  *     first) gives the nodes of a full layout with the new offsets;
   *   - the thumb of the indicator lies inside its track, has at least 1 cell,
   *     is at the top at offset 0 and at the bottom at the last offset, and
   *     moves down when the offset grows.
   */
-// claude 2026-10-19: created (L1a)
+// claude 2026-10-19: created (L1a); changed: nested viewports, both axes,
+// the scroll in place (L1a review)
 class ViewportPropertyTest extends PropertyTest[Any]:
     import ViewportPropertyTest.*
     override protected def numSamples: Int = 200
 
     "viewports" - {
-      forAll(UiGen.built(5, styles = 8), UiGen.size, seed) { (b, size, s) =>
+      forAll(UiGen.built(5, styles = 10), UiGen.size, seed) { (b, size, s) =>
         val env  = scrolled(b.sceneA(size), s)
         val laid = Layout.layoutAll(b.ui, env)
         val ok   = laid.nodes.values.filter(_.view.isDefined).forall { v =>
@@ -42,7 +45,7 @@ class ViewportPropertyTest extends PropertyTest[Any]:
         assert(ok)
       }
 
-      forAll(UiGen.built(5, styles = 8), UiGen.size) { (b, size) =>
+      forAll(UiGen.built(5, styles = 10), UiGen.size) { (b, size) =>
         val far   = Offset(0, 1000)
         val laidA =
           Layout.layoutAll(b.ui, b.sceneA(size).copy(scroll = _ => far))
@@ -69,47 +72,67 @@ class ViewportPropertyTest extends PropertyTest[Any]:
         assert(atMax && range && kept)
       }
 
-      forAll(UiGen.built(5, styles = 8), UiGen.size, seed, pick) {
+      // claude 2026-10-19: changed: every viewport around the target, both
+      // axes (L1a review)
+      forAll(UiGen.built(5, styles = 10), UiGen.size, seed, pick) {
         (b, size, s, i) =>
           val env     = scrolled(b.sceneA(size), s)
           val laid    = Layout.layoutAll(b.ui, env)
           val targets = laid.nodes.keys.toVector
             .sortBy(_.showLoc)
-            .filter(p => innermost(laid, p).isDefined)
+            .filter(p => enclosing(laid, p).nonEmpty)
           if targets.isEmpty then assert(true)
           else
-              val t                      = targets(i % targets.size)
-              val vp                     = innermost(laid, t).getOrElse(Loc.screen)
-              val v                      = laid.nodes(vp).view.get
-              val box                    = laid.nodes(t).rect
-              val a                      = box.y - v.port.y + v.offset.y
-              val offsets                = laid.nodes.collect {
+              val t            = targets(i % targets.size)
+              val offsets      = laid.nodes.collect {
                 case (p, n) if n.view.isDefined =>
                   p -> n.view.fold(Offset.zero)(_.offset)
               }
-              val (scroll1, _)           = Scroll.follow(laid, t, offsets)
-              val o1                     = scroll1.getOrElse(vp, Offset.zero).y
-              def shows(o: Int): Boolean =
-                if box.h <= v.port.h then a >= o && a + box.h <= o + v.port.h
-                else a <= o && a + box.h >= o + v.port.h
-              val can                    = (0 to v.max.y).filter(shows)
-              val minimal                =
-                if can.isEmpty then o1 >= 0 && o1 <= v.max.y
-                else
-                    shows(o1) &&
-                    (o1 - v.offset.y).abs == can
-                      .map(o => (o - v.offset.y).abs)
-                      .min
-              val laid1                  = Layout.layoutAll(
+              val (scroll1, _) = Scroll.follow(laid, t, offsets)
+              val laid1        = Layout.layoutAll(
                 b.ui,
                 env.copy(scroll = p => scroll1.getOrElse(p, Offset.zero)),
               )
-              val v1                     = laid1.nodes(vp).view.get
-              val box1                   = laid1.nodes(t).rect
-              assert(minimal)
-              assert(v1.offset.y == o1)
-              assert(box1.y - v1.port.y + v1.offset.y == a)
+              val box          = laid1.nodes(t).rect
+              val all          = enclosing(laid1, t).map { vp =>
+                val o0 = laid.nodes(vp).view.fold(Offset.zero)(_.offset)
+                val v  = laid1.nodes(vp).view.get
+                val o  = v.offset
+                vp -> (o == scroll1.getOrElse(vp, Offset.zero) &&
+                  nearestOk(
+                    o0.x,
+                    o.x,
+                    box.x - v.port.x + o.x,
+                    box.w,
+                    v.port.w,
+                    v.max.x,
+                  ) &&
+                  nearestOk(
+                    o0.y,
+                    o.y,
+                    box.y - v.port.y + o.y,
+                    box.h,
+                    v.port.h,
+                    v.max.y,
+                  ))
+              }
+              assert(all.forall(_._2), s"$t: $all")
           end if
+      }
+
+      // claude 2026-10-19: created (L1a review): a scroll laid out in place
+      forAll(UiGen.built(5, styles = 10), UiGen.size, seed) { (b, size, s) =>
+        val laidA   = Layout.layoutAll(b.ui, scrolled(b.sceneA(size), s))
+        val envB    = scrolled(b.sceneA(size), s + 1)
+        val ports   = laidA.nodes.values
+          .filter(_.view.isDefined)
+          .map(_.path)
+          .toVector
+          .sortBy(p => -p.showLoc.length)
+        val inPlace = ports.foldLeft(laidA)((l, p) =>
+          Layout.relayout(l, p, Set.empty, envB, b.ui)._1,
+        )
+        assert(views(inPlace) == views(Layout.layoutAll(b.ui, envB)))
       }
 
       // claude 2026-10-19: created (L1a): the thumb of the indicator
@@ -136,25 +159,61 @@ object ViewportPropertyTest:
     val seed: Gen[Int] = UiGen.between(0, 1000)
     val pick: Gen[Int] = UiGen.between(0, 100000)
 
-    /** `env` with an offset of 0 to 8 rows for each viewport (a function of its
-      * path and `s`).
+    /** `env` with an offset of 0 to 4 columns and 0 to 8 rows for each viewport
+      * (a function of its path and `s`).
       */
+    // claude 2026-10-19: changed: the columns too (L1a review)
     def scrolled(env: Scene, s: Int): Scene =
-      env.copy(scroll = p => Offset(0, Math.floorMod(p.hashCode * 31 + s, 9)))
+      env.copy(scroll =
+        p =>
+          Offset(
+            Math.floorMod(p.hashCode * 17 + s, 5),
+            Math.floorMod(p.hashCode * 31 + s, 9),
+          ),
+      )
+
+    /** The rect, the kids and the view of each path. */
+    // claude 2026-10-19: created (L1a review)
+    def views(laid: Laid): Map[Loc, (Rect, Vector[Loc], Option[View])] =
+      laid.nodes.map((p, n) => p -> (n.rect, n.kids, n.view))
+
+    /** True when the offset `o1` of one axis is the follow rule's choice from
+      * `o0` for the box `a` to `a + h` (in content cells) in a port of `port`
+      * cells: in [0, `max`], and, when an offset in that range shows the box,
+      * one that shows it (whole when it fits, else covering the port) with the
+      * least change. All offsets are tried.
+      */
+    // claude 2026-10-19: created (L1a review)
+    def nearestOk(
+        o0: Int,
+        o1: Int,
+        a: Int,
+        h: Int,
+        port: Int,
+        max: Int,
+    ): Boolean =
+        def shows(o: Int): Boolean =
+          if h <= port then a >= o && a + h <= o + port
+          else a <= o && a + h >= o + port
+        val can                    = (0 to max).filter(shows)
+        o1 >= 0 && o1 <= max.max(0) &&
+        (can.isEmpty ||
+          (shows(o1) && (o1 - o0).abs == can.map(o => (o - o0).abs).min))
+    end nearestOk
+
+    /** The viewports above `p`, innermost first. */
+    // claude 2026-10-19: created (L1a review)
+    def enclosing(laid: Laid, p: Loc): Vector[Loc] =
+        @annotation.tailrec
+        def up(q: Option[Loc], acc: Vector[Loc]): Vector[Loc] =
+          q.flatMap(laid.nodes.get) match
+              case None    => acc
+              case Some(n) =>
+                up(n.owner, if n.view.isDefined then acc :+ n.path else acc)
+        laid.nodes.get(p).fold(Vector.empty)(n => up(n.owner, Vector.empty))
+    end enclosing
 
     def inside(r: Rect, x: Int, y: Int): Boolean =
       x >= r.x && x < r.right && y >= r.y && y < r.bottom
 
-    /** The innermost viewport above `p` whose vertical axis scrolls. */
-    def innermost(laid: Laid, p: Loc): Option[Loc] =
-        @annotation.tailrec
-        def up(q: Option[Loc]): Option[Loc] =
-          q.flatMap(laid.nodes.get) match
-              case None    => None
-              case Some(n) =>
-                n.view match
-                    case Some(v) if Props.scrolls(v.y) => Some(n.path)
-                    case _                             => up(n.owner)
-        laid.nodes.get(p).flatMap(n => up(n.owner))
-    end innermost
 end ViewportPropertyTest
