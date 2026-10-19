@@ -93,7 +93,9 @@ end Scene
   * the viewports that scrolled. A node is clean when no changed path is at or
   * under it: its subtree reads the same scene as at its last layout, so its
   * measure is the same (the locality law of F6: a measure reads the scene only
-  * at or under its path). `All` makes no node clean (no reuse).
+  * at or under its path). `All` makes no node clean (no reuse). A new input of
+  * a measure must have its changed paths here, or a relayout keeps a stale
+  * size (StepPropertyTest finds it).
   */
 // claude 2026-10-19: created (PF-b, F6)
 private[tui4s] enum Changes derives CanEqual:

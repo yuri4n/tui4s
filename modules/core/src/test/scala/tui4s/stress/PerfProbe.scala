@@ -23,8 +23,9 @@ import java.lang.management.ManagementFactory
   *     plans of the dashboard (what F9b pays instead).
   *
   * A step does what the runner does in a frame: the relayout of the owner of
-  * each changed region and of each scrolled viewport, the damage of the layers,
-  * the paint, and the scan for warnings. Each scenario runs `rounds` warm-up
+  * each changed region and of each scrolled viewport (with these paths as the
+  * changes of the scene), the damage of the layers, the paint, and the scan
+  * for warnings. Each scenario runs `rounds` warm-up
   * rounds, then `rounds` measured rounds. The probe prints the median and the
   * 90th percentile of the time of one operation in ms, and the median of the
   * bytes that the thread allocated for it (ThreadMXBean). Run it alone on the

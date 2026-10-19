@@ -283,9 +283,13 @@ set `-Dtui4s.stress=<rounds>` in the test JVM and run it alone on the machine:
 `sbt 'set core / Test / javaOptions += "-Dtui4s.stress=150"' 'core/testOnly
 tui4s.stress.LeakProbe'`. A test run under CPU contention sets
 `-Dtui4s.load=1` the same way, or runs `TUI4S_LOAD=1 sbt ...` (the glitch
-tests then allow 1 split frame).
-<!-- claude 2026-10-13: changed: TUI4S_LOAD (C3) -->
-<!-- claude 2026-10-12: created this paragraph (review R3-8, R3-2) -->
+tests then allow 1 split frame). The frame-path probe `tui4s.stress.PerfProbe`
+measures the pure layout and paint of a frame (no runner, no terminal) on a
+dashboard, a list of 2,000 rows and a log, and prints the median and the 90th
+percentile of each step in ms: `sbt 'set core / Test / javaOptions +=
+"-Dtui4s.stress=30"' 'core/testOnly tui4s.stress.PerfProbe'`. Run it before
+and after a change of the frame path, and give both numbers.
+<!-- claude 2026-10-19: changed: the frame-path probe PerfProbe (PF-b) -->
 
 ## Rules for code
 
