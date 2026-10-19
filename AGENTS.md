@@ -261,19 +261,19 @@ tests then allow 1 split frame).
   (also `Session.close`) runs the releases once, the last push first: the canvas
   closes first (it waits for a draw in progress, on the backend's monitor, and
   nothing is drawn after it), then the input thread stops (the inbox closes, the
-  join waits at most two poll intervals), then the terminal leaves its modes,
-  the output is flushed, raw mode ends, the output capture stops (with the R3
-  warning), the log sink finishes, and last the shutdown hook is removed. A
-  failing step does not stop the next steps; the first failure is printed after
-  the restore. It runs from the end of the run or from the JVM shutdown hook,
-  whichever comes first; a second call does nothing. The stack holds its monitor
-  only while its state changes, never while a release runs: keep this lock
-  order. It uses no Kyo scheduler: a JVM hook cannot run the finalizers of a Kyo
-  `Scope` (Kyo 1.0.0-RC7 only starts a fiber for them). After a quit, `Tui.run`
-  closes the `Scope` of the UI before the release: it interrupts the fibers that
-  the UI started with `Fiber.init` and waits for them. A fiber that does not
-  stop on an interrupt (a blocking call in `Sync.defer`) keeps the terminal in
-  raw mode until it ends.
+  join waits at most two poll intervals plus 50 ms), then the terminal leaves
+  its modes, the output is flushed, raw mode ends, the output capture stops
+  (with the R3 warning), the log sink finishes, and last the shutdown hook is
+  removed. A failing step does not stop the next steps; the first failure is
+  printed after the restore. It runs from the end of the run or from the JVM
+  shutdown hook, whichever comes first; a second call does nothing. The stack
+  holds its monitor only while its state changes, never while a release runs:
+  keep this lock order. It uses no Kyo scheduler: a JVM hook cannot run the
+  finalizers of a Kyo `Scope` (Kyo 1.0.0-RC7 only starts a fiber for them).
+  After a quit, `Tui.run` closes the `Scope` of the UI before the release: it
+  interrupts the fibers that the UI started with `Fiber.init` and waits for
+  them. A fiber that does not stop on an interrupt (a blocking call in
+  `Sync.defer`) keeps the terminal in raw mode until it ends.
   <!-- claude 2026-10-13: changed (T1, review R2-2): the scope closes before the release -->
   <!-- claude 2026-10-19: changed (P3, A1): the release stack and its order -->
 - The fibers that a component or a hook starts end with the run: the body of
@@ -381,8 +381,10 @@ tests then allow 1 split frame).
   the second call does nothing, and the wait of the hook covers the release by
   the other side. A closed inbox is a quit. A `TuiApp` then prints nothing in
   `main` and does not run `onExit` (`internal.Hooks.shuttingDown`), so no output
-  races with the exit of the JVM. `TuiAppTest` models the hook with `FakeHooks`;
-  the PTY kit checks the real signals.
+  races with the exit of the JVM. A JVM stop that starts after the removal of
+  the hook and before `main` reads `shuttingDown` is not seen; the terminal is
+  restored by then. `TuiAppTest` models the hook with `FakeHooks`; the PTY kit
+  checks the real signals.
   <!-- claude 2026-10-13: created this item (T2, RC-24, D-24 a) -->
   <!-- claude 2026-10-19: changed (P3, A2): one hook per run, the hook steps -->
 - Never join the run fiber from an interruptible wait. A join makes the

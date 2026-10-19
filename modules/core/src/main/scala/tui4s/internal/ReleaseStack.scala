@@ -1,5 +1,5 @@
 // scalafix:off DisableSyntax
-// EDGE: JVM monitor and java.lang.Runtime shutdown hooks
+// EDGE: JVM monitor, java.lang.Runtime shutdown hooks, unsafe Kyo fiber API
 package tui4s.internal
 
 import kyo.*
@@ -177,6 +177,12 @@ private[tui4s] object ReleaseStack:
       * result of the run fiber, never on the run fiber itself. The release of
       * `run` interrupts the run fiber with no wait and runs `runAll`: an
       * interrupt of the caller restores the terminal at once.
+      *
+      * The hook restores the terminal also when the interrupt of the run fiber
+      * fails. A JVM stop before the hook knows the run fiber (the first step
+      * after the spawn) does not wait for the run fiber: that fiber then runs
+      * each later release at once on the closed stack, but the JVM can halt
+      * before an acquire pushes its release.
       */
     // claude 2026-10-19: created (P3, A2)
     def run(hooks: Hooks, report: Throwable => Unit, trace: String => Unit)(
@@ -189,10 +195,12 @@ private[tui4s] object ReleaseStack:
           Sync.Unsafe
             .defer {
               stop.run = Present(fiber)
-              // The caller waits on a copy of the result, not on the run fiber:
-              // an interrupt of the caller ends this wait at once (a join would
-              // wait for the run), and the releases of the brackets interrupt
-              // the run and restore the terminal.
+              // The caller waits on a copy of the result, not on the run fiber
+              // (AGENTS.md: never join the run fiber from an interruptible
+              // wait). An interrupt of the caller ends this wait at once, and
+              // the releases of the brackets interrupt the run and restore the
+              // terminal. Kyo 1.0.0-RC7 also ends a join at once on an
+              // interrupt, so this copy is a second guard: no test needs it.
               val end = Promise.Unsafe.init[Unit, Abort[TuiError]]()
               fiber.unsafe.onComplete(end.completeDiscard)
               end.safe
@@ -220,11 +228,16 @@ private[tui4s] object ReleaseStack:
 
         val thread: Thread = Thread(() => stop(), "tui4s-stop")
 
+        // claude 2026-10-19: changed: a failing interrupt does not stop the
+        // restore (P3 skeptic fix)
         private def stop(): Unit =
             import AllowUnsafe.embrace.danger
             inHook = true
             hooks.stopping()
-            run.foreach(f => discard(f.unsafe.interrupt()))
+            try run.foreach(f => discard(f.unsafe.interrupt()))
+            catch
+                case v: VirtualMachineError => throw v
+                case _: Throwable           => ()
             stack.runAll()
             discard(
               stack.awaitReleased(2000, () => run.exists(_.unsafe.done())),

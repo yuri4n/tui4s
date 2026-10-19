@@ -122,9 +122,9 @@ private[tui4s] object Session:
 
     /** The release of the input: stop the thread, close the inbox (a put that
       * waits for room ends, so the thread is released, and the runner ends at
-      * its next take), then wait for two poll intervals for the thread to end.
-      * An interrupt does not cut the wait short; it is given to the stack at
-      * the end.
+      * its next take), then wait for two poll intervals plus 50 ms for the
+      * thread to end. An interrupt does not cut the wait short; it is given to
+      * the stack at the end.
       */
     // claude 2026-10-19: created (P3, A1): the input steps of Session.close
     private def stopInput(
