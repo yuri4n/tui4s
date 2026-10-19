@@ -7,13 +7,13 @@ import kyo.test.prop.Gen
 import tui4s.internal.*
 
 /** Random kyo-ui trees for the oracle properties of the frame path (PF-a). A
-  * tree has elements, texts, fragments, decorated elements (inputs, a button,
-  * a select, a rule, an image, lists with markers) and the two kinds of
-  * regions (`Reactive` and `Foreach`). Each region has two contents: scene A
-  * shows the first one, scene B the second one. A step from scene A to scene
-  * B is a change of every region, as the runner sees it. In scene A the first
-  * text input has the focus and the caret is at its first grapheme; in scene
-  * B no element has the focus.
+  * tree has elements, texts, fragments, decorated elements (inputs, a button, a
+  * select, a rule, an image, lists with markers) and the two kinds of regions
+  * (`Reactive` and `Foreach`). Each region has two contents: scene A shows the
+  * first one, scene B the second one. A step from scene A to scene B is a
+  * change of every region, as the runner sees it. In scene A the first text
+  * input has the focus and the caret is at its first grapheme; in scene B no
+  * element has the focus.
   *
   * All generators are explicit values (no `Gen.derive`, no given `Gen`).
   */
@@ -31,9 +31,10 @@ object UiGen:
         /** A decorated element: `kind` is 0 to 9 (see [[decorated]]). */
         // claude 2026-10-19: created (P5): the decorations of the painter
         case Deco(kind: Int)
+    end Spec
 
-    /** A UI, the contents of its regions and inputs in scene A and in scene
-      * B, and the first text input of scene A (it has the focus there).
+    /** A UI, the contents of its regions and inputs in scene A and in scene B,
+      * and the first text input of scene A (it has the focus there).
       */
     // claude 2026-10-19: changed (P5): the focus of scene A
     final case class Built(
@@ -44,6 +45,7 @@ object UiGen:
     ):
         def sceneA(size: Size): Scene = Scene(a.get, focus, size, _ => 0)
         def sceneB(size: Size): Scene = scene(b, size)
+    end Built
 
     def scene(contents: Map[Loc, Content], size: Size): Scene =
       Scene(contents.get, None, size, _ => Int.MaxValue)

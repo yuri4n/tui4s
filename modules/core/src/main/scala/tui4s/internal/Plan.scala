@@ -3,9 +3,9 @@ package tui4s.internal
 import jatatui.core.style.{Color as JColor, Style as JStyle}
 
 /** One grapheme cluster of a text run and the number of cells that it takes:
-  * the sum of the cell widths of its code points, as jatatui's `Wcwidth`
-  * counts them (1; 2 for a wide character or an emoji; more for an emoji
-  * sequence, for example 6 for a ZWJ family).
+  * the sum of the cell widths of its code points, as jatatui's `Wcwidth` counts
+  * them (1; 2 for a wide character or an emoji; more for an emoji sequence, for
+  * example 6 for a ZWJ family).
   */
 // claude 2026-10-19: created (P5): the cells of a text, found by the painter
 private[tui4s] final case class Glyph(symbol: String, width: Int)
