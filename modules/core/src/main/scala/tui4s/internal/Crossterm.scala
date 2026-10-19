@@ -15,6 +15,7 @@ import tui.crossterm.{
 import tui4s.*
 
 import java.lang.foreign.{FunctionDescriptor, Linker, ValueLayout}
+import java.lang.invoke.MethodHandle
 import scala.jdk.OptionConverters.*
 import scala.util.control.NonFatal
 
@@ -134,7 +135,7 @@ end NativeCrossterm
   * same native access as the crossterm library, so call it after that loaded.
   */
 private[tui4s] object Tty:
-    private lazy val handle: Option[java.lang.invoke.MethodHandle] =
+    private lazy val handle: Option[MethodHandle] =
       if java.lang.System
             .getProperty("os.name", "")
             .nn
@@ -143,31 +144,49 @@ private[tui4s] object Tty:
             .contains("win")
       then None
       else
-          try
-              val linker = Linker.nativeLinker().nn
-              val int    = ValueLayout.JAVA_INT
-              linker
-                .defaultLookup()
-                .nn
-                .find("isatty")
-                .nn
-                .toScala
-                .map(at =>
-                  linker.downcallHandle(at, FunctionDescriptor.of(int, int)).nn,
-                )
-          catch case NonFatal(_) => None
+          link { () =>
+            val linker = Linker.nativeLinker().nn
+            val int    = ValueLayout.JAVA_INT
+            linker
+              .defaultLookup()
+              .nn
+              .find("isatty")
+              .nn
+              .toScala
+              .map(at =>
+                linker.downcallHandle(at, FunctionDescriptor.of(int, int)).nn,
+              )
+          }
 
     /** True when `fd` is a terminal; `None` when this cannot be known. */
-    def isatty(fd: Int): Option[Boolean] =
-      handle.flatMap { h =>
-        try
-            Some(
-              h.invokeWithArguments(Integer.valueOf(fd)) match
-                  case n: Integer => n.intValue == 1
-                  case _          => false,
-            )
-        catch case NonFatal(_) => None
-      }
+    def isatty(fd: Int): Option[Boolean] = handle.flatMap(call(_, fd))
+
+    /** The downcall handle that `find` links; `None` when the link fails, also
+      * with a `LinkageError`: a GraalVM native image without the registration
+      * of the downcall throws `MissingForeignRegistrationError`, which
+      * `NonFatal` does not match. A fatal error of the JVM goes through.
+      */
+    // claude 2026-10-19: created: the seam of the link; it also catches a
+    // LinkageError (C1)
+    private[tui4s] def link(
+        find: () => Option[MethodHandle],
+    ): Option[MethodHandle] =
+      try find()
+      catch case NonFatal(_) | _: LinkageError => None
+
+    /** `isatty(fd)` through the handle `h`; `None` when the call fails, also
+      * with a `LinkageError` (see [[link]]).
+      */
+    // claude 2026-10-19: created: the seam of the call; it also catches a
+    // LinkageError (C1)
+    private[tui4s] def call(h: MethodHandle, fd: Int): Option[Boolean] =
+      try
+          Some(
+            h.invokeWithArguments(Integer.valueOf(fd)) match
+                case n: Integer => n.intValue == 1
+                case _          => false,
+          )
+      catch case NonFatal(_) | _: LinkageError => None
 end Tty
 
 /** crossterm as the [[InputPort]] of the input thread: `poll` with the poll
