@@ -104,6 +104,7 @@
   HUMAN STEP: GitHub environment maven-central must accept runner-v*, app-v*, testkit-v* (and use-v*, widgets-v*).
   Open (small): core should watch modules/{runner,app,testkit} for the version policy -> fold into L3's build touch.
   Local checkouts switching to the branch: `sbt runner/clean core/clean` once (stale target/ after the git mv).
+- h34s is OUT OF SCOPE for this session (user, 2026-10-19: it was the wrong chat). Do not carry its discussion forward.
 - NEXT: L3 examples.assistant (3 agents): shared crossProject (domain + UI, kyo-ui/use/widgets only), tui main
   (TuiApp), providers Anthropic/OpenAI (JVM SSE over kyo-http) + scripted fake; keys from env or a 0600 file only.
 - (history) L1 ran in three workflows (cheap cadence: implementer + API/examples reviewer + fixer, Opus): L1a viewport scroll
