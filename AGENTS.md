@@ -10,11 +10,20 @@ tui4s is a terminal runner for [kyo-ui](https://github.com/getkyo/kyo), the UI
 library of [Kyo](https://getkyo.io), in Scala 3. A kyo-ui value describes the
 screen. tui4s lays it out in terminal cells and paints it with
 [jatatui](https://github.com/oyvindberg/jatatui), a Java port of ratatui that
-replaces tui-scala. tui4s has no UI DSL of its own: the DSL is kyo-ui.
+replaces tui-scala. tui4s has no UI DSL of its own: the DSL is kyo-ui. The
+runner is the artifact tui4s-runner, "the terminal runner for kyo-ui". The
+artifact tui4s-core is the composite of tui4s-runner, tui4s-app (`TuiApp`) and
+tui4s-testkit (`Headless`): one dependency gives the three (decision D25,
+issue #17). All the artifacts use the same packages (`tui4s`,
+`tui4s.internal`, `tui4s.spi`, `tui4s.testkit`).
+<!-- claude 2026-10-19: changed: the runner artifact and the composite core (D25) -->
 
 | Directory       | sbt id     | Artifact                         | UI DSL                                  | Release tag      | Published |
 | --------------- | ---------- | -------------------------------- | --------------------------------------- | ---------------- | --------- |
-| `modules/core`  | `core`     | `io.github.yuri4n::tui4s-core`   | kyo-ui                                  | `core-v<semver>` | yes       |
+| `modules/runner` | `runner`  | `io.github.yuri4n::tui4s-runner` | kyo-ui (the terminal runner for kyo-ui: `tui4s.internal`, `tui4s.spi`, `Tui`, the components, the screen types) | `runner-v<semver>` | yes |
+| `modules/app`   | `app`      | `io.github.yuri4n::tui4s-app`    | kyo-ui (`TuiApp`, on tui4s-runner)      | `app-v<semver>`  | yes       |
+| `modules/testkit` | `testkit` | `io.github.yuri4n::tui4s-testkit` | kyo-ui (`tui4s.testkit.Headless`, on tui4s-runner) | `testkit-v<semver>` | yes |
+| `modules/core`  | `core`     | `io.github.yuri4n::tui4s-core`   | kyo-ui (the composite: it depends on tui4s-runner, tui4s-app and tui4s-testkit; its jar holds only the object `tui4s.Core`; its test sources are the integration suites) | `core-v<semver>` | yes |
 | `modules/zio`   | `zio`      | `io.github.yuri4n::tui4s-zio`    | a ZIO DSL over kyo-ui (planned)         | `zio-v<semver>`  | yes       |
 | `modules/cats`  | `cats`     | `io.github.yuri4n::tui4s-cats`   | a Cats Effect DSL over kyo-ui (planned) | `cats-v<semver>` | yes       |
 | `modules/use`   | `use` (`useJVM`, `useJS`) | `io.github.yuri4n::tui4s-use` (JVM and Scala.js) | kyo-ui (composables) | `use-v<semver>` | yes |
@@ -22,10 +31,13 @@ replaces tui-scala. tui4s has no UI DSL of its own: the DSL is kyo-ui.
 | `examples`      | `examples` | none                             | -                                       | none             | no        |
 | `docs`          | none       | none (Nuxt Docus site)           | -                                       | none             | no        |
 <!-- claude 2026-10-19: created the rows of use and widgets (L2a); changed: the widgets row (L2b) -->
+<!-- claude 2026-10-19: changed: the rows runner, app, testkit and the composite core (D25) -->
 
-The core uses Kyo and kyo-ui (both at `Versions.kyo`). The `zio` and `cats`
-modules will let ZIO and Cats Effect users write tui4s apps without Kyo types
-in their code. Today the core renders a kyo-ui value to cells
+<!-- claude 2026-10-19: changed: the runner, not the core; zio and cats depend on the runner (D25) -->
+The runner uses Kyo and kyo-ui (both at `Versions.kyo`). The `zio` and `cats`
+modules depend on the runner. They will let ZIO and Cats Effect users write
+tui4s apps without Kyo types in their code. Today the runner renders a kyo-ui
+value to cells
 (`tui4s.internal.Layout`, `tui4s.internal.Paint`) and follows its signals: a
 `Signal`, a `Foreach` or a bound `SignalRef` drives a region of the screen,
 and each change gives one frame (`tui4s.internal.Runner`). Keys reach the UI
@@ -259,7 +271,8 @@ nothing.
 | `bash scripts/version-order-test.sh` | Tests the version order of the release script (CI runs it).   |
 | `bash scripts/edge-check.sh`         | Checks the edge headers and the suppressions (CI runs it).    |
 | `sbt versions`                       | Shows the version of each module (released or snapshot).      |
-| `sbt core/test`                      | Runs the tests of one module. The core tests use kyo-test.    |
+| `sbt runner/test`                    | Runs the suites that need only the runner (layout, paint, the oracles, the terminal path on a fake crossterm). They use kyo-test. |
+| `sbt core/test`                      | Runs the integration suites (`modules/core`): the suites that run `Headless` or `TuiApp`. They use kyo-test and the test sources of the runner. |
 | `sbt use/test`                       | Runs the tests of a cross-built module (`use`, `widgets`) on the JVM and on Scala.js (Node.js runs the JS tests). |
 | `sbt useJVM/test useJS/compile`      | Runs the JVM tests of tui4s-use and compiles its Scala.js side. |
 | `nix develop`                       | Enters the development shell with JDK 25, sbt, Node.js, and terminal test tools. |
@@ -269,6 +282,15 @@ nothing.
 | `examples/target/bin/<app>`          | Runs an example in the real terminal (its own JVM): `counter`, `counterkyo`, `twocounters`, `counterstyles`, `todo`, `dashboard`, `printing`, `forms`, `gallery`. |
 | `examples/ptycheck/run.sh`           | Runs the real-terminal checklist in a pseudo-terminal (CI job `terminal`). |
 <!-- claude 2026-10-19: created the rows of use/test and useJS/compile; changed: Node.js in the shell (L2a); gallery in the app list (L2b) -->
+<!-- claude 2026-10-19: changed: the rows runner/test and core/test (D25) -->
+
+A test suite lives in the lowest module whose main classpath it needs: a
+suite that needs only the runner is in `modules/runner/src/test`; a suite
+that runs `Headless` or `TuiApp` is in `modules/core/src/test` (the
+composite depends on the three, and its tests use the test sources of the
+runner). The runner and the core get the same test settings
+(`runnerTestSettings` in `build.sbt`).
+<!-- claude 2026-10-19: created this paragraph (D25) -->
 
 <!-- claude 2026-10-13: changed (T1): the launchers and the PTY kit replace `sbt "examples/runMain <main>"` -->
 
@@ -322,13 +344,15 @@ and after a change of the frame path, and give both numbers.
   captures `System.out` and `System.err` (`internal.OutputCapture`); what it
   kept is printed after the restore. A `TuiApp` installs the capture in its
   constructor, before the first use of `scala.Console`, so Scala's `println`
-  is captured too. The core main sources have no
-  `System.err` and no `println` except the log sink, the output forwarders
-  and the prints after the restore, each with a `// tui4s: allowed` comment:
-  `grep -rnE 'System\.err|System\.out|println' modules/core/src/main` shows
-  only comment lines and lines with that marker.
+  is captured too. The main sources of the runner, the app and the test kit
+  have no `System.err` and no `println` except the log sink, the output
+  forwarders and the prints after the restore, each with a
+  `// tui4s: allowed` comment:
+  `grep -rnE 'System\.err|System\.out|println' modules/runner/src/main modules/app/src/main modules/testkit/src/main`
+  shows only comment lines and lines with that marker.
   <!-- claude 2026-10-13: changed (T1): the run's logger, the capture, the marker rule -->
   <!-- claude 2026-10-13: changed (T2): TuiApp installs the capture -->
+  <!-- claude 2026-10-19: changed: the main sources of the three modules (D25) -->
 - Do not put `com.olvind.tui` (tui-scala) on the classpath. Its `crossterm`
   jar has the same `tui.crossterm` package as the jatatui `crossterm` jar.
 - Do all drawing on one fiber. jatatui buffers, cells and widget states are
@@ -404,7 +428,7 @@ and after a change of the frame path, and give both numbers.
   writes, and 500 keys) assert 0 split frames and print the count; a run
   under CPU contention sets `-Dtui4s.load=1` in the test JVM, which allows 1.
   CI sets the environment variable `TUI4S_LOAD=1` (`ci.yml`), and
-  `modules/core/build.sbt` gives the test JVM `-Dtui4s.load=1`: on a loaded
+  `runnerTestSettings` (`build.sbt`) gives the test JVM `-Dtui4s.load=1`: on a loaded
   2-CPU runner, 500 events give about a 5 percent chance of 1 split under the
   SOFT contract, and a real regression gives many. One event is one write
   (or one key). A key is one event: its handlers run inside the runner's step,
@@ -418,6 +442,7 @@ and after a change of the frame path, and give both numbers.
   frame; two writes from a test fiber with no wait between them give one frame
   or two.
   <!-- claude 2026-10-12: changed this sentence (PR #11 review: Codex, Runner.scala:394) -->
+  <!-- claude 2026-10-19: changed: runnerTestSettings gives the load flag (D25) -->
   The runner settles on the JVM-wide Kyo scheduler, so core test suites run one
   at a time: a suite that runs the runner extends `RunnerSuite` (sequential
   leaves), and sbt runs one test JVM at a time. A test that writes a
@@ -442,8 +467,8 @@ and after a change of the frame path, and give both numbers.
   state stays and its body or `onMount` does not run again.
   <!-- claude 2026-10-12: created this item (review R2-5) -->
   <!-- claude 2026-10-13: changed (C4): the component mounts go on -->
-- The test JVM sets the tui4s scheduler values (`modules/core/build.sbt`,
-  `Test / javaOptions`): `kyo.scheduler.cycleIntervalNs=10000000`,
+- The test JVM sets the tui4s scheduler values (`runnerTestSettings` in
+  `build.sbt`, `Test / javaOptions`): `kyo.scheduler.cycleIntervalNs=10000000`,
   `kyo.scheduler.blockingMonitorIntervalNs=20000000`,
   `kyo.scheduler.blockingMonitorMinIntervalNs=20000000` and
   `kyo.scheduler.regulator.concurrencyCollectIntervalMs=100`. Without them the
@@ -458,6 +483,7 @@ and after a change of the frame path, and give both numbers.
   <!-- claude 2026-10-13: changed (T1, D-17 c): the start scripts -->
   <!-- claude 2026-10-13: changed (T2, RC-25): TuiApp sets them in code -->
   <!-- claude 2026-10-19: changed (C2): blockingMonitorMinIntervalNs -->
+  <!-- claude 2026-10-19: changed: runnerTestSettings (D25) -->
   The settle canary (SettleTest) needs a
   second Kyo worker: on a 2-CPU JVM under load the scheduler keeps one, so
   the canary cancels itself there (the report says `cancelled`, not passed).
@@ -538,7 +564,8 @@ and after a change of the frame path, and give both numbers.
 - An edge file wraps a foreign API. Its line 1 is
   `// scalafix:off DisableSyntax` and its line 2 is
   `// EDGE: <the foreign API>`. `scripts/edge-check.sh` has the list of the
-  edge files.
+  edge files. All of them are in `modules/runner/src/main/scala/tui4s/internal`.
+  <!-- claude 2026-10-19: changed: the edge files are in modules/runner (D25) -->
 - The scalafix rule DisableSyntax (`.scalafix.conf`) finds impure code in the
   main sources. `sbt check` runs `scalafixAll --check`. The test sources use
   `.scalafix-test.conf`, which has only OrganizeImports.
@@ -587,8 +614,10 @@ and after a change of the frame path, and give both numbers.
 
 - `project/Versions.scala` holds the versions that more than one module uses
   (Scala, Kyo, jatatui, munit, tasty-query). tasty-query is there because the
-  core tests use it now and the zio and cats coverage tests will use it later.
+  runner and core tests use it now (`KyoUiSurfaceTest`, `PublicApiTest`) and
+  the zio and cats coverage tests will use it later.
   <!-- claude 2026-10-12: changed: tasty-query named, with the reason (review R1-3, R2-5) -->
+  <!-- claude 2026-10-19: changed: the runner and core tests (D25) -->
 - Each published module watches its own `modules/<m>` directory, the root
   `build.sbt` and the `project` directory. A change in the root `build.sbt` or
   in `project` marks all modules as unreleased.
@@ -608,15 +637,18 @@ rules are early-semver:
   `0.y+1`).
 
 The package `tui4s.internal` is sealed: each of its top-level definitions is
-`private[tui4s]`, so users and Scaladoc do not see it (the test kit and the
-`zio` and `cats` modules are inside `tui4s` and keep the access).
-`PublicApiTest` checks the seal, and also that no public signature of `tui4s`,
-`tui4s.spi` or `tui4s.testkit` names an internal type; the compiler does not
-check this. `private[tui4s]` is public in the bytecode: MiMa and
+`private[tui4s]`, so users and Scaladoc do not see it (tui4s-app,
+tui4s-testkit and the `zio` and `cats` modules are other jars in the package
+`tui4s`, and they keep the access: `private[tui4s]` works across jars).
+`PublicApiTest` (in `modules/core`) checks the seal in the classes of the four
+jars of the split (runner, app, testkit, core), and also that no public
+signature of `tui4s`, `tui4s.spi` or `tui4s.testkit` names an internal type;
+the compiler does not check this. `private[tui4s]` is public in the bytecode: MiMa and
 `versionPolicyCheck` see the internal types and the `private[tui4s]` seams, so
 a change there can break binary compatibility as a change of the public API
 does.
 <!-- claude 2026-10-13: created this paragraph (C3, gate 1 item 1, RC-36) -->
+<!-- claude 2026-10-19: changed: the seal across the jars of the split (D25) -->
 
 If a pull request breaks binary compatibility, set the intention of that module
 to `Compatibility.None` in the same pull request. After the release, set it back
@@ -646,10 +678,13 @@ coursier (and thus sbt) puts `M` below `alpha` and `beta`. Thus, do not release
 an `M` version after an `alpha` or `beta` of the same `x.y.z`.
 
 <!-- claude 2026-10-19: changed: `use` before `widgets` (L2b review) -->
+<!-- claude 2026-10-19: changed: the order runner, app, testkit, core (D25) -->
 If the script says that an inter-project dependency is unreleased, release that
-module first (`core` before `zio` and `cats`, `use` before `widgets`). Wait until its release run is
-complete, then try again. Push only one release tag at a time: GitHub ignores a push of more than
-three tags.
+module first: `runner`, then `app` and `testkit`, then `core` (the composite of
+the three), before `zio` and `cats`; `use` before `widgets`.
+`scripts/release.sh` lists the modules in this order (`MODULES`). Wait until its
+release run is complete, then try again. Push only one release tag at a time:
+GitHub ignores a push of more than three tags.
 
 **Agents:** a release tag publishes a public artifact to Maven Central, and you
 cannot remove it. You can run `--dry-run` at any time. You must get approval
@@ -660,9 +695,15 @@ One-time setup (human): sign in to central.sonatype.com with GitHub (this
 verifies `io.github.yuri4n`), make a user token, make a GPG key, and put its
 public key on a key server. Then add these secrets to the GitHub environment
 `maven-central`: `PGP_SECRET`, `PGP_PASSPHRASE`, `SONATYPE_USERNAME`,
-`SONATYPE_PASSWORD`. The environment accepts only the tags `core-v*`, `zio-v*`,
-`cats-v*`, `use-v*` and `widgets-v*`.
+`SONATYPE_PASSWORD`. The environment accepts only the tags `runner-v*`,
+`app-v*`, `testkit-v*`, `core-v*`, `zio-v*`, `cats-v*`, `use-v*` and
+`widgets-v*`. A human adds each tag pattern in the settings of the
+environment (Settings, Environments, `maven-central`, the deployment tags)
+before the first release of its module. The patterns `runner-v*`, `app-v*`
+and `testkit-v*` are new (D25): add them before the first release of the
+runner.
 <!-- claude 2026-10-19: changed: use-v* and widgets-v* (L2a); a human adds them to the environment -->
+<!-- claude 2026-10-19: changed: runner-v*, app-v* and testkit-v* (D25); a human adds them to the environment -->
 
 | Error message                                          | Cause and fix                                                       |
 | ------------------------------------------------------ | ------------------------------------------------------------------- |

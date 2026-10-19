@@ -1268,12 +1268,35 @@ Each module is released on its own, with its own version.
 
 | Artifact                         | For                                    |
 | -------------------------------- | -------------------------------------- |
-| `io.github.yuri4n::tui4s-core`   | Kyo users: run a kyo-ui value in the terminal. The base of the others. |
+| `io.github.yuri4n::tui4s-core`   | Kyo users: the tui4s experience in one dependency. It gives tui4s-runner, tui4s-app and tui4s-testkit. |
+| `io.github.yuri4n::tui4s-runner` | The terminal runner for kyo-ui: `Tui.run`, the components (`Hooks`, `Component`), the screen types. The base of the others. |
+| `io.github.yuri4n::tui4s-app`    | `TuiApp`, the main class of an app, on tui4s-runner. |
+| `io.github.yuri4n::tui4s-testkit` | `tui4s.testkit.Headless`, the headless test kit, on tui4s-runner. |
 | `io.github.yuri4n::tui4s-zio`    | ZIO users (planned).                   |
 | `io.github.yuri4n::tui4s-cats`   | Cats Effect users (planned).           |
 | `io.github.yuri4n::tui4s-use`    | Composables over Kyo signals, for the JVM and Scala.js. It does not need tui4s-core. |
 | `io.github.yuri4n::tui4s-widgets` | Widgets for the JVM and Scala.js, on tui4s-use. It does not need tui4s-core. |
 <!-- claude 2026-10-19: created the two rows above (L2a); changed: the widgets row (L2b) -->
+<!-- claude 2026-10-19: changed: the rows of the split of the core: runner, app, testkit (D25) -->
+
+An app uses tui4s-core:
+
+```scala
+libraryDependencies += "io.github.yuri4n" %% "tui4s-core" % "<version>"
+```
+
+The terminal runner for kyo-ui alone (for example, a library, or a main of
+its own with no `TuiApp`) is tui4s-runner. Add tui4s-testkit in the `Test`
+scope for the headless test kit:
+
+```scala
+libraryDependencies += "io.github.yuri4n" %% "tui4s-runner"  % "<version>"
+libraryDependencies += "io.github.yuri4n" %% "tui4s-testkit" % "<version>" % Test
+```
+
+The packages are the same in all the artifacts (`tui4s`, `tui4s.spi`,
+`tui4s.testkit`), so the imports do not change.
+<!-- claude 2026-10-19: created these lines (D25) -->
 
 ## Requirements
 
