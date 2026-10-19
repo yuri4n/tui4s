@@ -8,6 +8,7 @@ import kyo.Style.{
   Alignment,
   BorderStyle,
   FlexDirection,
+  FlexWrap,
   FontStyle,
   FontWeight,
   Justification,
@@ -226,9 +227,15 @@ private[tui4s] final case class Border(
   *     `HiddenProp`, CSS `display: none`. The old runner ignored `display`. It
   *     honored `HiddenProp`: the element has no layout and no paint
   *     (`Layout.flatten` drops it), and the regions in it stay mounted
-  *     (`Mount.walk` walks it), so their state stays.
+  *     (`Mount.walk` walks it), so their state stays. Now: `HiddenProp` as
+  *     before; `block`, `flex`, `inline`, `inlineBlock` and `inlineFlex` keep
+  *     the flex layout of kyo-ui's base CSS (an `inline` span stays a row of
+  *     text); `listItem`, `table`, `tableRow` and `tableCell` change nothing
+  *     and warn (see [[Warnings]]).
   *   - `flexWrap` (`FlexWrap`: wrap, noWrap; CSS `flex-wrap`). kyo-ui has no
-  *     `wrapReverse` and no `alignContent`. The old runner ignored it.
+  *     `wrapReverse` and no `alignContent`. The old runner ignored it. Now:
+  *     `wrap` breaks the items into lines ([[Layout.lines]]); each line is as
+  *     high as its tallest item, and the lines stack from the cross start.
   *   - `Color.Var(name)` (`Color.variable(name)`; CSS `var(--name)`). The case
   *     has no fallback value. kyo-ui declares a custom property only in a
   *     `Stylesheet`: `Stylesheet.vars(name -> value)` is a `:root` block, and
@@ -301,8 +308,15 @@ private[tui4s] final case class Props(
     inset: Inset = Inset.auto,
     /** `zIndex`: the paint order of a positioned element (none is 0). */
     z: Option[Int] = None,
+    /** `flexWrap`: `wrap` breaks the items into lines ([[Layout.lines]]). */
+    // claude 2026-10-19: created (L1b)
+    wrap: FlexWrap = FlexWrap.noWrap,
 ):
     def insets: Sides = border.fold(Sides.zero)(_.sides) + padding + decoration
+
+    /** True when the items break into lines: `flexWrap(wrap)`. */
+    // claude 2026-10-19: created (L1b)
+    def wraps: Boolean = wrap == FlexWrap.wrap
 
     /** True when an axis is not `visible`: the element is a viewport. */
     // claude 2026-10-19: created (L1a)
@@ -328,9 +342,11 @@ private[tui4s] object Props:
       "BorderWidthProp",
       "Bottom",
       "DisabledProp",
+      "DisplayProp",
       "FlexDirectionProp",
       "FlexGrowProp",
       "FlexShrinkProp",
+      "FlexWrapProp",
       "FocusProp",
       "FontStyleProp",
       "FontWeightProp",
@@ -687,6 +703,10 @@ private[tui4s] object Props:
             case Prop.Left(v)                      =>
               p.copy(inset = p.inset.copy(left = offset(v)))
             case Prop.ZIndexProp(v)                => p.copy(z = Some(v))
+            // claude 2026-10-19: created (L1b): the flex lines; the display
+            // values that the runner honors keep its flex layout (the others
+            // warn, see Warnings)
+            case Prop.FlexWrapProp(v)              => p.copy(wrap = v)
             case Prop.BorderWidthProp(t, r, b, l)  =>
               val sides = Sides(
                 side(t).min(1),

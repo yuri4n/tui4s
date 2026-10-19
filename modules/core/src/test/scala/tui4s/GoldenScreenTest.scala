@@ -627,6 +627,43 @@ class GoldenScreenTest extends ScreenSuite:
     }
 
     // claude 2026-10-19: created (L1b)
+    "flex-wrap and display" - {
+      "flexWrap(wrap): the items break into 3 lines, each as high as its tallest item" in {
+        val ui = div.style(
+          _.row.flexWrap(_.wrap).gap(1.px).width(11.px).align(_.start),
+        )(
+          span("aaa"),
+          span("bbb"),
+          div("c1", "c2").style(_.border(1.px, _.white)),
+          span("dd"),
+          span("eeeeeeeee"),
+        )
+        assertScreen(
+          ui,
+          12,
+          8,
+          """aaa bbb
+            |
+            |┌──┐ dd
+            |│c1│
+            |│c2│
+            |└──┘
+            |
+            |eeeeeeeee""".stripMargin,
+        )
+      }
+      "displayNone: the element takes no space and paints nothing; display(block) and display(flex) keep the layout" in {
+        val ui = div.style(_.row.gap(1.px))(
+          span("a"),
+          span("hidden").style(_.displayNone),
+          span("b").style(_.display(_.block)),
+          span("c").style(_.display(_.flex)),
+        )
+        assertScreen(ui, 8, 1, "a b c")
+      }
+    }
+
+    // claude 2026-10-19: created (L1b)
     "custom colours (Color.Var)" - {
       val green  = JColor.Rgb(34, 197, 94)
       val red    = JColor.Rgb(239, 68, 68)

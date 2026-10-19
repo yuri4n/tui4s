@@ -648,7 +648,13 @@ private[tui4s] object Layout:
                 )
                 // claude 2026-10-19: changed: the heights of `settle` (L1a
                 // review); the items in the flow only (L1b)
-                combine(p, settle(p, inner, measured).filterNot(outOfFlow))
+                combine(
+                  p,
+                  settle(p, inner, measured).filterNot(outOfFlow),
+                  p.dir match
+                      case Dir.Row    => Some(inner)
+                      case Dir.Column => innerH,
+                )
         }
         val w                              = fixedW1.getOrElse(content.w + ins.h)
         val h                              = fixedH.getOrElse(content.h + ins.v)
@@ -663,20 +669,84 @@ private[tui4s] object Layout:
     end measureElement
 
     /** The natural content size of a container from its measured items (margins
-      * and gaps included).
+      * and gaps included). A container that wraps (`flexWrap(wrap)`) and has a
+      * main size `main` (its content width for a row, its definite content
+      * height for a column) is as long as its longest line on the main axis,
+      * and its lines with the gap between them on the cross axis.
       */
-    def combine(p: Props, items: Vector[Measured]): Size =
+    // claude 2026-10-19: changed: the lines of a container that wraps (L1b)
+    def combine(
+        p: Props,
+        items: Vector[Measured],
+        main: Option[Int] = None,
+    ): Size =
       if items.isEmpty then Size.zero
       else
-          val outer = items.map(m =>
-            Size(m.size.w + m.props.margin.h, m.size.h + m.props.margin.v),
-          )
-          val gaps  = p.gap * (items.size - 1)
-          p.dir match
-              case Dir.Column =>
-                Size(outer.map(_.w).max, outer.map(_.h).sum + gaps)
-              case Dir.Row    =>
-                Size(outer.map(_.w).sum + gaps, outer.map(_.h).max)
+          main.filter(_ => p.wraps) match
+              case Some(m) =>
+                val ls    = lines(p.dir, m, p.gap, items)
+                val mains = ls.map(l => lineMain(p.dir, p.gap, l))
+                val cross = ls.map(l => lineCross(p.dir, l)).sum +
+                  p.gap * (ls.size - 1)
+                p.dir match
+                    case Dir.Row    => Size(mains.max, cross)
+                    case Dir.Column => Size(cross, mains.max)
+              case None    =>
+                val outer = items.map(m =>
+                  Size(m.size.w + m.props.margin.h, m.size.h + m.props.margin.v),
+                )
+                val gaps  = p.gap * (items.size - 1)
+                p.dir match
+                    case Dir.Column =>
+                      Size(outer.map(_.w).max, outer.map(_.h).sum + gaps)
+                    case Dir.Row    =>
+                      Size(outer.map(_.w).sum + gaps, outer.map(_.h).max)
+
+    /** The cells of an item on the main axis of `dir`, its margins too. */
+    // claude 2026-10-19: created (L1b)
+    private def outerMain(dir: Dir, m: Measured): Int = dir match
+        case Dir.Row    => m.size.w + m.props.margin.h
+        case Dir.Column => m.size.h + m.props.margin.v
+
+    /** The cells of an item on the cross axis of `dir`, its margins too. */
+    // claude 2026-10-19: created (L1b)
+    private def outerCross(dir: Dir, m: Measured): Int = dir match
+        case Dir.Row    => m.size.h + m.props.margin.v
+        case Dir.Column => m.size.w + m.props.margin.h
+
+    /** The main cells of a line: its items and the gaps between them. */
+    // claude 2026-10-19: created (L1b)
+    def lineMain(dir: Dir, gap: Int, line: Vector[Measured]): Int =
+      line.map(outerMain(dir, _)).sum + gap * (line.size - 1).max(0)
+
+    /** The cross cells of a line: the cross size of its tallest item. */
+    // claude 2026-10-19: created (L1b)
+    def lineCross(dir: Dir, line: Vector[Measured]): Int =
+      line.map(outerCross(dir, _)).maxOption.getOrElse(0)
+
+    /** The flex lines of `items` in a main size of `main` cells (CSS
+      * `flex-wrap: wrap`): greedy, in the order of the items, an item goes on
+      * the open line when it fits there with the gap, else it opens the next
+      * line. A line has at least one item, so an item longer than `main` is a
+      * line of its own. Law: a line of two or more items is not longer than
+      * `main`.
+      */
+    // claude 2026-10-19: created (L1b)
+    def lines(
+        dir: Dir,
+        main: Int,
+        gap: Int,
+        items: Vector[Measured],
+    ): Vector[Vector[Measured]] =
+      items
+        .foldLeft(Vector.empty[(Vector[Measured], Int)]) { (acc, m) =>
+          val s = outerMain(dir, m)
+          acc.lastOption match
+              case Some((line, used)) if used + gap + s <= main =>
+                acc.updated(acc.size - 1, (line :+ m, used + gap + s))
+              case _                                            => acc :+ (Vector(m), s)
+        }
+        .map(_._1)
 
     // ---- tables ----
 
@@ -829,8 +899,10 @@ private[tui4s] object Layout:
         items: Vector[Measured],
     ): Vector[Measured] =
         val flow = TextFlow.of(p)
+        // claude 2026-10-19: changed: a row that wraps breaks its items into
+        // lines and does not shrink them (L1b)
         if p.dir != Dir.Row || flow.wrap == Wrapping.Off ||
-            p.overflowX != Overflow.visible
+            p.overflowX != Overflow.visible || p.wraps
         then items
         else
             // claude 2026-10-19: changed: only the items in the flow share the
@@ -859,6 +931,8 @@ private[tui4s] object Layout:
     // claude 2026-10-19: created (L1b)
     def outOfFlow(m: Measured): Boolean = m.props.position.outOfFlow
 
+    // claude 2026-10-19: changed: the flex lines of a container that wraps
+    // (L1b)
     def arrange(
         p0: Props,
         box: Rect,
@@ -866,6 +940,7 @@ private[tui4s] object Layout:
         cols: Vector[Int],
     ): Vector[Rect] =
       if items0.isEmpty then Vector.empty
+      else if p0.wraps && cols.isEmpty then wrapped(p0, box, items0)
       else if cols.nonEmpty then
           // a table row: fixed column widths
           items0.zipWithIndex.map { (m, j) =>
@@ -956,6 +1031,34 @@ private[tui4s] object Layout:
           }
           if p0.reverse then rects.reverse else rects
     end arrange
+
+    /** The rects of the items of a container that wraps: its [[lines]] in its
+      * main size, each line arranged as a flex line (grow, shrink, justify,
+      * align) in a box of the cross size of its tallest item. The lines stack
+      * from the cross start, the gap between them: kyo-ui has no
+      * `alignContent`, so they do not stretch or spread (CSS `align-content:
+      * flex-start`). The rects come back in the items' own order.
+      */
+    // claude 2026-10-19: created (L1b)
+    private def wrapped(
+        p: Props,
+        box: Rect,
+        items: Vector[Measured],
+    ): Vector[Rect] =
+        val main = p.dir match
+            case Dir.Row    => box.w
+            case Dir.Column => box.h
+        val line = p.copy(wrap = kyo.Style.FlexWrap.noWrap)
+        lines(p.dir, main, p.gap, items)
+          .foldLeft((Vector.empty[Rect], 0)) { case ((acc, at), ls) =>
+            val cross = lineCross(p.dir, ls)
+            val area  = p.dir match
+                case Dir.Row    => Rect(box.x, box.y + at, box.w, cross)
+                case Dir.Column => Rect(box.x + at, box.y, cross, box.h)
+            (acc ++ arrange(line, area, ls, Vector.empty), at + cross + p.gap)
+          }
+          ._1
+    end wrapped
 
     // ---- layout: build the nodes of an item and its subtree ----
 
@@ -1132,7 +1235,12 @@ private[tui4s] object Layout:
             def natural(ks: Vector[Measured], w: Int): Size = node.kind match
                 case Kind.El(e: Table) => tableSize(e, node.path, p, w, env)._2
                 // claude 2026-10-19: changed: the items in the flow (L1b)
-                case _                 => combine(p, ks.filterNot(outOfFlow))
+                case _                 =>
+                  combine(
+                    p,
+                    ks.filterNot(outOfFlow),
+                    Option.when(p.dir == Dir.Row)(w),
+                  )
             val showBar                                     =
               Props.scrolls(p.overflowY) &&
                 p.scrollbarWidth != ScrollbarWidth.none && box.h >= 3 &&
