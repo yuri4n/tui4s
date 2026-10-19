@@ -193,14 +193,12 @@ private[tui4s] object TuiApp:
     // claude 2026-10-13: changed (T2): no AppFailed and no SourceFailed (the
     // old engine's cases; a failure of the UI comes as it is: its stack trace)
     private def describe(e: Throwable, err: PrintStream): Unit = e match
+        // claude 2026-10-19: changed: the typed cause of the case, never null
+        // (P1b, A4)
         case e: TuiError    =>
           err.println(e.getMessage) // tui4s: allowed
-          val cause = e.getCause
-          // claude 2026-10-13: changed (T2): one print per line, so that the
-          // marker stays a trailing comment
-          if cause != null then // scalafix:ok DisableSyntax.null; P1b: a typed TuiError cause (A4)
-              val line = s"  cause: $cause"
-              err.println(line) // tui4s: allowed
+          val line = s"  cause: ${TuiError.causeOf(e)}"
+          err.println(line) // tui4s: allowed
         case _: Interrupted =>
           err.println("interrupted") // tui4s: allowed
         case other =>

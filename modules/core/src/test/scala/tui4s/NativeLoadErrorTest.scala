@@ -107,4 +107,17 @@ class NativeLoadErrorTest extends Test[Any]:
       val oom = OutOfMemoryError("Java heap space")
       assert(NativeCrossterm.loadError(oom) eq oom)
     }
+    // claude 2026-10-19: created (P1b, A4)
+    "each TuiError keeps its native cause and has no stack trace of its own" in {
+      val io     = java.io.IOException("broken pipe")
+      val errors = Seq[TuiError](
+        TuiError.NotATerminal(io),
+        TuiError.NativeAccessDenied(io),
+        TuiError.NativeLoadFailed(io),
+        TuiError.TerminalIO(io),
+      )
+      assert(errors.forall(e => (e.getCause eq io) && (TuiError.causeOf(e) eq io)))
+      assert(errors.forall(_.getStackTrace.isEmpty))
+      assert(io.getStackTrace.nonEmpty)
+    }
 end NativeLoadErrorTest
