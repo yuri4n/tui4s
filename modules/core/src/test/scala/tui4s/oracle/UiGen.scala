@@ -280,6 +280,13 @@ object UiGen:
         .zip3(between(0, 4), between(0, styles), kids(depth, txt, styles))
         .map((tag, style, ks) => build(Spec.Box(tag, style, ks), Loc.root))
 
+    /** The changes of a step from scene A to scene B, as the runner gives
+      * them: the paths of [[changed]] and the focus of scene A (scene B has
+      * none).
+      */
+    // claude 2026-10-19: created (PF-b, F6)
+    def changes(b: Built): Changes = Changes.of(changed(b) ++ b.focus)
+
     /** The paths whose content differs between scene A and scene B. */
     def changed(b: Built): Vector[Loc] =
       (b.a.keySet ++ b.b.keySet).toVector
@@ -294,10 +301,12 @@ object UiGen:
         val laidA   = Layout.layoutAll(b.ui, b.sceneA(size))
         val dirty   = changed(b)
         val regions = TopsOracle.runner(dirty)
+        // claude 2026-10-19: changed: the changes of the step (PF-b, F6)
+        val sceneB  = b.sceneB(size).copy(changes = changes(b))
         val laidB   = regions.foldLeft(laidA) { (l, r) =>
           l.regionOwner.get(r) match
               case Some(owner) =>
-                Layout.relayout(l, owner, Set.empty, b.sceneB(size), b.ui)._1
+                Layout.relayout(l, owner, Set.empty, sceneB, b.ui)._1
               case None        => l
         }
         (laidA, laidB)

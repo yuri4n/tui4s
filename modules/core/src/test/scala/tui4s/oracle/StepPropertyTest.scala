@@ -186,11 +186,14 @@ object StepPropertyTest:
       * each changed region (not under another changed region) is laid out
       * again, then the owner of each changed input value and of the element
       * that loses the focus, with that node forced; then the damage of the
-      * layers that moved, came or went ([[Layout.layerDamage]]).
+      * layers that moved, came or went ([[Layout.layerDamage]]). The scene of
+      * the step has the changed paths ([[UiGen.changes]]), so a relayout keeps
+      * the natural size of a clean node (F6).
       */
-    // claude 2026-10-19: changed: the damage of the layers (L1c review)
+    // claude 2026-10-19: changed: the changed paths of the step (PF-b, F6);
+    // before: the damage of the layers (L1c review)
     def step(b: UiGen.Built, size: Size, laidA: Laid): (Laid, Vector[Damage]) =
-        val sceneB   = b.sceneB(size)
+        val sceneB   = b.sceneB(size).copy(changes = UiGen.changes(b))
         val dirty    = UiGen.changed(b)
         val (rs, ns) = dirty.partition(laidA.regionOwner.contains)
         val (l1, d1) =

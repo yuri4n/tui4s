@@ -123,16 +123,19 @@ class ViewportPropertyTest extends PropertyTest[Any]:
       // claude 2026-10-19: created (L1a review): a scroll laid out in place
       forAll(UiGen.built(5, styles = 10), UiGen.size, seed) { (b, size, s) =>
         val laidA   = Layout.layoutAll(b.ui, scrolled(b.sceneA(size), s))
-        val envB    = scrolled(b.sceneA(size), s + 1)
+        // claude 2026-10-19: changed: the scrolled viewports are the changes
+        // of the step, as the runner gives them (PF-b, F6)
+        val envB0   = scrolled(b.sceneA(size), s + 1)
         val ports   = laidA.nodes.values
           .filter(_.view.isDefined)
           .map(_.path)
           .toVector
           .sortBy(p => -p.showLoc.length)
+        val envB    = envB0.copy(changes = Changes.of(ports))
         val inPlace = ports.foldLeft(laidA)((l, p) =>
           Layout.relayout(l, p, Set.empty, envB, b.ui)._1,
         )
-        assert(views(inPlace) == views(Layout.layoutAll(b.ui, envB)))
+        assert(views(inPlace) == views(Layout.layoutAll(b.ui, envB0)))
       }
 
       // claude 2026-10-19: created (L1a): the thumb of the indicator

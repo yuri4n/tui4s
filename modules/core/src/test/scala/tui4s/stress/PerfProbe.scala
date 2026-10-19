@@ -116,10 +116,11 @@ object PerfProbe:
     def step(
         laid: Laid,
         ui: UI,
-        env: Scene,
+        scene: Scene,
         regions: Vector[Loc],
         scrolled: Vector[Loc],
     ): (Laid, Plan) =
+        val env      = scene.copy(changes = Changes.of(regions ++ scrolled))
         val (l1, d1) =
           Loc.tops(regions).foldLeft((laid, Vector.empty[Damage])) {
             case ((l, d), r) =>

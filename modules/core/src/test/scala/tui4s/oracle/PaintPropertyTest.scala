@@ -183,8 +183,15 @@ object PaintPropertyTest:
             .foldLeft((laidA, Vector.empty[Damage])) { case ((l, d), r) =>
               l.regionOwner.get(r) match
                   case Some(owner) =>
-                    val (l2, d2) =
-                      Layout.relayout(l, owner, Set.empty, b.sceneB(size), b.ui)
+                    // claude 2026-10-19: changed: the changes of the step
+                    // (PF-b, F6)
+                    val (l2, d2) = Layout.relayout(
+                      l,
+                      owner,
+                      Set.empty,
+                      b.sceneB(size).copy(changes = UiGen.changes(b)),
+                      b.ui,
+                    )
                     (l2, d ++ d2)
                   case None        => (l, d)
             }

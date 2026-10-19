@@ -46,6 +46,10 @@ private[tui4s] object Loc:
         /** The path one step up; the screen for the screen. */
         def parent: Loc = p.dropRight(1)
 
+        /** The paths at and above `p`: the screen, ..., the parent, `p`. */
+        // claude 2026-10-19: created (PF-b, F6)
+        def prefixes: Iterator[Loc] = (0 to p.size).iterator.map(p.take)
+
         /** The number of steps (0 for the screen). */
         def depth: Int                        = p.size
         def isUnder(prefix: Loc): Boolean     =

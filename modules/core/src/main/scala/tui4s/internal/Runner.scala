@@ -669,11 +669,14 @@ private[tui4s] final class Runner private (
     /** Lays out what changed, then scrolls the scroll target into view
       * ([[reveal]]). Pure: returns the new world and the damage to paint.
       */
-    // claude 2026-10-19: changed: the follow-focus step (L1a); the damage of
-    // the layers that moved, came or went (L1b)
+    // claude 2026-10-19: changed: the changed paths of the step reach each
+    // pass (PF-b, F6); before: the follow-focus step (L1a), the damage of the
+    // layers that moved, came or went (L1b)
     private def layoutStep(w: World): (World, Vector[Damage]) =
-        val (w1, damage) = laidOut(w)
-        val (w2, more)   = reveal(w1)
+        val changed      = w.dirtyRegions ++ w.dirtyNodes ++ w.scrolled
+        val (w1, damage) = laidOut(w, changed)
+        val (w2, more)   =
+          reveal(w1, changed ++ w.focus.toList ++ w1.focus.toList)
         (
           w2,
           if w.full then damage
@@ -690,8 +693,9 @@ private[tui4s] final class Runner private (
       * offsets that the frame keeps are the clamped ones of the layout
       * ([[Scroll.kept]]).
       */
-    // claude 2026-10-19: created (L1a)
-    private def reveal(w: World): (World, Vector[Damage]) =
+    // claude 2026-10-19: created (L1a); changed: the changed paths of the
+    // step (PF-b, F6)
+    private def reveal(w: World, changed: Vector[Loc]): (World, Vector[Damage]) =
         val target          = Scroll.target(w.laid, w.focus)
         // claude 2026-10-19: changed: the view of the focus too (L1c)
         val kept            = Scroll.kept(w.laid, w.scroll, w.focus)
@@ -707,7 +711,12 @@ private[tui4s] final class Runner private (
         if moved.isEmpty then (w1, Vector.empty)
         else
             val (laid, dmg) =
-              relayoutIn(w1, moved, (w1.laid, Vector.empty), w1.env)
+              relayoutIn(
+                w1,
+                moved,
+                (w1.laid, Vector.empty),
+                w1.env.copy(changes = Changes.of(changed ++ moved)),
+              )
             (
               w1.copy(laid = laid, scroll = Scroll.kept(laid, scroll, w.focus)),
               dmg,
@@ -715,9 +724,16 @@ private[tui4s] final class Runner private (
         end if
     end reveal
 
-    /** The layout of what changed, and its damage. */
+    /** The layout of what changed, and its damage. `changed` holds the paths
+      * whose layout inputs changed in the step ([[Changes]]): a relayout keeps
+      * the natural size of a node under none of them.
+      */
     // claude 2026-10-19: created (L1a): the old body of layoutStep
-    private def laidOut(w: World): (World, Vector[Damage]) =
+    // claude 2026-10-19: changed: the changed paths (PF-b, F6)
+    private def laidOut(
+        w: World,
+        changed: Vector[Loc],
+    ): (World, Vector[Damage]) =
       if w.full then
           val laid0          = Layout.layoutAll(w.root, w.env)
           // claude 2026-10-19: changed: the focus seeds (L1b)
@@ -735,7 +751,9 @@ private[tui4s] final class Runner private (
                   w.focus.toList ++ focus.toList,
                   laid0,
                   Vector.empty,
-                  w1.env,
+                  w1.env.copy(changes =
+                    Changes.of(w.focus.toList ++ focus.toList),
+                  ),
                 )._1
           (
             w1.copy(laid = laid),
@@ -745,7 +763,7 @@ private[tui4s] final class Runner private (
             ),
           )
       else
-          val env            = w.env
+          val env            = w.env.copy(changes = Changes.of(changed))
           // claude 2026-10-19: changed: Loc.tops, not a compare of each pair
           // (PF-a, F2)
           val regions        = Loc.tops(w.dirtyRegions)
@@ -781,7 +799,9 @@ private[tui4s] final class Runner private (
                 (w.focus.toList ++ focus.toList),
                 laid2,
                 dmg2,
-                w3.env,
+                w3.env.copy(changes =
+                  Changes.of(changed ++ w.focus.toList ++ focus.toList),
+                ),
               )
               (w3.copy(laid = laid3), dmg3)
           end if

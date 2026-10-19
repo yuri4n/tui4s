@@ -39,11 +39,14 @@ end Content
   * text). `scroll` gives the scroll offset of the viewport at a path
   * (`World.scroll`); the layout clamps it. `vars` holds the custom properties
   * of the stylesheet of the run ([[CssVars]]): the screen has them. `look` says
-  * how the frame shows the caret ([[CaretLook]]).
+  * how the frame shows the caret ([[CaretLook]]). `changes` holds the paths
+  * whose layout inputs changed since the last layout (F6): a relayout keeps
+  * the natural size of a clean node of its screen, and `prior` is that screen
+  * ([[Layout.relayout]] sets it).
   */
-// claude 2026-10-19: changed: the look of the caret (L1c); the values of the
-// inputs, which the layout and the painter read (L1c review: from Paint, so
-// Layout does not call Paint)
+// claude 2026-10-19: changed: the changes and the prior screen of a relayout
+// (PF-b, F6); before: the look of the caret (L1c), the values of the inputs
+// (L1c review)
 private[tui4s] final case class Scene(
     content: Loc => Option[Content],
     focus: Option[Loc],
@@ -52,6 +55,8 @@ private[tui4s] final case class Scene(
     scroll: Loc => Offset = _ => Offset.zero,
     vars: CssVars = CssVars.empty,
     look: CaretLook = CaretLook.Cell,
+    changes: Changes = Changes.All,
+    prior: Laid = Laid.empty,
 ):
     /** The value that the runner holds for the bound element at `p`. */
     def boundValue(p: Loc): Option[Any] =
@@ -82,6 +87,37 @@ private[tui4s] final case class Scene(
           case Present(UI.Bound.Const(v)) => v
           case _                          => ""
 end Scene
+
+/** The paths whose layout inputs changed in a step: the regions with a new
+  * content, the inputs with a new value or caret, the old and the new focus,
+  * the viewports that scrolled. A node is clean when no changed path is at or
+  * under it: its subtree reads the same scene as at its last layout, so its
+  * measure is the same (the locality law of F6: a measure reads the scene only
+  * at or under its path). `All` makes no node clean (no reuse).
+  */
+// claude 2026-10-19: created (PF-b, F6)
+private[tui4s] enum Changes derives CanEqual:
+    case All
+
+    /** `touched` holds each changed path and each path above it. */
+    case At(touched: Set[Loc])
+
+    /** True when no changed path is at or under `p`. */
+    def clean(p: Loc): Boolean = this match
+        case All        => false
+        case At(paths) => !paths.contains(p)
+end Changes
+
+private[tui4s] object Changes:
+    /** The changes at the paths of `ps`. */
+    def of(ps: Iterable[Loc]): Changes =
+      At(ps.iterator.flatMap(_.prefixes).toSet)
+
+/** The constraint that a natural size answers: the width and the definite
+  * height that a measure gives the item ([[Layout.measureItem]]).
+  */
+// claude 2026-10-19: created (PF-b, F6)
+private[tui4s] final case class Fit(w: Int, h: Option[Int])
 
 private[tui4s] enum Kind:
     case Screen
@@ -199,6 +235,11 @@ private[tui4s] final case class Node(
     view: Option[View] = None,
     // claude 2026-10-19: created (L1b): the layer of a positioned element
     layer: Option[Layer] = None,
+    // claude 2026-10-19: created the two fields below (PF-b, F6): the
+    // constraint of `natural`, and the natural size at a second constraint
+    // (a viewport with a scroll indicator measures its kids at two widths)
+    fit: Option[Fit] = None,
+    alt: Option[(Fit, Size)] = None,
 ):
     def content: Rect             = rect.inset(props.insets)
     def bgForKids: Option[JColor] = props.bg.orElse(bgUnder)
@@ -622,6 +663,8 @@ private[tui4s] object Layout:
         props: Props,
         size: Size,
         kids: Option[Kids] = None,
+        // claude 2026-10-19: created (PF-b, F6): the constraint of `size`
+        fit: Option[Fit] = None,
     )
 
     private def clamp(v: Int, min: Option[Int], max: Option[Int]): Int =
@@ -651,26 +694,61 @@ private[tui4s] object Layout:
               Props.neutral(parent.text),
               Size(if keep then w else w.min(availW.max(0)), lines.size),
             )
-          // claude 2026-10-19: changed: the kids of the measure go with the
+          // claude 2026-10-19: changed: the natural size of a clean node of
+          // the prior screen (PF-b, F6); the kids of the measure go with the
           // size (PF-b, F5)
           case e: Element =>
-            val p             = Props.resolve(
+            val p   = Props.resolve(
               e,
               parent.text,
               env.focus.contains(item.path),
               listStyle,
               index,
             )
-            val (size, kids)  = measureWith(
-              e,
-              item.path,
-              p,
-              availW - p.margin.h,
-              availH.map(h => (h - p.margin.v).max(0)),
-              env,
-            )
-            Measured(item, p, size, kids)
+            val fit = Fit(availW, availH)
+            prior(env, item.path, e, p, fit) match
+                case Some(size) => Measured(item, p, size, None, Some(fit))
+                case None       =>
+                  val (size, kids) = measureWith(
+                    e,
+                    item.path,
+                    p,
+                    availW - p.margin.h,
+                    availH.map(h => (h - p.margin.v).max(0)),
+                    env,
+                  )
+                  Measured(item, p, size, kids, Some(fit))
           case _          => Measured(item, Props.neutral(parent.text), Size.zero)
+
+    /** The natural size of the element `e` at `path` with the props `p` and
+      * the constraint `fit`, from the prior screen of `env`: the node there
+      * when it is clean ([[Changes.clean]]) and has the same element, the same
+      * props and the same constraint. Law: a measure reads only its item, its
+      * constraint, its props (which hold what it takes from its parent) and
+      * the scene at or under its path, so a clean node of the same item,
+      * props and constraint has the size that a measure gives now.
+      */
+    // claude 2026-10-19: created (PF-b, F6)
+    private def prior(
+        env: Scene,
+        path: Loc,
+        e: Element,
+        p: Props,
+        fit: Fit,
+    ): Option[Size] =
+      if !env.changes.clean(path) then None
+      else
+          env.prior.nodes
+            .get(path)
+            .filter(o =>
+              (o.kind match
+                  case Kind.El(e0) => e0 eq e
+                  case _           => false) && o.props == p,
+            )
+            .flatMap(o =>
+              if o.fit.contains(fit) then Some(o.natural)
+              else o.alt.collect { case (f, size) if f == fit => size },
+            )
 
     /** @param availH
       *   the height of the containing block when it is definite: a percentage
@@ -1294,7 +1372,13 @@ private[tui4s] object Layout:
         // claude 2026-10-19: created (PF-b, F5): the kids measured in the
         // content box, for the natural size of the node
         measured: Option[Kids] = None,
+        // claude 2026-10-19: created (PF-b, F6): the second natural size of
+        // each kid of a viewport with a scroll indicator
+        alts: Vector[Option[(Fit, Size)]] = Vector.empty,
     ):
+        /** The second natural size of the kid `i` ([[Node.alt]]). */
+        def altOf(i: Int): Option[(Fit, Size)] = alts.lift(i).flatten
+
         /** The layer of the kid `i`. */
         def layerOf(i: Int): Option[Layer] = layers.lift(i).flatten
 
@@ -1477,6 +1561,9 @@ private[tui4s] object Layout:
               port.w,
               Some(view),
               measured = measured,
+              alts =
+                if showBar then kids0.map(k => k.fit.map((_, k.size)))
+                else Vector.empty,
             )
         end if
     end arrangeFlow
@@ -1723,6 +1810,7 @@ private[tui4s] object Layout:
         root: UI,
         acc: Laid,
         layer: Option[Layer] = None,
+        alt: Option[(Fit, Size)] = None,
     ): Laid =
       m.item.ui match
           case t: Text    =>
@@ -1754,6 +1842,8 @@ private[tui4s] object Layout:
               index,
               ctx.cols,
               layer = layer,
+              fit = m.fit,
+              alt = alt,
             )
             // claude 2026-10-19: changed: the kids of the measure (PF-b, F5)
             layoutChildren(node0, env, root, acc, m.kids)
@@ -1801,6 +1891,7 @@ private[tui4s] object Layout:
             root,
             l,
             a.layerOf(i),
+            a.altOf(i),
           )
         }
     end layoutChildren
@@ -1864,13 +1955,18 @@ private[tui4s] object Layout:
       *   direct items to lay out again even if they look unchanged (focus
       *   moved, a bound value changed)
       */
+    // claude 2026-10-19: changed: the prior screen of `env` is `laid` (PF-b,
+    // F6)
     def relayout(
         laid: Laid,
         container: Loc,
         force: Set[Loc],
-        env: Scene,
+        env0: Scene,
         root: UI,
     ): (Laid, Vector[Damage]) =
+        val env = env0.changes match
+            case Changes.All => env0
+            case _           => env0.copy(prior = laid)
         laid.nodes.get(container) match
             case None        => (laid, Vector.empty)
             case Some(node0) =>
@@ -1951,14 +2047,25 @@ private[tui4s] object Layout:
                             !l.pos.outOfFlow || o.availW == a.availOf(i),
                           ),
                     )
+                    // claude 2026-10-19: changed: a kept node gets the
+                    // constraints of its new measures (PF-b, F6)
+                    def fitted(l1: Laid): Laid =
+                      l1.nodes
+                        .get(m.item.path)
+                        .filter(k => k.fit != m.fit || k.alt != a.altOf(i))
+                        .fold(l1)(k =>
+                          l1.put(k.copy(fit = m.fit, alt = a.altOf(i))),
+                        )
                     same match
-                        case Some(o) if o.rect == r => (l, d, n)
+                        case Some(o) if o.rect == r => (fitted(l), d, n)
                         case Some(o)
                             if a.view.isDefined && o.rect.w == r.w &&
                               o.rect.h == r.h && o.availW == a.availOf(i) &&
                               o.layer == a.layerOf(i) =>
                           (
-                            l.shift(o.path, r.x - o.rect.x, r.y - o.rect.y),
+                            fitted(
+                              l.shift(o.path, r.x - o.rect.x, r.y - o.rect.y),
+                            ),
                             d ++ Vector(
                               clear(o.rect),
                               clear(r),
@@ -1977,6 +2084,7 @@ private[tui4s] object Layout:
                             root,
                             cleared,
                             a.layerOf(i),
+                            a.altOf(i),
                           )
                           val dmg     = old
                             .map(o => clear(o.rect))
