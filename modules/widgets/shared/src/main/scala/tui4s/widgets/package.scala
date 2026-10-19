@@ -40,8 +40,13 @@ package tui4s
   *     terminal gives one cell to each `em` and to each `px`. On the web, `1em`
   *     is the font size: a line is about `1.2em` high and a monospace cell
   *     about `0.6em` wide, so a size in `em` is near the terminal size, not
-  *     equal to it, and a `px` space is thin. The web runner (L4) checks these
-  *     sizes.
+  *     equal to it, and a `px` space is thin. Thus these sizes are terminal
+  *     cells: the widgets have no unit scale yet (a later step), and on the web
+  *     a gap, a padding or a border of `1.px` is one CSS pixel, a width of
+  *     `50.em` is 50 font sizes, and the window of a list or a pager (its
+  *     height in `em`) clips about one line in five unless the line height is
+  *     1. An app for both platforms gives its own sizes in units of its
+  *     platform (the assistant: its `Surface`).
   *
   * The widgets:
   *
@@ -130,5 +135,5 @@ package tui4s
 // claude 2026-10-19: created (L2a): the empty package of tui4s-widgets;
 // changed: the conventions, the widgets, the colour variables and the plan
 // (L2b); the shapes, the field lists and the sizes (L2b review); the themes
-// (L4)
+// (L4); the sizes are terminal cells (L4 review)
 package object widgets

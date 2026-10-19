@@ -125,6 +125,22 @@ class FetchHttpTest extends Test[Any]:
       )
     }
 
+    // claude 2026-10-19: created (L4 review)
+    "a fetch that gives no headers within the timeout is a network error, and its request is aborted" in {
+      val seen = sjs.Array[(String, dom.RequestInit)]()
+      for
+          r       <- events(
+                       Anthropic,
+                       FetchHttp.seam(
+                         recording(seen, (_, _) => new sjs.Promise[dom.Response]((_, _) => ())),
+                         timeout = 50.millis,
+                       ),
+                     )
+          aborted <- until(seen.head._2.signal.exists(_.aborted))
+      yield assert(isNetwork(r) && aborted, r.toString)
+      end for
+    }
+
     "an interrupt of the reader aborts the request" in {
       val seen = sjs.Array[(String, dom.RequestInit)]()
       for

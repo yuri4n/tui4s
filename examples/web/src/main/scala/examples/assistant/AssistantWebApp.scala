@@ -13,7 +13,8 @@ import tui4s.widgets.Theme
   * browser, and goes only to the host of its provider. Build it with
   * `scripts/web-build.sh`, and serve `dist/assistant` with any static server.
   */
-// claude 2026-10-19: created (L4)
+// claude 2026-10-19: created (L4); changed: the surface of the browser (L4
+// review)
 object AssistantWebApp extends KyoApp:
     // region: web
     run {
@@ -33,7 +34,7 @@ object AssistantWebApp extends KyoApp:
                       FakeProvider.make(),
                       StartMode.Detect,
                     ),
-                    Layer(Surface.Browser(keys)),
+                    AssistantWeb.surface(keys),
                   )(AssistantUi.run(StartMode.Detect, Kyo.unit, screen)),
                 )
           _  <- UI.runMount(ui, "#app")

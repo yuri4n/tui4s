@@ -26,6 +26,14 @@ object AssistantWeb:
         Sync.defer(dom.window.location.reload()),
       )
 
+    /** The surface of this browser: `keys`, and the system of the browser
+      * ([[Surface.Os.of]] its `navigator.platform`), for the chords.
+      */
+    // claude 2026-10-19: created (L4 review)
+    def surface(keys: KeyVault)(using Frame): Layer[Surface, Sync] =
+        val os = Sync.defer(Surface.Os.of(dom.window.navigator.platform))
+        Layer(os.map(o => Surface.Browser(keys, o): Surface))
+
     /** The wire of Anthropic from a page: with [[Anthropic.browserAccess]]. */
     val anthropic: Wire =
       Wire.withHeaders(Anthropic, Chunk(Anthropic.browserAccess))

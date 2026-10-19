@@ -11,8 +11,10 @@ import scala.scalajs.js.typedarray.{Int8Array, Uint8Array, int8Array2ByteArray}
   * into lines by [[Sse.Lines]]. A status that is not 2xx fails with
   * [[HttpFailure.Status]] (with its `retry-after` header and at most
   * [[maxErrorBody]] characters of its body); a rejected `fetch` or read fails
-  * with [[HttpFailure.Transport]]. After the headers, a body that gives no
-  * bytes for `idle` fails with [[HttpFailure.Transport]].
+  * with [[HttpFailure.Transport]]. The wait for the headers (and for the body
+  * of an error status) is at most `timeout`, as on the JVM ([[KyoHttp]]);
+  * after the headers, a body that gives no bytes for `idle` fails with
+  * [[HttpFailure.Transport]].
   *
   * Each call has its own `AbortController` in a `Scope`: the end of the reader
   * (also an interrupt: Esc, or the end of the app) aborts the request, and the
@@ -20,7 +22,8 @@ import scala.scalajs.js.typedarray.{Int8Array, Uint8Array, int8Array2ByteArray}
   * (`redirect: "error"`, so the key goes only to the host of the call), sends
   * no cookie (`credentials: "omit"`), no referrer, and is not cached.
   */
-// claude 2026-10-19: created (L4)
+// claude 2026-10-19: created (L4); changed: the limit of the wait for the
+// headers (L4 review)
 object FetchHttp:
     /** A `fetch`: the browser's ([[browser]]), or a fake in a test. */
     type Fetch = (String, dom.RequestInit) => js.Promise[dom.Response]
@@ -31,8 +34,16 @@ object FetchHttp:
     /** The longest error body that the seam keeps, in characters. */
     val maxErrorBody: Int = 64 * 1024
 
-    /** The seam on `fetch`; at most `idle` between two pieces of the body. */
-    def seam(fetch: Fetch = browser, idle: Duration = 5.minutes): HttpSeam =
+    /** The seam on `fetch`: at most `timeout` for the headers, and at most
+      * `idle` between two pieces of the body.
+      */
+    // claude 2026-10-19: changed: the limit of the wait for the headers (L4
+    // review)
+    def seam(
+        fetch: Fetch = browser,
+        timeout: Duration = 60.seconds,
+        idle: Duration = 5.minutes,
+    ): HttpSeam =
       new HttpSeam:
           def lines(call: HttpCall)(using
               Frame,
@@ -44,11 +55,13 @@ object FetchHttp:
                     Sync.defer(c.abort()),
                   )
                   .map(controller =>
-                    await(fetch(call.url, init(call, controller.signal)))
+                    within(timeout, "the headers")(
+                      await(fetch(call.url, init(call, controller.signal))),
+                    )
                       .map(r =>
                         if r.ok then read(r, idle)
                         else
-                            errorBody(r).map(body =>
+                            errorBody(r, timeout).map(body =>
                               Abort.fail(
                                 HttpFailure.Status(
                                   r.status,
@@ -104,12 +117,7 @@ object FetchHttp:
           case Absent      => Kyo.unit
           case Present(rs) =>
             val reader = rs.getReader()
-            val next   = Async.timeoutWithError(
-              idle,
-              Result.Failure(
-                HttpFailure.Transport(s"the body gave no data for ${idle.show}"),
-              ),
-            )(await(reader.read()))
+            val next   = within(idle, "the body")(await(reader.read()))
             Loop(Sse.Lines.empty) { state =>
               next.map(piece =>
                 if piece.done then
@@ -123,11 +131,28 @@ object FetchHttp:
               )
             }
 
-    /** The text of the body of an error status: at most [[maxErrorBody]]
-      * characters; empty when it cannot be read.
+    /** `v`, or a [[HttpFailure.Transport]] when `what` gives no data for
+      * `limit`.
       */
-    private def errorBody(r: dom.Response)(using Frame): String < Async =
+    // claude 2026-10-19: created (L4 review)
+    private def within[A](limit: Duration, what: String)(
+        v: => A < (Async & Abort[HttpFailure]),
+    )(using Frame): A < (Async & Abort[HttpFailure]) =
+      Async.timeoutWithError(
+        limit,
+        Result.Failure(
+          HttpFailure.Transport(s"$what gave no data for ${limit.show}"),
+        ),
+      )(v)
+
+    /** The text of the body of an error status: at most [[maxErrorBody]]
+      * characters; empty when it cannot be read in `timeout`.
+      */
+    // claude 2026-10-19: changed: the limit of the wait (L4 review)
+    private def errorBody(r: dom.Response, timeout: Duration)(using
+        Frame,
+    ): String < Async =
       Abort
-        .run[HttpFailure](await(r.text()))
+        .run[HttpFailure](within(timeout, "the error body")(await(r.text())))
         .map(_.fold(_.take(maxErrorBody), _ => "", _ => ""))
 end FetchHttp

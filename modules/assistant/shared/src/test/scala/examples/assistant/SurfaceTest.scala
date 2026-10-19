@@ -17,7 +17,9 @@ class SurfaceTest extends Test[Any]:
         def keep(p: ProviderChoice, key: ApiKey)(using Frame): Unit < Sync = ()
         def forget(p: ProviderChoice)(using Frame): Unit < Sync            = ()
 
-    private val web = Surface.Browser(vault)
+    // claude 2026-10-19: changed: the system of the browser (L4 review)
+    private val web = Surface.Browser(vault, Surface.Os.Other)
+    private val mac = Surface.Browser(vault, Surface.Os.Mac)
 
     "the units: n cells in a terminal; n lines and n columns of the font in a browser" in {
       assert(
@@ -37,24 +39,51 @@ class SurfaceTest extends Test[Any]:
       )
     }
 
-    "the chords of the web: no chord that a browser keeps, no quit, an Alt chord for each letter command" in {
-      val taken = Chunk(
+    // claude 2026-10-19: changed: no Ctrl chord and no F1 off macOS; the
+    // chords of the terminal on macOS; Ctrl-J only on macOS (L4 review)
+    "the chords of the web: off macOS no Ctrl chord and no F1; on macOS also the chords of the terminal but not its tab keys; no quit; an Alt chord for each letter command" in {
+      val tabs = Chunk(
         Chord(Keyboard.PageUp, Modifiers(ctrl = true)),
         Chord(Keyboard.PageDown, Modifiers(ctrl = true)),
         Chord.ctrl('q'),
       )
-      val all   = Chunk.from(ChatCommand.values)
+      val all  = Chunk.from(ChatCommand.values)
       assert(
-        all.forall(c => !c.chords(web).exists(taken.contains)) &&
+        all.forall(c =>
+          c.chords(web).forall(k => !k.mods.ctrl && k.key != Keyboard.F1),
+        ) &&
+          all.forall(c => !c.chords(mac).exists(tabs.contains)) &&
           ChatCommand.Quit.chords(web).isEmpty &&
+          ChatCommand.Quit.chords(mac).isEmpty &&
+          ChatCommand.Palette.chords(mac) == Chunk(
+            Chord(Keyboard.Char('p'), Modifiers(alt = true)),
+            Chord.ctrl('p'),
+          ) &&
+          ChatCommand.Help.chords(mac).contains(Chord(Keyboard.F1)) &&
+          !web.composerHelp.exists(_._1.contains("Ctrl-J")) &&
+          mac.composerHelp.exists(_._1.contains("Ctrl-J")) &&
           all
             .filterNot(c => c == ChatCommand.Quit || c == ChatCommand.Cancel)
-            .forall(_.chords(web).exists(_.mods.alt)) &&
+            .forall(c =>
+              c.chords(web).exists(_.mods.alt) &&
+                c.chords(mac).exists(_.mods.alt),
+            ) &&
           ChatCommand.Palette.chords(Surface.Terminal) == Chunk(
             Chord.ctrl('p'),
           ) &&
           ChatCommand.NextChat.chords(Surface.Terminal) ==
           Chunk(Chord(Keyboard.PageDown, Modifiers(ctrl = true))),
+      )
+    }
+
+    // claude 2026-10-19: created (L4 review)
+    "the system of a browser: macOS and iOS are Mac; Windows, Linux and an unknown platform are Other" in {
+      assert(
+        Surface.Os.of("MacIntel") == Surface.Os.Mac &&
+          Surface.Os.of("iPhone") == Surface.Os.Mac &&
+          Surface.Os.of("Win32") == Surface.Os.Other &&
+          Surface.Os.of("Linux x86_64") == Surface.Os.Other &&
+          Surface.Os.of("") == Surface.Os.Other,
       )
     }
 

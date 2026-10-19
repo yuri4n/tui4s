@@ -501,4 +501,10 @@ lazy val assistantWeb = project
       "locales-full-currencies-db_sjs1_3",
     ),
     libraryDependencies += "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.5.4",
+    // The script of the page has no source map (the map holds the paths of
+    // the build machine), and it goes to a path with no Scala version, for
+    // scripts/web-build.sh.
+    // claude 2026-10-19: created (L4 review)
+    Compile / fullLinkJS / scalaJSLinkerConfig ~= (_.withSourceMap(false)),
+    Compile / fullLinkJS / scalaJSLinkerOutputDirectory := target.value / "web-opt",
   )

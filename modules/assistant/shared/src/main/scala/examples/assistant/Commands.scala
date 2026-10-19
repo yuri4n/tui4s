@@ -61,18 +61,19 @@ enum ChatCommand derives CanEqual:
       * and J, so no command takes them.
       *
       * A browser acts on most Ctrl chords of Windows and Linux (Ctrl-S saves
-      * the page, Ctrl-P prints, Ctrl-R reloads it), and kyo-ui 1.0.0-RC7 cannot
-      * stop that. So on the web each command has an Alt chord first, then the
-      * Ctrl chord of the terminal for macOS (where the browser takes Cmd, and
-      * Option and a letter types a character). The web has no chord that a
-      * browser keeps for itself: Ctrl-PgUp and Ctrl-PgDn switch the tabs (the
-      * chats move with Alt-↑ and Alt-↓), and no quit (the person closes the
-      * tab).
+      * the page, Ctrl-P prints, Ctrl-R reloads it) and on F1, and kyo-ui
+      * 1.0.0-RC7 cannot stop that. So on the web each command has an Alt chord
+      * first; on macOS (where the browser takes Cmd, and Option and a letter
+      * types a character) it also has the chord of the terminal
+      * ([[Surface.Os]]). The web has no chord that a browser keeps for itself:
+      * Ctrl-PgUp and Ctrl-PgDn switch the tabs (the chats move with Alt-↑ and
+      * Alt-↓), and no quit (the person closes the tab).
       */
-    // claude 2026-10-19: changed: the chords of the web (L4)
+    // claude 2026-10-19: changed: the chords of the web (L4); the chords of
+    // the terminal only on macOS (L4 review)
     def chords(on: Surface): Chunk[Chord] = on match
-        case Surface.Terminal   => terminal
-        case Surface.Browser(_) => browser
+        case Surface.Terminal       => terminal
+        case Surface.Browser(_, os) => browser(os)
 
     /** The chords of the terminal. */
     private def terminal: Chunk[Chord] = this match
@@ -90,23 +91,29 @@ enum ChatCommand derives CanEqual:
         case Palette      => Chunk(Chord.ctrl('p'))
         case Quit         => Chunk(Chord.ctrl('q'))
 
-    /** The chords of the web: an Alt chord, then the Ctrl chord of macOS. */
-    // claude 2026-10-19: created (L4)
-    private def browser: Chunk[Chord] =
+    /** The chords of the web on `os`: an Alt chord, then on macOS the chord
+      * of the terminal.
+      */
+    // claude 2026-10-19: created (L4); changed: the chords of the terminal
+    // only on macOS (L4 review)
+    private def browser(os: Surface.Os): Chunk[Chord] =
         def alt(c: Char) = Chord(Keyboard.Char(c), Modifiers(alt = true))
+        def mac(c: Chord): Chunk[Chord] = os match
+            case Surface.Os.Mac   => Chunk(c)
+            case Surface.Os.Other => Chunk.empty
         this match
-            case NewChat      => Chunk(alt('n'), Chord.ctrl('n'))
+            case NewChat      => Chunk(alt('n')) ++ mac(Chord.ctrl('n'))
             case NextChat     =>
               Chunk(Chord(Keyboard.ArrowDown, Modifiers(alt = true)))
             case PreviousChat =>
               Chunk(Chord(Keyboard.ArrowUp, Modifiers(alt = true)))
-            case DeleteChat   => Chunk(alt('x'), Chord.ctrl('d'))
-            case RenameChat   => Chunk(alt('r'), Chord.ctrl('r'))
-            case OpenSettings => Chunk(alt(','), Chord.ctrl('s'))
-            case ToggleLog    => Chunk(alt('l'), Chord.ctrl('l'))
+            case DeleteChat   => Chunk(alt('x')) ++ mac(Chord.ctrl('d'))
+            case RenameChat   => Chunk(alt('r')) ++ mac(Chord.ctrl('r'))
+            case OpenSettings => Chunk(alt(',')) ++ mac(Chord.ctrl('s'))
+            case ToggleLog    => Chunk(alt('l')) ++ mac(Chord.ctrl('l'))
             case Cancel       => Chunk(Chord(Keyboard.Escape))
-            case Help         => Chunk(alt('?'), Chord(Keyboard.F1))
-            case Palette      => Chunk(alt('p'), Chord.ctrl('p'))
+            case Help         => Chunk(alt('?')) ++ mac(Chord(Keyboard.F1))
+            case Palette      => Chunk(alt('p')) ++ mac(Chord.ctrl('p'))
             case Quit         => Chunk.empty
         end match
     end browser

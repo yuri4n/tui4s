@@ -1626,7 +1626,7 @@ APIs: `UIWindow`, `UI.runMount`):
                       FakeProvider.make(),
                       StartMode.Detect,
                     ),
-                    Layer(Surface.Browser(keys)),
+                    AssistantWeb.surface(keys),
                   )(AssistantUi.run(StartMode.Detect, Kyo.unit, screen)),
                 )
           _  <- UI.runMount(ui, "#app")
@@ -1650,27 +1650,36 @@ node scripts/web-smoke.mjs                        # the smoke test (Playwright a
 ```
 
 Then open <http://localhost:8000>. With no key, the provider is the fake one
-(no network). To use a real provider, open the settings (Alt-, or Ctrl-S),
-paste your key in the field of the provider, and push Keep. The page loads
-again with that provider.
+(no network). To use a real provider, open the settings (Alt-,), paste your
+key in the field of the provider, and push Keep. The page loads again with
+that provider.
 
-**Your key stays in this browser; anyone with this profile can read it.**
-The page keeps the key in `localStorage` (one entry for each provider) and
-sends it only to the host of its provider (the page policy lets it call no
-other host). The page never shows the key and never logs it. For Anthropic,
-the page sends the header `anthropic-dangerous-direct-browser-access`: a
-browser call to the API needs it, and its risk is the one above (a script
-or an extension in the page can read the key). Use a key with a low spend
-limit, and push Forget when you are done.
+<!-- claude 2026-10-19: changed (L4 review): extensions, the origin, the unbound field, the chords of each system, the rename prompt -->
+**Your key stays in this browser. Extensions and anyone with this profile
+can read it.** The page keeps the key in `localStorage` (one entry for each
+provider) and sends it only to the host of its provider (the page policy
+lets it call no other host). The page never shows the key, never writes it
+into the page (the key field is not bound to a value), and never logs it.
+For Anthropic, the page sends the header
+`anthropic-dangerous-direct-browser-access`: a browser call to the API needs
+it, and its risk is the one above (a script or an extension in the page can
+read the key). Use a key with a low spend limit, and push Forget when you
+are done. The key belongs to the origin that serves the page (for example
+`localhost:8000`): each page of that origin can read it. Use that origin
+only for this app, or push Forget before you serve another page there.
 
 The keys of the web: a browser acts on most Ctrl chords on Windows and
-Linux (Ctrl-S saves the page, Ctrl-P prints, Ctrl-R loads the page again),
-and kyo-ui cannot stop that. So each command also has an Alt chord (Alt-P:
-the commands, Alt-N: a new chat, Alt-↑ and Alt-↓: the chats; Ctrl-PgUp and
-Ctrl-PgDn switch the tabs of the browser). On macOS, use the Ctrl chords
-(the browser uses Cmd). Enter sends; Shift-Enter starts a new line where
-the caret is; Alt-Enter and Ctrl-J add a line break at the end. Esc stops a
-reply and closes a layer.
+Linux (Ctrl-S saves the page, Ctrl-P prints, Ctrl-R loads the page again,
+Ctrl-J opens the downloads) and on F1, and kyo-ui cannot stop that. So each
+command has an Alt chord (Alt-P: the commands, Alt-N: a new chat, Alt-,:
+the settings, Alt-?: the help, Alt-↑ and Alt-↓: the chats; Ctrl-PgUp and
+Ctrl-PgDn switch the tabs of the browser). On macOS (the browser uses Cmd),
+the Ctrl chords of the terminal and F1 also work. Enter sends; Shift-Enter
+starts a new line where the caret is; Alt-Enter (and Ctrl-J on macOS) adds
+a line break at the end. Esc stops a reply and closes the settings, the
+help and the command palette. Esc does not close the rename prompt when its
+field has the focus (a limit of kyo-ui on the web): push Enter or a button
+of the prompt.
 
 ## Modules
 

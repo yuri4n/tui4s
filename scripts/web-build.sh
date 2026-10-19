@@ -16,7 +16,10 @@ CDPATH='' cd "$(dirname "$0")/.."
 
 ${SBT:-sbt -batch} assistantWeb/fullLinkJS
 
-out=examples/web/target/scala-3.9.0/tui4s-assistant-web-opt
+# The output directory of fullLinkJS (build.sbt, assistantWeb): no Scala
+# version in the path, and no source map.
+# claude 2026-10-19: changed (L4 review)
+out=examples/web/target/web-opt
 dist=dist/assistant
 rm -rf "$dist"
 mkdir -p "$dist"

@@ -328,13 +328,11 @@ object AssistantUi:
                 .map((s, p) =>
                   Metrics.of(s, p, Metrics.hintRows(hints.help, s.width)),
                 )
-        // claude 2026-10-19: changed: the root carries the theme of the look
-        // (L4)
-        yield store.look.render(l =>
-          div
-            .data("theme", l.theme.name)
-            .onKeyDown(keys.handler)
-            .style(_.height(100.pct))(
+            // The body is made once. The region of the look gives a thin root
+            // around it: the same body and the same handler at each render,
+            // so the repair tick finds the region equal and does nothing.
+            // claude 2026-10-19: changed: the body is made once (L4 review)
+            inner    = div.style(_.height(100.pct))(
               div(
                 Panel(
                   "Chats",
@@ -400,7 +398,14 @@ object AssistantUi:
               palette.view,
               confirm.view,
               prompt.view,
-            ),
+            )
+        // claude 2026-10-19: changed: the root carries the theme of the look
+        // (L4); only the root is in the region of the look (L4 review)
+        yield store.look.render(l =>
+          div
+            .data("theme", l.theme.name)
+            .onKeyDown(keys.handler)
+            .style(_.height(100.pct))(inner),
         )
         end for
     end app
@@ -412,8 +417,9 @@ object AssistantUi:
       * Enter and Shift-Enter. So on the web Enter runs `send`, and the input
       * event of the break that follows gives back what the send left
       * ([[Surface.echo]]); Shift-Enter keeps the break of the browser, at the
-      * caret; Alt-Enter and Ctrl-J add a line break at the end (a handler does
-      * not know the caret).
+      * caret; Alt-Enter (and Ctrl-J on macOS: on another system the browser
+      * keeps Ctrl-J) adds a line break at the end (a handler does not know the
+      * caret).
       */
     // claude 2026-10-19: created (L4)
     private def composer(
@@ -425,7 +431,8 @@ object AssistantUi:
     )(using Frame): UI =
       surface match
           case Surface.Terminal   => form.onSubmit(send)(area)
-          case Surface.Browser(_) =>
+          // claude 2026-10-19: changed: Ctrl-J only on macOS (L4 review)
+          case Surface.Browser(_, os) =>
             def plain(m: Modifiers) = !m.ctrl && !m.alt && !m.shift && !m.meta
             area
               .onKeyDown(e =>
@@ -439,7 +446,8 @@ object AssistantUi:
                       yield ()
                     case Keyboard.Enter if e.modifiers.alt      =>
                       text.updateAndGet(_ + "\n").unit
-                    case Keyboard.Char('j') if e.modifiers.ctrl =>
+                    case Keyboard.Char('j')
+                        if e.modifiers.ctrl && os == Surface.Os.Mac =>
                       text.updateAndGet(_ + "\n").unit
                     case _                                      => Kyo.unit,
               )
@@ -651,7 +659,7 @@ object AssistantUi:
                     "Keys",
                     div(keys.map(k => span(k).style(pre.color(Colors.muted)))*),
                   )
-                case Surface.Browser(_) => UI.empty
+                case Surface.Browser(_, _) => UI.empty
             ,
             span(drafts.error).style(_.color(Colors.danger)),
             div.style(_.row.gap(surface.cols(2)))(
@@ -663,7 +671,7 @@ object AssistantUi:
           ),
           surface match
               case Surface.Terminal       => UI.empty
-              case Surface.Browser(vault) =>
+              case Surface.Browser(vault, _) =>
                 keyFields(store, surface, drafts, vault),
         )
     end settingsLayer
@@ -671,9 +679,13 @@ object AssistantUi:
     /** The keys of the web: for each real provider a masked field and Keep (a
       * form: Enter keeps too), and Forget; the field never shows a kept key,
       * only that one is kept. A change starts the app again ([[KeyVault]]).
-      * Outside the form of the settings, so Keep does not save them.
+      * Outside the form of the settings, so Keep does not save them. The field
+      * is not bound (`.value(ref)`): kyo-ui writes a bound value into the
+      * `value` attribute of the DOM, in clear text. Its input events write the
+      * draft, and the layer makes a new, empty field each time it opens.
       */
-    // claude 2026-10-19: created (L4)
+    // claude 2026-10-19: created (L4); changed: the field is not bound, the
+    // warning names extensions (L4 review)
     private def keyFields(
         store: Assistant,
         surface: Surface,
@@ -682,7 +694,7 @@ object AssistantUi:
     )(using Frame): UI =
       div.style(_.gap(surface.cols(1)))(
         span(
-          "Your key stays in this browser; anyone with this profile can read it.",
+          "Your key stays in this browser. Extensions and anyone with this profile can read it.",
         ).style(_.color(Colors.warning)),
         UI.fragment(
           drafts.keys.map((p, text) =>
@@ -694,7 +706,7 @@ object AssistantUi:
                       _.width(surface.cols(13)).flexShrink(0),
                     ),
                     passwordInput
-                      .value(text)
+                      .onInput(t => text.set(t))
                       .placeholder(
                         store.providers
                           .source(p)

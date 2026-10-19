@@ -3,8 +3,9 @@
 // interface, opens it in headless Chromium (Playwright), and checks: the app
 // mounts with no page error; "hi" and Enter send a message; the reply of the
 // fake provider streams in; the composer is empty again (no line break of the
-// browser stays); Shift-Enter starts a new line; Esc closes the settings; the
-// settings switch the look (data-theme and the font of
+// browser stays); Shift-Enter starts a new line; Esc closes the settings; a
+// key typed in the settings is not in the DOM (no value attribute, not in the
+// HTML of the page); the settings switch the look (data-theme and the font of
 // the page change); the page asks no host but its own (no key: no provider
 // call). It exits with 1 on the first failure, after a screenshot in
 // dist/web-smoke.png.
@@ -14,7 +15,8 @@
 // It needs Node.js and Playwright with Chromium. It finds the playwright
 // package in node_modules, else in the global modules of npm. Set
 // PLAYWRIGHT_BROWSERS_PATH where Chromium is installed.
-// claude 2026-10-19: created (L4)
+// claude 2026-10-19: created (L4); changed: the step of the key field (L4
+// review)
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { execSync } from 'node:child_process';
@@ -108,6 +110,24 @@ try {
   await page.keyboard.press('Escape');
   await page.waitForSelector('[role=dialog]', { state: 'detached', timeout: 10000 });
   check(true, 'Alt-, opens the settings; Esc closes them');
+
+  step = 'key';
+  const dummy = 'sk-ant-smoke-0123456789';
+  await page.keyboard.press('Alt+,');
+  await page.waitForSelector('[role=dialog]', { timeout: 10000 });
+  const field = page.locator('[role=dialog] input[type=password]').first();
+  await field.click();
+  await page.keyboard.type(dummy, { delay: 20 });
+  await page.waitForTimeout(300);
+  check((await field.inputValue()) === dummy, 'the key field takes the typed key');
+  const attrs = await page.$$eval('input[type=password]', (xs) => xs.map((x) => x.getAttribute('value')));
+  const html = await page.evaluate(() => document.documentElement.outerHTML);
+  check(
+    attrs.every((v) => v === null || v === '') && !html.includes(dummy),
+    'the typed key is not in the DOM (no value attribute, not in the HTML)',
+  );
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('[role=dialog]', { state: 'detached', timeout: 10000 });
 
   step = 'look';
   await page.keyboard.press('Alt+,');
