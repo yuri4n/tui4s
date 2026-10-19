@@ -71,11 +71,13 @@ private[tui4s] object Inset:
     val auto: Inset = Inset(None, None, None, None)
 
 /** Text attributes. Children inherit them, like CSS `color`, `font-weight`,
-  * `text-decoration`, `text-align`, `white-space` and `overflow-wrap`.
-  * `whiteSpace` is none when no element sets it: the runner keeps the spaces
-  * and the line breaks of a text, as `pre-wrap` does.
+  * `text-decoration`, `text-align`, `white-space`, `overflow-wrap` and the
+  * custom properties (`vars`, see [[CssVars]]). `whiteSpace` is none when no
+  * element sets it: the runner keeps the spaces and the line breaks of a text,
+  * as `pre-wrap` does.
   */
-// claude 2026-10-19: changed: white-space and overflow-wrap (L1a)
+// claude 2026-10-19: changed: white-space and overflow-wrap (L1a), the
+// custom properties (L1b)
 private[tui4s] final case class TextAttrs(
     fg: Option[JColor],
     bold: Boolean,
@@ -88,6 +90,9 @@ private[tui4s] final case class TextAttrs(
     align: TextAlign,
     whiteSpace: Option[WhiteSpace] = None,
     breaks: WordBreak = WordBreak.Split,
+    // claude 2026-10-19: created (L1b): the custom properties in scope (they
+    // inherit, as in CSS)
+    vars: CssVars = CssVars.empty,
 ):
     def style: JStyle =
         val mods = List(
@@ -230,12 +235,16 @@ private[tui4s] final case class Border(
   *     `Stylesheet.scopedVars(selector, name -> value)` is a block for a
   *     selector. No `Style.Prop` declares a custom property. A page gets its
   *     stylesheet through `UI.PageHead.css` or `UI.runStylesheet`, not through
-  *     the element tree. The old runner gave no colour for it.
+  *     the element tree. The old runner gave no colour for it. Now: the run
+  *     takes a stylesheet (`Tui.run(options, sheet)`, `TuiApp.stylesheet`,
+  *     `Headless.start(..., stylesheet)`), and [[CssVars]] resolves the
+  *     variable from the blocks of the element and of its ancestors.
   *   - The size of the window: `UIWindow.size` (`Signal[(Int, Int)]`, in CSS
   *     pixels) is in the Scala.js jar of kyo-ui only. A private `SignalRef`
   *     holds it, and the DOM `resize` event writes it. The JVM jar has no
   *     signal of the window size, and a runner cannot write the Scala.js one.
-  *     The old runner gave the UI no size.
+  *     The old runner gave the UI no size. Now: [[tui4s.Tui.size]], a
+  *     `Signal[TerminalSize]` that the runner writes on a resize.
   */
 // claude 2026-10-19: changed: the audit of the overflow and text-flow
 // properties (L1a), and of the position, display, wrap and colour-variable
@@ -397,13 +406,21 @@ private[tui4s] object Props:
 
     private def side(l: Length): Int = cells(l, 0, 0).getOrElse(0).max(0)
 
-    def color(c: kyo.Style.Color): Option[JColor] = c match
+    /** The terminal colour of `c`; a `Color.Var` takes its value from the
+      * custom properties `vars` ([[CssVars]]), and has no colour when they do
+      * not give one.
+      */
+    // claude 2026-10-19: changed: Color.Var (L1b)
+    def color(c: kyo.Style.Color, vars: CssVars): Option[JColor] = c match
         case h: kyo.Style.Color.Hex      => hex(h.value)
         case r: kyo.Style.Color.Rgb      => Some(JColor.Rgb(r.r, r.g, r.b))
         case r: kyo.Style.Color.Rgba     =>
           if r.a < 0.5 then None else Some(JColor.Rgb(r.r, r.g, r.b))
         case kyo.Style.Color.Transparent => None
-        case _                           => None
+        case v: kyo.Style.Color.Var      =>
+          vars.color(v.name) match
+              case CssColor.Of(c) => c
+              case CssColor.Unset => None
 
     private def hex(v: String): Option[JColor] =
         val d                    = v.stripPrefix("#")
@@ -483,7 +500,10 @@ private[tui4s] object Props:
         listStyle: Option[ListStyle],
         index: Int,
     ): Props =
-        val base0         = neutral(typeText(el, inherited)).copy(
+        // claude 2026-10-19: changed: the custom properties of the element
+        // (L1b)
+        val text          = inherited.copy(vars = inherited.vars.enter(el))
+        val base0         = neutral(typeText(el, text)).copy(
           dir = defaultDir(el),
           align = defaultDir(el) match
               case Dir.Row    => Alignment.center
@@ -573,8 +593,9 @@ private[tui4s] object Props:
     def applyStyle(p: Props, s: kyo.Style): Props =
       s.props.foldLeft(p) { (p, prop) =>
         prop match
-            case Prop.BgColor(c)                   => p.copy(bg = color(c))
-            case Prop.TextColor(c)                 => p.copy(text = p.text.copy(fg = color(c)))
+            case Prop.BgColor(c)                   => p.copy(bg = color(c, p.text.vars))
+            case Prop.TextColor(c)                 =>
+              p.copy(text = p.text.copy(fg = color(c, p.text.vars)))
             case Prop.Padding(t, r, b, l)          =>
               p.copy(padding = Sides(side(t), side(r), side(b), side(l)))
             case Prop.Margin(t, r, b, l)           =>
@@ -635,7 +656,9 @@ private[tui4s] object Props:
             // claude 2026-10-19: created (L1a): the look of the indicator
             case Prop.ScrollbarWidthProp(v)        => p.copy(scrollbarWidth = v)
             case Prop.ScrollbarColorProp(th, tr)   =>
-              p.copy(scrollbarColor = Some((color(th), color(tr))))
+              p.copy(scrollbarColor =
+                Some((color(th, p.text.vars), color(tr, p.text.vars))),
+              )
             // claude 2026-10-19: created (L1a): the text flow, as the DOM
             // runner maps it to CSS (`textWrap` is `overflow-wrap`)
             case Prop.WhiteSpaceProp(v)            =>
@@ -696,7 +719,7 @@ private[tui4s] object Props:
                       p.border.map(_.copy(glyphs = Glyphs.dotted)),
                     )
             case Prop.BorderColorProp(c, _, _, _)  =>
-              p.copy(border = p.border.map(_.copy(fg = color(c))))
+              p.copy(border = p.border.map(_.copy(fg = color(c, p.text.vars))))
             case Prop.BorderRadiusProp(a, _, _, _) =>
               if side(a) > 0 then
                   p.copy(border =

@@ -71,6 +71,17 @@ abstract class TuiApp:
     // claude 2026-10-13: created (T2, RC-24)
     def options: TuiOptions = TuiOptions()
 
+    /** The kyo-ui stylesheet of the run (the default: empty): its custom
+      * properties give the colours of `Style.Color.variable(name)` (see
+      * `Tui.run(options, sheet)`). Read once, when the run starts.
+      *
+      * {{{
+      * override def stylesheet = Stylesheet.vars("accent" -> "#22c55e")
+      * }}}
+      */
+    // claude 2026-10-19: created (L1b)
+    def stylesheet: Stylesheet = Stylesheet.empty
+
     /** Runs the app in the terminal until it quits, then [[onExit]], and exits
       * with the code that the class Scaladoc gives (it returns for code 0).
       */
@@ -92,7 +103,8 @@ abstract class TuiApp:
       * terminal of `crossterm`, the shutdown hooks `hooks`, the stderr `err`.
       */
     // claude 2026-10-19: changed (P3, A2): the one hook of the run (in
-    // Tui.runWith) sets `hooks.shuttingDown`; no latch and no hook here
+    // Tui.runWith) sets `hooks.shuttingDown`; no latch and no hook here; the
+    // stylesheet (L1b)
     private[tui4s] final def runMain(
         args: Array[String],
         crossterm: Crossterm,
@@ -102,7 +114,13 @@ abstract class TuiApp:
         SchedulerDefaults.applyIfUnset()
         arguments = Chunk.from(args)
         val run    = Tui
-          .runWith(options, crossterm, hooks, () => err)(_ => ui)
+          .runWith(
+            options,
+            crossterm,
+            hooks,
+            () => err,
+            stylesheet = stylesheet,
+          )(_ => ui)
           .andThen(Sync.defer(hooks.shuttingDown))
           .map(stopping => if stopping then Kyo.unit else onExit)
         val result = TuiApp.block(run)

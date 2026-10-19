@@ -118,10 +118,12 @@ private[tui4s] final class Runner private (
         for
             _   <- gauge.fork(repairTick)
             t0  <- nanos
+            // claude 2026-10-19: changed: the custom properties of the
+            // stylesheet of the run (L1b)
             w0  <- mount.walk(
                      root,
                      Loc.root,
-                     World.init(root, canvas.size),
+                     World.init(root, canvas.size).copy(vars = runOpts.vars),
                      Map.empty,
                    )
             // the initial mount is settled and verified before the Initial

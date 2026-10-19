@@ -313,19 +313,26 @@ object Headless:
       * after its first frame. `ui` gets the quit value: running it ends the run
       * (D-15). [[tui4s.Tui.quit]] does the same inside the construction of
       * `ui`, inside a handler, and inside a fiber that they start. The run ends
-      * with the enclosing `Scope` (quit, then a wait for the run fiber).
+      * with the enclosing `Scope` (quit, then a wait for the run fiber). The
+      * custom properties of `stylesheet` give the colours of
+      * `Style.Color.variable(name)`, as in `Tui.run(options, stylesheet)`.
       */
     // claude 2026-10-13: changed (C3, RC-2 part): Tui.quit works inside the UI
     // construction (runner.scoped)
-    def start(width: Int, height: Int, options: TuiOptions = TuiOptions())(
+    def start(
+        width: Int,
+        height: Int,
+        options: TuiOptions = TuiOptions(),
+        stylesheet: Stylesheet = Stylesheet.empty,
+    )(
         ui: (Unit < Sync) => UI < (Async & Scope),
     )(using Frame): Headless < (Async & Scope) =
       for
           // claude 2026-10-12: changed: the knobs (test seams) reach the runner
           knobs   <- Knobs.get
           // claude 2026-10-19: changed: the options are checked once, as in
-          // the real terminal (RunOptions, amendment A10)
-          runOpts  = RunOptions.of(options)
+          // the real terminal (RunOptions, amendment A10); the stylesheet (L1b)
+          runOpts  = RunOptions.of(options, stylesheet)
           inbox   <- Channel.initUnscoped[Msg](runOpts.inboxCapacity)
           frames  <- Channel.initUnscoped[FrameStats](1 << 16)
           backend <- Sync.defer(TestBackend(width, height))

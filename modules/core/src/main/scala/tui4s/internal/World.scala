@@ -127,8 +127,12 @@ private[tui4s] final case class World(
     // claude 2026-10-19: created (L1b): the focus seeds of kyo-ui's
     // focusAuto, the newest first (Runner.fixFocus)
     seeds: List[Seed] = Nil,
+    // claude 2026-10-19: created (L1b): the custom properties of the
+    // stylesheet of the run
+    vars: CssVars = CssVars.empty,
 ):
-    // claude 2026-10-19: changed: the scroll offsets (L1a)
+    // claude 2026-10-19: changed: the scroll offsets (L1a); the custom
+    // properties (L1b)
     def env: Scene =
       Scene(
         p => regions.get(p).map(_.content),
@@ -136,6 +140,7 @@ private[tui4s] final case class World(
         size,
         p => carets.getOrElse(p, Int.MaxValue),
         p => scroll.getOrElse(p, Offset.zero),
+        vars,
       )
 
     def gen: (Long, World) = (nextGen, copy(nextGen = nextGen + 1))

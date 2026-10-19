@@ -3,7 +3,7 @@ package tui4s
 import jatatui.core.style.{Color as JColor, Modifier}
 import kyo.*
 import kyo.UI.*
-import tui4s.internal.{Loc, Offset}
+import tui4s.internal.{Loc, Offset, Render}
 
 /** Golden screens: a static kyo-ui value renders to the expected cells. */
 // claude 2026-10-12: created
@@ -623,6 +623,38 @@ class GoldenScreenTest extends ScreenSuite:
             |
             |fixed""".stripMargin,
         )
+      }
+    }
+
+    // claude 2026-10-19: created (L1b)
+    "custom colours (Color.Var)" - {
+      val green  = JColor.Rgb(34, 197, 94)
+      val red    = JColor.Rgb(239, 68, 68)
+      val blue   = JColor.Rgb(59, 130, 246)
+      val sheet  = Stylesheet
+        .vars(
+          "accent" -> "#22c55e",
+          "panel"  -> "rgb(59, 130, 246)",
+          "warn"   -> "var(--brand, #ef4444)",
+        )
+        .scopedVars(Selector.cls("alert"), "accent" -> "#ef4444")
+      def accent = Style.Color.variable("accent")
+      "the root declares them; a class block declares over them in its subtree; a fallback; no value is no colour" in {
+        val ui = div(
+          span("a").style(_.color(accent)),
+          div.cssClass("alert")(span("b").style(_.color(accent))),
+          span("c").style(_.color(Style.Color.variable("warn"))),
+          span("d").style(_.color(Style.Color.variable("none"))),
+          span("e").style(_.bg(Style.Color.variable("panel"))),
+        )
+        val b  = Render.buffer(ui, 2, 5, sheet = sheet)
+        assert(b.cellAt(0, 0).fg == green)
+        assert(b.cellAt(0, 1).fg == red)
+        assert(b.cellAt(0, 2).fg == red)
+        assert(b.cellAt(0, 3).fg == JColor.RESET)
+        assert(b.cellAt(0, 4).bg == blue)
+        // with no stylesheet, no colour
+        assert(Render.buffer(ui, 2, 5).cellAt(0, 0).fg == JColor.RESET)
       }
     }
 end GoldenScreenTest

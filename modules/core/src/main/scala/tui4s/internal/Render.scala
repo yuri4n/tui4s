@@ -14,15 +14,18 @@ import kyo.*
 private[tui4s] object Render:
 
     /** The screen buffer after one frame of `ui` on `w` x `h` cells, with the
-      * scroll offsets `scroll` of its viewports.
+      * scroll offsets `scroll` of its viewports and the custom properties of
+      * `sheet`.
       */
-    // claude 2026-10-19: changed: the scroll offsets (L1a)
+    // claude 2026-10-19: changed: the scroll offsets (L1a); the stylesheet
+    // (L1b)
     def buffer(
         ui: UI,
         w: Int,
         h: Int,
         focus: Option[Loc] = None,
         scroll: Map[Loc, Offset] = Map.empty,
+        sheet: Stylesheet = Stylesheet.empty,
     ): Buffer =
         val backend = TestBackend(w, h)
         val canvas  = Canvas(backend)
@@ -32,6 +35,7 @@ private[tui4s] object Render:
           Size(w, h),
           _ => 0,
           p => scroll.getOrElse(p, Offset.zero),
+          CssVars.of(sheet)._1,
         )
         val laid    = Layout.layoutAll(ui, env)
         val damage  =

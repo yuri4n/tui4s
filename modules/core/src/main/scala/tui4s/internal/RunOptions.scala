@@ -1,5 +1,6 @@
 package tui4s.internal
 
+import kyo.Stylesheet
 import tui4s.TuiOptions
 import tui4s.spi.Settle
 
@@ -23,29 +24,47 @@ import java.time.Duration
   * @param settleNanos
   *   the duration of `TuiOptions.settle` in nanoseconds (the `max` of
   *   `Quiescent`, the `window` of `Hops`), from 0 to `Long.MaxValue`
+  * @param vars
+  *   the custom properties of the stylesheet of the run
+  * @param sheetProblems
+  *   the entries and the selectors of that stylesheet that the runner ignores
   */
 // claude 2026-10-19: created: TuiOptions validated once (amendment A10 of the
 // purity plan); it replaces the clamps in Tui, Headless, Session and Runner
+// claude 2026-10-19: changed: the custom properties of the stylesheet, and
+// its problems (L1b)
 private[tui4s] final case class RunOptions(
     options: TuiOptions,
     inboxCapacity: Int,
     pollMillis: Int,
     pendingNanos: Long,
     settleNanos: Long,
+    vars: CssVars = CssVars.empty,
+    sheetProblems: Vector[String] = Vector.empty,
 )
 
 private[tui4s] object RunOptions:
-    /** The checked values of `options`. */
-    def of(options: TuiOptions): RunOptions =
-      RunOptions(
-        options,
-        inboxCapacity = options.inboxCapacity.max(1),
-        pollMillis = millis(options.pollInterval),
-        pendingNanos = nanos(options.pendingTimeout),
-        settleNanos = nanos(options.settle match
-            case Settle.Quiescent(max, _) => max
-            case Settle.Hops(_, window)   => window),
-      )
+    /** The checked values of `options`, and the custom properties of `sheet`
+      * with the entries of it that the runner ignores ([[CssVars.of]]).
+      */
+    // claude 2026-10-19: changed: the stylesheet (L1b)
+    def of(
+        options: TuiOptions,
+        sheet: Stylesheet = Stylesheet.empty,
+    ): RunOptions =
+        val (vars, problems) = CssVars.of(sheet)
+        RunOptions(
+          options,
+          inboxCapacity = options.inboxCapacity.max(1),
+          pollMillis = millis(options.pollInterval),
+          pendingNanos = nanos(options.pendingTimeout),
+          settleNanos = nanos(options.settle match
+              case Settle.Quiescent(max, _) => max
+              case Settle.Hops(_, window)   => window),
+          vars = vars,
+          sheetProblems = problems,
+        )
+    end of
 
     /** `d` in nanoseconds: a negative duration is 0, and a duration too long
       * for a `Long` count of nanoseconds is `Long.MaxValue`.

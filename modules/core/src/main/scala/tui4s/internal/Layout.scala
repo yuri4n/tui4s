@@ -37,15 +37,18 @@ end Content
   * the runner's immutable world. `caret` gives the caret of the text input at a
   * path as a grapheme index (`World.carets`; `Int.MaxValue` is the end of the
   * text). `scroll` gives the scroll offset of the viewport at a path
-  * (`World.scroll`); the layout clamps it.
+  * (`World.scroll`); the layout clamps it. `vars` holds the custom properties
+  * of the stylesheet of the run ([[CssVars]]): the screen has them.
   */
-// claude 2026-10-19: changed: the scroll offset of a viewport (L1a)
+// claude 2026-10-19: changed: the scroll offset of a viewport (L1a); the
+// custom properties of the run (L1b)
 private[tui4s] final case class Scene(
     content: Loc => Option[Content],
     focus: Option[Loc],
     screen: Size,
     caret: Loc => Int,
     scroll: Loc => Offset = _ => Offset.zero,
+    vars: CssVars = CssVars.empty,
 )
 
 private[tui4s] enum Kind:
@@ -1483,12 +1486,13 @@ private[tui4s] object Layout:
         }
     end layoutChildren
 
-    def screenNode(size: Size): Node =
+    // claude 2026-10-19: changed: the custom properties of the run (L1b)
+    def screenNode(size: Size, vars: CssVars = CssVars.empty): Node =
       Node(
         Loc.screen,
         Kind.Screen,
         Rect(0, 0, size.w, size.h),
-        Props.neutral(TextAttrs.default),
+        Props.neutral(TextAttrs.default.copy(vars = vars)),
         None,
         size,
         size.w,
@@ -1500,7 +1504,7 @@ private[tui4s] object Layout:
 
     /** The whole screen. */
     def layoutAll(root: UI, env: Scene): Laid =
-      layoutChildren(screenNode(env.screen), env, root, Laid.empty)
+      layoutChildren(screenNode(env.screen, env.vars), env, root, Laid.empty)
 
     // ---- incremental re-layout of one container ----
 

@@ -99,8 +99,10 @@ object KyoUiSurface:
       "focusTrap",
       "focusGroup",
       "focusAuto",
-      // claude 2026-10-19: created (L1b): the focus seeds
+      // claude 2026-10-19: created (L1b): the focus seeds; the class of a
+      // selector of Stylesheet.scopedVars (CssVars)
       "focusRestore",
+      "cssClasses",
       "stopPropagation",
       "onClick",
       "onClickEvt",

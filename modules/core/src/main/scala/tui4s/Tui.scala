@@ -88,6 +88,29 @@ object Tui:
     ): Unit < (Async & Abort[TuiError]) =
       runWith(options, NativeCrossterm())(ui)
 
+    /** Runs `ui` as the other `run` does, with the kyo-ui stylesheet `sheet`:
+      * its custom properties give the colours of `Style.Color.variable(name)`.
+      *
+      * {{{
+      * val colors = Stylesheet.vars("accent" -> "#22c55e")
+      * Tui.run(TuiOptions(), colors)(_ =>
+      *   span("ok").style(_.color(Style.Color.variable("accent"))))
+      * }}}
+      *
+      * kyo-ui declares a custom property only in a `Stylesheet`
+      * (`Stylesheet.vars`, `Stylesheet.scopedVars`), and a page gets it through
+      * its head (`UI.PageHead.css`) or `UI.runStylesheet`, not through the
+      * element tree. A terminal has no head, so the run takes the stylesheet.
+      * The runner reads its `vars` blocks and its `scopedVars` blocks with a
+      * class, an id or a data selector; it ignores the other entries, and it
+      * logs one warning for each of them.
+      */
+    // claude 2026-10-19: created (L1b)
+    def run(options: TuiOptions, sheet: Stylesheet)(
+        ui: (Unit < Sync) => UI < (Async & Scope),
+    )(using Frame): Unit < (Async & Abort[TuiError]) =
+      runWith(options, NativeCrossterm(), stylesheet = sheet)(ui)
+
     /** Ends the run that runs the caller. A key handler, the construction of
       * the UI, and a fiber that one of them started can call it: the runner
       * sets the quit of the run around each handler and around the UI
@@ -126,13 +149,15 @@ object Tui:
       * bound with `Log.let`) and its captured output.
       */
     // claude 2026-10-19: changed (P3, A1, A2): the release stack of the run
-    // and its one hook; the sink pushes its finish to the stack
+    // and its one hook; the sink pushes its finish to the stack; the
+    // stylesheet of the run (L1b)
     private[tui4s] def runWith(
         options: TuiOptions,
         crossterm: Crossterm,
         hooks: Hooks = Hooks.runtime,
         err: () => PrintStream = () => OutputCapture.realErr,
         trace: String => Unit = _ => (),
+        stylesheet: Stylesheet = Stylesheet.empty,
     )(ui: (Unit < Sync) => UI < (Async & Scope))(using
         Frame,
     ): Unit < (Async & Abort[TuiError]) =
@@ -148,7 +173,7 @@ object Tui:
               .run[TuiError](
                 TuiLog.let(sink)(
                   onTerminal(
-                    RunOptions.of(options),
+                    RunOptions.of(options, stylesheet),
                     TerminalIO(crossterm, sink, err),
                     stack,
                   )(ui),
