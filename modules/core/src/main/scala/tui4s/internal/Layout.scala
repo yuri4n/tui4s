@@ -225,6 +225,14 @@ private[tui4s] final case class Laid(
         )
     end without
 
+    /** The paths of the node at `p` and of its subtree, in document order. */
+    // claude 2026-10-19: created (L1b)
+    def under(p: Loc): Iterator[Loc] =
+      nodes
+        .get(p)
+        .iterator
+        .flatMap(n => Iterator.single(p) ++ n.kids.iterator.flatMap(under))
+
     /** The screen with the node at `prefix` and its subtree moved by `dx`
       * columns and `dy` rows: their rects, and the ports and the indicators of
       * the viewports among them. A scroll moves the kids of a viewport so: a

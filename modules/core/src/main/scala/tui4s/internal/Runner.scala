@@ -577,7 +577,10 @@ private[tui4s] final class Runner private (
       *   2. The seed: the first element in focus order with `focusAuto(true)`
       *      that `before` did not have takes the focus, once (the next layouts
       *      have it), and it is a new seed. On the first frame every element is
-      *      new, as the native autofocus of a page.
+      *      new, as the native autofocus of a page. Only the subtrees of
+      *      `roots` (the nodes that this layout made) can hold a new element,
+      *      so the search looks there, and it finds the focus order only when
+      *      it finds one.
       *   3. Else the focus stays when its element can still take it; else, with
       *      `autoFocus`, the first element with `focusAuto(true)` takes it,
       *      else the first element in focus order.
@@ -588,7 +591,11 @@ private[tui4s] final class Runner private (
     // claude 2026-10-19: changed: the focusable nodes of the layout (a
     // viewport stop, L1a review); the seeds of focusAuto and focusRestore
     // (L1b)
-    private def fixFocus(w: World, before: Laid): (Option[Loc], List[Seed]) =
+    private def fixFocus(
+        w: World,
+        before: Laid,
+        roots: Vector[Loc],
+    ): (Option[Loc], List[Seed]) =
         def has(p: Loc)(f: UI.Ast.Element => Boolean): Boolean =
           w.laid.nodes.get(p).map(_.kind).exists {
             case Kind.El(e) => f(e)
@@ -601,8 +608,14 @@ private[tui4s] final class Runner private (
           .flatMap(_.back)
           .find(Layout.isFocusable(w.laid, _))
           .orElse(w.focus)
-        val order                                              = Layout.focusOrder(w.laid)
-        order.find(p => auto(p) && !before.nodes.contains(p)) match
+        lazy val order                                         = Layout.focusOrder(w.laid)
+        val fresh                                              = Loc
+          .tops(roots)
+          .iterator
+          .flatMap(w.laid.under)
+          .filter(p => auto(p) && !before.nodes.contains(p))
+          .toSet
+        (if fresh.isEmpty then None else order.find(fresh.contains)) match
             case Some(p) =>
               val back =
                 if has(p)(_.attrs.focusRestore.getOrElse(false)) then now
@@ -698,7 +711,8 @@ private[tui4s] final class Runner private (
       if w.full then
           val laid0          = Layout.layoutAll(w.root, w.env)
           // claude 2026-10-19: changed: the focus seeds (L1b)
-          val (focus, seeds) = fixFocus(w.copy(laid = laid0), w.laid)
+          val (focus, seeds) =
+            fixFocus(w.copy(laid = laid0), w.laid, Vector(Loc.screen))
           val w1             = w.copy(focus = focus, seeds = seeds)
           // claude 2026-10-19: changed: a new focus lays out again only the
           // owners of the old and the new focus, not the whole screen (PF-a,
@@ -741,8 +755,13 @@ private[tui4s] final class Runner private (
               relayoutAll(w, w.dirtyNodes, laid1, dmg1, env),
               env,
             )
-          // claude 2026-10-19: changed: the focus seeds (L1b)
-          val (focus, seeds) = fixFocus(w.copy(laid = laid2), w.laid)
+          // claude 2026-10-19: changed: the focus seeds, in the subtrees of
+          // the roots of the damage (L1b)
+          val (focus, seeds) = fixFocus(
+            w.copy(laid = laid2),
+            w.laid,
+            dmg2.collect { case Damage.Paint(p) => p },
+          )
           val w2             = w.copy(laid = laid2, seeds = seeds)
           if focus == w.focus then (w2, dmg2)
           else
