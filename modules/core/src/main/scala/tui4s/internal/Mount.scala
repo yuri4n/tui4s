@@ -523,11 +523,6 @@ private[tui4s] final class Mount(
             true
           case _ => false
 
-    /** Unmounts every region (end of the run). */
-    def unmountAll(w: World)(using Frame): Unit < Sync =
-      Kyo.foreachDiscard(w.regions.values.toSeq)(r =>
-        r.watcher.fold(Kyo.unit)(_.interrupt.unit),
-      )
 end Mount
 
 private[tui4s] object Mount:

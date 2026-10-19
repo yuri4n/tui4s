@@ -19,9 +19,8 @@ import tui4s.{FrameCause, FrameStats}
   * event's consequences in it.
   */
 // claude 2026-10-13: changed: the Scaladoc names the dispatcher (C3)
-// claude 2026-10-19: changed: the checked options (RunOptions, amendment A10)
-// claude 2026-10-19: changed: built by `Runner.init`, with the gauge of the
-// run (P2, A7)
+// claude 2026-10-19: changed: built by `Runner.init`, with the checked
+// options (RunOptions, A10), the gauge and the quit flag of the run (P2, A7)
 private[tui4s] final class Runner private (
     inbox: Channel[Msg],
     canvas: Canvas,
@@ -29,61 +28,37 @@ private[tui4s] final class Runner private (
     stats: Maybe[Channel[FrameStats]],
     knobs: Knobs,
     gauge: FiberGauge,
+    quitRequested: AtomicBoolean,
 ):
     private val options = runOpts.options
 
-    // claude 2026-10-12: changed: the mount gets the test seams
-    // claude 2026-10-19: changed: and the gauge (P2, A7)
+    // claude 2026-10-19: changed: the mount gets the gauge (P2, A7)
     private val mount = Mount(inbox, gauge, knobs)
 
+    // claude 2026-10-19: changed: the Kyo Clock (P2, A11)
     private def nanos(using Frame): Long < Sync =
-      Sync.defer(java.lang.System.nanoTime()) // scalafix:ok DisableSyntax.jvmGlobal; P2: Clock.nowMonotonic
-
-    // claude 2026-10-12: created (R1 option b, RC-8): the last world, so that
-    // `stop` can unmount it when the run ends in any way
-    private val last =
-      new java.util.concurrent.atomic.AtomicReference[Option[World]](None) // scalafix:ok DisableSyntax.jvmSync; P2: delete last and remember
-
-    private def remember(w: World)(using Frame): World < Sync =
-      Sync.defer { last.set(Some(w)); w }
+      Clock.nowMonotonic.map(_.toNanos)
 
     /** The fibers of this run that have not ended: a gauge for tests (R1). */
     // claude 2026-10-19: changed: the FiberGauge (P2, A7)
     private[tui4s] def liveFibers(using Frame): Int < Sync = gauge.live
 
-    /** Stops every fiber of the run: the watchers of the last world, the tick,
-      * and then every fiber of the run that still lives (the watchers that a
-      * step started inside a settle or a verify pass and had not remembered yet
-      * when the interrupt landed). It interrupts them and does not wait.
+    /** Stops every fiber of the run: the close of the gauge interrupts the
+      * watchers, the component and hook fibers and the repair tick, also the
+      * ones that a step started inside a settle or a verify pass. A fiber that
+      * starts after the close is interrupted at once. It does not wait.
       */
-    // claude 2026-10-12: changed (review R2-1, R2-2): `stopped` is set first
-    // (the tick reads it); `interruptAll` over the gauge set closes the window
-    // between a watcher start inside a step and the next `remember`
-    // claude 2026-10-19: changed: the close of the FiberGauge (P2, A7)
-    private def stop(using Frame): Unit < Sync =
-      Sync
-        .defer { stopped.set(true); last.get() }
-        .map(_.fold(Kyo.unit)(mount.unmountAll))
-        .andThen(
-          Sync.defer(ticker.get()).map(_.fold(Kyo.unit)(_.interrupt.unit)),
-        )
-        .andThen(gauge.close)
-
-    // claude 2026-10-12: created (review R2-2, R2-8 b): set by `stop` (the tick
-    // ends at its next wake-up, also when `ticker` was never set) and by
-    // `quit` (the step reads it, so a quit that the full inbox dropped still
-    // ends the run)
-    private val stopped       = new java.util.concurrent.atomic.AtomicBoolean(false) // scalafix:ok DisableSyntax.jvmSync; P2: Fiber.use for the repair tick
-    private val quitRequested =
-      new java.util.concurrent.atomic.AtomicBoolean(false) // scalafix:ok DisableSyntax.jvmSync; P2: a Kyo AtomicBoolean in Runner.init
+    // claude 2026-10-19: changed: only the close of the gauge; the last
+    // world, the `stopped` flag and the tick handle are gone (P2, A7)
+    private def stop(using Frame): Unit < Sync = gauge.close
 
     /** Asks the run to end: it posts the quit message and sets a flag that the
       * next step reads, in case the inbox is full and drops the message.
       */
-    // claude 2026-10-12: created (review R2-8 b)
+    // claude 2026-10-19: changed: a Kyo AtomicBoolean (P2)
     def quit(using Frame): Unit < Sync =
-      Sync
-        .defer(quitRequested.set(true))
+      quitRequested
+        .set(true)
         .andThen(Abort.run[Closed](inbox.offer(Msg.Quit)).unit)
 
     // claude 2026-10-13: created (C3): the key routing; its handlers get the
@@ -95,19 +70,9 @@ private[tui4s] final class Runner private (
       * gauge of this run is in scope too ([[Tui4sTrack]]), so a fiber that a
       * hook starts ([[tui4s.Hooks]]) joins it and stops when the run ends.
       */
-    // claude 2026-10-13: created (C3, RC-2 part; the prototype's scoped)
-    // claude 2026-10-13: changed (C4, RC-8): the gauge (Tui4sTrack)
     // claude 2026-10-19: changed: the FiberGauge (P2, A7)
     def scoped[A, S](v: => A < S)(using Frame): A < S =
       Tui4sQuit.let(quit)(Tui4sTrack.let(gauge)(v))
-
-    // claude 2026-10-12: created (K29): the repair tick fiber
-    private val ticker =
-      new java.util.concurrent.atomic.AtomicReference[Option[ // scalafix:ok DisableSyntax.jvmSync; P2: Fiber.use for the repair tick
-        Fiber[Any, Nothing],
-      ]](
-        None,
-      )
 
     // TODO(#8): remove the repair tick when the watchers go back to
     // `Signal.observe` (it has its own repair timer).
@@ -116,58 +81,52 @@ private[tui4s] final class Runner private (
       * `Signal.defaultRepairInterval`) it asks the runner to re-read `current`
       * of every region, so that a write the watcher loop missed reaches the
       * screen within about one interval (a tick that arrives inside a settle is
-      * kept for the next step). The tick ends when `stopped` is set.
+      * kept for the next step). The close of the gauge ends the tick; a closed
+      * inbox ends it too.
       */
-    // claude 2026-10-12: created; changed (review R2-2): the own exit
+    // claude 2026-10-19: changed: no `stopped` flag: the gauge ends it (P2)
     private def repairTick(using Frame): Unit < Async =
       Abort
         .run[Closed](
-          Loop.foreach {
-            Async
-              .sleep(knobs.repairInterval)
-              .andThen(Sync.defer(stopped.get()))
-              .map { stop =>
-                if stop then Loop.done
-                else inbox.put(Msg.Repair).andThen(Loop.continue)
-              }
-          },
+          Loop.forever(
+            Async.sleep(knobs.repairInterval).andThen(inbox.put(Msg.Repair)),
+          ),
         )
         .unit
 
-    // claude 2026-10-12: changed (R1 option b, RC-8): `unmountAll` runs in a
-    // `Sync.ensure` around the run, so an interrupted run stops its watchers
-    // too. It does not wait for them: a run-owned Scope (option a) waits for a
-    // CPU-bound watcher and breaks the end order (spike S2, gates.md G2).
-    // claude 2026-10-13: changed (C3): the run has the quit Local in scope
+    /** Runs the UI until a quit. The close of the gauge runs in a `Sync.ensure`
+      * around the run, so a run that ends in any way (a quit, a failure, an
+      * interrupt) stops its fibers. It does not wait for them: a run-owned
+      * `Scope` waits for a CPU-bound watcher and breaks the end order (spike
+      * S2, gates.md G2).
+      */
+    // claude 2026-10-19: changed: the gauge starts the tick; no `remember`
+    // of each world (P2, A7)
     def run(root: UI)(using Frame): Unit < Async =
       scoped(Sync.ensure(stop) {
         for
-            // claude 2026-10-19: changed: the gauge starts the tick (P2, A7)
-            tick <- gauge.fork(repairTick)
-            _    <- Sync.defer(ticker.set(Some(tick)))
-            t0   <- nanos
-            w0   <- mount
-                      .walk(
-                        root,
-                        Loc.root,
-                        World.init(root, canvas.size),
-                        Map.empty,
-                      )
-                      .map(remember)
-            // claude 2026-10-12: changed (D-16, armkey): the initial mount is
-            // settled and verified before the Initial frame
-            w0s  <- settleAndVerify(w0, input = false).map(remember)
-            w1   <- frame(w0s, 0L, FrameCause.Initial, t0).map(remember)
-            _    <- Loop(w1)(step)
+            _   <- gauge.fork(repairTick)
+            t0  <- nanos
+            w0  <- mount.walk(
+                     root,
+                     Loc.root,
+                     World.init(root, canvas.size),
+                     Map.empty,
+                   )
+            // the initial mount is settled and verified before the Initial
+            // frame (D-16, armkey)
+            w0s <- settleAndVerify(w0, input = false)
+            w1  <- frame(w0s, 0L, FrameCause.Initial, t0)
+            _   <- Loop(w1)(step)
         yield ()
       })
 
     private def step(
         w: World,
     )(using Frame): Loop.Outcome[World, World] < Async =
-      // claude 2026-10-12: changed (review R2-8 b): a quit that the full inbox
-      // dropped ends the run here
-      Sync.defer(quitRequested.get()).map { q =>
+      // a quit that the full inbox dropped ends the run here (review R2-8 b)
+      // claude 2026-10-19: changed: the Kyo AtomicBoolean; no `remember` (P2)
+      quitRequested.get.map { q =>
         if w.quit || q then Loop.done(w)
         else
             next(w).map { (msg, w1) =>
@@ -185,7 +144,7 @@ private[tui4s] final class Runner private (
                                      youngNow = Set.empty,
                                    ),
                                    msg,
-                                 ).map(remember)
+                                 )
                   t1          <- nanos
                   // claude 2026-10-13: changed (C3): a key and a paste are
                   // Input steps too, so the verify pass re-reads the unarmed
@@ -195,7 +154,7 @@ private[tui4s] final class Runner private (
                                      case Msg.Paste(_, _)  => true
                                      case Msg.Resize(_, _) => true
                                      case _                => false
-                  w3          <- settleAndVerify(w2, input).map(remember)
+                  w3          <- settleAndVerify(w2, input)
                   t2          <- nanos
                   // claude 2026-10-13: changed (C3): a key and a paste give an
                   // Input frame
@@ -207,7 +166,6 @@ private[tui4s] final class Runner private (
                                        (s, FrameCause.Input)
                                      case _                => (0L, FrameCause.Background)
                   w4          <- frame(w3, seq, cause, t0, t1 - t0, t2 - t1)
-                                   .map(remember)
               yield Loop.continue(w4)
             }
       }
@@ -442,8 +400,10 @@ private[tui4s] final class Runner private (
       * `combineLatest`). See [[tui4s.spi.Settle]] for the two strategies. While
       * a component that this frame mounts waits for its first content
       * (`World.pending`), the settle takes messages until `pendingTimeout`
-      * after `frameStart` (`System.nanoTime`), and then goes on without it.
+      * after `frameStart` (the monotonic time of the Kyo `Clock`, in
+      * nanoseconds), and then goes on without it.
       */
+    // claude 2026-10-19: changed: the Scaladoc names the Kyo Clock (P2, A11)
     // claude 2026-10-13: changed (C4, the C2 cut back): the bounded wait for
     // a mounting component (the `pending` branch)
     // claude 2026-10-13: changed (C4, P-6): the deadline of the frame
@@ -571,10 +531,10 @@ private[tui4s] final class Runner private (
       * and its step comes after this frame). The wait for a mounting component
       * ends then: the run does not wait for a UI that it will not show.
       */
-    // claude 2026-10-13: created (C4, review R2-2)
+    // claude 2026-10-19: changed: the Kyo AtomicBoolean (P2)
     private def ending(w: World)(using Frame): Boolean < Sync =
-      Sync.defer(
-        w.quit || quitRequested.get() ||
+      quitRequested.get.map(q =>
+        w.quit || q ||
           (options.ctrlCQuits && w.backlog.exists {
             case Msg.Key(ev, _) => isCtrlC(ev)
             case _              => false
@@ -686,91 +646,94 @@ private[tui4s] final class Runner private (
         settleNs: Long = 0,
     )(using Frame): World < Async =
         val idle = !w.full && w.dirtyRegions.isEmpty && w.dirtyNodes.isEmpty
-        val tr   = java.lang.System.nanoTime() // scalafix:ok DisableSyntax.jvmGlobal; P2: Clock.nowMonotonic
-        Sync
-          .defer {
-            if idle then
-                (
-                  w,
-                  // claude 2026-10-12: changed: repaired and settleTimeouts in
-                  // the frame stats (K29, D-17 c)
-                  FrameStats(
-                    seq,
-                    cause,
-                    0,
-                    0,
-                    0L,
-                    w.updates,
-                    repaired = w.repaired,
-                    settleTimeouts = w.settleTimeouts,
-                  ),
-                )
-            else
-                val (w1, damage)   = layoutStep(w)
-                val (rects, roots) = Paint(canvas, w1.laid, w1.env, damage)
-                val flushed        = canvas.flush(rects)
-                val repainted      = canvas.takeWrites()
-                val done           = w1.copy(
-                  dirtyRegions = Vector.empty,
-                  dirtyNodes = Set.empty,
-                  full = false,
-                )
-                (
-                  done,
-                  // claude 2026-10-12: changed: repaired and settleTimeouts in
-                  // the frame stats (K29, D-17 c)
-                  FrameStats(
-                    seq,
-                    cause,
-                    repainted,
-                    flushed,
-                    0L,
-                    w.updates,
-                    subtrees = roots,
-                    repaired = w.repaired,
-                    settleTimeouts = w.settleTimeouts,
-                  ),
-                )
-          }
-          .map { (w1, s) =>
-            nanos.map { t1 =>
-              val emit = stats match
-                  case Present(_) if idle && cause == FrameCause.Background =>
-                    Kyo.unit // nothing happened: no frame
-                  case Present(ch) =>
-                    // claude 2026-10-19: changed: None when nothing has the
-                    // focus, not "" (P1b, A5 c)
-                    val focus = w1.focus.map { f =>
-                      w1.laid.nodes.get(f).map(_.kind) match
-                          case Some(Kind.El(e)) =>
-                            e.attrs.identifier.getOrElse(f.showLoc)
-                          case _                => f.showLoc
-                    }
-                    Abort
-                      .run[Closed](
-                        ch.put(
-                          s.copy(
-                            endNanos = t1,
-                            nanos = t1 - t0,
-                            handleNanos = handleNs,
-                            settleNanos = settleNs,
-                            renderNanos = t1 - tr,
-                            focus = focus,
-                          ),
-                        ),
-                      )
-                      .unit
-                  case Absent      => Kyo.unit
-              emit.andThen(w1)
+        // claude 2026-10-19: changed: the start of the render from the Kyo
+        // Clock, inside the effect (P2, A11)
+        nanos.map { tr =>
+          Sync
+            .defer {
+              if idle then
+                  (
+                    w,
+                    // claude 2026-10-12: changed: repaired and settleTimeouts in
+                    // the frame stats (K29, D-17 c)
+                    FrameStats(
+                      seq,
+                      cause,
+                      0,
+                      0,
+                      0L,
+                      w.updates,
+                      repaired = w.repaired,
+                      settleTimeouts = w.settleTimeouts,
+                    ),
+                  )
+              else
+                  val (w1, damage)   = layoutStep(w)
+                  val (rects, roots) = Paint(canvas, w1.laid, w1.env, damage)
+                  val flushed        = canvas.flush(rects)
+                  val repainted      = canvas.takeWrites()
+                  val done           = w1.copy(
+                    dirtyRegions = Vector.empty,
+                    dirtyNodes = Set.empty,
+                    full = false,
+                  )
+                  (
+                    done,
+                    // claude 2026-10-12: changed: repaired and settleTimeouts in
+                    // the frame stats (K29, D-17 c)
+                    FrameStats(
+                      seq,
+                      cause,
+                      repainted,
+                      flushed,
+                      0L,
+                      w.updates,
+                      subtrees = roots,
+                      repaired = w.repaired,
+                      settleTimeouts = w.settleTimeouts,
+                    ),
+                  )
             }
-          }
+            .map { (w1, s) =>
+              nanos.map { t1 =>
+                val emit = stats match
+                    case Present(_) if idle && cause == FrameCause.Background =>
+                      Kyo.unit // nothing happened: no frame
+                    case Present(ch) =>
+                      // claude 2026-10-19: changed: None when nothing has the
+                      // focus, not "" (P1b, A5 c)
+                      val focus = w1.focus.map { f =>
+                        w1.laid.nodes.get(f).map(_.kind) match
+                            case Some(Kind.El(e)) =>
+                              e.attrs.identifier.getOrElse(f.showLoc)
+                            case _                => f.showLoc
+                      }
+                      Abort
+                        .run[Closed](
+                          ch.put(
+                            s.copy(
+                              endNanos = t1,
+                              nanos = t1 - t0,
+                              handleNanos = handleNs,
+                              settleNanos = settleNs,
+                              renderNanos = t1 - tr,
+                              focus = focus,
+                            ),
+                          ),
+                        )
+                        .unit
+                    case Absent      => Kyo.unit
+                emit.andThen(w1)
+              }
+            }
+        }
     end frame
 end Runner
 
 private[tui4s] object Runner:
-    /** A runner with a new gauge of its own. */
-    // claude 2026-10-19: created (P2, A7): the gauge is a Kyo AtomicRef, so it
-    // is made in `Sync`
+    /** A runner with a new gauge and a new quit flag of its own. */
+    // claude 2026-10-19: created (P2, A7): the gauge and the flag are Kyo
+    // atomics, so they are made in `Sync`
     def init(
         inbox: Channel[Msg],
         canvas: Canvas,
@@ -778,7 +741,8 @@ private[tui4s] object Runner:
         stats: Maybe[Channel[FrameStats]],
         knobs: Knobs = Knobs.default,
     )(using Frame): Runner < Sync =
-      FiberGauge.init.map(g =>
-        new Runner(inbox, canvas, runOpts, stats, knobs, g),
-      )
+      for
+          gauge <- FiberGauge.init
+          quit  <- AtomicBoolean.init(false)
+      yield new Runner(inbox, canvas, runOpts, stats, knobs, gauge, quit)
 end Runner
