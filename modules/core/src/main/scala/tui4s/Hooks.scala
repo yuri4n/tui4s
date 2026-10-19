@@ -5,7 +5,9 @@ import tui4s.internal.{ComponentSpec, Tui4sTrack}
 
 /** Hooks: the first style of tui4s components (the second is [[Component]]).
   * They are plain Kyo effects: a component is any function that returns
-  * `UI < Sync` or `UI < (Async & Scope)`.
+  * `UI < Sync`, or `UI < (Sync & Scope)` when it uses a hook that starts a
+  * fiber (`useHold`, `useFold`, `useEffect`, `useInterval`). A component that
+  * itself waits (an `Async` step in its body) returns `UI < (Async & Scope)`.
   *
   * {{{
   * def counter(label: String): UI < Sync =
@@ -29,6 +31,7 @@ import tui4s.internal.{ComponentSpec, Tui4sTrack}
   */
 // claude 2026-10-13: changed (C4): the Scaladoc of the final shape (the two
 // styles, the mount, the pending frame, the fibers end with the run)
+// claude 2026-10-19: changed: the Scaladoc names Sync & Scope (P1b, A5 e)
 object Hooks:
 
     /** A piece of state: `Signal.initRef`. */
@@ -38,13 +41,21 @@ object Hooks:
       Signal.initRef(initial)
 
     /** A signal holding the last value of `stream` (`initial` before the first
-      * one). The stream runs while the enclosing `Scope` is open.
+      * one). The stream runs in a fiber while the enclosing `Scope` is open;
+      * the hook itself does not suspend.
+      *
+      * {{{
+      * def status(lines: Stream[String, Async]): UI < (Sync & Scope) =
+      *   for last <- useHold("waiting")(lines)
+      *   yield span(last)
+      * }}}
       */
+    // claude 2026-10-19: changed: Sync & Scope, not Async & Scope (P1b, A5 e)
     def useHold[A](initial: A)(stream: => Stream[A, Async])(using
         CanEqual[A, A],
         Frame,
         Tag[Emit[Chunk[A]]],
-    ): Signal[A] < (Async & Scope) =
+    ): Signal[A] < (Sync & Scope) =
       // claude 2026-10-13: changed (C4, RC-8): the fiber joins the gauge of the
       // run (R1 option b)
       for
@@ -52,14 +63,23 @@ object Hooks:
           _   <- Fiber.init(stream.foreach(ref.set)).map(Tui4sTrack(_))
       yield ref
 
-    /** A signal folding `stream` into a state. */
+    /** A signal folding `stream` into a state. The stream runs in a fiber
+      * while the enclosing `Scope` is open; the hook itself does not suspend.
+      *
+      * {{{
+      * def total(amounts: Stream[Int, Async]): UI < (Sync & Scope) =
+      *   for sum <- useFold(0)(amounts)(_ + _)
+      *   yield span(sum.map(s => s"Total: $s"))
+      * }}}
+      */
+    // claude 2026-10-19: changed: Sync & Scope, not Async & Scope (P1b, A5 e)
     def useFold[A, S](
         initial: S,
     )(stream: => Stream[A, Async])(f: (S, A) => S)(using
         CanEqual[S, S],
         Frame,
         Tag[Emit[Chunk[A]]],
-    ): Signal[S] < (Async & Scope) =
+    ): Signal[S] < (Sync & Scope) =
       // claude 2026-10-13: changed (C4, RC-8): the fiber joins the gauge of the
       // run (R1 option b)
       for
@@ -73,20 +93,38 @@ object Hooks:
       * (the app, or the [[component]] mount). The effect has a `Scope` of its
       * own: when the fiber ends (the enclosing `Scope` closes, or the run
       * ends), it closes, so a `Scope.ensure` inside the effect is its cleanup.
-      * There is no cleanup function to return.
+      * There is no cleanup function to return. The effect can suspend; the hook
+      * itself does not.
+      *
+      * {{{
+      * def logged(name: String): UI < (Sync & Scope) =
+      *   for _ <- useEffect(Log.info(s"$name mounted").andThen(Scope.ensure(Log.info(s"$name unmounted"))))
+      *   yield span(name)
+      * }}}
       */
     // claude 2026-10-13: changed (C4): the Scaladoc (the cleanup)
+    // claude 2026-10-19: changed: Sync & Scope, not Async & Scope (P1b, A5 e)
     def useEffect(effect: => Any < (Async & Scope))(using
         Frame,
-    ): Unit < (Async & Scope) =
+    ): Unit < (Sync & Scope) =
       // claude 2026-10-13: changed (C4, RC-8): the fiber joins the gauge of the
       // run (R1 option b)
       Fiber.init(Scope.run(effect)).map(Tui4sTrack(_))
 
-    /** Runs `action` every `period` while the enclosing `Scope` is open. */
+    /** Runs `action` every `period` while the enclosing `Scope` is open.
+      *
+      * {{{
+      * def clock: UI < (Sync & Scope) =
+      *   for
+      *       seconds <- Signal.initRef(0)
+      *       _       <- useInterval(1.second)(seconds.updateAndGet(_ + 1))
+      *   yield span(seconds.map(s => s"$s s"))
+      * }}}
+      */
+    // claude 2026-10-19: changed: Sync & Scope, not Async & Scope (P1b, A5 e)
     def useInterval(period: Duration)(action: => Any < Async)(using
         Frame,
-    ): Unit < (Async & Scope) =
+    ): Unit < (Sync & Scope) =
       useEffect(Loop.forever(Async.sleep(period).andThen(action)))
 
     /** A component node: the runner runs `body` when the node mounts and closes

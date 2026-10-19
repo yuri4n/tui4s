@@ -45,8 +45,10 @@ backend, and the release restores the terminal in every way that a run ends
 (`press`, `key`, `char`, `typeText`, `paste`) or writes the app's
 `SignalRef`s, and reads `testkit.Screen`. Components come in two styles.
 Hooks (`tui4s.Hooks`): a component is a function that returns `UI < Sync` or
-`UI < (Async & Scope)`, with `useSignal`, `useHold`, `useFold`, `useEffect`
-and `useInterval`; `component(key)(body)` is a node that the runner mounts:
+`UI < (Sync & Scope)`, with `useSignal`, `useHold`, `useFold`, `useEffect`
+and `useInterval` (the last four start a fiber, but they do not suspend:
+they need `Sync & Scope`, not `Async`); a component whose body waits returns
+`UI < (Async & Scope)`; `component(key)(body)` is a node that the runner mounts:
 the body runs at the mount, in a `Scope` that closes at the unmount, and the
 mount goes on while a node of the same call site and key stays at the same
 position. The class style (`tui4s.Component`): a `State` type member,
@@ -66,6 +68,7 @@ sealed.
 <!-- claude 2026-10-13: changed the button and the event-form sentences (PR #13 review: Codex, Dispatch.scala:180, :204, :401) -->
 <!-- claude 2026-10-13: changed these lines: Tui.run in the real terminal (T1) -->
 <!-- claude 2026-10-13: changed these lines: the two component styles, the state key, `when`, the pending frame (C4) -->
+<!-- claude 2026-10-19: changed: the hooks need Sync & Scope (P1b, A5 e) -->
 `tui4s.TuiApp` is the main class of an app (`object App extends TuiApp` with
 `def ui`, and `options`, `args`, `onExit`): its constructor sets the tui4s
 scheduler values (`tui4s.spi.SchedulerDefaults`) and installs the output

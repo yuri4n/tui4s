@@ -19,6 +19,26 @@ class HooksTest extends ComponentSuite:
         val at = texts.map(s.text.indexOf(_))
         at.forall(_ >= 0) && at.zip(at.drop(1)).forall(_ < _)
 
+    // claude 2026-10-19: created (P1b, A5 e): the hooks that start a fiber
+    // need Sync and Scope, not Async (this leaf does not compile otherwise)
+    "useHold, useFold, useEffect and useInterval run in Sync & Scope" in {
+      val hold: Signal[Int] < (Sync & Scope)   = useHold(1)(Stream.init(Seq(2)))
+      val fold: Signal[Int] < (Sync & Scope)   =
+        useFold(0)(Stream.init(Seq(1, 2)))(_ + _)
+      val effect: Unit < (Sync & Scope)        = useEffect(Kyo.unit)
+      val interval: Unit < (Sync & Scope)      = useInterval(1.hour)(Kyo.unit)
+      Scope.run(
+        for
+            h <- hold
+            f <- fold
+            _ <- effect
+            _ <- interval
+            a <- h.current
+            b <- f.current
+        yield assert(a >= 1 && b >= 0),
+      )
+    }
+
     "useSignal: the initial value on the screen; a handler's write and an outside write reach it" in {
       for
           box <- AtomicRef.init(Option.empty[SignalRef[Int]])
