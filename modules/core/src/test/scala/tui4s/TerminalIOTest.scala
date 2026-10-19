@@ -68,7 +68,14 @@ class TerminalIOTest extends Test[Any]:
       val err   = FakeErr(fake.log)
       Fiber
         .initUnscoped(
-          Tui.runWith(TuiOptions(), fake, hooks, () => err.stream)(counter),
+          Tui.runWith(
+            TuiOptions(),
+            fake,
+            hooks,
+            () => err.stream,
+            step =>
+                val _ = fake.log.add("release " + step),
+          )(counter),
         )
         .map { fiber =>
           eventually()(fake.screen.contains("Count: 2"))
@@ -76,8 +83,9 @@ class TerminalIOTest extends Test[Any]:
             .andThen(fiber.get)
             .map { _ =>
               assert(fake.screen.contains("Count: 2"), fake.screen.text)
-              // claude 2026-10-19: changed (P3, A1): the hook comes first and
-              // goes last; the flush comes before raw mode ends
+              // claude 2026-10-19: changed (P3, A1, A2): the release stack, the
+              // last push first: the canvas closes first, then the input, the
+              // modes, the flush, raw mode, the capture, the sink and the hook
               assert(
                 fake.calls == Seq(
                   "hook-added tui4s-stop",
@@ -85,9 +93,17 @@ class TerminalIOTest extends Test[Any]:
                   "raw-mode-on",
                   enterDefault,
                   "backend",
+                  "release canvas",
+                  "release input",
+                  "release terminal modes",
                   leaveDefault,
+                  "release flush",
                   "flush",
+                  "release raw mode",
                   "raw-mode-off",
+                  "release output capture",
+                  "release log sink",
+                  "release shutdown hook",
                   "hook-removed tui4s-stop",
                 ),
                 fake.calls.mkString("\n"),

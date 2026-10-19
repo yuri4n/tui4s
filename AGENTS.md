@@ -255,15 +255,27 @@ tests then allow 1 split frame).
   `--illegal-native-access=deny` the run fails with
   `TuiError.NativeAccessDenied` before the terminal changes. A library that
   does not load for another reason is `TuiError.NativeLoadFailed`.
-- The release of the terminal (`Session.close`) closes the canvas first: it
-  waits for a draw in progress (the backend's monitor), and nothing is drawn
-  after it. It runs once, from the end of the run or from the JVM shutdown
-  hook, whichever comes first. After a quit, `Tui.run` closes the `Scope` of
-  the UI before the release: it interrupts the fibers that the UI started
-  with `Fiber.init` and waits for them. A fiber that does not stop on an
-  interrupt (a blocking call in `Sync.defer`) keeps the terminal in raw mode
-  until it ends.
+- The release of a run is one synchronous stack (`internal.ReleaseStack`, an
+  edge file). Each acquire pushes its release in the same synchronous step,
+  after the acquire: a push to a closed stack runs the release at once. `runAll`
+  (also `Session.close`) runs the releases once, the last push first: the canvas
+  closes first (it waits for a draw in progress, on the backend's monitor, and
+  nothing is drawn after it), then the input thread stops (the inbox closes, the
+  join waits at most two poll intervals), then the terminal leaves its modes,
+  the output is flushed, raw mode ends, the output capture stops (with the R3
+  warning), the log sink finishes, and last the shutdown hook is removed. A
+  failing step does not stop the next steps; the first failure is printed after
+  the restore. It runs from the end of the run or from the JVM shutdown hook,
+  whichever comes first; a second call does nothing. The stack holds its monitor
+  only while its state changes, never while a release runs: keep this lock
+  order. It uses no Kyo scheduler: a JVM hook cannot run the finalizers of a Kyo
+  `Scope` (Kyo 1.0.0-RC7 only starts a fiber for them). After a quit, `Tui.run`
+  closes the `Scope` of the UI before the release: it interrupts the fibers that
+  the UI started with `Fiber.init` and waits for them. A fiber that does not
+  stop on an interrupt (a blocking call in `Sync.defer`) keeps the terminal in
+  raw mode until it ends.
   <!-- claude 2026-10-13: changed (T1, review R2-2): the scope closes before the release -->
+  <!-- claude 2026-10-19: changed (P3, A1): the release stack and its order -->
 - The fibers that a component or a hook starts end with the run: the body of
   a hook component and `Component.onMount` (started by `internal.Mount`), and
   the fibers of `useEffect`, `useInterval`, `useHold` and `useFold` (they
@@ -357,14 +369,22 @@ tests then allow 1 split frame).
   second Kyo worker: on a 2-CPU JVM under load the scheduler keeps one, so
   the canary cancels itself there (the report says `cancelled`, not passed).
   <!-- claude 2026-10-12: created this item (D-17 c); changed: the canary on 2 CPUs -->
-- When the JVM stops a `TuiApp` (SIGTERM, SIGINT, `System.exit`), its shutdown
-  hook `tui4s-stop` interrupts the run and waits at most 2 s until the
-  terminal is restored; the restore hook of the session can end the run first
-  (a closed inbox is a quit). In both cases `main` prints nothing and `onExit`
-  does not run (`internal.Hooks.shuttingDown`), so no output races with the
-  exit of the JVM. `TuiAppTest` models the hooks with `FakeHooks`; the PTY kit
-  checks the real signals.
+- A run has one JVM shutdown hook, `tui4s-stop` (`internal.ReleaseStack.run`).
+  It is added in the step that makes the stack, and its removal is the first
+  step of the stack (it runs last). `Tui.run` runs the UI on a fiber of its own
+  (the run fiber); the caller waits on a copy of its result, not on the run
+  fiber, so an interrupt of the caller restores the terminal at once. When the
+  JVM stops (SIGTERM, SIGINT, `System.exit`), the hook records the stop
+  (`internal.Hooks.stopping`), interrupts the run fiber with no wait, runs the
+  stack, and then waits at most 2 s until the release is complete or the run
+  fiber ended. When the end of the run and the hook race, both run the stack:
+  the second call does nothing, and the wait of the hook covers the release by
+  the other side. A closed inbox is a quit. A `TuiApp` then prints nothing in
+  `main` and does not run `onExit` (`internal.Hooks.shuttingDown`), so no output
+  races with the exit of the JVM. `TuiAppTest` models the hook with `FakeHooks`;
+  the PTY kit checks the real signals.
   <!-- claude 2026-10-13: created this item (T2, RC-24, D-24 a) -->
+  <!-- claude 2026-10-19: changed (P3, A2): one hook per run, the hook steps -->
 - Never join the run fiber from an interruptible wait. A join makes the
   caller's interrupt wait for the run, and a run that waits for the caller is
   a deadlock. Poll `done` with a bounded wait instead (`Headless.awaitEnd`).

@@ -32,28 +32,57 @@ class TuiRunTest extends Test[Any]:
     private val counter: (Unit < Sync) => UI < (Async & Scope) =
       _ => Counter.app
 
-    /** The terminal was entered, then left; the shutdown hook was added before
-      * the terminal changed, and removed after raw mode ended.
+    /** Records each release step of the run in the log of `fake`. */
+    // claude 2026-10-19: created (P3, A1)
+    private def traced(fake: FakeCrossterm): String => Unit = step =>
+        val _ = fake.log.add("release " + step)
+
+    /** The release steps of a run that entered the terminal, in the order of
+      * the stack: the last push first.
       */
-    // claude 2026-10-19: changed (P3, A1): the order of the release stack
+    // claude 2026-10-19: created (P3, A1)
+    private val releaseOrder = Seq(
+      "release canvas",
+      "release input",
+      "release terminal modes",
+      "release flush",
+      "release raw mode",
+      "release output capture",
+      "release log sink",
+      "release shutdown hook",
+    )
+
+    /** The terminal was entered, then left; the shutdown hook was added before
+      * the terminal changed, and removed last. The release ran once, in the
+      * order of the stack: the canvas closed before raw mode ended, and raw
+      * mode ended before the capture stopped.
+      */
+    // claude 2026-10-19: changed (P3, A1, A2): the order of the release stack
     private def enteredAndLeft(fake: FakeCrossterm): Boolean =
-        val c     = fake.calls
-        val enter = c.indexWhere(_.startsWith("execute EnterAlternateScreen"))
-        val leave = c.indexWhere(_.startsWith("execute DisableBracketedPaste"))
-        val added = c.indexOf("hook-added tui4s-stop")
+        val c       = fake.calls
+        val enter   = c.indexWhere(_.startsWith("execute EnterAlternateScreen"))
+        val leave   = c.indexWhere(_.startsWith("execute DisableBracketedPaste"))
+        val added   = c.indexOf("hook-added tui4s-stop")
+        val rawOff  = c.lastIndexOf("raw-mode-off")
+        val canvas  = c.indexOf("release canvas")
+        val capture = c.indexOf("release output capture")
         enter >= 0 && leave > enter &&
         c.indexOf("raw-mode-on") < enter &&
-        c.lastIndexOf("raw-mode-off") > leave &&
+        rawOff > leave &&
         c.count(_ == "raw-mode-off") == 1 &&
         added >= 0 && added < c.indexOf("load") &&
-        c.indexOf("hook-removed tui4s-stop") > c.lastIndexOf("raw-mode-off")
+        c.filter(_.startsWith("release ")) == releaseOrder &&
+        canvas > enter && canvas < leave && rawOff < capture &&
+        c.lastIndexOf("hook-removed tui4s-stop") == c.size - 1
     end enteredAndLeft
 
     "a run starts, a scripted key quits it: the terminal is entered, then left"
       .timeout(30.seconds) in {
       val fake = FakeCrossterm(events = Seq(char('+'), char('q')))
       Tui
-        .runWith(TuiOptions(), fake, FakeHooks(fake.log))(counter)
+        .runWith(TuiOptions(), fake, FakeHooks(fake.log), trace = traced(fake))(
+          counter,
+        )
         .map { _ =>
           assert(fake.screen.contains("Count: 1"), fake.screen.text)
           assert(enteredAndLeft(fake), fake.calls.mkString("\n"))
@@ -77,12 +106,18 @@ class TuiRunTest extends Test[Any]:
       val quits                                       = FakeCrossterm(events = Seq(ctrlC))
       val keeps                                       = FakeCrossterm(events = Seq(ctrlC))
       for
-          _     <- Tui.runWith(TuiOptions(), quits, FakeHooks(quits.log))(seen)
+          _     <- Tui.runWith(
+                     TuiOptions(),
+                     quits,
+                     FakeHooks(quits.log),
+                     trace = traced(quits),
+                   )(seen)
           fiber <- Fiber.initUnscoped(
                      Tui.runWith(
                        TuiOptions(ctrlCQuits = false),
                        keeps,
                        FakeHooks(keeps.log),
+                       trace = traced(keeps),
                      )(seen),
                    )
           shown <- eventually()(keeps.screen.contains("last: ctrl-c"))
@@ -101,7 +136,9 @@ class TuiRunTest extends Test[Any]:
       val app: (Unit < Sync) => UI < (Async & Scope) = quit =>
         Fiber.init(Async.sleep(200.millis).andThen(quit)).andThen(div("x"))
       Tui
-        .runWith(TuiOptions(), fake, FakeHooks(fake.log))(app)
+        .runWith(TuiOptions(), fake, FakeHooks(fake.log), trace = traced(fake))(
+          app,
+        )
         .map(_ => assert(enteredAndLeft(fake), fake.calls.mkString("\n")))
     }
 
@@ -109,7 +146,9 @@ class TuiRunTest extends Test[Any]:
       val fake  = FakeCrossterm()
       val hooks = FakeHooks(fake.log)
       Fiber
-        .initUnscoped(Tui.runWith(TuiOptions(), fake, hooks)(counter))
+        .initUnscoped(
+          Tui.runWith(TuiOptions(), fake, hooks, trace = traced(fake))(counter),
+        )
         .map { fiber =>
           eventually()(fake.screen.contains("Count: 0"))
             .andThen(fiber.interrupt)
@@ -135,13 +174,72 @@ class TuiRunTest extends Test[Any]:
         }
     }
 
+    // claude 2026-10-19: created (P3, A2): the caller does not join the run
+    "an interrupted run whose handler is stuck: the terminal is restored at once, not when the handler ends"
+      .timeout(30.seconds) in {
+      val gate                                       = java.util.concurrent.CountDownLatch(1)
+      val stuck                                      = java.util.concurrent.atomic.AtomicBoolean(false)
+      // The handler of 'w' blocks its thread until the gate opens; an
+      // interrupt does not stop the wait.
+      val app: (Unit < Sync) => UI < (Async & Scope) = _ =>
+        div.onKeyDown { (e: KeyboardEvent) =>
+          (e.key match
+              case Keyboard.Char('w') =>
+                Sync.defer {
+                  stuck.set(true)
+                  while gate.getCount > 0 do
+                      try gate.await()
+                      catch case _: InterruptedException => ()
+                }
+              case _                  => Kyo.unit
+          ): Any < Async
+        }("w blocks")
+      val fake                                       = FakeCrossterm(events = Seq(char('w')))
+      Fiber
+        .initUnscoped(
+          Tui.runWith(
+            TuiOptions(),
+            fake,
+            FakeHooks(fake.log),
+            trace = traced(fake),
+          )(
+            app,
+          ),
+        )
+        .map { fiber =>
+          eventually()(stuck.get)
+            .andThen(fiber.interrupt)
+            .andThen(eventually()(fake.calls.contains("raw-mode-off")))
+            .map { restored =>
+              val calls = fake.calls
+              Sync
+                .defer(gate.countDown())
+                .andThen(
+                  assert(
+                    restored && enteredAndLeft(fake),
+                    calls.mkString("\n"),
+                  ),
+                )
+            }
+        }
+    }
+
     "a UI that fails to build leaves the terminal, and its error comes out as it is"
       .timeout(30.seconds) in {
       val fake                                          = FakeCrossterm()
       val broken: (Unit < Sync) => UI < (Async & Scope) =
         _ => Sync.defer(throw IllegalStateException("no UI"))
       Abort
-        .run(Tui.runWith(TuiOptions(), fake, FakeHooks(fake.log))(broken))
+        .run(
+          Tui.runWith(
+            TuiOptions(),
+            fake,
+            FakeHooks(fake.log),
+            trace = traced(fake),
+          )(
+            broken,
+          ),
+        )
         .map { r =>
           assert(
             r match
@@ -159,7 +257,16 @@ class TuiRunTest extends Test[Any]:
       .timeout(30.seconds) in {
       val fake = FakeCrossterm(failAt = "poll")
       Abort
-        .run(Tui.runWith(TuiOptions(), fake, FakeHooks(fake.log))(counter))
+        .run(
+          Tui.runWith(
+            TuiOptions(),
+            fake,
+            FakeHooks(fake.log),
+            trace = traced(fake),
+          )(
+            counter,
+          ),
+        )
         .map { r =>
           assert(
             r match
@@ -177,7 +284,16 @@ class TuiRunTest extends Test[Any]:
       .timeout(30.seconds) in {
       val fake = FakeCrossterm(failAt = "draw")
       Abort
-        .run(Tui.runWith(TuiOptions(), fake, FakeHooks(fake.log))(counter))
+        .run(
+          Tui.runWith(
+            TuiOptions(),
+            fake,
+            FakeHooks(fake.log),
+            trace = traced(fake),
+          )(
+            counter,
+          ),
+        )
         .map { r =>
           assert(
             r match
