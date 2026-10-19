@@ -88,31 +88,47 @@ object UiGen:
 
     private val keys: Gen[String] = Gen.oneOf("a", "b", "c", "d", "e", "f")
 
-    private def kids(depth: Int, txt: Gen[String]): Gen[List[Spec]] =
+    // claude 2026-10-19: changed: the last style index (L1a: the viewports)
+    private def kids(
+        depth: Int,
+        txt: Gen[String],
+        styles: Int,
+    ): Gen[List[Spec]] =
       between(0, 4)
-        .flatMap(n => Gen.listOfN(n, spec(depth - 1, txt)))
+        .flatMap(n => Gen.listOfN(n, spec(depth - 1, txt, styles)))
         .map(_.toList)
 
-    private def items(depth: Int, txt: Gen[String]): Gen[List[(String, Spec)]] =
+    // claude 2026-10-19: changed: the last style index (L1a)
+    private def items(
+        depth: Int,
+        txt: Gen[String],
+        styles: Int,
+    ): Gen[List[(String, Spec)]] =
       between(0, 4)
-        .flatMap(n => Gen.listOfN(n, Gen.zip(keys, spec(depth - 1, txt))))
+        .flatMap(n =>
+          Gen.listOfN(n, Gen.zip(keys, spec(depth - 1, txt, styles))),
+        )
         .map(_.toList.distinctBy(_._1))
 
-    /** A tree at most `depth` levels deep, with texts from `txt`. */
-    def spec(depth: Int, txt: Gen[String]): Gen[Spec] =
+    /** A tree at most `depth` levels deep, with texts from `txt`, and the box
+      * styles 0 to `styles` of [[styled]] (5: no viewport; 8: with the
+      * viewports).
+      */
+    // claude 2026-10-19: changed: the last style index (L1a)
+    def spec(depth: Int, txt: Gen[String], styles: Int = 5): Gen[Spec] =
       if depth <= 0 then txt.map(Spec.Txt(_))
       else
           Gen.frequency(
             2 -> txt.map(Spec.Txt(_)),
             6 -> Gen
-              .zip3(between(0, 4), between(0, 5), kids(depth, txt))
+              .zip3(between(0, 4), between(0, styles), kids(depth, txt, styles))
               .map(Spec.Box(_, _, _)),
-            1 -> kids(depth, txt).map(Spec.Frag(_)),
+            1 -> kids(depth, txt, styles).map(Spec.Frag(_)),
             2 -> Gen
-              .zip(spec(depth - 1, txt), spec(depth - 1, txt))
+              .zip(spec(depth - 1, txt, styles), spec(depth - 1, txt, styles))
               .map(Spec.Reac(_, _)),
             2 -> Gen
-              .zip(items(depth, txt), items(depth, txt))
+              .zip(items(depth, txt, styles), items(depth, txt, styles))
               .map(Spec.Each(_, _)),
             2 -> between(0, 9).map(Spec.Deco(_)),
           )
@@ -134,6 +150,14 @@ object UiGen:
             case 3 => Style.bg(Style.Color.blue)
             case 4 => Style.height(2.px)
             case 5 => Style.textAlign(_.center)
+            // claude 2026-10-19: created the three viewports below (L1a)
+            case 6 => Style.height(3.px).overflowY(_.scroll)
+            case 7 => Style.height(2.px).overflow(_.hidden)
+            case 8 =>
+              Style
+                .height(5.px)
+                .overflow(_.auto)
+                .border(1.px, Style.Color.slate)
             case _ => Style.empty
         el match
             case d: Div                => d.style(s)
@@ -243,11 +267,14 @@ object UiGen:
             )
 
     /** A root element (at `Loc.root`) of at most `depth` levels, with its
-      * regions, and texts from `txt`.
+      * regions, texts from `txt`, and the box styles 0 to `styles`.
       */
-    def built(depth: Int, txt: Gen[String] = text)(using Frame): Gen[Built] =
+    // claude 2026-10-19: changed: the last style index (L1a)
+    def built(depth: Int, txt: Gen[String] = text, styles: Int = 5)(using
+        Frame,
+    ): Gen[Built] =
       Gen
-        .zip3(between(0, 4), between(0, 5), kids(depth, txt))
+        .zip3(between(0, 4), between(0, styles), kids(depth, txt, styles))
         .map((tag, style, ks) => build(Spec.Box(tag, style, ks), Loc.root))
 
     /** The paths whose content differs between scene A and scene B. */

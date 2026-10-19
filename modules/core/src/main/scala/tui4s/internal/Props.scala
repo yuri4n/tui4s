@@ -12,6 +12,7 @@ import kyo.Style.{
   FontWeight,
   Justification,
   ListStyle,
+  Overflow,
   Prop,
   TextAlign,
   TextDecoration,
@@ -100,8 +101,14 @@ private[tui4s] final case class Border(
   * The overflow and text-flow properties (the audit of 2026-10-19, kyo-ui
   * 1.0.0-RC7; the DOM runner `CssStyleRenderer` gives the CSS):
   *   - `overflow`, `overflowX`, `overflowY` (`Overflow`: visible, hidden,
-  *     scroll, auto; CSS `overflow`, `overflow-x`, `overflow-y`): ignored. Each
-  *     box clips its content to its content box, and nothing scrolls.
+  *     scroll, auto; CSS `overflow`, `overflow-x`, `overflow-y`): an element
+  *     with an axis that is not `visible` is a viewport
+  *     ([[Layout.arrangeKids]], [[Scroll]]). `hidden` clips, `scroll` and
+  *     `auto` also scroll (the keys, the follow-focus rule), and a viewport
+  *     that scrolls is focusable. `visible` keeps the old rule: each box clips
+  *     its content to its content box. Each axis keeps its own value (CSS
+  *     computes `visible` next to a non-visible axis to `auto`; the runner does
+  *     not).
   *   - `whiteSpace` (`WhiteSpace`: normal, noWrap, pre, preWrap, preLine; CSS
   *     `white-space`): ignored. A text keeps its spaces and its line breaks,
   *     and it wraps in a column, never in a row.
@@ -143,8 +150,20 @@ private[tui4s] final case class Props(
     hidden: Boolean,
     listStyle: Option[ListStyle],
     decoration: Sides,
+    /** The overflow of the horizontal and of the vertical axis (`overflow`,
+      * `overflowX`, `overflowY`). An element with an axis that is not `visible`
+      * is a viewport (see [[Layout]]).
+      */
+    // claude 2026-10-19: created (L1a): the overflow of each axis
+    overflowX: Overflow = Overflow.visible,
+    overflowY: Overflow = Overflow.visible,
 ):
     def insets: Sides = border.fold(Sides.zero)(_.sides) + padding + decoration
+
+    /** True when an axis is not `visible`: the element is a viewport. */
+    // claude 2026-10-19: created (L1a)
+    def clips: Boolean =
+      overflowX != Overflow.visible || overflowY != Overflow.visible
 end Props
 
 private[tui4s] object Props:
@@ -238,16 +257,41 @@ private[tui4s] object Props:
           case _: HiddenInput => true
           case _              => false)
 
-    /** Focusable in the terminal: kyo-ui `Focusable` elements, anchors, and any
-      * element with `tabIndex >= 0`.
+    /** Focusable in the terminal: kyo-ui `Focusable` elements, anchors, a
+      * viewport that scrolls (an axis with `overflow` scroll or auto, as
+      * Firefox makes a scrollable region focusable), and any element with
+      * `tabIndex >= 0`. `tabIndex(-1)` takes a viewport out of the tab order.
       */
+    // claude 2026-10-19: changed: a viewport that scrolls is focusable (L1a)
     def isFocusable(el: Element): Boolean =
       !isDisabled(el) && !isHidden(el) && (el.attrs.tabIndex match
           case Present(n) => n >= 0
           case Absent     =>
             el match
                 case _: Focusable | _: Anchor | _: Dropdown => true
-                case _                                      => false)
+                case _                                      => isScroller(el))
+
+    /** True when `o` lets the user scroll the axis: `scroll` or `auto`. */
+    // claude 2026-10-19: created (L1a)
+    def scrolls(o: Overflow): Boolean = o match
+        case Overflow.scroll | Overflow.auto => true
+        case _                               => false
+
+    /** True when the style of `el` gives an axis `overflow` scroll or auto (the
+      * last overflow property of each axis wins, as in `applyStyle`).
+      */
+    // claude 2026-10-19: created (L1a)
+    def isScroller(el: Element): Boolean =
+        val (x, y) = el.attrs.uiStyle.props.foldLeft(
+          (Overflow.visible, Overflow.visible),
+        ) {
+          case (_, Prop.OverflowProp(v))       => (v, v)
+          case ((_, y), Prop.OverflowXProp(v)) => (v, y)
+          case ((x, _), Prop.OverflowYProp(v)) => (x, v)
+          case (acc, _)                        => acc
+        }
+        scrolls(x) || scrolls(y)
+    end isScroller
 
     /** Elements that show the focus themselves (reverse video); other
       * focusables rely on `Style.focus(...)` or a heavy border.
@@ -375,6 +419,11 @@ private[tui4s] object Props:
               p.copy(text = p.text.copy(dim = v < 0.7))
             case Prop.ListStyleProp(l)             => p.copy(listStyle = Some(l))
             case Prop.HiddenProp                   => p.copy(hidden = true)
+            // claude 2026-10-19: created (L1a): the overflow of each axis
+            case Prop.OverflowProp(v)              =>
+              p.copy(overflowX = v, overflowY = v)
+            case Prop.OverflowXProp(v)             => p.copy(overflowX = v)
+            case Prop.OverflowYProp(v)             => p.copy(overflowY = v)
             case Prop.BorderWidthProp(t, r, b, l)  =>
               val sides = Sides(
                 side(t).min(1),

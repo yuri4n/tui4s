@@ -80,7 +80,10 @@ private[tui4s] object Paint:
         Plan(env.screen, ops, Plan.rowSpans(rects, screen), top.size)
     end apply
 
-    /** A node is clipped by the content boxes of its owners. */
+    /** A node is clipped by the ports of its owners: the content box of a box,
+      * the port of a viewport.
+      */
+    // claude 2026-10-19: changed: the port of a viewport (L1a)
     private def clipOf(laid: Laid, p: Loc): Rect =
         def up(q: Option[Loc], acc: Rect): Rect =
           q.flatMap(laid.nodes.get) match
@@ -90,7 +93,7 @@ private[tui4s] object Paint:
                   n.owner,
                   acc.intersect(n.kind match
                       case Kind.Screen => n.rect
-                      case _           => n.content),
+                      case _           => n.port),
                 )
         laid.nodes
           .get(p)
@@ -149,7 +152,9 @@ private[tui4s] object Paint:
               val frame =
                 n.props.border.toVector
                   .flatMap(b => border(n.rect, b, n.props.text, area))
-              val inner = n.content.intersect(clip)
+              // claude 2026-10-19: changed: the kids of a viewport are clipped
+              // to its port (L1a)
+              val inner = n.port.intersect(clip)
               n.kids.foldLeft(
                 ops ++ fill ++ frame ++ decorate(laid, env, n, e, area),
               )((o, k) => paintNode(o, laid, env, k, inner))

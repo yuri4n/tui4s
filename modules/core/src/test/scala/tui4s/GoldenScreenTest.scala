@@ -3,6 +3,7 @@ package tui4s
 import jatatui.core.style.{Color as JColor, Modifier}
 import kyo.*
 import kyo.UI.*
+import tui4s.internal.{Loc, Offset}
 
 /** Golden screens: a static kyo-ui value renders to the expected cells. */
 // claude 2026-10-12: created
@@ -166,6 +167,66 @@ class GoldenScreenTest extends ScreenSuite:
       }
       "cells right of a fixed width are not painted" in {
         assertScreen(div.style(_.row.width(3.px))(span("abcdef")), 6, 1, "abc")
+      }
+    }
+
+    // claude 2026-10-19: created (L1a)
+    "viewports (overflow)" - {
+      val first                                   = Loc.root.child(0)
+      def lines(n: Int): Seq[UI.Ast.HtmlChildVal] =
+        (1 to n).map[UI.Ast.HtmlChildVal](i => span(s"l$i"))
+      "a viewport clips its kids to its box; the offset selects the rows; an offset past the end shows the last rows" in {
+        val ui = div(
+          div.style(_.height(2.px).overflowY(_.scroll))(lines(4)*),
+          span("end"),
+        )
+        assertScreen(ui, 4, 4, "l1\nl2\nend")
+        assertScreen(
+          ui,
+          4,
+          4,
+          "l3\nl4\nend",
+          scroll = Map(first -> Offset(0, 2)),
+        )
+        assertScreen(
+          ui,
+          4,
+          4,
+          "l3\nl4\nend",
+          scroll = Map(first -> Offset(0, 9)),
+        )
+      }
+      "overflow hidden clips and does not scroll" in {
+        val ui = div(
+          div.style(_.height(2.px).overflow(_.hidden))(lines(3)*),
+          span("end"),
+        )
+        assertScreen(
+          ui,
+          4,
+          4,
+          "l1\nl2\nend",
+          scroll = Map(first -> Offset(0, 1)),
+        )
+      }
+      "a viewport in a column shrinks to the free rows (min-height 0); a box does not" in {
+        val ui  = div.style(_.height(4.px))(
+          span("top"),
+          div.style(_.overflowY(_.auto))(lines(5)*),
+          span("end"),
+        )
+        assertScreen(ui, 4, 4, "top\nl1\nl2\nend")
+        val box = div.style(_.height(4.px))(span("top"), div(lines(5)*))
+        assertScreen(box, 4, 4, "top\nl1\nl2\nl3")
+      }
+      "a row viewport scrolls horizontally: its items keep their natural widths" in {
+        val ui = div.style(_.row.width(4.px).overflowX(_.auto))(
+          span("ab"),
+          span("cd"),
+          span("ef"),
+        )
+        assertScreen(ui, 6, 1, "abcd")
+        assertScreen(ui, 6, 1, "cdef", scroll = Map(Loc.root -> Offset(2, 0)))
       }
     }
 

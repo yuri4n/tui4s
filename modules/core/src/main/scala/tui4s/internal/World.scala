@@ -106,13 +106,22 @@ private[tui4s] final case class World(
     // has not armed yet (path -> gen); the mount adds an entry, `Msg.Armed`
     // takes it out
     unarmed: Map[Loc, Long] = Map.empty,
+    // claude 2026-10-19: created the three fields below (L1a): the scroll
+    // offset of each viewport (no entry is 0; `Scroll.kept` drops the entry
+    // of a viewport that unmounted), the scroll target of the last frame, and
+    // when this frame scrolls the target into view
+    scroll: Map[Loc, Offset] = Map.empty,
+    followed: Option[Loc] = None,
+    reveal: Reveal = Reveal.OnMove,
 ):
+    // claude 2026-10-19: changed: the scroll offsets (L1a)
     def env: Scene =
       Scene(
         p => regions.get(p).map(_.content),
         focus,
         size,
         p => carets.getOrElse(p, Int.MaxValue),
+        p => scroll.getOrElse(p, Offset.zero),
       )
 
     def gen: (Long, World) = (nextGen, copy(nextGen = nextGen + 1))

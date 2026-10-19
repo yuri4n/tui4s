@@ -19,6 +19,10 @@ import kyo.UI.{Keyboard, KeyboardEvent, Modifiers, MouseEvent}
   *      button or link (a click that bubbles: kyo-ui's Click rule, see
   *      [[activateClick]]), toggle a checkbox or radio (`onChange`), cycle a
   *      select; Enter inside a `form` runs `onSubmit`.
+  *   3. Then the scroll of a navigation key (the scroll keys of a browser, see
+  *      [[scrollOrReveal]]): when the element did not use the key itself, the
+  *      innermost viewport of the chain that can move that way scrolls; else
+  *      the frame scrolls the focused element into view (`Reveal.Now`).
   *
   * A handler that kyo-ui offers in two forms (an action, or a function of the
   * event: `onClick`, `onClickSelf`, `onFocus`, `onBlur`, `onSubmit`) runs in
@@ -130,7 +134,16 @@ private[tui4s] final class Dispatch(
             val caret             = caretOf(w, p, value)
             val (next, nextCaret) =
               TextEdit.paste(value, caret, text, ti.readOnly.getOrElse(false))
-            commitText(w, p, ti, value, caret, next, nextCaret)
+            // claude 2026-10-19: changed: the field scrolls into view (L1a)
+            commitText(
+              w.copy(reveal = Reveal.Now),
+              p,
+              ti,
+              value,
+              caret,
+              next,
+              nextCaret,
+            )
           case _                                                          => w
 
     private def bubble(
@@ -211,15 +224,45 @@ private[tui4s] final class Dispatch(
                           if isKey(ev, Keyboard.ArrowRight) then 1 else -1,
                         )
                       case _                                    => w
-                  action.map(w1 =>
+                  // claude 2026-10-19: changed: the scroll of a navigation key,
+                  // or the reveal of the focused element (L1a)
+                  action.map { w0 =>
+                    val w1 = scrollOrReveal(w0, ch, e, ev)
                     submit.fold(Kyo.lift(w1))(f =>
                       submitForm(f, MouseEvent(ev.targetId, ev.modifiers))
                         .andThen(w1),
-                    ),
-                  )
+                    )
+                  }
                 case _                                          => w
         end if
     end defaults
+
+    /** The scroll default of the key `ev` on the focused element `e` (its chain
+      * is `ch`, innermost first). A navigation key ([[ScrollKey]]: the arrows,
+      * PageUp, PageDown, Home, End, with no modifier) scrolls the innermost
+      * viewport of the chain that can move that way ([[Scroll.byKey]]), when
+      * `e` does not use the key itself ([[Scroll.consumes]]) and no element of
+      * the chain has kyo-ui's `preventScrollKeys`. Any other key (and a
+      * navigation key that `e` used or that was prevented) makes the frame
+      * scroll the focused element into view (`Reveal.Now`), as a browser shows
+      * a field while the user types in it.
+      */
+    // claude 2026-10-19: created (L1a)
+    private def scrollOrReveal(
+        w: World,
+        ch: List[(Loc, Element)],
+        e: Element,
+        ev: KeyboardEvent,
+    ): World =
+      ScrollKey.of(ev) match
+          case Some(k)
+              if !Scroll.consumes(e, k) &&
+                !ch.exists((_, a) => Scroll.preventsScroll(a)) =>
+            Scroll.byKey(w.laid, ch.map(_._1), k) match
+                case Some((p, o)) =>
+                  w.copy(scroll = w.scroll.updated(p, o)).markNode(p)
+                case None         => w
+          case _ => w.copy(reveal = Reveal.Now)
 
     /** A keyboard activation (Enter or Space) of a button or an anchor is a
       * click: it runs kyo-ui's Click rule over the chain, innermost first. On

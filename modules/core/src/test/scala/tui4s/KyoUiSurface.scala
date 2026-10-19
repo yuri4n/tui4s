@@ -109,9 +109,13 @@ object KyoUiSurface:
       "onFocusEvt",
       "onBlur",
       "onBlurEvt",
+      "ariaAttrs",
+      "dataAttrs",
     )
     // claude 2026-10-13: changed (PR #13 review: Codex, Dispatch.scala:401,
     // :204): the event forms of onFocus, onBlur and Form.onSubmit
+    // claude 2026-10-19: changed (L1a): ariaAttrs (the scroll target of
+    // `aria-activedescendant`) and dataAttrs (kyo-ui's `preventScrollKeys`)
 
     /** The members of the elements that `Dispatch` reads, by owner. */
     // claude 2026-10-13: created (C3)

@@ -587,10 +587,47 @@ private[tui4s] final class Runner private (
             case None        => (l, d)
       }
 
-    /** Lays out what changed. Pure: returns the new world and the damage to
-      * paint.
+    /** Lays out what changed, then scrolls the scroll target into view
+      * ([[reveal]]). Pure: returns the new world and the damage to paint.
       */
+    // claude 2026-10-19: changed: the follow-focus step (L1a)
     private def layoutStep(w: World): (World, Vector[Damage]) =
+        val (w1, damage) = laidOut(w)
+        val (w2, more)   = reveal(w1)
+        (w2, if w.full then damage else damage ++ more)
+
+    /** The follow-focus step (D13: kyo-ui's `scrollIntoView` is private, so the
+      * runner has its own rule). When the scroll target ([[Scroll.target]]: the
+      * focus, or its `aria-activedescendant`) is not the one of the last frame,
+      * or a key or a paste reached the focused element and did not scroll
+      * (`Reveal.Now`), each viewport that holds the target scrolls the least
+      * distance that shows it ([[Scroll.follow]]), and is laid out again. The
+      * offsets that the frame keeps are the clamped ones of the layout
+      * ([[Scroll.kept]]).
+      */
+    // claude 2026-10-19: created (L1a)
+    private def reveal(w: World): (World, Vector[Damage]) =
+        val target          = Scroll.target(w.laid, w.focus)
+        val kept            = Scroll.kept(w.laid, w.scroll)
+        val (scroll, moved) =
+          if target == w.followed && w.reveal == Reveal.OnMove then
+              (kept, Vector.empty)
+          else
+              target.fold((kept, Vector.empty[Loc]))(
+                Scroll.follow(w.laid, _, kept),
+              )
+        val w1              =
+          w.copy(scroll = scroll, followed = target, reveal = Reveal.OnMove)
+        if moved.isEmpty then (w1, Vector.empty)
+        else
+            val (laid, dmg) =
+              relayoutAll(w1, moved, w1.laid, Vector.empty, w1.env)
+            (w1.copy(laid = laid, scroll = Scroll.kept(laid, scroll)), dmg)
+    end reveal
+
+    /** The layout of what changed, and its damage. */
+    // claude 2026-10-19: created (L1a): the old body of layoutStep
+    private def laidOut(w: World): (World, Vector[Damage]) =
       if w.full then
           val laid0 = Layout.layoutAll(w.root, w.env)
           val focus = fixFocus(w.copy(laid = laid0))
@@ -673,7 +710,9 @@ private[tui4s] final class Runner private (
               if idle then
                   Result.succeed(
                     (
-                      w,
+                      // claude 2026-10-19: changed: a frame with no change
+                      // does not scroll the target into view later (L1a)
+                      w.copy(reveal = Reveal.OnMove),
                       // claude 2026-10-12: changed: repaired and settleTimeouts
                       // in the frame stats (K29, D-17 c)
                       FrameStats(

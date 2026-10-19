@@ -20,6 +20,9 @@
 # C4 part: pin K3: kyo.Signal and kyo.Signal.SignalRef (kyo-core) declare no equals and no hashCode; the
 #   component registry (internal.ComponentSpec) finds a component node by the identity of its signal.
 # claude 2026-10-13: changed: the C4 part (one pin line)
+# L1a part: attrs.field ariaAttrs (the scroll target of aria-activedescendant) and dataAttrs (kyo-ui's
+#   preventScrollKeys).
+# claude 2026-10-19: changed: the L1a part (two attrs.field lines)
 ast.type	UI.Ast.Activatable	trait public extends UI,Element
 ast.type	UI.Ast.Anchor	case class public extends UI,Inline,Interactive,Focusable,Activatable,Clickable
 ast.type	UI.Ast.AsHtmlChild	trait public extends 
@@ -183,6 +186,8 @@ bound.case	UI.Bound.Const	(value:A)
 bound.case	UI.Bound.Ref	(ref:SignalRef[A])
 signal.method	Signal.currentWith	[B,S](f:Function1[A,<[B,S]])(x$#:Frame):<[B,&[S,Sync]]
 signal.method	Signal.nextWith	[B,S](f:Function1[A,<[B,S]])(x$#:Frame):<[B,&[S,Async]]
+attrs.field	UI.Ast.Attrs.ariaAttrs	Map[String,String]
+attrs.field	UI.Ast.Attrs.dataAttrs	Map[String,String]
 attrs.field	UI.Ast.Attrs.focusAuto	Maybe[Boolean]
 attrs.field	UI.Ast.Attrs.focusGroup	Maybe[String]
 attrs.field	UI.Ast.Attrs.focusTrap	Maybe[Boolean]

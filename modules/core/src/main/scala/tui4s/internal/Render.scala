@@ -13,11 +13,26 @@ import kyo.*
 // claude 2026-10-12: created
 private[tui4s] object Render:
 
-    /** The screen buffer after one frame of `ui` on `w` x `h` cells. */
-    def buffer(ui: UI, w: Int, h: Int, focus: Option[Loc] = None): Buffer =
+    /** The screen buffer after one frame of `ui` on `w` x `h` cells, with the
+      * scroll offsets `scroll` of its viewports.
+      */
+    // claude 2026-10-19: changed: the scroll offsets (L1a)
+    def buffer(
+        ui: UI,
+        w: Int,
+        h: Int,
+        focus: Option[Loc] = None,
+        scroll: Map[Loc, Offset] = Map.empty,
+    ): Buffer =
         val backend = TestBackend(w, h)
         val canvas  = Canvas(backend)
-        val env     = Scene(_ => None, focus, Size(w, h), _ => 0)
+        val env     = Scene(
+          _ => None,
+          focus,
+          Size(w, h),
+          _ => 0,
+          p => scroll.getOrElse(p, Offset.zero),
+        )
         val laid    = Layout.layoutAll(ui, env)
         val damage  =
           Vector(Damage.Clear(Rect(0, 0, w, h), None), Damage.Paint(Loc.screen))
@@ -37,11 +52,13 @@ private[tui4s] object Render:
       }
 
     /** The rows of the screen after one frame of `ui` on `w` x `h` cells. */
+    // claude 2026-10-19: changed: the scroll offsets (L1a)
     def text(
         ui: UI,
         w: Int,
         h: Int,
         focus: Option[Loc] = None,
+        scroll: Map[Loc, Offset] = Map.empty,
     ): Vector[String] =
-      lines(buffer(ui, w, h, focus))
+      lines(buffer(ui, w, h, focus, scroll))
 end Render

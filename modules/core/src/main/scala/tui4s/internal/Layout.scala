@@ -5,7 +5,7 @@ package tui4s.internal
 import jatatui.core.style.Color as JColor
 import jatatui.core.text.Span
 import kyo.*
-import kyo.Style.{Alignment, Justification, ListStyle}
+import kyo.Style.{Alignment, Justification, ListStyle, Overflow}
 import kyo.UI.Ast.*
 
 /** What a region shows now. */
@@ -28,14 +28,16 @@ end Content
 /** What layout and paint need from the runner. All lookups are pure reads of
   * the runner's immutable world. `caret` gives the caret of the text input at a
   * path as a grapheme index (`World.carets`; `Int.MaxValue` is the end of the
-  * text).
+  * text). `scroll` gives the scroll offset of the viewport at a path
+  * (`World.scroll`); the layout clamps it.
   */
-// claude 2026-10-13: changed the Scaladoc (C3): the caret is a grapheme index
+// claude 2026-10-19: changed: the scroll offset of a viewport (L1a)
 private[tui4s] final case class Scene(
     content: Loc => Option[Content],
     focus: Option[Loc],
     screen: Size,
     caret: Loc => Int,
+    scroll: Loc => Offset = _ => Offset.zero,
 )
 
 private[tui4s] enum Kind:
@@ -43,7 +45,11 @@ private[tui4s] enum Kind:
     case El(el: Element)
     case Txt(text: String, wrap: Boolean)
 
-/** One laid-out box. `rect` is the border box; margins are outside. */
+/** One laid-out box. `rect` is the border box; margins are outside. `view` is
+  * the scroll state of a viewport (an element with an axis that is not
+  * `overflow: visible`), and none for any other node.
+  */
+// claude 2026-10-19: changed: the view of a viewport, and its port (L1a)
 private[tui4s] final case class Node(
     path: Loc,
     kind: Kind,
@@ -56,9 +62,15 @@ private[tui4s] final case class Node(
     owner: Option[Loc],
     index: Int,
     cols: Vector[Int],
+    view: Option[View] = None,
 ):
     def content: Rect             = rect.inset(props.insets)
     def bgForKids: Option[JColor] = props.bg.orElse(bgUnder)
+
+    /** The cells that show the kids: the port of a viewport, else the content
+      * box. The painter clips the kids to it.
+      */
+    def port: Rect = view.fold(content)(_.port)
 end Node
 
 /** The laid-out screen: a flat, immutable index of nodes, plus the container
@@ -514,10 +526,16 @@ private[tui4s] object Layout:
                 // flex items); the owner clips the overflow. Before, a list
                 // taller than the screen shrank EVERY item (header, input,
                 // rows) to 0 rows.
+                // claude 2026-10-19: changed: a viewport (an item whose
+                // vertical overflow is not visible) has no floor, as CSS
+                // gives a scroll container `min-height: 0` (L1a)
                 val floor   = items
                   .zip(base)
                   .map((m, b) =>
-                    if column && m.props.height.isEmpty then b else 0,
+                    if column && m.props.height.isEmpty &&
+                        m.props.overflowY == Overflow.visible
+                    then b
+                    else 0,
                   )
                 val weights = items.zip(base).zip(floor).map {
                   case ((m, b), f) => if b > f then m.props.shrink * b else 0.0
@@ -624,12 +642,14 @@ private[tui4s] object Layout:
     /** The items of a node, measured in its content width, plus the regions met
       * while flattening.
       */
+    // claude 2026-10-19: changed: the width of the kids is a parameter (the
+    // port of a viewport can be narrower than the content box, L1a)
     def measuredKids(
         node: Node,
         env: Scene,
         root: UI,
+        inner: Int,
     ): (Vector[Measured], Vector[Loc], Vector[Int]) =
-        val inner               = node.content.w
         /* claude 2026-10-12: created (PR #10 review: Codex, Layout.scala:264):
          * the height */
         // that the kids' percentages resolve against: the content height when
@@ -687,6 +707,102 @@ private[tui4s] object Layout:
         end match
     end measuredKids
 
+    /** The kids of a node, measured and arranged: the measured items, the
+      * regions met while flattening, their rects, the column widths of a table,
+      * the width the kids are measured in, and the view of a viewport.
+      */
+    // claude 2026-10-19: created (L1a)
+    final case class Arranged(
+        kids: Vector[Measured],
+        regions: Vector[Loc],
+        rects: Vector[Rect],
+        tableCols: Vector[Int],
+        inner: Int,
+        view: Option[View],
+    )
+
+    /** Measures and arranges the kids of `node` (which is already positioned).
+      * The kids of a box are arranged in its content box. The kids of a
+      * viewport (an element with an axis that is not `overflow: visible`) are
+      * arranged in the box of its content: on each axis that is not `visible`,
+      * the natural size of the kids (at least the size of the port), moved by
+      * the scroll offset of `env` (clamped to the content; 0 on an axis that is
+      * `hidden`). The painter clips them to the port.
+      */
+    // claude 2026-10-19: created (L1a): the one arrange of layoutChildren and
+    // relayout
+    def arrangeKids(node: Node, env: Scene, root: UI): Arranged =
+        val box       = node.content
+        val tableCols = node.kind match
+            case Kind.El(e: Table) =>
+              tableSize(e, node.path, node.props, box.w, env)._1
+            case _                 => Vector.empty
+        val viewport  = node.kind match
+            case Kind.El(_) => node.props.clips
+            case _          => false
+        if !viewport then
+            val (kids, regions, _) = measuredKids(node, env, root, box.w)
+            Arranged(
+              kids,
+              regions,
+              arrange(node.props, box, kids, node.cols),
+              tableCols,
+              box.w,
+              None,
+            )
+        else
+            val p                  = node.props
+            val (kids, regions, _) = measuredKids(node, env, root, box.w)
+            val natural            = node.kind match
+                case Kind.El(e: Table) =>
+                  tableSize(e, node.path, p, box.w, env)._2
+                case _                 => combine(p, kids)
+            val content            = Size(
+              if p.overflowX == Overflow.visible then box.w
+              else natural.w.max(box.w),
+              if p.overflowY == Overflow.visible then box.h
+              else natural.h.max(box.h),
+            )
+            val view0              =
+              View(Offset.zero, content, box, None, p.overflowX, p.overflowY)
+            val view               =
+              view0.copy(offset = view0.clamp(env.scroll(node.path)))
+            val o                  = view.offset
+            val inBox              =
+              Rect(box.x - o.x, box.y - o.y, content.w, content.h)
+            Arranged(
+              kids,
+              regions,
+              arrange(p, inBox, kids, node.cols),
+              tableCols,
+              box.w,
+              Some(view),
+            )
+        end if
+    end arrangeKids
+
+    /** The cells that the damage inside the node at `from` can name: the ports
+      * of the viewports at `from` and above it. None when no viewport holds it
+      * (the damage stays as it is).
+      */
+    // claude 2026-10-19: created (L1a): a viewport clips the damage of its
+    // subtree, so a clear of a kid that scrolled out does not touch the cells
+    // outside the viewport
+    def damageClip(laid: Laid, from: Option[Loc]): Option[Rect] =
+        @annotation.tailrec
+        def up(q: Option[Loc], acc: Option[Rect]): Option[Rect] =
+          q.flatMap(laid.nodes.get) match
+              case None    => acc
+              case Some(n) =>
+                up(
+                  n.owner,
+                  n.view.fold(acc)(v =>
+                    Some(acc.fold(v.port)(_.intersect(v.port))),
+                  ),
+                )
+        up(from, None)
+    end damageClip
+
     /** Lays out a measured item at `rect` and its whole subtree into `acc`. */
     def place(
         m: Measured,
@@ -733,24 +849,23 @@ private[tui4s] object Layout:
     /** Measures, arranges and places the children of `node` (which is already
       * positioned).
       */
+    // claude 2026-10-19: changed: the kids of `arrangeKids`; the view of a
+    // viewport (L1a)
     def layoutChildren(node: Node, env: Scene, root: UI, acc: Laid): Laid =
-        val (kids, regions, _) = measuredKids(node, env, root)
-        val box                = node.content
-        val tableCols          = node.kind match
-            case Kind.El(e: Table) =>
-              tableSize(e, node.path, node.props, box.w, env)._1
-            case _                 => Vector.empty
-        val rects              = arrange(node.props, box, kids, node.cols)
-        val ctx                = Ctx(
+        val a        = arrangeKids(node, env, root)
+        val kids     = a.kids
+        val regions  = a.regions
+        val rects    = a.rects
+        val ctx      = Ctx(
           node.path,
           node.props,
           node.bgForKids,
-          box.w,
+          a.inner,
           node.props.listStyle,
-          tableCols,
+          a.tableCols,
         )
-        val withKids           = node.copy(kids = kids.map(_.item.path))
-        val acc1               = acc.copy(
+        val withKids = node.copy(kids = kids.map(_.item.path), view = a.view)
+        val acc1     = acc.copy(
           nodes = acc.nodes.updated(node.path, withKids),
           regionOwner = regions.foldLeft(acc.regionOwner)((ro, r) =>
             ro.updated(r, node.path),
@@ -825,7 +940,7 @@ private[tui4s] object Layout:
             case Some(node0) =>
               /* the node's own props can change with focus; re-resolve them
                * from its owner */
-              val node               = node0.kind match
+              val node                   = node0.kind match
                   case Kind.El(e) =>
                     val parentText = node0.owner
                       .flatMap(laid.nodes.get)
@@ -844,28 +959,33 @@ private[tui4s] object Layout:
                       ),
                     )
                   case _          => node0
-              val (kids, regions, _) = measuredKids(node, env, root)
-              val box                = node.content
-              val tableCols          = node.kind match
-                  case Kind.El(e: Table) =>
-                    tableSize(e, node.path, node.props, box.w, env)._1
-                  case _                 => Vector.empty
-              val rects              = arrange(node.props, box, kids, node.cols)
-              val ctx                = Ctx(
+              // claude 2026-10-19: changed: the kids of `arrangeKids`, the
+              // view of a viewport, and its clip of the damage (L1a)
+              val a                      = arrangeKids(node, env, root)
+              val kids                   = a.kids
+              val regions                = a.regions
+              val rects                  = a.rects
+              val tableCols              = a.tableCols
+              val ctx                    = Ctx(
                 node.path,
                 node.props,
                 node.bgForKids,
-                box.w,
+                a.inner,
                 node.props.listStyle,
                 tableCols,
               )
-              val newPaths           = kids.map(_.item.path).toSet
-              val removed            = node.kids.filterNot(newPaths.contains)
-              val afterRemove        = removed.foldLeft(laid)((l, p) => l.without(p))
-              val removedDamage      = removed.flatMap(p =>
-                laid.nodes.get(p).map(n => Damage.Clear(n.rect, node.bgForKids)),
-              )
-              val (laid2, damage)    = kids
+              val clip                   =
+                damageClip(laid, node.owner).fold(a.view.map(_.port))(c =>
+                  Some(a.view.fold(c)(v => c.intersect(v.port))),
+                )
+              def clear(r: Rect): Damage =
+                Damage.Clear(clip.fold(r)(r.intersect), node.bgForKids)
+              val newPaths               = kids.map(_.item.path).toSet
+              val removed                = node.kids.filterNot(newPaths.contains)
+              val afterRemove            = removed.foldLeft(laid)((l, p) => l.without(p))
+              val removedDamage          =
+                removed.flatMap(p => laid.nodes.get(p).map(n => clear(n.rect)))
+              val (laid2, damage)        = kids
                 .zip(rects)
                 .zipWithIndex
                 .foldLeft((afterRemove, removedDamage)) {
@@ -887,37 +1007,42 @@ private[tui4s] object Layout:
                         val cleared = old.fold(l)(o => l.without(o.path))
                         val placed  = place(m, r, ctx, i, env, root, cleared)
                         val dmg     = old
-                          .map(o => Damage.Clear(o.rect, node.bgForKids))
+                          .map(o => clear(o.rect))
                           .toVector ++
-                          Vector(
-                            Damage.Clear(r, node.bgForKids),
-                            Damage.Paint(m.item.path),
-                          )
+                          Vector(clear(r), Damage.Paint(m.item.path))
                         (placed, d ++ dmg)
                     end if
                 }
-              val updatedNode        = node.copy(kids = kids.map(_.item.path))
-              val laid3              = laid2.copy(
+              val updatedNode            =
+                node.copy(kids = kids.map(_.item.path), view = a.view)
+              val laid3                  = laid2.copy(
                 nodes = laid2.nodes.updated(container, updatedNode),
                 regionOwner = regions.foldLeft(laid2.regionOwner)((ro, r) =>
                   ro.updated(r, container),
                 ),
               )
-              val propsChanged       = node.props != node0.props
+              // claude 2026-10-19: changed: a new view (a scroll, a new
+              // content size) paints the viewport again (L1a)
+              val propsChanged           =
+                node.props != node0.props || a.view != node0.view
               /* claude 2026-10-12: changed (PR #10 review: Codex,
                * Layout.scala:264): the */
               // owner's content height, as `measuredKids` gives it
-              val ownerH             =
+              val ownerH                 =
                 node.owner.flatMap(laid3.nodes.get).map(_.content.h)
-              val newNatural         = naturalOf(updatedNode, ownerH, env)
+              val newNatural             = naturalOf(updatedNode, ownerH, env)
               (node.owner, newNatural != node0.natural || propsChanged) match
                   case (Some(owner), true) =>
                     relayout(laid3, owner, Set(container), env, root)
                   case _                   =>
+                    val above      = damageClip(laid3, node.owner)
                     val selfDamage =
                       if propsChanged then
                           Vector(
-                            Damage.Clear(node.rect, node.bgUnder),
+                            Damage.Clear(
+                              above.fold(node.rect)(node.rect.intersect),
+                              node.bgUnder,
+                            ),
                             Damage.Paint(container),
                           )
                       else Vector.empty

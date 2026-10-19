@@ -3,7 +3,7 @@ package tui4s
 import kyo.*
 import kyo.UI.*
 import tui4s.internal.{Dispatch, Kind, Layout, Size, World}
-import tui4s.testkit.Headless
+import tui4s.testkit.{Headless, Screen}
 
 import java.util.concurrent.ConcurrentLinkedQueue
 import scala.jdk.CollectionConverters.*
@@ -396,6 +396,182 @@ class DispatchTest extends RunnerSuite:
         s"no stop: $all; stop at the inner div: $atInner; stop at the button: $atButton",
       )
       end for
+    }
+
+    // claude 2026-10-19: created the helpers and the five leaves below (L1a)
+    /** The spans "line 1" to "line n". */
+    private def lines(n: Int)(using Frame): Seq[UI.Ast.HtmlChildVal] =
+      (1 to n).map[UI.Ast.HtmlChildVal](i => span(s"line $i"))
+
+    /** The numbers of the lines and rows that `s` shows, top first. */
+    private def shown(s: Screen): Vector[Int] =
+      "(?:line|row) (\\d+)".r
+        .findAllMatchIn(s.text)
+        .map(_.group(1).nn.toInt)
+        .toVector
+
+    "a viewport that scrolls is focusable (Tab reaches it); on it Down, PageDown, End, Up, PageUp and Home scroll it; at the end a key does nothing" in {
+      for
+          h  <- Headless.start(12, 5)(_ =>
+                  div(
+                    button("top").id("top"),
+                    div
+                      .id("log")
+                      .style(_.height(3.px).overflowY(_.scroll))(
+                        lines(10)*,
+                      ),
+                  ),
+                )
+          f  <- h.key(Keyboard.Tab)
+          s0 <- h.screen
+          ss <- Kyo.foreach(
+                  Seq(
+                    Keyboard.ArrowDown,
+                    Keyboard.PageDown,
+                    Keyboard.End,
+                    Keyboard.PageDown,
+                    Keyboard.ArrowUp,
+                    Keyboard.PageUp,
+                    Keyboard.Home,
+                  ),
+                )(k => h.key(k).andThen(h.screen))
+      yield
+          val seen = (s0 +: ss).map(shown)
+          assert(focusOf(f) == "log", s"$f")
+          assert(
+            seen == Seq(
+              Vector(1, 2, 3),
+              Vector(2, 3, 4),
+              Vector(5, 6, 7),
+              Vector(8, 9, 10),
+              Vector(8, 9, 10),
+              Vector(7, 8, 9),
+              Vector(4, 5, 6),
+              Vector(1, 2, 3),
+            ),
+            s"$seen",
+          )
+    }
+
+    "follow-focus: Tab to a button below the window scrolls the viewport the least distance that shows it; Shift-Tab scrolls back" in {
+      for
+          h  <- Headless.start(12, 4)(_ =>
+                  div
+                    .tabIndex(-1)
+                    .style(_.height(3.px).overflowY(_.auto))(
+                      button("a").id("a"),
+                      span("x1"),
+                      span("x2"),
+                      span("x3"),
+                      button("b").id("b"),
+                    ),
+                )
+          f1 <- h.key(Keyboard.Tab)
+          s1 <- h.screen
+          f2 <- h.key(Keyboard.Tab, Modifiers(shift = true))
+          s2 <- h.screen
+      yield
+          assert(focusOf(f1) == "b" && focusOf(f2) == "a", s"$f1 $f2")
+          assert(
+            s1.row(0).contains("x2") && s1.row(1).contains("x3") &&
+              s1.row(2).contains("b"),
+            s1.text,
+          )
+          assert(s2.row(0).contains("a") && s2.row(1).contains("x1"), s2.text)
+    }
+
+    "preventScrollKeys: the navigation keys reach the handler and do not scroll; a focus group in a row viewport: the arrow moves the focus and the viewport follows it" in {
+      for
+          keys <- AtomicInt.init(0)
+          h    <- Headless.start(12, 4)(_ =>
+                    div
+                      .id("v")
+                      .preventScrollKeys
+                      .onKeyDown(_ => keys.incrementAndGet.unit)
+                      .style(_.height(3.px).overflowY(_.scroll))(lines(6)*),
+                  )
+          _    <- h.key(Keyboard.PageDown)
+          _    <- h.key(Keyboard.ArrowDown)
+          s    <- h.screen
+          n    <- keys.get
+          h2   <- Headless.start(20, 2)(_ =>
+                    div
+                      .tabIndex(-1)
+                      .style(_.row.width(8.px).overflowX(_.auto))(
+                        button("p").id("p").focusGroup("g"),
+                        button("q").id("q").focusGroup("g"),
+                        button("r").id("r").focusGroup("g"),
+                      ),
+                  )
+          f    <- h2.key(Keyboard.ArrowRight)
+          s2   <- h2.screen
+      yield
+          assert(n == 2 && shown(s) == Vector(1, 2, 3), s"$n ${s.text}")
+          assert(focusOf(f) == "q", s"$f")
+          assert(s2.row(0).startsWith("p ][ q ]"), s2.text)
+    }
+
+    "aria-activedescendant: a list that keeps the focus and moves a selection scrolls its viewport to the selected element" in {
+      for
+          cursor <- Signal.initRef(0)
+          down    = (e: KeyboardEvent) =>
+                      (e.key match
+                          case Keyboard.ArrowDown =>
+                            cursor.updateAndGet(_ + 1).unit
+                          case _                  => Kyo.unit
+                      ): Any < Async
+          h      <- Headless.start(12, 4)(_ =>
+                      div
+                        .tabIndex(-1)
+                        .style(_.height(3.px).overflowY(_.auto))(
+                          cursor.map(c =>
+                            ul.id("list")
+                              .tabIndex(0)
+                              .preventScrollKeys
+                              .aria("activedescendant", s"r$c")
+                              .onKeyDown(down)(
+                                (0 until 8).map[UI.Ast.HtmlChildVal](i =>
+                                  li(s"row $i").id(s"r$i"),
+                                )*,
+                              ): UI,
+                          ),
+                        ),
+                    )
+          fs     <- Kyo.foreach(1 to 4)(_ => h.key(Keyboard.ArrowDown))
+          s      <- h.screen
+      yield
+          assert(fs.lastOption.map(focusOf).contains("list"), s"$fs")
+          assert(shown(s) == Vector(2, 3, 4), s.text)
+    }
+
+    "a viewport keeps its offset while it stays mounted (a render of the same shape) and starts at 0 after an unmount" in {
+      for
+          state <- Signal.initRef(0)
+          h     <- Headless.start(12, 4)(_ =>
+                     div(
+                       state.map(n =>
+                         if n < 2 then
+                             div
+                               .id("v")
+                               .style(_.height(3.px).overflowY(_.scroll))(
+                                 lines(8)*,
+                               ): UI
+                         else span("gone"): UI,
+                       ),
+                     ),
+                   )
+          _     <- h.key(Keyboard.PageDown)
+          s1    <- h.screen
+          _     <- state.set(1)
+          kept  <- h.awaitScreen(s => shown(s) == Vector(4, 5, 6), 5.seconds)
+          _     <- state.set(2)
+          gone  <- h.awaitScreen(_.contains("gone"), 5.seconds)
+          _     <- state.set(0)
+          fresh <- h.awaitScreen(s => shown(s) == Vector(1, 2, 3), 5.seconds)
+      yield assert(
+        shown(s1) == Vector(4, 5, 6) && kept && gone && fresh,
+        s"${s1.text} kept $kept gone $gone fresh $fresh",
+      )
     }
 end DispatchTest
 
