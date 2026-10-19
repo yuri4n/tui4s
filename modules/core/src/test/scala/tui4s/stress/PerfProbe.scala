@@ -19,7 +19,8 @@ import java.lang.management.ManagementFactory
   *     steps from 100 lines);
   *   - `dashboard canvas`: the write and the diff of the plan of the dashboard
   *     on a canvas that holds it already (the work that a repair frame with an
-  *     equal plan skips, F9b).
+  *     equal plan skips, F9b); `dashboard plan eq`: the compare of two equal
+  *     plans of the dashboard (what F9b pays instead).
   *
   * A step does what the runner does in a frame: the relayout of the owner of
   * each changed region and of each scrolled viewport, the damage of the layers,
@@ -41,6 +42,7 @@ class PerfProbe extends StressSuite:
           val (ui, env) = dash
           val laid      = Layout.layoutAll(ui, env)
           val plan      = Paint(laid, env, full(env.screen))
+          val again     = Paint(laid, env, full(env.screen))
           val canvas    = Canvas(TestBackend(env.screen.w, env.screen.h))
           canvas.write(plan)
           discard(canvas.flush(plan))
@@ -53,6 +55,7 @@ class PerfProbe extends StressSuite:
                 canvas.write(plan)
                 canvas.flush(plan),
             ),
+            measure("dashboard plan eq", n)(() => plan == again),
           ) ++ ListScene().results(n) ++ Vector(LogScene().result(n))
           results.foreach(r => report(r.line))
           assert(results.forall(_.samples > 0))

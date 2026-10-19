@@ -867,14 +867,21 @@ private[tui4s] final class Runner private (
                   // frame, whose elements are scanned (PF-b)
                   val warns        =
                     Warnings.scan(w1.laid, damage, w1.warned, w.laid)
-                  canvas.write(plan)
-                  canvas.flush(plan).map { flushed =>
+                  // claude 2026-10-19: created (PF-b, F9b): a plan equal to
+                  // the plan that the canvas holds (the same ops, spans and
+                  // cursor; a resize clears the canvas, so not after one)
+                  // changes no cell: the frame skips the write and the diff,
+                  // and flushes 0 cells
+                  val held         = !w.full && w1.lastPlan.contains(plan)
+                  if !held then canvas.write(plan)
+                  (if held then Result.succeed(0) else canvas.flush(plan)).map { flushed =>
                     val done = w1.copy(
                       dirtyRegions = Vector.empty,
                       dirtyNodes = Set.empty,
                       scrolled = Set.empty,
                       full = false,
                       warned = w1.warned ++ warns.map(_._1),
+                      lastPlan = Some(plan),
                     )
                     (
                       done,

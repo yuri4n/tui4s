@@ -14,7 +14,10 @@ import tui4s.testkit.Screen
   *     second `diff` with no write between gives nothing; the count of `flush`
   *     is the count of `diff`;
   *   - a repaint of the same full frame flushes 0 cells;
-  *   - `read` gives the screen of the backend after a flush.
+  *   - `read` gives the screen of the backend after a flush;
+  *   - a write of the last plan again (any plan, also a step) changes no
+  *     kept cell and flushes 0 cells: so a frame whose plan equals the last
+  *     plan can skip the write and the diff (F9b).
   */
 // claude 2026-10-19: created (P5)
 class CanvasPropertyTest extends PropertyTest[Any]:
@@ -81,6 +84,23 @@ class CanvasPropertyTest extends PropertyTest[Any]:
         assert(canvas.flush(plan).getOrElse(-1) == 0)
         assert(first >= 0)
         assert(canvas.read() == Screen.of(backend))
+      }
+
+      // claude 2026-10-19: created (PF-b, F9b): the plan of a step, again
+      forAll(UiGen.built(5), UiGen.size) { (b, size) =>
+        val (laidA, laidB, damage) = PaintPropertyTest.stepped(b, size)
+        val backend                = TestBackend(size.w, size.h)
+        val canvas                 = Canvas(backend)
+        val planA                  = Paint(laidA, b.sceneA(size), PaintOracle.full(size))
+        val planB                  = Paint(laidB, b.sceneB(size), damage)
+        canvas.write(planA)
+        discard(canvas.flush(planA))
+        canvas.write(planB)
+        discard(canvas.flush(planB))
+        val shown                  = canvas.read()
+        canvas.write(planB)
+        assert(canvas.diff(planB.spans).isEmpty)
+        assert(canvas.read() == shown)
       }
     }
 end CanvasPropertyTest

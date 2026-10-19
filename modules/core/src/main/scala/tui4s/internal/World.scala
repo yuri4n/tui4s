@@ -137,6 +137,9 @@ private[tui4s] final case class World(
     // user edited, with its text before the first edit since it got the
     // focus; its blur runs onChange when the text changed (Dispatch.setFocus)
     edited: Option[(Loc, String)] = None,
+    // claude 2026-10-19: created (PF-b, F9b): the plan that the canvas holds
+    // (the plan of the last frame that wrote)
+    lastPlan: Option[Plan] = None,
 ):
     // claude 2026-10-19: changed: the terminal cursor shows the caret (L1c)
     def env: Scene =
