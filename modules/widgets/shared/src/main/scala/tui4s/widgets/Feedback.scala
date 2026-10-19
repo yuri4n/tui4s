@@ -2,7 +2,7 @@ package tui4s.widgets
 
 import kyo.*
 import kyo.UI.*
-import tui4s.use.{Binding, Dialog, Keymap, useDialog, useNow}
+import tui4s.use.{Binding, Dialog, Edge, Keymap, useDialog, useNow, useSelection}
 
 /** A status row: `left` text that grows and ends with "…" when it does not fit,
   * and a `right` slot (a clock, key hints). The background is
@@ -66,6 +66,9 @@ end KeyHints
   * gives it back when it closes. A key in the layer does not reach the app
   * (`stopPropagation`).
   *
+  * The highlight is a `Selection` of tui4s-use; the field names the
+  * highlighted command with `aria-activedescendant`.
+  *
   * Keys (in the layer): typing filters; ArrowUp and ArrowDown move the
   * highlight; Enter runs; Esc closes.
   *
@@ -74,100 +77,112 @@ end KeyHints
   * yield div.onKeyDown { case KeyboardEvent(Keyboard.Char('p'), m, _) if m.ctrl => palette.open; case _ => () }(
   *   body, palette.view)
   * }}}
-  *
-  * @param view
-  *   the layer (empty while it is closed); put it anywhere in the app
-  * @param open
-  *   opens the layer with an empty search
-  * @param isOpen
-  *   true while the layer shows
   */
-// claude 2026-10-19: created (L2b)
-final case class CommandPalette(
-    view: UI,
-    open: Unit < Sync,
-    isOpen: Signal[Boolean],
+// claude 2026-10-19: created (L2b); changed (L2b review): a class with a
+// private constructor, not a case class (a later field keeps the binary API)
+final class CommandPalette private (
+    /** The layer (empty while it is closed); put it anywhere in the app. */
+    val view: UI,
+    /** Opens the layer with an empty search. */
+    val open: Unit < Sync,
+    /** True while the layer shows. */
+    val isOpen: Signal[Boolean],
 )
 
 /** Makes a [[CommandPalette]]. */
 // claude 2026-10-19: created (L2b)
 object CommandPalette:
     /** The palette of the bindings of `commands` that have a help text. */
+    // claude 2026-10-19: changed (L2b review): the highlight is a Selection,
+    // and the field names it with aria-activedescendant
     def apply(commands: Keymap, title: String = "Commands", limit: Int = 8)(
         using Frame,
     ): CommandPalette < Sync =
-      for
-          shown <- Signal.initRef(false)
-          query <- Signal.initRef("")
-          hi    <- Signal.initRef(0)
-      yield
-          val all                                 = commands.bindings.filter(_.help.nonEmpty)
-          val found                               = query.map(q => filter(all, q).take(limit.max(1)))
-          val close                               = shown.set(false)
-          def move(d: Int): Unit < Sync           =
-            found.current.map(xs =>
-              hi.updateAndGet(i => (i + d).max(0).min((xs.size - 1).max(0)))
-                .unit,
-            )
-          val run: Unit < Async                   =
-            for
-                xs <- found.current
-                i  <- hi.get
-                _  <-
-                  if i < xs.size then close.andThen(xs(i).action).unit
-                  else Kyo.unit
-            yield ()
-          def keys(e: KeyboardEvent): Any < Async =
-            e.key match
-                case Keyboard.ArrowUp   => move(-1)
-                case Keyboard.ArrowDown => move(1)
-                case Keyboard.Enter     => run
-                case Keyboard.Escape    => close
-                case _                  => Kyo.unit
-          val layer                               =
-            div.style(
-              _.position(_.overlay).align(_.center).padding(2.px, 0.px),
-            )(
-              div
-                .role("dialog")
-                .aria("label", title)
-                .focusTrap(true)
-                .stopPropagation(true)
-                .onKeyDown(keys)
-                .style(Looks.layer.width(50.px))(
-                  span(title).style(_.bold),
-                  input
+        val all = commands.bindings.filter(_.help.nonEmpty)
+        for
+            shown <- Signal.initRef(false)
+            query <- Signal.initRef("")
+            found  = query.map(q => filter(all, q).take(limit.max(1)))
+            sel   <- useSelection(found, identity[Binding], Edge.Clamp, limit.max(1))
+            id    <- Looks.freshId("commands")
+        yield
+            val close                               = shown.set(false)
+            val run: Unit < Async                   =
+              for
+                  xs <- found.current
+                  i  <- sel.index.current
+                  _  <-
+                    if i < xs.size then close.andThen(xs(i).action).unit
+                    else Kyo.unit
+              yield ()
+            def keys(e: KeyboardEvent): Any < Async =
+              e.key match
+                  case Keyboard.ArrowUp   => sel.moveUp
+                  case Keyboard.ArrowDown => sel.moveDown
+                  case Keyboard.Enter     => run
+                  case Keyboard.Escape    => close
+                  case _                  => Kyo.unit
+            val field: UI                           =
+              found
+                .map(_.nonEmpty)
+                .combineLatest(sel.index)
+                .render { (any, h) =>
+                  val f = input
                     .value(query)
+                    .role("combobox")
+                    .aria("controls", id)
+                    .aria("expanded", "true")
                     .placeholder("type a command")
                     .focusAuto(true)
                     .focusRestore(true)
-                    .onInput(_ => hi.set(0)),
-                  found
-                    .combineLatest(hi)
-                    .render((xs, h) =>
-                      div.role("listbox")(
-                        UI.fragment(
-                          xs.zipWithIndex.map((b, i) =>
-                            div
-                              .role("option")
-                              .style((if i == h then Looks.selected
-                                      else Looks.plain).row)(
-                                span(Looks.marker(i == h)),
-                                span(b.help).style(_.flexGrow(1)),
-                                span(b.chords.map(_.label).mkString("/"))
-                                  .style(Looks.muted),
-                              ),
-                          )*,
-                        ),
+                    .onInput(_ => sel.first)
+                  if any then f.aria("activedescendant", s"$id-$h") else f
+                }
+            val layer                               =
+              div.style(
+                _.position(_.overlay).align(_.center).padding(2.px, 0.px),
+              )(
+                div
+                  .role("dialog")
+                  .aria("label", title)
+                  .focusTrap(true)
+                  .stopPropagation(true)
+                  .onKeyDown(keys)
+                  .style(Looks.layer.width(50.em))(
+                    span(title).style(_.bold),
+                    field,
+                    found
+                      .combineLatest(sel.index)
+                      .render((xs, h) =>
+                        div
+                          .id(id)
+                          .role("listbox")(
+                            UI.fragment(
+                              xs.zipWithIndex.map((b, i) =>
+                                div
+                                  .id(s"$id-$i")
+                                  .role("option")
+                                  .aria("selected", (i == h).toString)
+                                  .style((if i == h then Looks.selected
+                                          else Looks.plain).row)(
+                                    span(Looks.marker(i == h)),
+                                    span(b.help).style(_.flexGrow(1)),
+                                    span(b.chords.map(_.label).mkString("/"))
+                                      .style(Looks.muted),
+                                  ),
+                              )*,
+                            ),
+                          ),
                       ),
-                    ),
-                ),
+                  ),
+              )
+            new CommandPalette(
+              when(shown)(layer),
+              query.set("").andThen(sel.first).andThen(shown.set(true)),
+              shown,
             )
-          CommandPalette(
-            when(shown)(layer),
-            query.set("").andThen(hi.set(0)).andThen(shown.set(true)),
-            shown,
-          )
+        end for
+    end apply
 
     /** The bindings whose help text has the characters of `query` in order
       * (case does not count), in their order.
@@ -297,7 +312,7 @@ object Modal:
               .focusTrap(true)
               .stopPropagation(true)
               .onKeyDown(keys)
-              .style(Looks.layer.gap(1.px).minWidth(30.px))(body(q)),
+              .style(Looks.layer.gap(1.px).minWidth(30.em))(body(q)),
           ),
         ),
       )
@@ -342,7 +357,18 @@ end Toasts
 object Toasts:
     /** The level of a toast: its mark and its colour. */
     enum Level derives CanEqual:
-        case Info, Success, Warning, Error
+        /** "i", in `--tui4s-border`. */
+        case Info
+
+        /** "✓", in `--tui4s-success`. */
+        case Success
+
+        /** "!", in `--tui4s-warning`. */
+        case Warning
+
+        /** "✗", in `--tui4s-danger`. */
+        case Error
+    end Level
 
     /** A toast: its text, its level, and the time it goes away. */
     final case class Toast(text: String, level: Level, until: Instant)

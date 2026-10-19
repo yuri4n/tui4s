@@ -16,19 +16,16 @@ import tui4s.use.{Edge, debounced, useSelection}
   * for box <- SearchBox(quiet = 200.millis)
   * yield div(box.view, ListView(items.combineLatest(box.query).map(filter), _.id)(row))
   * }}}
-  *
-  * @param view
-  *   the field
-  * @param text
-  *   the text of the field, at each key
-  * @param query
-  *   the text after a quiet time
   */
-// claude 2026-10-19: created (L2b)
-final case class SearchBox(
-    view: UI,
-    text: Signal[String],
-    query: Signal[String],
+// claude 2026-10-19: created (L2b); changed (L2b review): a class with a
+// private constructor, not a case class (a later field keeps the binary API)
+final class SearchBox private (
+    /** The field. */
+    val view: UI,
+    /** The text of the field, at each key. */
+    val text: Signal[String],
+    /** The text after a quiet time. */
+    val query: Signal[String],
 )
 
 /** Makes a [[SearchBox]]. */
@@ -43,7 +40,7 @@ object SearchBox:
       for
           ref   <- Model.ref(text)
           query <- debounced(ref, quiet)
-      yield SearchBox(
+      yield new SearchBox(
         input
           .value(ref)
           .role("searchbox")
@@ -61,12 +58,16 @@ end SearchBox
   * `combobox`). The suggestions are the `options` that match the text
   * ([[Autocomplete.Match]]), at most `limit`. The layer opens when the text
   * changes and closes at a pick, at Esc and when the field loses the focus. The
-  * highlighted suggestion is `--tui4s-selection`.
+  * highlighted suggestion is a `Selection` of tui4s-use, in
+  * `--tui4s-selection`. The field has `aria-expanded` and, while the list
+  * shows, names the highlighted suggestion with `aria-activedescendant`.
   *
   * Keys (in the field): the keys of a text input; ArrowDown opens the list or
   * goes to the next suggestion; ArrowUp goes to the one before; Enter picks the
   * highlighted one (it becomes the text, and `onPick` gets it); Esc closes the
-  * list.
+  * list. While the list shows, a key in the field does not reach the
+  * ancestors (`stopPropagation`): the Esc that closes the list does not also
+  * close a dialog around the field.
   *
   * {{{
   * Autocomplete(languages, matcher = Autocomplete.Match.Fuzzy, onPick = choose)
@@ -87,6 +88,8 @@ object Autocomplete:
     end Match
 
     /** The field and its dropdown layer. */
+    // claude 2026-10-19: changed (L2b review): the highlight is a Selection;
+    // the field stops the keys and names the highlight while the list shows
     def apply(
         options: Signal[Chunk[String]],
         text: Model.Writable[String] = Model.Local(""),
@@ -98,22 +101,18 @@ object Autocomplete:
       for
           ref  <- Model.ref(text)
           open <- Signal.initRef(false)
-          hi   <- Signal.initRef(0)
-      yield
-          val shown                               =
+          shown =
             options
               .combineLatest(ref)
               .map((xs, t) => suggest(xs, t, matcher, limit))
-          def move(d: Int): Unit < Sync           =
-            shown.current.map(xs =>
-              hi.updateAndGet(i => (i + d).max(0).min((xs.size - 1).max(0)))
-                .unit,
-            )
+          sel  <- useSelection(shown, identity[String], Edge.Clamp, limit.max(1))
+          id   <- Looks.freshId("suggest")
+      yield
           val pick: Unit < Async                  =
             for
                 o  <- open.get
                 xs <- shown.current
-                i  <- hi.get
+                i  <- sel.index.current
                 _  <-
                   if o && i < xs.size then
                       ref
@@ -126,49 +125,61 @@ object Autocomplete:
             e.key match
                 case Keyboard.ArrowDown =>
                   open.get.map(o =>
-                    if o then move(1) else open.set(true).andThen(hi.set(0)),
+                    if o then sel.moveDown else open.set(true).andThen(sel.first),
                   )
-                case Keyboard.ArrowUp   => move(-1)
+                case Keyboard.ArrowUp   => sel.moveUp
                 case Keyboard.Enter     => pick
                 case Keyboard.Escape    => open.set(false)
                 case _                  => Kyo.unit
-          div.style(_.position(_.relative))(
-            input
-              .value(ref)
-              .role("combobox")
-              .aria("autocomplete", "list")
-              .placeholder(placeholder)
-              .onInput(_ => open.set(true).andThen(hi.set(0)))
-              .onBlur(open.set(false))
-              .onKeyDown(keys),
-            open.combineLatest(shown).combineLatest(hi).render[UI] {
-              case ((o, xs), h) =>
-                if !o || xs.isEmpty then UI.empty
-                else
-                    div
-                      .role("listbox")
-                      .style(
-                        Looks.layer
-                          .position(_.absolute)
-                          .top(100.pct)
-                          .left(0.px)
-                          .zIndex(10)
-                          .minWidth(20.px),
-                      )(
-                        UI.fragment(
-                          xs.zipWithIndex.map((s, i) =>
-                            div
-                              .role("option")
-                              .style((if i == h then Looks.selected
-                                      else Looks.plain).row)(
-                                span(Looks.marker(i == h)),
-                                span(s),
-                              ),
-                          )*,
+          val layer: UI                           =
+            shown.combineLatest(sel.index).render((xs, h) =>
+              div
+                .id(id)
+                .role("listbox")
+                .style(
+                  Looks.layer
+                    .position(_.absolute)
+                    .top(100.pct)
+                    .left(0.px)
+                    .zIndex(10)
+                    .minWidth(20.em),
+                )(
+                  UI.fragment(
+                    xs.zipWithIndex.map((s, i) =>
+                      div
+                        .id(s"$id-$i")
+                        .role("option")
+                        .aria("selected", (i == h).toString)
+                        .style((if i == h then Looks.selected
+                                else Looks.plain).row)(
+                          span(Looks.marker(i == h)),
+                          span(s),
                         ),
-                      )
-            },
-          )
+                    )*,
+                  ),
+                ),
+            )
+          open
+            .combineLatest(shown)
+            .map((o, xs) => o && xs.nonEmpty)
+            .combineLatest(sel.index)
+            .render { (o, h) =>
+              val field = input
+                .value(ref)
+                .role("combobox")
+                .aria("autocomplete", "list")
+                .aria("controls", id)
+                .aria("expanded", o.toString)
+                .placeholder(placeholder)
+                .onInput(_ => open.set(true).andThen(sel.first))
+                .onBlur(open.set(false))
+                .onKeyDown(keys)
+                .stopPropagation(o)
+              div.style(_.position(_.relative))(
+                if o then field.aria("activedescendant", s"$id-$h") else field,
+                if o then layer else UI.empty,
+              )
+            }
 
     /** The options that match `text`, at most `limit`, in their order. An empty
       * text matches no option.
@@ -371,6 +382,8 @@ end NumberStepper
   * field (when it is not empty), "✓" and the date (`--tui4s-success`), or "✗"
   * and the problem (`--tui4s-danger`). `onDate` gets each valid date. The text
   * is a [[Model.Writable]].
+  *
+  * Keys (in the field): the keys of a text input.
   *
   * {{{
   * DateField(onDate = d => due.set(d))

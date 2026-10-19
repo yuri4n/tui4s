@@ -268,7 +268,7 @@ nothing.
 | `sbt examples/launchers`             | Stages the distribution and writes compatible `examples/target/bin/<package>` launchers plus the PTY classpath. |
 | `examples/target/bin/<app>`          | Runs an example in the real terminal (its own JVM): `counter`, `counterkyo`, `twocounters`, `counterstyles`, `todo`, `dashboard`, `printing`, `forms`, `gallery`. |
 | `examples/ptycheck/run.sh`           | Runs the real-terminal checklist in a pseudo-terminal (CI job `terminal`). |
-<!-- claude 2026-10-19: created the rows of use/test and useJS/compile; changed: Node.js in the shell (L2a) -->
+<!-- claude 2026-10-19: created the rows of use/test and useJS/compile; changed: Node.js in the shell (L2a); gallery in the app list (L2b) -->
 
 <!-- claude 2026-10-13: changed (T1): the launchers and the PTY kit replace `sbt "examples/runMain <main>"` -->
 
@@ -645,8 +645,9 @@ for the same `<q>`, the larger `<n>` is greater (`RC10` > `RC2`).
 coursier (and thus sbt) puts `M` below `alpha` and `beta`. Thus, do not release
 an `M` version after an `alpha` or `beta` of the same `x.y.z`.
 
+<!-- claude 2026-10-19: changed: `use` before `widgets` (L2b review) -->
 If the script says that an inter-project dependency is unreleased, release that
-module first (`core` before `zio` and `cats`). Wait until its release run is
+module first (`core` before `zio` and `cats`, `use` before `widgets`). Wait until its release run is
 complete, then try again. Push only one release tag at a time: GitHub ignores a push of more than
 three tags.
 

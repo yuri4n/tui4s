@@ -8,7 +8,9 @@ import tui4s.use.{Edge, useSelection}
   * [[ListView]] of rows (the body keeps the focus and names its selected row
   * with `aria-activedescendant`). Each [[DataTable.Column]] has a title, the
   * text of its cell, a width and an order. A cell that is wider than its column
-  * ends with "…".
+  * ends with "…". While the body scrolls, the header keeps one cell free at its
+  * right for the scroll indicator of the body, so each title stays over its
+  * column.
   *
   * The sort is a [[Model]] of [[DataTable.Sort]]; the selection follows the key
   * of its row when the sort changes. The header marks the sorted column with
@@ -42,12 +44,21 @@ object DataTable:
 
     /** The direction of a sort. */
     enum Direction derives CanEqual:
-        case Ascending, Descending
+        /** The smallest first. */
+        case Ascending
+
+        /** The largest first. */
+        case Descending
+    end Direction
 
     /** The sort of the rows: none, or by the column at `column`. */
     enum Sort derives CanEqual:
+        /** The rows in their order. */
         case Unsorted
+
+        /** The rows by the column at `column` (from 0), in `direction`. */
         case By(column: Int, direction: Direction)
+    end Sort
 
     /** A column: its title, the text of a cell, its width, and its order
       * (Absent: the order of the cell texts).
@@ -80,6 +91,10 @@ object DataTable:
             id   <- Looks.freshId("table")
         yield
             val widths                              = rows.map(xs => fit(cols, xs))
+            // claude 2026-10-19: created (L2b review): the body shows the
+            // scroll indicator (a port of 3 rows or more, more rows than it)
+            val scrolls                             =
+              shown.map(xs => height >= 3 && xs.size > height)
             val activate: Unit < Async              =
               for
                   xs <- shown.current
@@ -96,17 +111,21 @@ object DataTable:
             div.role("table")(
               widths
                 .combineLatest(s.value)
-                .render((ws, o) =>
+                .combineLatest(scrolls)
+                .render { case ((ws, o), bar) =>
                   div
                     .role("row")
-                    .style(_.row.bold)(
+                    .style(
+                      Style.row.bold
+                        .padding(0.px, (if bar then 1 else 0).px, 0.px, 0.px),
+                    )(
                       span("  "),
                       UI.fragment(cols.zip(ws).zipWithIndex.map {
                         case ((c, w), i) =>
                           cell(c.title + mark(o, i), w)
                       }*),
-                    ),
-                ),
+                    )
+                },
               widths.render(ws =>
                 Listbox(
                   id,
@@ -129,7 +148,7 @@ object DataTable:
     private def cell(text: String, w: Maybe[Int])(using Frame): UI =
       span(text).style(
         w.fold(Looks.oneLine.flexGrow(1).minWidth(0.px))(n =>
-          Looks.oneLine.width(n.px).flexShrink(0),
+          Looks.oneLine.width(n.em).flexShrink(0),
         ).margin(0.px, 1.px, 0.px, 0.px),
       )
 
@@ -140,8 +159,10 @@ object DataTable:
 
     /** The width of each column for `rows` (Absent for a `Fill` column). A
       * `Fit` column takes its widest text, its title and the sort mark
-      * included; the width counts characters.
+      * included; the width counts terminal cells (a wide character takes 2, a
+      * combining mark 0).
       */
+    // claude 2026-10-19: changed (L2b review): cells, not characters
     def fit[A](cols: Chunk[Column[A]], rows: Chunk[A]): Chunk[Maybe[Int]] =
       cols.map(c =>
         c.width match
@@ -149,7 +170,9 @@ object DataTable:
             case Width.Fill     => Absent
             case Width.Fit      =>
               Present(
-                rows.map(c.cell(_).length).foldLeft(c.title.length + 2)(_ max _),
+                rows
+                  .map(r => Looks.cells(c.cell(r)))
+                  .foldLeft(Looks.cells(c.title) + 2)(_ max _),
               ),
       )
 

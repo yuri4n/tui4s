@@ -6,6 +6,12 @@ package tui4s
   * `useScrollWindow`, `useDialog`, `Keymap`, `debounced`, `useNow`).
   *
   * The conventions of every widget:
+  *   - Shape: a function of a companion object that returns the UI
+  *     (`ListView(items, key)(row)`), or a handle with a `view` and its
+  *     actions (`SearchBox`, `CommandPalette`, `Modal`, `Toasts`). `Tabs` is
+  *     the one class with `.ui`: a runner that keeps a mount across renders
+  *     uses its `initial`, `mount` and `view` (the tui4s adapter
+  *     `examples.widgets.Tabs` does).
   *   - Typed props: named parameters with defaults; slots are functions (`row:
   *     A => UI`, `panel: Int => UI`).
   *   - State: a [[Model]] says who owns the value (`Local`: the widget;
@@ -18,12 +24,24 @@ package tui4s
   *     start of the app, the body of a component), not in a `render`.
   *   - Keys: the Scaladoc of each focusable widget has its key table. A list
   *     keeps the focus on its container and names the selected row with
-  *     `aria-activedescendant` (a runner scrolls that row into view). A layer
-  *     (a modal, a menu, the palette) is `position` absolute or overlay, with
-  *     `focusTrap`, `focusAuto` and `focusRestore`, and its own `onKeyDown`
-  *     closes it on Esc and stops the keys there (`stopPropagation`).
+  *     `aria-activedescendant` (a runner scrolls that row into view). A field
+  *     with a list (`Autocomplete`, the palette) keeps the focus in the field
+  *     and names the highlighted option in the same way; so does a menu. A
+  *     layer (a modal, a menu, the palette) is `position` absolute or overlay,
+  *     with `focusTrap`, `focusAuto` and `focusRestore`, and its own
+  *     `onKeyDown` closes it on Esc and stops the keys there
+  *     (`stopPropagation`); the field of an `Autocomplete` stops its keys
+  *     while its list shows.
   *   - Layout and colours: kyo-ui `Style` only, and the colour variables of
   *     [[Colors]].
+  *   - Sizes: a size that counts rows or cells (the height of a list, the
+  *     width of a column or of a layer, the offset of a title) is in `em`; a
+  *     space between parts (a padding, a margin, a gap, a border) is in `px`.
+  *     The terminal gives one cell to each `em` and to each `px`. On the web,
+  *     `1em` is the font size: a line is about `1.2em` high and a monospace
+  *     cell about `0.6em` wide, so a size in `em` is near the terminal size,
+  *     not equal to it, and a `px` space is thin. The web runner (L4) checks
+  *     these sizes.
   *
   * The widgets:
   *
@@ -110,5 +128,5 @@ package tui4s
   */
 // claude 2026-10-19: created (L2a): the empty package of tui4s-widgets;
 // changed: the conventions, the widgets, the colour variables and the plan
-// (L2b)
+// (L2b); the shapes, the field lists and the sizes (L2b review)
 package object widgets

@@ -147,7 +147,7 @@ private[widgets] object Listbox:
           .preventScrollKeys
           .aria("activedescendant", s"$id-$sel")
           .onKeyDown(keys)
-          .style(_.maxHeight(height.px).overflowY(scroll))(
+          .style(_.maxHeight(height.em).overflowY(scroll))(
             UI.fragment(xs.zipWithIndex.map { (a, i) =>
               val n  = offset + i
               val on = n == sel

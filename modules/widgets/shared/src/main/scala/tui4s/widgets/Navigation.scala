@@ -3,14 +3,16 @@ package tui4s.widgets
 import kyo.*
 import kyo.UI.*
 import kyo.UI.Ast.Interactive
-import tui4s.use.Keymap
+import tui4s.use.{Binding, Edge, Keymap, useSelection}
 
 /** A menu bar: a button for each [[Menu.Group]], and a dropdown layer under the
   * open one with the bindings of its `Keymap` (the help text, and the chords at
   * the right). The same keymap can serve the shortcuts of the app, so a menu
   * item and its key run one action. The dropdown takes the focus when it opens
   * and gives it back to its button when it closes; a key in it does not reach
-  * the app (`stopPropagation`).
+  * the app (`stopPropagation`). The highlight is a `Selection` of tui4s-use;
+  * the dropdown names it with `aria-activedescendant`. The navigation keys on
+  * the bar do not scroll a viewport around it (`preventScrollKeys`).
   *
   * Keys: on the bar (one focus group), ArrowLeft and ArrowRight move between
   * the buttons, and Enter, Space or ArrowDown open the menu; in a menu, ArrowUp
@@ -27,30 +29,30 @@ object Menu:
     final case class Group(title: String, keys: Keymap)
 
     /** The bar of the menus `first` and `rest`. */
+    // claude 2026-10-19: changed (L2b review): the highlight is a Selection;
+    // aria-activedescendant; preventScrollKeys on the bar
     def bar(first: Group, rest: Group*)(using Frame): UI < Sync =
-        val groups = Chunk.from(first +: rest)
-        val n      = groups.size
+        val groups                      = Chunk.from(first +: rest)
+        val n                           = groups.size
+        def items(i: Int): Chunk[Binding] =
+          groups(i).keys.bindings.filter(_.help.nonEmpty)
         for
             open  <- Signal.initRef(Absent: Maybe[Int])
-            hi    <- Signal.initRef(0)
+            shown  = open.map(_.fold(Chunk.empty[Binding])(items))
+            hi    <- useSelection(shown, identity[Binding], Edge.Clamp)
             group <- Looks.freshId("menu")
         yield
             def at(i: Int): Unit < Sync                     =
-              hi.set(0).andThen(open.set(Present(Math.floorMod(i, n))))
-            def items(i: Int)                               = groups(i).keys.bindings.filter(_.help.nonEmpty)
+              open.set(Present(Math.floorMod(i, n))).andThen(hi.first)
             def keys(i: Int)(e: KeyboardEvent): Any < Async =
               e.key match
-                  case Keyboard.ArrowUp    =>
-                    hi.updateAndGet(h => (h - 1).max(0)).unit
-                  case Keyboard.ArrowDown  =>
-                    hi.updateAndGet(h =>
-                      (h + 1).min((items(i).size - 1).max(0)),
-                    ).unit
+                  case Keyboard.ArrowUp    => hi.moveUp
+                  case Keyboard.ArrowDown  => hi.moveDown
                   case Keyboard.ArrowLeft  => at(i - 1)
                   case Keyboard.ArrowRight => at(i + 1)
                   case Keyboard.Escape     => open.set(Absent)
                   case Keyboard.Enter      =>
-                    hi.get.map(h =>
+                    hi.index.current.map(h =>
                       if h < items(i).size then
                           open.set(Absent).andThen(items(i)(h).action).unit
                       else Kyo.unit,
@@ -58,6 +60,7 @@ object Menu:
                   case _                   => Kyo.unit
             nav
               .role("menubar")
+              .preventScrollKeys
               .style(_.row.gap(1.px))(
                 UI.fragment(
                   groups.zipWithIndex.map((g, i) =>
@@ -71,12 +74,13 @@ object Menu:
                           case _                                       => Kyo.unit
                         },
                       open
-                        .combineLatest(hi)
+                        .combineLatest(hi.index)
                         .render[UI]((o, h) =>
                           if !o.contains(i) then UI.empty
                           else
                               div
                                 .role("menu")
+                                .aria("activedescendant", s"$group-$i-$h")
                                 .tabIndex(0)
                                 .focusAuto(true)
                                 .focusRestore(true)
@@ -90,11 +94,12 @@ object Menu:
                                     .top(100.pct)
                                     .left(0.px)
                                     .zIndex(30)
-                                    .minWidth(20.px),
+                                    .minWidth(20.em),
                                 )(
                                   UI.fragment(
                                     items(i).zipWithIndex.map((b, j) =>
                                       div
+                                        .id(s"$group-$i-$j")
                                         .role("menuitem")
                                         .style((if j == h then Looks.selected
                                                 else
@@ -211,8 +216,12 @@ end Breadcrumbs
 object Pagination:
     /** A cell of the widget: a page (from 0) or a gap ("…"). */
     enum Cell derives CanEqual:
+        /** The page at `index`, from 0. */
         case Page(index: Int)
+
+        /** Two or more pages left out ("…"). */
         case Gap
+    end Cell
 
     /** The pages of `pages` pages. */
     def apply(
@@ -362,8 +371,8 @@ end Tags
 
 /** Steps of a task, one at a time: a header with each step ("✓" done, "●" the
   * current one, "○" to do), the body of the current step, and Back and Next
-  * buttons (Next is Finish on the last step: it calls `onFinish`). The current
-  * step is a [[Model]] of its index.
+  * buttons (Next is Finish on the last step: it runs `onFinish`, a by-name
+  * effect, at each press). The current step is a [[Model]] of its index.
   *
   * Keys: Tab moves between the buttons; Enter and Space press them.
   *
@@ -378,13 +387,23 @@ object Wizard:
 
     /** Where a step is, from the current one. */
     enum Status derives CanEqual:
-        case Done, Current, Todo
+        /** A step before the current one ("✓"). */
+        case Done
+
+        /** The current step ("●"). */
+        case Current
+
+        /** A step after the current one ("○"). */
+        case Todo
+    end Status
 
     /** The wizard of the steps `first` and `rest`. */
+    // claude 2026-10-19: changed (L2b review): onFinish is by-name (the lift
+    // trap: a side effect in it runs at the press, not when the UI is built)
     def apply(first: Step, rest: Step*)(
         current: Model[Int] = Model.Local(0),
         onChange: Int => Any < Async = (_: Int) => (),
-        onFinish: Any < Async = (),
+        onFinish: => Any < Async = (),
     )(using Frame): UI < Sync =
         val steps = Chunk.from(first +: rest)
         val n     = steps.size
@@ -409,7 +428,8 @@ object Wizard:
                 div(steps(c).body),
                 div.style(_.row.gap(2.px))(
                   button("Back").disabled(c == 0).onClick(by(-1)),
-                  if c == n - 1 then button("Finish").onClick(onFinish)
+                  if c == n - 1 then
+                      button("Finish").onClick(Sync.defer(onFinish))
                   else button("Next").onClick(by(1)),
                 ),
               ),

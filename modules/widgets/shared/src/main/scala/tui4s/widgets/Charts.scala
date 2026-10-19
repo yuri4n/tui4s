@@ -117,7 +117,9 @@ end ProgressBar
 
 /** Horizontal bars in text cells: one row per bar, with its label, a bar of
   * eighth blocks scaled to `max` (Absent: the largest value) in `width` cells,
-  * and its value. A pure UI value.
+  * and its value. The labels are one column and the bars another, so the
+  * layout measures the labels in cells: a wide character in a label does not
+  * move its bar. A pure UI value.
   *
   * {{{
   * BarChart(Signal.initConst(Chunk("Mon" -> 3.0, "Tue" -> 7.5)), width = 24)
@@ -132,18 +134,27 @@ object BarChart:
         max: Maybe[Double] = Absent,
         color: Style.Color = Colors.accent,
     )(using Frame): UI =
+      // claude 2026-10-19: changed (L2b review): a column of labels and a
+      // column of bars, not labels padded by String.length
       bars.render { bs =>
-        val top   = max.getOrElse(bs.map(_._2).foldLeft(0.0)(_ max _))
-        val label = bs.map(_._1.length).foldLeft(0)(_ max _)
-        div.role("img")(
-          UI.fragment(bs.map { (l, v) =>
-            div.style(_.row)(
-              span(l + " " * (label - l.length + 1)),
-              span(bar(v, top, width)).style(_.color(color)),
-              span(" " + Blocks.num(v)).style(Looks.muted),
-            )
-          }*),
-        )
+        val top = max.getOrElse(bs.map(_._2).foldLeft(0.0)(_ max _))
+        div
+          .role("img")
+          .style(_.row)(
+            div.style(_.margin(0.px, 1.px, 0.px, 0.px))(
+              UI.fragment(
+                bs.map((l, _) => div(if l.isEmpty then " " else l))*,
+              ),
+            ),
+            div(
+              UI.fragment(bs.map { (_, v) =>
+                div.style(_.row)(
+                  span(bar(v, top, width)).style(_.color(color)),
+                  span(" " + Blocks.num(v)).style(Looks.muted),
+                )
+              }*),
+            ),
+          )
       }
 
     /** The bar of `value` of `max` in at most `width` cells. */

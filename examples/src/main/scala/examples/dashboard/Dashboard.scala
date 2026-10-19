@@ -17,14 +17,15 @@ import tui4s.{TerminalSize, Tui, TuiApp}
   * toast; `?` opens the help; `q` quits. The log pane is a viewport that
   * scrolls, with the newest line first: Tab after the last tab reaches it, and
   * the arrows, PageUp, PageDown, Home and End scroll it. In a terminal of 120
-  * columns or more, the tabs and the log are side by side. The widgets (the
-  * gauge, the sparkline, the tabs) are in tui4s-widgets. The keys `p`, `?` and
+  * columns or more, the tabs and the log are side by side. The gauge and the
+  * sparkline are in tui4s-widgets; the tabs are the adapter
+  * `examples.widgets.Tabs` over `tui4s.widgets.Tabs`. The keys `p`, `?` and
   * `q` are a keymap of tui4s-use (the help box lists them), and the status line
   * says how long ago the last sample came (`useNow`, `timeAgo`).
   */
 // claude 2026-10-19: changed: the Scaladoc names the log pane that scrolls
 // (L1a), the help, the toast and the two columns (L1b), the keymap and the
-// stamp (L2a), the widgets of tui4s-widgets (L2b)
+// stamp (L2a), the widgets of tui4s-widgets and the tabs adapter (L2b)
 object Dashboard:
 
     /** The series: one tab for each. The tabs need a first label. */

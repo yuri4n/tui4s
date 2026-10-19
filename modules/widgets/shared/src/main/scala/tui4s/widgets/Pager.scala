@@ -8,8 +8,9 @@ import kyo.UI.*
   * lines of its window, so a log of many lines stays fast.
   *
   *   - Follow ([[Pager.Follow]], a [[Model]]): with `Tail` the window shows the
-  *     last lines and follows each new line; a key that scrolls up turns it
-  *     `Off`. `f` turns it on and off.
+  *     last lines and follows each new line; a key that moves the window up
+  *     from the end turns it `Off` (a key that keeps the window at the end,
+  *     such as End, keeps `Tail`). `f` turns it on and off.
   *   - Search (a [[Model.Writable]] of the query): the field under the text
   *     (Tab reaches it) edits the query; a line with the query (case does not
   *     count) is in `--tui4s-accent`, its match bold and underlined; `n` and
@@ -31,7 +32,22 @@ object Pager:
 
     /** Whether the window follows the end of the text. */
     enum Follow derives CanEqual:
-        case Off, Tail
+        /** The window stays where the keys put it. */
+        case Off
+
+        /** The window shows the last lines, also after a new line. */
+        case Tail
+    end Follow
+
+    /** The direction of a search for a match ([[Pager.next]]). */
+    // claude 2026-10-19: created (L2b review): an enum, not a Boolean
+    enum Search derives CanEqual:
+        /** The match after the line. */
+        case Next
+
+        /** The match before the line. */
+        case Previous
+    end Search
 
     /** The pager of `lines`. */
     def apply(
@@ -51,17 +67,23 @@ object Pager:
             .combineLatest(offset)
             .combineLatest(mode.value)
             .map { case ((xs, o), f) => (xs, top(xs.size, h, o, f)) }
+          // claude 2026-10-19: changed (L2b review): only a move up from the
+          // end turns the follow off
           def scrollTo(to: Int): Unit < Async      =
-            view.current
-              .map((xs, _) => offset.set(to.min(xs.size - h).max(0)))
-              .andThen(mode.change(Follow.Off))
+            view.current.map { (xs, _) =>
+              val end = (xs.size - h).max(0)
+              val at  = to.min(end).max(0)
+              offset
+                .set(at)
+                .andThen(if at < end then mode.change(Follow.Off) else Kyo.unit)
+            }
           def by(delta: Int): Unit < Async         =
             view.current.map((_, t) => scrollTo(t + delta))
-          def find(forward: Boolean): Unit < Async =
+          def find(dir: Search): Unit < Async      =
             for
                 (xs, t) <- view.current
                 q       <- text.get
-                _       <- next(matches(xs, q), t, forward).fold(Kyo.unit)(scrollTo)
+                _       <- next(matches(xs, q), t, dir).fold(Kyo.unit)(scrollTo)
             yield ()
           def keys(e: KeyboardEvent): Any < Async  =
             e.key match
@@ -77,8 +99,8 @@ object Pager:
                     mode.change(if f == Follow.Tail then Follow.Off
                     else Follow.Tail),
                   )
-                case Keyboard.Char('n')                      => find(true)
-                case Keyboard.Char('N')                      => find(false)
+                case Keyboard.Char('n')                      => find(Search.Next)
+                case Keyboard.Char('N')                      => find(Search.Previous)
                 case _                                       => Kyo.unit
           div(
             view.combineLatest(text).render { case ((xs, t), q) =>
@@ -87,7 +109,7 @@ object Pager:
                 .tabIndex(0)
                 .preventScrollKeys
                 .onKeyDown(keys)
-                .style(_.height(h.px).overflow(_.hidden))(
+                .style(_.height(h.em).overflow(_.hidden))(
                   UI.fragment(xs.slice(t, t + h).map(line(_, q))*),
                 )
             },
@@ -95,7 +117,7 @@ object Pager:
               case (((xs, t), f), q) =>
                 span(status(xs, t, h, f, q)).style(Looks.muted ++ Looks.preLine)
             },
-            input.value(text).placeholder("search").style(_.width(20.px)),
+            input.value(text).placeholder("search").style(_.width(20.em)),
           )
     end apply
 
@@ -145,11 +167,16 @@ object Pager:
             case (s, i) if s.toLowerCase.contains(l) => i
           }
 
-    /** The match after `from` (`forward`) or before it, wrapping at the ends;
-      * Absent when there is no match.
+    /** The match after `from` ([[Search.Next]]) or before it
+      * ([[Search.Previous]]), wrapping at the ends; Absent when there is no
+      * match.
       */
-    def next(ms: Chunk[Int], from: Int, forward: Boolean): Maybe[Int] =
+    // claude 2026-10-19: changed (L2b review): the direction is a Search
+    def next(ms: Chunk[Int], from: Int, dir: Search): Maybe[Int] =
       if ms.isEmpty then Absent
-      else if forward then Present(ms.find(_ > from).getOrElse(ms.head))
-      else Present(ms.findLast(_ < from).getOrElse(ms.last))
+      else
+          dir match
+              case Search.Next     => Present(ms.find(_ > from).getOrElse(ms.head))
+              case Search.Previous =>
+                Present(ms.findLast(_ < from).getOrElse(ms.last))
 end Pager

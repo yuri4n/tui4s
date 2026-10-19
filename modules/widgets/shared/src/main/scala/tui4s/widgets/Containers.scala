@@ -17,7 +17,23 @@ import kyo.UI.*
 object Panel:
     /** The style of the border. */
     enum Border derives CanEqual:
-        case Solid, Rounded, Dashed, Dotted, None
+        /** A solid line with square corners ("┌─┐"). */
+        case Solid
+
+        /** A solid line with round corners ("╭─╮"). */
+        case Rounded
+
+        /** A dashed line. */
+        case Dashed
+
+        /** A dotted line. */
+        case Dotted
+
+        /** No border: one cell of padding at each side, and the title on the
+          * first row.
+          */
+        case None
+    end Border
 
     /** The panel of `content` with `title` (none when empty). */
     def apply(title: String = "", border: Border = Border.Rounded)(
@@ -35,7 +51,7 @@ object Panel:
           else if border == Border.None then span(title).style(label)
           else
               span(s" $title ").style(
-                label.position(_.absolute).top((-1).px).left(1.px),
+                label.position(_.absolute).top((-1).em).left(1.em),
               )
         section
           .role("group")
@@ -66,7 +82,12 @@ end Panel
 object SplitPane:
     /** Where the second pane is: right of the first one, or under it. */
     enum Direction derives CanEqual:
-        case Row, Column
+        /** The second pane is right of the first one. */
+        case Row
+
+        /** The second pane is under the first one. */
+        case Column
+    end Direction
 
     /** The split of `first` and `second`. */
     def apply(first: UI, second: UI)(
@@ -155,7 +176,12 @@ object Accordion:
 
     /** How many sections can be open. */
     enum Mode derives CanEqual:
-        case One, Many
+        /** At most one: opening a section closes the open one. */
+        case One
+
+        /** Each section opens and closes on its own. */
+        case Many
+    end Mode
 
     /** The accordion of the sections `first` and `rest`. */
     def apply(first: Section, rest: Section*)(

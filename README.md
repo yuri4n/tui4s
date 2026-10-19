@@ -186,9 +186,9 @@ are typed Scala callbacks; Kyo `Emit` separates event-producing logic from its
 handler when needed. An ordinary class of signals and actions can be a shared
 store, with Kyo `Env` or `Layer` supplying it to the app.
 
-<!-- claude 2026-10-19: changed this paragraph (L2b): Tabs is in tui4s-widgets, its selection is a Model -->
-The tabs of the Dashboard (`tui4s.widgets.Tabs`) own their selection by
-default. The `Model` of a widget says who owns its value:
+<!-- claude 2026-10-19: changed this paragraph (L2b): Tabs is in tui4s-widgets, its selection is a Model; the adapter (L2b review) -->
+The tabs of the Dashboard (the adapter `examples.widgets.Tabs` over
+`tui4s.widgets.Tabs`) own their selection by default. The `Model` of a widget says who owns its value:
 `selected = Model.Bound(ref)` lets the widget write the parent's ref, and
 `selected = Model.Controlled(signal)` with `onChange = next => ...` lets the
 parent accept or reject each request. `tui4s.widgets.Tabs` is a plain Kyo UI
@@ -983,11 +983,12 @@ The output and the exit code of a program (`useProcess`, on the JVM):
 
 ## Widgets (tui4s-widgets)
 
-<!-- claude 2026-10-19: created this section (L2b): the code blocks are the text of the regions of the gallery example (ReadmeSuite checks them) -->
+<!-- claude 2026-10-19: created this section (L2b): the code blocks are the text of the regions of the gallery example (ReadmeSuite checks them); changed: the web is not checked yet (L2b review) -->
 `io.github.yuri4n::tui4s-widgets` has widgets: plain kyo-ui functions for the
 JVM and Scala.js. They use the composables of tui4s-use and do not depend on
-tui4s-core, so a widget works in the terminal and on the web. Add it next to
-tui4s-core:
+tui4s-core, so a widget builds for the terminal and for the web. Today only
+the terminal runs them; the web runner (L4) will check their sizes (a size
+that counts rows or cells is in `em`). Add it next to tui4s-core:
 
 ```scala
 libraryDependencies += "io.github.yuri4n" %% "tui4s-widgets" % "<version>"

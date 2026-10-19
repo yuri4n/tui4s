@@ -27,7 +27,15 @@ object TreeView:
 
     /** The look of a visible row. */
     enum Shape derives CanEqual:
-        case Leaf, Open, Closed
+        /** A node with no children: no mark. */
+        case Leaf
+
+        /** An expanded node ("▾"): its children show under it. */
+        case Open
+
+        /** A collapsed node ("▸"). */
+        case Closed
+    end Shape
 
     /** A visible row: its value, its depth and its shape. */
     final case class Row[A](value: A, depth: Int, shape: Shape)

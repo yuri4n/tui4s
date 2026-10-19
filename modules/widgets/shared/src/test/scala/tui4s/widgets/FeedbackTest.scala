@@ -143,6 +143,44 @@ class FeedbackTest extends Test[Any]:
       )
     }
 
+    // claude 2026-10-19: created (L2b review): the arrows in an open menu
+    "a menu: ArrowDown moves the named highlight; ArrowRight opens the next menu" in {
+      for
+          ui   <- Menu.bar(
+                    Menu.Group(
+                      "File",
+                      Keymap.of(
+                        Binding.of("Open", Chord.ctrl('o'))(Kyo.unit),
+                        Binding.of("Save", Chord.ctrl('s'))(Kyo.unit),
+                      ),
+                    ),
+                    Menu.Group(
+                      "Edit",
+                      Keymap.of(Binding.of("Undo", Chord.ctrl('z'))(Kyo.unit)),
+                    ),
+                  )
+          bs   <- buttons(ui)
+          _    <- bs(0).attrs.onKeyDown
+                    .get(KeyboardEvent(Keyboard.ArrowDown, Modifiers.none, Absent))
+          _    <- press(ui, "menu", Keyboard.ArrowDown)
+          a    <- textsOf(ui, "menuitem")
+          m    <- byRole(ui, "menu")
+          id    = m.flatMap(e =>
+                    Maybe.fromOption(e.attrs.ariaAttrs.get("activedescendant")),
+                  )
+          row  <- id.fold(Kyo.lift(Absent: Maybe[Ast.Element]))(byId(ui, _))
+          name <- row.fold(Kyo.lift(""))(text)
+          _    <- press(ui, "menu", Keyboard.ArrowRight)
+          b    <- textsOf(ui, "menuitem")
+          _    <- press(ui, "menu", Keyboard.ArrowRight)
+          c    <- textsOf(ui, "menuitem")
+      yield
+          assert(a == Chunk("  OpenCtrl-O", "› SaveCtrl-S"), a.toString)
+          assert(name == "› SaveCtrl-S", name)
+          assert(b == Chunk("› UndoCtrl-Z") && c.headOption.contains("› OpenCtrl-O"), (b, c).toString)
+      end for
+    }
+
     "a tooltip shows while its target has the focus" in {
       for
           ui <- Tooltip("Saves the file")(button("Save"))
@@ -291,10 +329,37 @@ class FeedbackPropertyTest extends PropertyTest[Any]:
         )
         val t     = Instant.Epoch + now.seconds
         val shown = Toasts.visible(all, t, max)
+        val alive = all.count(_.until > t)
+        val order = shown.map(_.text.toInt)
+        // claude 2026-10-19: changed (L2b review): laws, not the body again
         assert(
-          shown.forall(_.until > t) && shown.size <= max && shown == all
-            .filter(_.until > t)
-            .takeRight(max),
+          shown.forall(_.until > t) && shown.size == alive.min(max) &&
+            order == order.sorted && (shown.isEmpty || shown.last == all
+              .filter(_.until > t)
+              .last),
+        )
+      }
+    }
+
+    // claude 2026-10-19: created (L2b review): the law of push
+    "a push keeps at most max toasts, the new one last, and none that is gone" - {
+      forAll(
+        Gen.listOfN(10, small),
+        small,
+        Gen.int.map(n => Math.floorMod(n, 4) + 1),
+      ) { (ends, now, max) =>
+        val all = Chunk.from(
+          ends.zipWithIndex.map((e, i) =>
+            Toasts.Toast(s"$i", Toasts.Level.Info, Instant.Epoch + e.seconds),
+          ),
+        )
+        val t   = Instant.Epoch + now.seconds
+        val nw  = Toasts.Toast("new", Toasts.Level.Success, t + 3.seconds)
+        val q   = Toasts.push(all, nw, t, max)
+        assert(
+          q.size <= max && q.lastOption.contains(nw) && q
+            .dropRight(1)
+            .forall(_.until > t),
         )
       }
     }
@@ -303,8 +368,14 @@ class FeedbackPropertyTest extends PropertyTest[Any]:
       forAll(small, Gen.int.map(_ % 50), small) { (c, d, n) =>
         val steps = n + 1
         val m     = Wizard.move(c, d, steps)
+        val ss    = (0 until steps).map(Wizard.status(_, m))
+        // claude 2026-10-19: changed (L2b review): one Current, Done before it,
+        // Todo after it
         assert(
-          m >= 0 && m < steps && Wizard.status(m, m) == Wizard.Status.Current,
+          m >= 0 && m < steps && ss.count(_ == Wizard.Status.Current) == 1 &&
+            ss.take(m).forall(_ == Wizard.Status.Done) && ss
+              .drop(m + 1)
+              .forall(_ == Wizard.Status.Todo),
         )
       }
     }

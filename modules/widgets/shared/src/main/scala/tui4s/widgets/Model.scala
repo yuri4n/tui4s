@@ -14,6 +14,12 @@ import kyo.*
   *     accepts it (it writes the source of the signal) or rejects it (it does
   *     nothing). The signal stays authoritative.
   *
+  * kyo-ui's own `UI.Bound` (`Const` or `Ref`) says only where an input reads
+  * and writes its value. `Model` adds the two owners that it does not have:
+  * `Local`, where the widget makes the ref itself, and `Controlled`, where the
+  * widget never writes and `onChange` is a request that the parent can
+  * reject. `Model.Bound` has the meaning of `UI.Bound.Ref`.
+  *
   * A change to the value that the widget shows already runs nothing: no write
   * and no `onChange`. A widget that edits text (a search box, a date field)
   * takes a [[Model.Writable]], because a native text input needs a `SignalRef`
@@ -25,7 +31,8 @@ import kyo.*
   * Tabs("CPU", "Memory")(selected = Model.Controlled(sig), onChange = ask)
   * }}}
   */
-// claude 2026-10-19: created (L2b): the ownership of a widget value
+// claude 2026-10-19: created (L2b): the ownership of a widget value;
+// changed (L2b review): its relation to kyo-ui's UI.Bound
 sealed trait Model[A]
 
 /** The three owners of a value, and the resolution that a widget uses. */

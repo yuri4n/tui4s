@@ -71,6 +71,43 @@ class InputsTest extends Test[Any]:
           assert(now == "scalajs" && p == "scalajs" && closed.isEmpty)
     }
 
+    // claude 2026-10-19: created (L2b review): the field stops the keys and
+    // names the highlight only while the list shows
+    "an autocomplete: the field stops the keys and names the highlight while the list shows" in {
+      for
+          text <- Signal.initRef("")
+          ui   <- Autocomplete(
+                    Signal.initConst(Chunk("scala", "scalajs")),
+                    text = Model.Bound(text),
+                  )
+          f0   <- field(ui, "combobox")
+          _    <- text.set("sca")
+          _    <- f0.onInput.get("sca")
+          _    <- f0.attrs.onKeyDown.get(
+                    KeyboardEvent(Keyboard.ArrowDown, Modifiers.none, Absent),
+                  )
+          f1   <- field(ui, "combobox")
+          row  <- byId(ui, f1.attrs.ariaAttrs.getOrElse("activedescendant", ""))
+          name <- row.fold(Kyo.lift(""))(UiTree.text)
+          _    <- f1.attrs.onKeyDown.get(
+                    KeyboardEvent(Keyboard.Escape, Modifiers.none, Absent),
+                  )
+          f2   <- field(ui, "combobox")
+      yield
+          assert(
+            !f0.attrs.stopPropagation.getOrElse(false) &&
+              f1.attrs.stopPropagation.getOrElse(false) &&
+              !f2.attrs.stopPropagation.getOrElse(false),
+          )
+          assert(name == "› scalajs", name)
+          assert(
+            f1.attrs.ariaAttrs.get("expanded").contains("true") &&
+              f2.attrs.ariaAttrs.get("expanded").contains("false") &&
+              f2.attrs.ariaAttrs.get("activedescendant").isEmpty,
+          )
+      end for
+    }
+
     "a checklist: Space checks the selected item" in {
       for
           done <- Signal.initRef(Set.empty[Int])

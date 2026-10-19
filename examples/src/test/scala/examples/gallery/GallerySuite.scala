@@ -5,7 +5,7 @@ import kyo.*
 import kyo.UI.*
 import munit.FunSuite
 import tui4s.testkit.{Headless, Screen}
-import tui4s.widgets.Colors
+import tui4s.widgets.{BarChart, Colors, DataTable}
 
 /** The gallery on the headless test kit: one leaf for each widget. A leaf
   * starts the gallery, shows a family (its F key), goes to the widget with Tab
@@ -139,6 +139,56 @@ class GallerySuite extends FunSuite:
       val s = screen(Family.Data, 2)(_.char('2'))
       has(s, "Year ▲")
       assert(s.find("Haskell").get._2 < s.find("OCaml").get._2, s.text)
+    }
+
+    // claude 2026-10-19: created (L2b review): the header keeps the column of
+    // the scroll indicator of the body
+    test("DataTable: a column after a Fill column stays under its title") {
+      type Row = (String, String)
+      val s = run {
+        for
+            h <- Headless.start(40, 8, stylesheet = Colors.defaults)(_ =>
+                   DataTable(
+                     Signal.initConst(
+                       Chunk.from((1 to 5).map(i => (s"file$i", s"${i}k"))),
+                     ),
+                     (r: Row) => r._1,
+                     DataTable.Column[Row]("Name", _._1, DataTable.Width.Fill),
+                     DataTable.Column[Row]("Size", _._2, DataTable.Width.Fixed(5)),
+                     DataTable.Column[Row]("Tag", _ => "t", DataTable.Width.Fixed(3)),
+                   )(height = 3),
+                 )
+            s <- h.screen
+        yield s
+      }
+      assert(
+        s.find("Size").nonEmpty && s.find("Size").map(_._1) == s
+          .find("1k")
+          .map(_._1),
+        s.text,
+      )
+    }
+
+    // claude 2026-10-19: created (L2b review): the labels are measured in
+    // cells
+    test("BarChart: a wide character in a label does not move its bar") {
+      val s = run {
+        for
+            h <- Headless.start(30, 4, stylesheet = Colors.defaults)(_ =>
+                   BarChart(
+                     Signal.initConst(Chunk("月" -> 4.0, "Mon" -> 2.0)),
+                     width = 4,
+                   ),
+                 )
+            s <- h.screen
+        yield s
+      }
+      assert(
+        s.find("████").nonEmpty && s.find("████").map(_._1) == s
+          .find("██ 2")
+          .map(_._1),
+        s.text,
+      )
     }
 
     test("TreeView: ArrowRight opens a node") {
@@ -305,6 +355,23 @@ class GallerySuite extends FunSuite:
       }
       has(open, "› New", "Ctrl-N", "Open")
       has(done, "File › Open")
+    }
+
+    // claude 2026-10-19: created (L2b review): the arrows in an open menu
+    test("Menu: ArrowRight in an open menu opens the next one; Enter runs it") {
+      val (next, done) = run {
+        for
+            h <- at(Family.Navigation, 1)
+            _ <- h.key(Keyboard.ArrowDown)
+            _ <- h.key(Keyboard.ArrowRight)
+            a <- h.screen
+            _ <- h.key(Keyboard.Enter)
+            b <- h.screen
+        yield (a, b)
+      }
+      has(next, "› About")
+      assert(!next.contains("› New"), next.text)
+      has(done, "Help › About")
     }
 
     test("Tooltip: the text shows while the button has the focus") {
