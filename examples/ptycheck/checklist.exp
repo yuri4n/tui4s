@@ -350,6 +350,18 @@ if {[first_frame "dashboard" "Dashboard"]} {
 back_at_prompt "dashboard"
 stty_compare "dash"
 
+# ---- Forms: the first screen, then Esc
+# claude 2026-10-19: created (L1c)
+stty_save forms before
+mark "forms-start"
+run_app "$bin/forms"
+if {[first_frame "forms" "Sign up"]} {
+    pump 500
+    mark "forms-esc"; send "\x1b"
+}
+back_at_prompt "forms"
+stty_compare "forms"
+
 # ---- INFO: the classes that the start script of the Counter loads (start,
 # first frame, q), counted by check.py from -Xlog:class+load. No PASS row.
 file delete -force "$work/classload.log"

@@ -15,9 +15,11 @@ package.
 | Todo           | `examples.todo.TodoApp`                    | `examples/target/bin/todo [file]`   | A list in a file (the argument, or `todos.txt` in the working directory): a text input, Enter adds, Tab to the list, Space toggles, `d` deletes, Ctrl-S saves, a paste is one edit, Esc quits. The list and the input scroll in one viewport, and a long title ends with "…". |
 | Dashboard      | `examples.dashboard.DashboardApp`          | `examples/target/bin/dashboard`     | Tabs, a gauge and a sparkline fed by a sampler (250 ms), a log pane fed by a stream (400 ms); the arrows, or Tab and Space or Enter, change the tab; `p` pauses the sampler and shows a toast; `?` opens the help (a box over the screen; Esc closes it); `q` quits. The log pane scrolls (Tab reaches it; the arrows, PageUp, PageDown, Home, End). In a terminal of 120 columns or more, the tabs and the log are side by side (`Tui.size`). |
 | Printing       | `examples.printing.PrintingApp`            | `examples/target/bin/printing [--log file] [--fail-on-f]` | A `println` while the UI is up does not reach the screen: the lines come after the terminal is restored, or go to the log file. This is also true after a `println` before the run (the app prints one line when it starts). `args` and `options` of a `TuiApp`. The test aid `--fail-on-f` makes `f` fail the UI: exit code 1, and the failure comes after the restore. |
+| Forms          | `examples.forms.FormsApp`                  | `examples/target/bin/forms`         | Every native input in one form: a text input with `maxLength`, a password, a number with `min`, `max` and `step`, a range, two checkboxes, two radios of one group, a select, a textarea of 3 rows, a read-only and a disabled field, Submit and Reset. Enter submits the form (in the textarea too: Alt-Enter or Ctrl-J gives a new line), and the result shows under the form; Esc quits (README "Forms and inputs"). |
 | Widgets        | none (a library)                           | none                                | Reusable gauge and sparkline helpers, Kyo-only `TabsView`, and the terminal `Tabs` component adapter in `examples.widgets`. |
 
 <!-- claude 2026-10-19: changed the Printing row: the test aid --fail-on-f -->
+<!-- claude 2026-10-19: created the Forms row (L1c) -->
 
 ## State and events with Kyo
 
@@ -317,7 +319,9 @@ The examples use sbt-native-packager's `JavaAppPackaging`.
 `examples/target/universal/stage/bin`, with the runtime JARs in `lib` and JVM
 configuration in `conf/application.ini`. The script names are the package names
 in the table above: `counter`, `counterkyo`, `twocounters`, `counterstyles`,
-`todo`, `dashboard`, and `printing`. Two mains in one package stop the build.
+`todo`, `dashboard`, `printing`, and `forms`. Two mains in one package stop
+the build.
+<!-- claude 2026-10-19: changed: forms (L1c) -->
 
 To produce a ZIP that can be unpacked elsewhere:
 
@@ -447,6 +451,7 @@ before):
 | `counterstyles`, `styles` | Enter on the `+` of a hook counter, then on the `+` of a `Component` counter: the counts are 1, 0, 1, 0; `h` hides the hook counters (1, 0); `h` shows them again at 0 (0, 0, 1, 0); `q`. |
 | `todo` | `todo todo-pty.txt`: raw mode; typed text shows in the input; Enter adds `[ ] buy milk` and empties the input; a bracketed paste of one line shows in the input and adds nothing; a paste with a line break gives a space (`tea time and cake`) and adds nothing; Enter adds it; Tab moves the focus to the list; Space toggles `[x] buy milk`; Ctrl-S shows `saved 2 items to todo-pty.txt`; Esc gives exit code 0 and the restore; the file is `[x] buy milk` and `[ ] tea time and cake`. |
 | `dashboard`, `dash` | Live: the gauge or the sparkline differ in two screens 1 s apart; `p` pauses: they are the same in two screens 1 s apart, and the log goes on; `p` resumes; ArrowRight shows `Memory usage` and the bold tab moves; ArrowLeft back to `CPU usage`; Tab, then Space selects the focused tab; Tab, then Enter too; at 40x20 the boxes are 40 wide, at 100x30 100 wide; `q`. The Dashboard has no use for Esc. |
+| `forms` | The first screen of the form: the title, the name field, the number `30`, the checked `news` box, the `Free` radio and the Submit button; Esc gives exit code 0 and the restore. |
 | `class-load` (INFO) | `JAVA_OPTS=-Xlog:class+load:file=<work>/classload.log examples/target/bin/counter`, first frame, `q`: the number of classes that the JVM loads (all, JDK, Scala, Kyo with kyo-ui, kyo-http and kyo-net, jatatui, tui4s core, examples). No PASS or FAIL. |
 | `stdin is a pipe`, `pipe` | `echo \| examples/target/bin/counter`: "stdin/stdout is not a terminal", exit code 1, no alternate screen. |
 | `native access denied`, `deny` | `java --illegal-native-access=deny ... examples.counter.CounterApp`: "start the JVM with --enable-native-access=ALL-UNNAMED", exit code 1, no alternate screen. |
@@ -455,6 +460,7 @@ before):
 <!-- claude 2026-10-13: changed the rows (T2, RC-31 rest, OS-19): the names of the output, the rows of all the examples -->
 <!-- claude 2026-10-13: changed the rows Ctrl-C and Printing (T2, reviews R1-8, R1-1): the name ctrlc; the println before the run -->
 <!-- claude 2026-10-19: created the rows hup and printfail -->
+<!-- claude 2026-10-19: created the row forms (L1c) -->
 
 A human does the steps that a pseudo-terminal cannot show (colours, real
 window resizes, look and feel) on the terminals of the platform, and writes

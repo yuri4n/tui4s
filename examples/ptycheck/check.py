@@ -310,6 +310,14 @@ check("dashboard: back at 100x30 the boxes are 100 wide again, and the help line
       screen("dash-big"))
 restored("dash-q", "dashboard q")
 
+# Forms: the first screen, then Esc
+# claude 2026-10-19: created (L1c)
+fs = screen("forms-start")
+check("forms: first screen has the title, the name field, the number 30, the checked news box, the Free radio and Submit",
+      all(t in fs for t in ("Sign up", "Name", "[x] news", "(•) Free", "[ Submit ]")) and "30" in line_with("forms-start", "Age"),
+      fs)
+restored("forms-esc", "forms esc")
+
 # INFO: the classes that the start script of the Counter loads (-Xlog:class+load), no PASS or FAIL
 classload = os.path.join(os.path.dirname(os.path.abspath(session)), "classload.log")
 if os.path.exists(classload):

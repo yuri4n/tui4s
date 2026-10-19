@@ -9,7 +9,7 @@
   * frame (`tui4s.internal.Runner`; [[tui4s.TuiOptions]] tunes it,
   * [[tui4s.FrameStats]] describes a frame). Keys reach the UI: the handlers of
   * the focused element and its ancestors run, Tab moves the focus, a text input
-  * edits by grapheme clusters, a bracketed paste is one edit, and
+  * and a textarea edit by grapheme clusters, a bracketed paste is one edit, and
   * [[tui4s.Tui.quit]] ends the run. [[tui4s.Tui.run]] runs a UI in the real
   * terminal (raw mode, the alternate screen, an input thread for the keys),
   * restores the terminal when the run ends, and fails with a [[tui4s.TuiError]]
@@ -98,6 +98,37 @@
   *     `Stylesheet.scopedVars`. A name with no value gives no colour: a text
   *     keeps the colour of its parent.
   *
+  * The inputs are the native kyo-ui elements with their bindings
+  * (`.value(ref)`, `.checked(ref)`); [[tui4s.maxLength]] is the one tui4s name
+  * (kyo-ui has no such attribute):
+  * {{{
+  * form.onSubmit(send)(
+  *   input.value(name).maxLength(20),
+  *   numberInput.value(age).min(0).max(130),
+  *   textarea.value(message).style(_.height(3.px)))
+  * }}}
+  *   - A text input and a textarea edit by grapheme clusters; a paste is one
+  *     edit. The focused one shows its caret with the terminal cursor.
+  *   - The newline keys of a textarea: Alt-Enter and Ctrl-J insert a line
+  *     break, and Shift-Enter too when the terminal reports Shift with Enter. A
+  *     plain Enter submits the form that holds the textarea; outside a form it
+  *     inserts a line break. ArrowUp and ArrowDown move one line and keep the
+  *     column, PageUp and PageDown move by the height, Home and End go to the
+  *     ends of the line, Ctrl-A and Ctrl-E to the ends of the text line. A
+  *     paste keeps its line breaks. The height is the `height` of the style (3
+  *     rows when none; kyo-ui has no `rows`), and a longer text scrolls in it.
+  *   - A number input takes digits, one sign first and one decimal point.
+  *     ArrowUp and ArrowDown change it by `step` (1 when none), clamped to
+  *     `min` and `max`, and run `onChangeNumeric`; Enter commits the number.
+  *   - A range moves by `step` with the arrows, by 10 steps with PageUp and
+  *     PageDown, and to `min` and `max` with Home and End.
+  *   - A password shows one "•" for each grapheme cluster. A select and a
+  *     dropdown go to the next option with Space, Enter and ArrowDown, to the
+  *     previous one with ArrowUp. `readOnly(true)` stops the edits and keeps
+  *     the caret moves; `disabled(true)` takes the input out of the Tab order.
+  *     The date, time, colour and file inputs show an empty box and warn once
+  *     in the log of the run.
+  *
   * The style properties in the terminal: the 76 cases of kyo-ui's `Style.Prop`
   * (kyo-ui 1.0.0-RC7), by case name. When an element has an ignored property,
   * the runner logs one warning for that name, once in a run, with the first
@@ -133,7 +164,6 @@
   *     `SepiaProp`, `ShadowProp`, `StrokeDashoffsetProp`, `TransitionProp`,
   *     `TranslateProp`.
   */
-// claude 2026-10-19: changed: the package Scaladoc names scroll, wrap and
-// ellipsis, with the key table (L1a); the overlays, the size, the flex lines,
-// the custom colours and the table of the style properties (L1b, review)
+// claude 2026-10-19: changed: the package Scaladoc names the inputs and their
+// keys (L1c)
 package object tui4s

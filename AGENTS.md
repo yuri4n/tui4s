@@ -34,9 +34,15 @@ group; Enter and Space press a button (a click that bubbles to the ancestors'
 or a radio and cycle a select; Enter in a form submits it; a handler in its
 event form (`onClick(e => ...)`, `onFocus(e => ...)`, `onSubmit(e => ...)`)
 runs as its action form does; a text input edits by grapheme clusters
-(Ctrl-A, E, U, K, W too); a bracketed paste is one edit; Ctrl-C and
-`tui4s.Tui.quit` end the run. `tui4s.Tui.run` runs a UI in the real
-terminal: it enters raw mode and the alternate screen (`internal.TerminalIO`,
+(Ctrl-A, E, U, K, W too); a textarea edits lines that wrap
+(`internal.AreaText`): Alt-Enter, Ctrl-J and a reported Shift-Enter insert a
+line break, and a plain Enter submits its form (outside a form it inserts a
+line break); a bracketed paste is one edit; Ctrl-C and
+`tui4s.Tui.quit` end the run. The password, number, range and dropdown
+inputs have their own keys, `tui4s.maxLength` limits a text field, and the
+terminal cursor shows the caret (`internal.Plan.cursor`).
+<!-- claude 2026-10-19: changed: the textarea and the inputs (L1c) -->
+`tui4s.Tui.run` runs a UI in the real terminal: it enters raw mode and the alternate screen (`internal.TerminalIO`,
 `internal.Session`), an input thread maps the crossterm events to kyo-ui keys,
 pastes and resizes (`internal.EventMapping`), the runner draws on a crossterm
 backend, and the release restores the terminal in every way that a run ends
@@ -238,7 +244,7 @@ nothing.
 | `sbt examples/Universal/stage`       | Stages native-packager launchers and runtime JARs in `examples/target/universal/stage`. |
 | `sbt examples/Universal/packageBin`  | Creates the examples ZIP distribution under `examples/target/universal`. |
 | `sbt examples/launchers`             | Stages the distribution and writes compatible `examples/target/bin/<package>` launchers plus the PTY classpath. |
-| `examples/target/bin/<app>`          | Runs an example in the real terminal (its own JVM): `counter`, `counterkyo`, `twocounters`, `counterstyles`, `todo`, `dashboard`, `printing`. |
+| `examples/target/bin/<app>`          | Runs an example in the real terminal (its own JVM): `counter`, `counterkyo`, `twocounters`, `counterstyles`, `todo`, `dashboard`, `printing`, `forms`. |
 | `examples/ptycheck/run.sh`           | Runs the real-terminal checklist in a pseudo-terminal (CI job `terminal`). |
 
 <!-- claude 2026-10-13: changed (T1): the launchers and the PTY kit replace `sbt "examples/runMain <main>"` -->

@@ -474,6 +474,164 @@ A style property that the terminal does not show (`fontSize`, `hover`,
 (first seen at ...)". The package Scaladoc of `tui4s` lists the honored and
 the ignored properties. In a test, `Headless.awaitLog` gives the lines.
 
+## Forms and inputs
+
+<!-- claude 2026-10-19: created this section (L1c): the code block is the text of the region "forms" of the Forms example (ReadmeSuite checks it) -->
+The Forms example (`examples/src/main/scala/examples/forms/Forms.scala`)
+puts every native input of the terminal in one form. The inputs are plain
+kyo-ui elements with their `.value(ref)` and `.checked(ref)` bindings; the
+only tui4s name is `maxLength`:
+
+<!-- from: examples/src/main/scala/examples/forms/Forms.scala#forms -->
+```scala
+import kyo.*
+import kyo.UI.*
+import tui4s.{Tui, TuiApp, maxLength}
+
+/** A sign-up form with the native inputs of kyo-ui: a text input, a password, a
+  * number, a range, two checkboxes, two radios, a select, a textarea of 3 rows,
+  * a read-only and a disabled field, and the Submit and Reset buttons. Tab
+  * moves between the fields. Enter in a field submits the form (also in the
+  * textarea: Alt-Enter or Ctrl-J there gives a new line). The result shows
+  * under the form. Esc quits.
+  */
+object Forms:
+
+    /** One row of the form: a label of 9 cells and its input (a `fragment` puts
+      * more inputs side by side).
+      */
+    def field(label: String, input: UI): UI =
+      div.style(_.row.gap(1.px).align(_.start))(
+        span(label).style(_.width(9.px)),
+        input,
+      )
+
+    /** The form; `quit` ends the run. */
+    def ui(quit: Unit < Sync): UI < Sync =
+      for
+          name    <- Signal.initRef("")
+          secret  <- Signal.initRef("")
+          age     <- Signal.initRef("30")
+          volume  <- Signal.initRef(50.0)
+          news    <- Signal.initRef(true)
+          updates <- Signal.initRef(false)
+          plan    <- Signal.initRef("free")
+          colour  <- Signal.initRef("blue")
+          message <- Signal.initRef("")
+          result  <- Signal.initRef("Fill the form, then press Enter.")
+      yield
+          val submit: Unit < Sync                      =
+            for
+                n <- name.get
+                s <- secret.get
+                a <- age.get
+                v <- volume.get
+                p <- plan.get
+                c <- colour.get
+                m <- message.get
+                l <- news.get.map(on => if on then "news" else "no news")
+                _ <- result.set(
+                       s"Sent: $n, ${s.length} secret chars, age $a, " +
+                         s"volume ${v.toInt}, $l, $p, $c, " +
+                         s"${m.linesIterator.size} message lines",
+                     )
+            yield ()
+          val reset: Unit < Sync                       =
+            Kyo
+              .foreach(Seq(name, secret, message))(_.set(""))
+              .andThen(age.set("30"))
+              .andThen(volume.set(50.0))
+              .andThen(plan.set("free"))
+              .andThen(result.set("The form is empty again."))
+          // two radios of one group: the plan is the state; each radio shows
+          // it and asks to change it
+          def choice(value: String, label: String): UI =
+            div.style(_.row.gap(1.px))(
+              radio
+                .onChange(_ => plan.set(value))
+                .checked(plan.map(_ == value)),
+              span(label),
+            )
+          div.onKeyDown {
+            case KeyboardEvent(Keyboard.Escape, _, _) => quit
+            case _                                    => ()
+          }(
+            h1("Sign up"),
+            form.onSubmit(submit)(
+              field("Name", input.value(name).placeholder("Ada").maxLength(20)),
+              field("Secret", passwordInput.value(secret)),
+              field("Age", numberInput.value(age).min(0).max(130).step(1)),
+              field("Volume", rangeInput.value(volume).min(0).max(100).step(5)),
+              field(
+                "Mail",
+                fragment(
+                  checkbox.checked(news),
+                  span("news"),
+                  checkbox.checked(updates),
+                  span("updates"),
+                ),
+              ),
+              field(
+                "Plan",
+                fragment(choice("free", "Free"), choice("pro", "Pro")),
+              ),
+              field(
+                "Colour",
+                select.value(colour)(
+                  option.value("blue")("Blue"),
+                  option.value("green")("Green"),
+                ),
+              ),
+              field(
+                "Message",
+                textarea.value(message).style(_.width(30.px).height(3.px)),
+              ),
+              field("Account", input.value("ada-01").readOnly(true)),
+              field("Team", input.value("core").disabled(true)),
+              div.style(_.row.gap(1.px))(
+                button("Submit"),
+                // kyo-ui has no button type: a button in a form submits it,
+                // so Reset stops its click before the form
+                button("Reset").onClick(reset).stopPropagation(true),
+              ),
+            ),
+            p(result).id("result"),
+          )
+end Forms
+
+/** Runs the form in the real terminal: `examples/target/bin/forms`. */
+object FormsApp extends TuiApp:
+    def ui: UI < (Async & Scope) = Forms.ui(Tui.quit)
+```
+
+Each input edits its bound ref before its `onInput` or `onChange` runs.
+Tab and Shift-Tab move between the inputs. The keys of each input:
+
+| Input | Keys |
+| --- | --- |
+| `input`, `emailInput`, `telInput`, `urlInput`, `searchInput` | Type, Backspace, Delete, ArrowLeft, ArrowRight, Home, End, Ctrl-A, Ctrl-E, Ctrl-U, Ctrl-K, Ctrl-W; by grapheme clusters. A paste is one edit; a line break in it becomes a space. Enter runs `onChange` and submits the form. |
+| `passwordInput` | As `input`. Each grapheme cluster shows as one "•"; the text never reaches the screen. |
+| `numberInput` | Digits, one sign first and one decimal point. ArrowUp and ArrowDown change the value by `step` (1 when none), clamped to `min` and `max`, and run `onChangeNumeric`. Enter writes the number as kyo-ui shows it ("1." becomes "1") and runs `onChangeNumeric`. |
+| `textarea` | Lines that wrap at the spaces, by cells. ArrowUp and ArrowDown move one line and keep the column; PageUp and PageDown move by the height; Home and End go to the ends of the line; Ctrl-A and Ctrl-E to the ends of the text line between two line breaks. Alt-Enter and Ctrl-J insert a line break, and Shift-Enter too when the terminal reports Shift with Enter. A plain Enter submits the form that holds the textarea; outside a form it inserts a line break, as in a browser. A paste keeps its line breaks. A long text scrolls inside the textarea, and the view follows the caret. |
+| `rangeInput` | ArrowLeft and ArrowDown, ArrowRight and ArrowUp move by `step`; PageDown and PageUp by 10 steps; Home and End to `min` and `max` (0 and 100 when none). |
+| `checkbox`, `radio` | Space and Enter toggle a checkbox and check a radio. A group of radios is one ref of the app (the example's `plan`). |
+| `select`, `dropdown` | Space, Enter, ArrowDown and ArrowUp go to the next or the previous option. Enter does not submit the form. |
+| `button` | Space and Enter press it: a click that submits the form that holds it. |
+
+`readOnly(true)` keeps the focus and the moves of the caret, and stops every
+edit. `disabled(true)` takes the input out of the Tab order, stops every key,
+and dims it. kyo-ui has no `maxLength` attribute: `maxLength(n)` from
+`tui4s` limits the grapheme clusters that the keys and a paste give to a text
+input or a textarea, and a paste is cut so that no character is split. A
+browser does not read it. kyo-ui has no `rows` attribute either: the height
+of a textarea is the `height` of its style (3 rows when none).
+
+The focused text input or textarea shows its caret with the terminal cursor.
+The date, time, colour and file inputs show an empty box; the log of the run
+has one warning for each of them. A character outside the Basic Multilingual
+Plane (an emoji) that is typed arrives wrong (jatatui 0.31.0 cuts it to 16
+bits); a paste keeps it.
+
 ## Modules
 
 Each module is released on its own, with its own version.
