@@ -667,8 +667,9 @@ class DispatchTest extends RunnerSuite:
           _  <- h.typeText("漢字" * 10)
           s3 <- h.screen
       yield
+          // claude 2026-10-19: changed: the terminal cursor (L1c)
           def caretAt(s: Screen): Vector[Int] =
-            (0 until 20).filter(x => s.styleAt(x, 0).reversed).toVector
+            s.cursor.collect { case (x, 0) => x }.toVector
           // after the three characters: the caret is the cell after them
           assert(
             s1.row(0) == "中文字" && caretAt(s1) == Vector(6),
@@ -684,14 +685,9 @@ class DispatchTest extends RunnerSuite:
           )
     }
 
-    /** The cell of the caret of `s`: the reversed cell (column, row). */
+    /** The cell of the caret of `s`: the terminal cursor (column, row). */
     // claude 2026-10-19: created (L1c)
-    private def caretOf(s: Screen): Option[(Int, Int)] =
-      (for
-          y <- s.rows.indices
-          x <- 0 until s.rows(y).length
-          if s.styleAt(x, y).reversed
-      yield (x, y)).headOption
+    private def caretOf(s: Screen): Option[(Int, Int)] = s.cursor
 
     // claude 2026-10-19: created (L1c)
     "a textarea outside a form: Alt-Enter, Ctrl-J, Shift-Enter and a plain Enter insert a line break; its view of 3 rows follows the caret" in {
@@ -866,6 +862,109 @@ class DispatchTest extends RunnerSuite:
           )
           assert(p1 == "b" && p2 == "a" && n == 0, s"$p1 $p2 $n")
           assert(s.row(0).trim.startsWith("─") && s.row(0).contains("●"))
+    }
+
+    // claude 2026-10-19: created (L1c)
+    "disabled and readOnly: Tab skips a disabled input; a read-only input, textarea and number take the focus and move the caret, and take no edit, no paste, no line break, no step and no onChange" in {
+      for
+          off     <- Signal.initRef("ab")
+          ro      <- Signal.initRef("cd")
+          area    <- Signal.initRef("x\ny")
+          num     <- Signal.initRef("5")
+          changes <- Signal.initRef(0)
+          h       <- Headless.start(30, 8)(_ =>
+                       div(
+                         input.value(off).disabled(true).id("off"),
+                         input
+                           .value(ro)
+                           .readOnly(true)
+                           .id("ro")
+                           .onChange(_ => changes.updateAndGet(_ + 1).unit),
+                         textarea.value(area).readOnly(true).id("ta"),
+                         numberInput.value(num).readOnly(true).id("num"),
+                       ),
+                     )
+          // the first focus skips the disabled input
+          f0      <- h.key(Keyboard.Home)
+          c0      <- h.screen.map(_.cursor)
+          _       <- h.typeText("zz")
+          _       <- h.key(Keyboard.Delete)
+          _       <- h.paste("p")
+          _       <- h.key(Keyboard.Enter)
+          f1      <- h.key(Keyboard.Tab)
+          _       <- h.key(Keyboard.Enter, Modifiers(alt = true))
+          _       <- h.key(Keyboard.Enter)
+          _       <- h.paste("q\nr")
+          _       <- h.key(Keyboard.ArrowUp)
+          c1      <- h.screen.map(_.cursor)
+          f2      <- h.key(Keyboard.Tab)
+          _       <- h.key(Keyboard.ArrowUp)
+          f3      <- h.key(Keyboard.Tab)
+          vs      <- Kyo.foreach(Seq(off, ro, area, num))(_.get)
+          n       <- changes.get
+      yield
+          assert(
+            Seq(f0, f1, f2, f3).map(focusOf) == Seq("ro", "ta", "num", "ro"),
+            s"${Seq(f0, f1, f2, f3).map(focusOf)}",
+          )
+          assert(vs == Seq("ab", "cd", "x\ny", "5") && n == 0, s"$vs $n")
+          // Home moved the caret of the read-only input to its start; ArrowUp
+          // moved the caret of the read-only textarea to its first line
+          assert(c0 == Some((0, 1)) && c1 == Some((1, 2)), s"$c0 $c1")
+    }
+
+    // claude 2026-10-19: created (L1c)
+    "the terminal cursor: a focused text input or textarea places it at its caret, with no reversed cell; a focused button hides it" in {
+      for
+          h  <- Headless.start(20, 5)(_ =>
+                  div(
+                    input.value("ab中").id("i"),
+                    textarea.value("one\ntwo").style(_.width(10.px)).id("t"),
+                    button("ok").id("b"),
+                  ),
+                )
+          s0 <- h.screen
+          _  <- h.key(Keyboard.ArrowLeft)
+          s1 <- h.screen
+          _  <- h.key(Keyboard.Tab)
+          s2 <- h.screen
+          _  <- h.key(Keyboard.ArrowUp)
+          s3 <- h.screen
+          _  <- h.key(Keyboard.Tab)
+          s4 <- h.screen
+      yield
+          def reversed(s: Screen): Boolean =
+            s.rows.indices.exists(y =>
+              (0 until s.rows(y).length).exists(x =>
+                s.styleAt(x, y).reversed && s.rows(y)(x) != '[' &&
+                  s.rows(y)(x) != ']',
+              ),
+            )
+          // after "ab中": column 4 (中 takes two cells); one left: column 2
+          assert(
+            s0.cursor == Some((4, 0)) && s1.cursor == Some((2, 0)),
+            s"${s0.cursor} ${s1.cursor}",
+          )
+          // the textarea: after "two" on its second row, then up to "one"
+          assert(
+            s2.cursor == Some((3, 2)) && s3.cursor == Some((3, 1)),
+            s"${s2.cursor} ${s3.cursor}",
+          )
+          assert(s4.cursor.isEmpty, s"${s4.cursor}")
+          assert(!reversed(s0) && !reversed(s2), s0.rows.mkString("\n"))
+    }
+
+    // claude 2026-10-19: created (L1c)
+    "maxLength: the keys stop at the limit; a paste is cut by grapheme clusters" in {
+      for
+          ref <- Signal.initRef("")
+          h   <- Headless.start(20, 1)(_ => input.value(ref).maxLength(3))
+          _   <- h.typeText("abcd")
+          v1  <- ref.get
+          _   <- h.key(Keyboard.Backspace).andThen(h.key(Keyboard.Backspace))
+          _   <- h.paste("中👍🏽é!")
+          v2  <- ref.get
+      yield assert(v1 == "abc" && v2 == "a中👍🏽", s"$v1 $v2")
     }
 end DispatchTest
 

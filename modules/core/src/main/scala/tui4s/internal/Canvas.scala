@@ -4,7 +4,7 @@ package tui4s.internal
 
 import jatatui.core.backend.{Backend, TestBackend}
 import jatatui.core.buffer.{Buffer, BufferUpdate, Cell}
-import jatatui.core.layout.Rect as JRect
+import jatatui.core.layout.{Position, Rect as JRect}
 import kyo.*
 import tui4s.TuiError
 import tui4s.testkit.Screen
@@ -49,6 +49,11 @@ private[tui4s] final class Canvas private (
 ):
     // set by `close`; read and written only under the backend's monitor
     private var closed = false
+
+    // claude 2026-10-19: created (L1c): the terminal cursor that the backend
+    // shows (None: not known, before the first flush and after a resize);
+    // read and written only under the backend's monitor
+    private var shown: Option[Option[(Int, Int)]] = None
 
     def size: Size = Size(back.area.width, back.area.height)
 
@@ -147,33 +152,48 @@ private[tui4s] final class Canvas private (
     end diff
 
     /** Sends the changed cells of `plan` to the terminal ([[diff]], then one
-      * draw and a flush of the backend), in one hold of the backend's monitor.
-      * Returns the number of cells sent (`FrameStats.flushed`): 0 when no cell
-      * changed, and then nothing goes to the backend. After `close` it is 0:
-      * nothing is drawn and the shown cells do not change. A write that fails
-      * is [[tui4s.TuiError.TerminalIO]].
+      * draw), then the terminal cursor of the plan (`Plan.cursor`: moved to its
+      * cell and shown, or hidden), then a flush of the backend, in one hold of
+      * the backend's monitor. The draw moves the cursor of the terminal, so the
+      * cursor is placed again after each draw. Returns the number of cells sent
+      * (`FrameStats.flushed`): 0 when no cell changed; when no cell changed and
+      * the cursor did not change either, nothing goes to the backend. After
+      * `close` it is 0: nothing is drawn and the shown cells do not change. A
+      * write that fails is [[tui4s.TuiError.TerminalIO]].
       *
       * With the test seam (`Knobs.flushSeam`), the draw goes one row of cells
       * at a time, with a pause (a park, not a spin) of the seam between them.
       */
+    // claude 2026-10-19: changed: the terminal cursor of the plan (L1c)
     def flush(plan: Plan): Result[TuiError, Int] =
       backend.synchronized {
         if closed then Result.succeed(0)
         else
             val updates = diff(plan.spans)
-            if updates.isEmpty then Result.succeed(0)
-            else terminalIO(draw(updates)).map(_ => updates.size)
+            if updates.isEmpty && shown.contains(plan.cursor) then
+                Result.succeed(0)
+            else
+                terminalIO {
+                  if updates.nonEmpty then draw(updates)
+                  plan.cursor match
+                      case Some((x, y)) =>
+                        backend.setCursorPosition(Position(x, y))
+                        backend.showCursor()
+                      case None         => backend.hideCursor()
+                  backend.flush()
+                  shown = Some(plan.cursor)
+                }.map(_ => updates.size)
+            end if
       }
 
+    // claude 2026-10-19: changed: the flush is the caller's (L1c)
     private def draw(updates: Vector[BufferUpdate]): Unit =
-        if flushSeamNanos <= 0L then backend.draw(updates.asJava)
-        else
-            updates.grouped(back.area.width.max(1)).foreach { chunk =>
-              backend.draw(chunk.asJava)
-              LockSupport.parkNanos(flushSeamNanos)
-            }
-        backend.flush()
-    end draw
+      if flushSeamNanos <= 0L then backend.draw(updates.asJava)
+      else
+          updates.grouped(back.area.width.max(1)).foreach { chunk =>
+            backend.draw(chunk.asJava)
+            LockSupport.parkNanos(flushSeamNanos)
+          }
 
     /** A new size: both buffers become empty at `s`, and the terminal is
       * cleared. A `TestBackend` (the headless kit) has no terminal that resizes
@@ -187,6 +207,8 @@ private[tui4s] final class Canvas private (
         back.reset()
         front.resize(area)
         front.reset()
+        // claude 2026-10-19: created (L1c): the next flush places the cursor
+        shown = None
         if closed then Result.unit
         else
             terminalIO {

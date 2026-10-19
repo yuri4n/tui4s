@@ -115,6 +115,23 @@ class TextEditPropertyTest extends PropertyTest[Any]:
     }
 
     // claude 2026-10-19: created (L1c)
+    "maxLength: a paste is cut by grapheme clusters" - {
+      // The paste goes in up to the limit, cut by clusters: the text is the
+      // text before the caret, the first clusters of the paste that fit, and
+      // the text after the caret.
+      forAll(text, text, Gen.int, Gen.int) { (s, p, i, m) =>
+        val gs     = TextEdit.graphemes(s)
+        val c      = Math.floorMod(i, gs.size + 1)
+        val max    = Math.floorMod(m, 10)
+        val rules  = Rules(FieldAccess.Edit, max, _ => true)
+        val room   = (max - gs.size).max(0)
+        val cut    = TextEdit.graphemes(TextEdit.singleLine(p)).take(room).mkString
+        val (t, _) = TextEdit.paste(s, c, p, rules)
+        assert(t == gs.take(c).mkString + cut + gs.drop(c).mkString)
+      }
+    }
+
+    // claude 2026-10-19: created (L1c)
     "NumberText: the grammar of a number field" - {
       // The text of a number field while the user types: an optional sign
       // first, then digits with at most one point.

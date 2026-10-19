@@ -92,10 +92,10 @@ private[tui4s] object Paint:
       * box of a layer, and the regions, painted again in paint order. The spans
       * of the plan are the rects of the clears, of the roots (each cut to its
       * clip), of the layers under the roots, of the regions and of the cells
-      * painted again, on the screen of `env`.
+      * painted again, on the screen of `env`. With [[CaretLook.Cursor]] the
+      * plan carries the cell of the caret ([[caretCell]]).
       */
-    // claude 2026-10-19: changed (P5): the clears and the roots give ops; the
-    // clip of a root is cut to the screen; changed: the layers (L1b)
+    // claude 2026-10-19: changed: the cell of the terminal cursor (L1c)
     def apply(laid: Laid, env: Scene, damage: Vector[Damage]): Plan =
         val screen  = Rect(0, 0, env.screen.w, env.screen.h)
         val clears  = damage.collect { case c: Damage.Clear => c }.distinct
@@ -156,8 +156,103 @@ private[tui4s] object Paint:
           ops,
           Plan.rowSpans(rects ++ regions ++ again, screen),
           top.size,
+          env.look match
+              case CaretLook.Cursor => caretCell(laid, env)
+              case CaretLook.Cell   => None,
         )
     end apply
+
+    /** The cell of the caret of the focused text input or textarea: the
+      * terminal cursor of the frame. None when the focus is on another element,
+      * or when the cell is outside the field or outside the clip of the field
+      * (a viewport scrolled it away).
+      */
+    // claude 2026-10-19: created (L1c)
+    def caretCell(laid: Laid, env: Scene): Option[(Int, Int)] =
+      env.focus.flatMap(laid.nodes.get).flatMap { n =>
+        val r    = n.rect.inset(n.props.border.fold(Sides.zero)(_.sides))
+        val cell = n.kind match
+            case Kind.El(ta: Textarea)  =>
+              n.view.map(v => areaCaret(env, n, ta, v)._1)
+            case Kind.El(ti: TextInput) =>
+              Option.when(r.w > 0)(
+                (
+                  r.x + fieldScroll(
+                    fieldGlyphs(env, n, ti),
+                    env.caret(n.path),
+                    r.w,
+                  )._2,
+                  r.y,
+                ),
+              )
+            case _                      => None
+        val box  = clipOf(laid, n.path)
+          .intersect(Rect(0, 0, env.screen.w, env.screen.h))
+          .intersect(n.kind match
+              case Kind.El(_: Textarea) => n.view.fold(r)(_.port)
+              case _                    => r)
+        cell.filter((x, y) =>
+          x >= box.x && x < box.right && y >= box.y && y < box.bottom,
+        )
+      }
+
+    /** The glyphs of the value of the field `ti` at `n`: its grapheme clusters,
+      * or one "•" for each of them in a password (its text never goes into the
+      * plan).
+      */
+    // claude 2026-10-19: created (L1c)
+    def fieldGlyphs(env: Scene, n: Node, ti: TextInput): Vector[String] =
+        val value = textValue(env, n.path, ti)
+        ti match
+            case _: PasswordInput => TextEdit.graphemes(value).map(_ => "•")
+            case _                => TextEdit.graphemes(value)
+
+    /** The scroll of a one-line field `width` cells wide with the glyphs
+      * `glyphs` and the caret `caret` (clamped): the first glyph shown, and the
+      * cells from it to the caret ([[scrollStart]]).
+      */
+    // claude 2026-10-19: created (L1c)
+    def fieldScroll(
+        glyphs: Vector[String],
+        caret: Int,
+        width: Int,
+    ): (Int, Int) =
+        val widths = glyphs.map(Layout.textWidth)
+        val at     = caret.max(0).min(glyphs.size)
+        scrollStart(widths, at, widths.lift(at).getOrElse(1).max(1), width)
+    end fieldScroll
+
+    /** The caret of the textarea `ta` at `n` with the view `v`: its cell (at
+      * the right edge of the port when it is after the last cell; outside the
+      * port when the view does not show its row), and the glyph under it (a
+      * space at a line break, at the end, or when the glyph does not fit).
+      */
+    // claude 2026-10-19: created (L1c)
+    def areaCaret(
+        env: Scene,
+        n: Node,
+        ta: Textarea,
+        v: View,
+    ): ((Int, Int), String) =
+        val gs    = TextEdit.graphemes(textValue(env, n.path, ta))
+        val lines = AreaText.linesOf(gs, v.port.w)
+        val c     = env.caret(n.path).max(0).min(gs.size)
+        val row   = AreaText.row(lines, c)
+        val col   = lines.lift(row).fold(0)(AreaText.column(gs, _, c))
+        val g     = gs
+          .lift(c)
+          .filter(g =>
+            !AreaText.isBreak(g) && col + Layout.textWidth(g) <= v.port.w,
+          )
+          .getOrElse(" ")
+        (
+          (
+            v.port.x + col.min((v.port.w - 1).max(0)),
+            v.port.y + row - v.offset.y,
+          ),
+          g,
+        )
+    end areaCaret
 
     /** The whole rows of `screen` that the rects of `rs` touch, as disjoint
       * rects in row order (the rows that touch merge).
@@ -636,9 +731,9 @@ private[tui4s] object Paint:
       * of the port is an underlined field, and the visual lines of the text
       * ([[AreaText]]) from the row of the offset fill it, clipped to the port.
       * An empty textarea with no focus shows its placeholder, dim and italic.
-      * The focused textarea shows its caret: a reversed cell at the row and the
-      * column of the caret (the glyph at the caret when it fits, else a space;
-      * at the right edge when the caret is after the last cell).
+      * The focused textarea shows its caret: the terminal cursor at its cell
+      * ([[caretCell]]), or with [[CaretLook.Cell]] a reversed cell there
+      * ([[areaCaret]]).
       */
     // claude 2026-10-19: created (L1c)
     private def area(
@@ -674,22 +769,15 @@ private[tui4s] object Paint:
             .fold("")(l => gs.slice(l.start, l.end).mkString)
           blank ++ text(v.port.x, y, line, textStyle, port)
         }
+        // claude 2026-10-19: changed: the reversed cell only when the terminal
+        // cursor does not show the caret (L1c)
         val cursor    =
-          if !focused then Vector.empty
+          if !focused || env.look != CaretLook.Cell then Vector.empty
           else
-              val c   = env.caret(n.path).max(0).min(gs.size)
-              val r   = AreaText.row(lines, c)
-              val col = lines.lift(r).fold(0)(AreaText.column(gs, _, c))
-              val x   = v.port.x + col.min((v.port.w - 1).max(0))
-              val g   = gs
-                .lift(c)
-                .filter(g =>
-                  !AreaText.isBreak(g) && col + Layout.textWidth(g) <= v.port.w,
-                )
-                .getOrElse(" ")
+              val ((x, y), g) = areaCaret(env, n, ta, v)
               put(
                 x,
-                v.port.y + r - v.offset.y,
+                y,
                 g,
                 field.withAddModifier(jatatui.core.style.Modifier.REVERSED),
                 port,
@@ -805,20 +893,16 @@ private[tui4s] object Paint:
               // the caret is a grapheme index (World.carets); the text scrolls
               // and the cursor lands by cell widths (a wide character takes
               // two cells), not by UTF-16 chars
-              val value     = textValue(env, n.path, ti)
               // claude 2026-10-19: changed: a password shows one "•" for
-              // each grapheme cluster; its text never goes into the plan (L1c)
-              val glyphs    = e match
-                  case _: PasswordInput =>
-                    TextEdit.graphemes(value).map(_ => "•")
-                  case _                => TextEdit.graphemes(value)
+              // each grapheme cluster; its text never goes into the plan; the
+              // glyphs and the scroll are shared with the terminal cursor (L1c)
+              val glyphs    = fieldGlyphs(env, n, ti)
               val widths    = glyphs.map(Layout.textWidth)
               val caret     = env.caret(n.path).max(0).min(glyphs.size)
               // the first grapheme shown: the cells from it to the caret, plus
               // the cell of the cursor, fit in the field (`scrollStart`, one
               // walk back from the caret)
-              val cursorW   = widths.lift(caret).getOrElse(1).max(1)
-              val scroll    = scrollStart(widths, caret, cursorW, r.w)
+              val scroll    = fieldScroll(glyphs, caret, r.w)
               val first     = scroll._1
               val visible   = glyphs
                 .drop(first)
@@ -851,8 +935,10 @@ private[tui4s] object Paint:
                 .lift(caret)
                 .filter(g => scroll._2 + Layout.textWidth(g) <= r.w)
                 .getOrElse(" ")
+              // claude 2026-10-19: changed: the reversed cell only when the
+              // terminal cursor does not show the caret (L1c)
               val cursor    =
-                if focused then
+                if focused && env.look == CaretLook.Cell then
                     put(
                       r.x + scroll._2,
                       r.y,

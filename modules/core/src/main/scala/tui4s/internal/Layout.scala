@@ -38,10 +38,10 @@ end Content
   * path as a grapheme index (`World.carets`; `Int.MaxValue` is the end of the
   * text). `scroll` gives the scroll offset of the viewport at a path
   * (`World.scroll`); the layout clamps it. `vars` holds the custom properties
-  * of the stylesheet of the run ([[CssVars]]): the screen has them.
+  * of the stylesheet of the run ([[CssVars]]): the screen has them. `look` says
+  * how the frame shows the caret ([[CaretLook]]).
   */
-// claude 2026-10-19: changed: the scroll offset of a viewport (L1a); the
-// custom properties of the run (L1b)
+// claude 2026-10-19: changed: the look of the caret (L1c)
 private[tui4s] final case class Scene(
     content: Loc => Option[Content],
     focus: Option[Loc],
@@ -49,6 +49,7 @@ private[tui4s] final case class Scene(
     caret: Loc => Int,
     scroll: Loc => Offset = _ => Offset.zero,
     vars: CssVars = CssVars.empty,
+    look: CaretLook = CaretLook.Cell,
 )
 
 private[tui4s] enum Kind:

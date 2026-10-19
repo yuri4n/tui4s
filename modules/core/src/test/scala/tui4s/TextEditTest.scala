@@ -8,10 +8,10 @@ import tui4s.testkit.{Headless, Screen}
 /** The editing of a text input by grapheme clusters (OS-11, OS-15 part): the
   * cases of the old `TextFieldTest` (origin/feat/core-1-model-view), driven by
   * keys on the headless kit. Each case reads the bound ref and the screen: the
-  * text cursor is the reversed cell of row 0, and its column is the cell width
-  * of the graphemes before the caret.
+  * text cursor is the terminal cursor on row 0, and its column is the cell
+  * width of the graphemes before the caret.
   */
-// claude 2026-10-13: created (C3)
+// claude 2026-10-19: changed: the Scaladoc names the terminal cursor (L1c)
 class TextEditTest extends RunnerSuite:
 
     private val thumb  = "\uD83D\uDC4D\uD83C\uDFFD" /* thumbs up + skin tone: 4
@@ -21,8 +21,13 @@ class TextEditTest extends RunnerSuite:
     private val flag   = "\uD83C\uDDEB\uD83C\uDDF7" // two regional indicators
     private val eAcute = "e\u0301"                  // e + COMBINING ACUTE ACCENT: one grapheme
 
-    /** The column of the text cursor (the reversed cell) on row 0. */
-    private def caretX(s: Screen): Int = s.styles(0).indexWhere(_.reversed)
+    /** The column of the text cursor (the terminal cursor) on row 0; -1 when
+      * the screen shows no cursor.
+      */
+    // claude 2026-10-19: changed: the terminal cursor, not a reversed cell
+    // (L1c)
+    private def caretX(s: Screen): Int =
+      s.cursor.collect { case (x, 0) => x }.getOrElse(-1)
 
     /** The cell width of `s` (the caret column after `s`). */
     private def cells(s: String): Int = Layout.textWidth(s)

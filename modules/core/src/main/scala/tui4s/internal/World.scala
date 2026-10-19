@@ -134,8 +134,7 @@ private[tui4s] final case class World(
     // (Warnings.scan), each one once
     warned: Set[Warn] = Set.empty,
 ):
-    // claude 2026-10-19: changed: the scroll offsets (L1a); the custom
-    // properties (L1b)
+    // claude 2026-10-19: changed: the terminal cursor shows the caret (L1c)
     def env: Scene =
       Scene(
         p => regions.get(p).map(_.content),
@@ -144,6 +143,7 @@ private[tui4s] final case class World(
         p => carets.getOrElse(p, Int.MaxValue),
         p => scroll.getOrElse(p, Offset.zero),
         vars,
+        CaretLook.Cursor,
       )
 
     def gen: (Long, World) = (nextGen, copy(nextGen = nextGen + 1))

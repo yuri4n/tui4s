@@ -482,6 +482,18 @@ class GoldenScreenTest extends ScreenSuite:
         )
       }
       // claude 2026-10-19: created (L1c)
+      "a disabled input is dim; a read-only input looks as an input" in {
+        val ui = div(
+          input.value("off").disabled(true),
+          input.value("ro").readOnly(true),
+        )
+        assertScreen(ui, 6, 2, "off\nro")
+        val b  = buffer(ui, 6, 2)
+        assert(b.cellAt(0, 0).modifier.contains(Modifier.DIM))
+        assert(!b.cellAt(0, 1).modifier.contains(Modifier.DIM))
+        assert(b.cellAt(0, 1).modifier.contains(Modifier.UNDERLINED))
+      }
+      // claude 2026-10-19: created (L1c)
       "a password shows one bullet for each grapheme cluster; a number shows its text" in {
         assertScreen(
           div.style(_.row)(passwordInput.value("中文é👍🏽")),

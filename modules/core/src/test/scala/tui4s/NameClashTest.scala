@@ -25,7 +25,8 @@ class NameClashTest extends RunnerSuite:
       val stats: FrameStats   = FrameStats(1L, cause, 0, 0, 0L, 0)
       val style: CellStyle    = CellStyle.plain
       val copy: Screen        = Screen(Vector(""), Vector(Vector(style)), None)
-      val ui: UI              = div(span("x"))
+      // claude 2026-10-19: changed: maxLength, the extension of tui4s (L1c)
+      val ui: UI              = div(span("x"), input.maxLength(3))
       for
           h <- Headless.start(10, 2, options)(_ => ui)
           s <- h.screen

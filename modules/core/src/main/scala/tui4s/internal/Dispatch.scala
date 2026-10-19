@@ -468,15 +468,19 @@ private[tui4s] final class Dispatch(
         else commitText(w, p, ta, value, caret, next, nextCaret)
     end editArea
 
-    /** The rules of the edits of `ti` ([[Rules]]): read-only or not; a number
-      * field holds a [[NumberText.partial]] text.
+    /** The rules of the edits of `ti` ([[Rules]]): read-only or not; the limit
+      * of [[tui4s.maxLength]] (none when the attribute is absent or not a
+      * number); a number field holds a [[NumberText.partial]] text.
       */
     // claude 2026-10-19: created (L1c)
     private def rulesOf(ti: TextInput): Rules =
       Rules(
         if ti.readOnly.getOrElse(false) then FieldAccess.ReadOnly
         else FieldAccess.Edit,
-        Int.MaxValue,
+        ti.attrs.dataAttrs
+          .get(tui4s.MaxLengthAttr)
+          .flatMap(_.toIntOption)
+          .fold(Int.MaxValue)(_.max(0)),
         ti match
             case _: NumberInput => NumberText.partial
             case _              => _ => true,
