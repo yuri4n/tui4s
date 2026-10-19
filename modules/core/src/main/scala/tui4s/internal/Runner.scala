@@ -338,8 +338,10 @@ private[tui4s] final class Runner(
                   )
             }
           case Some(RegionState(_, Source.Many(fe), g, _, items, _))     =>
+            // claude 2026-10-19: changed: Mount.sameValues, no new vectors
+            // (PF-a, F8)
             fe.signal.current.map { cur =>
-              if items.map(_.value) == cur.toVector then acc
+              if Mount.sameValues(items, cur) then acc
               else
                   apply(
                     acc.copy(repaired = acc.repaired + 1),
@@ -375,7 +377,7 @@ private[tui4s] final class Runner(
                 // claude 2026-10-19: changed: the item type `a` of the Foreach
                 // (Source.Many is typed, P1)
                 case many: Source.Many[a]              =>
-                  val items = mount.reconcile(
+                  val items = Mount.reconcile(
                     many.fe,
                     r.items,
                     c.value.asInstanceOf[Chunk[a]].toVector, // scalafix:ok DisableSyntax.asInstanceOf; KEEP: true by construction (Msg.Content)
@@ -617,8 +619,19 @@ private[tui4s] final class Runner(
           val laid0 = Layout.layoutAll(w.root, w.env)
           val focus = fixFocus(w.copy(laid = laid0))
           val w1    = w.copy(focus = focus)
+          // claude 2026-10-19: changed: a new focus lays out again only the
+          // owners of the old and the new focus, not the whole screen (PF-a,
+          // F8); the full frame paints everything, so the damage is dropped
           val laid  =
-            if focus != w.focus then Layout.layoutAll(w.root, w1.env) else laid0
+            if focus == w.focus then laid0
+            else
+                relayoutAll(
+                  w1,
+                  w.focus.toList ++ focus.toList,
+                  laid0,
+                  Vector.empty,
+                  w1.env,
+                )._1
           (
             w1.copy(laid = laid),
             Vector(

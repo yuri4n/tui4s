@@ -140,43 +140,6 @@ private[tui4s] final class Mount(
             case _                => None
     end boundRef
 
-    /** Unique keys for a `Foreach`: kyo-ui does not reject duplicates, but two
-      * items on one path would collide here.
-      */
-    // claude 2026-10-19: changed: the item type A, not Any (P1)
-    private def keysOf[A](
-        fe: Foreach[A, ?],
-        items: Vector[A],
-    ): Vector[String] =
-        val raw =
-          items.zipWithIndex.map((a, i) => fe.key.fold(i.toString)(k => k(a)))
-        raw.zipWithIndex
-          .foldLeft((Vector.empty[String], Set.empty[String])) {
-            case ((acc, seen), (k, i)) =>
-              val unique = if seen.contains(k) then s"$k~$i" else k
-              (acc :+ unique, seen + unique)
-          }
-          ._1
-    end keysOf
-
-    /** Re-renders only the items that are new, or whose value or index changed;
-      * the others keep their UI value (so their nested regions are kept too).
-      */
-    // claude 2026-10-19: changed: the item type A, not Any (P1)
-    def reconcile[A](
-        fe: Foreach[A, ?],
-        old: Vector[ItemState],
-        values: Vector[A],
-    ): Vector[ItemState] =
-        val byKey = old.map(it => it.key -> it).toMap
-        keysOf(fe, values).zip(values).zipWithIndex.map { case ((k, a), i) =>
-          byKey
-            .get(k)
-            .filter(o => o.value == a && o.index == i)
-            .getOrElse(ItemState(k, i, a, fe.render(i, a)))
-        }
-    end reconcile
-
     /** Walks `ui` at `path`, mounting every region in it. A region of `reclaim`
       * with the same signal (or ref) is kept as is with its watcher and its
       * content.
@@ -256,7 +219,7 @@ private[tui4s] final class Mount(
                   for
                       values  <- fe.signal.current
                       watcher <- watch(fe.signal, path, gen)
-                      items    = reconcile(fe, Vector.empty, values.toVector)
+                      items    = Mount.reconcile(fe, Vector.empty, values.toVector)
                       region   = RegionState(
                                    path,
                                    Source.Many(fe),
@@ -611,6 +574,58 @@ private[tui4s] final class Mount(
 end Mount
 
 private[tui4s] object Mount:
+    /** Unique keys for a `Foreach`: kyo-ui does not reject duplicates, but two
+      * items on one path would collide here.
+      */
+    // claude 2026-10-19: changed: the item type A, not Any (P1); moved to
+    // the companion, a pure function (PF-a, F8)
+    private def keysOf[A](
+        fe: Foreach[A, ?],
+        items: Vector[A],
+    ): Vector[String] =
+        val raw =
+          items.zipWithIndex.map((a, i) => fe.key.fold(i.toString)(k => k(a)))
+        raw.zipWithIndex
+          .foldLeft((Vector.empty[String], Set.empty[String])) {
+            case ((acc, seen), (k, i)) =>
+              val unique = if seen.contains(k) then s"$k~$i" else k
+              (acc :+ unique, seen + unique)
+          }
+          ._1
+    end keysOf
+
+    /** Re-renders only the items that are new, or whose value or index changed;
+      * the others keep their UI value (so their nested regions are kept too).
+      * An item whose index moved and whose new UI equals its old UI keeps the
+      * old UI value: the result is equal, and the old value keeps its identity
+      * (structural sharing).
+      */
+    // claude 2026-10-19: changed: an item that only moved keeps its equal UI
+    // value; moved to the companion (PF-a, F8)
+    def reconcile[A](
+        fe: Foreach[A, ?],
+        old: Vector[ItemState],
+        values: Vector[A],
+    ): Vector[ItemState] =
+        val byKey = old.map(it => it.key -> it).toMap
+        keysOf(fe, values).zip(values).zipWithIndex.map { case ((k, a), i) =>
+          byKey.get(k).filter(_.value == a) match
+              case Some(o) if o.index == i => o
+              case Some(o)                 =>
+                val ui = fe.render(i, a)
+                ItemState(k, i, a, if ui == o.ui then o.ui else ui)
+              case None                    => ItemState(k, i, a, fe.render(i, a))
+        }
+    end reconcile
+
+    /** True when the items show the values `cur`, in order. One walk, no new
+      * collection.
+      */
+    // claude 2026-10-19: created (PF-a, F8): the compare of the verify pass
+    def sameValues(items: Vector[ItemState], cur: Chunk[?]): Boolean =
+      items.sizeCompare(cur.size) == 0 &&
+        items.iterator.map(_.value).sameElements(cur.iterator)
+
     /** The state of a mounted [[tui4s.Component]] with its own `State` type.
       * `World.comps` keeps the state under the path and the state key. Only a
       * component with that state key writes it there, and one state key has one
