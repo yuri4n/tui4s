@@ -674,11 +674,17 @@ private[tui4s] final class Runner private (
                     ),
                   )
               else
-                  val (w1, damage)   = layoutStep(w)
-                  val (rects, roots) = Paint(canvas, w1.laid, w1.env, damage)
-                  val flushed        = canvas.flush(rects)
-                  val repainted      = canvas.takeWrites()
-                  val done           = w1.copy(
+                  val (w1, damage) = layoutStep(w)
+                  // claude 2026-10-19: changed (P5): the pure painter gives
+                  // the plan; the canvas writes it
+                  val plan         = Paint(w1.laid, w1.env, damage)
+                  canvas.write(plan)
+                  val flushed      = canvas.flush(
+                    plan.spans.map(s => Rect(s.x, s.y, s.right - s.x, 1)),
+                  )
+                  val repainted    = canvas.takeWrites()
+                  val roots        = plan.roots
+                  val done         = w1.copy(
                     dirtyRegions = Vector.empty,
                     dirtyNodes = Set.empty,
                     full = false,

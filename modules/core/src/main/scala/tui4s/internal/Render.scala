@@ -15,14 +15,18 @@ private[tui4s] object Render:
 
     /** The screen buffer after one frame of `ui` on `w` x `h` cells. */
     def buffer(ui: UI, w: Int, h: Int, focus: Option[Loc] = None): Buffer =
-        val backend    = TestBackend(w, h)
-        val canvas     = Canvas(backend)
-        val env        = Scene(_ => None, focus, Size(w, h), _ => 0)
-        val laid       = Layout.layoutAll(ui, env)
-        val damage     =
+        val backend = TestBackend(w, h)
+        val canvas  = Canvas(backend)
+        val env     = Scene(_ => None, focus, Size(w, h), _ => 0)
+        val laid    = Layout.layoutAll(ui, env)
+        val damage  =
           Vector(Damage.Clear(Rect(0, 0, w, h), None), Damage.Paint(Loc.screen))
-        val (rects, _) = Paint(canvas, laid, env, damage)
-        discard(canvas.flush(rects))
+        // claude 2026-10-19: changed (P5): the plan of the pure painter
+        val plan    = Paint(laid, env, damage)
+        canvas.write(plan)
+        discard(
+          canvas.flush(plan.spans.map(s => Rect(s.x, s.y, s.right - s.x, 1))),
+        )
         backend.buffer()
     end buffer
 

@@ -38,7 +38,11 @@ class CullPropertyTest extends PropertyTest[Any]:
           def cells(c: Rect): Vector[Vector[String]] =
               val backend = TestBackend(size.w, size.h)
               val canvas  = Canvas(backend)
-              kids.foreach(k => Paint.paintNode(canvas, laid, env, k, c))
+              // claude 2026-10-19: changed (P5): the ops of the pure painter
+              val ops     = kids.foldLeft(Vector.empty[Op])((o, k) =>
+                Paint.paintNode(o, laid, env, k, c.intersect(full)),
+              )
+              canvas.write(Plan(size, ops, Vector.empty, 0))
               discard(canvas.flush(Vector(full)))
               val buf     = backend.buffer()
               Vector.tabulate(size.h, size.w)((y, x) =>
