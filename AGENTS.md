@@ -421,11 +421,21 @@ tests then allow 1 split frame).
 <!-- claude 2026-10-17: created this section (purity plan, phase P0) -->
 
 - Write impure code only in an edge file, or on a line that has a
-  `scalafix:ok` comment (see below). Phase P5 adds two more permitted places:
-  the kernels `Canvas.write` and `Canvas.diff`. Impure code is a `var`, a
+  `scalafix:ok` comment (see below). Impure code is a `var`, a
   `while` loop, `null`, a `| Null` type, `return`, `throw`, a cast, a JVM
   lock, atomic or thread, a `System` or `Runtime` call, and the unsafe Kyo
   APIs (`AllowUnsafe`, `Sync.Unsafe`, `.unsafe`).
+- The painter is pure: `internal.Paint` gives the `internal.Plan` of a frame
+  (its ops and its damaged row spans) and writes nothing. Only the edge file
+  `internal/Canvas.scala` touches the jatatui buffers and the backend. Its two
+  kernels are the only loops over cells: `Canvas.write` (the ops of a plan
+  into the kept cells) and `Canvas.diff` (the damaged cells that differ from
+  the shown cells). Each Scaladoc states its law, and `CanvasPropertyTest`
+  checks it. `Canvas.diff`, `flush`, `resize`, `read` and `close` take the
+  backend's monitor; `write` does not. Do not add a third kernel: put a new
+  write into a new `Op`. The old painter is the permanent oracle in the test
+  sources (`oracle/PaintOracle.scala`); do not change it.
+  <!-- claude 2026-10-19: changed (P5): the kernels are in the edge file Canvas.scala; the plan, the monitor rule, the oracle -->
 - An edge file wraps a foreign API. Its line 1 is
   `// scalafix:off DisableSyntax` and its line 2 is
   `// EDGE: <the foreign API>`. `scripts/edge-check.sh` has the list of the

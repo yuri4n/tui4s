@@ -8,11 +8,11 @@ import tui4s.internal.*
   * the clip of its owners). This gives the rows that the old code wrote. The
   * two pieces are copied without a change.
   *
-  * The rest of the old painter is not kept: `Paint.paintNode` writes into a
-  * mutable `Canvas`, so it is not a pure function. The node part of the cull is
-  * checked by a property of the clip instead (`CullPropertyTest`).
+  * The node part of the cull is checked by a property of the clip
+  * (`CullPropertyTest`); the whole old painter is [[PaintOracle]] (P5).
   */
-// claude 2026-10-19: created (PF-a, F3): a private copy of the old code
+// claude 2026-10-19: created (PF-a, F3): a private copy of the old code;
+// changed (P5): the Scaladoc names PaintOracle
 private[tui4s] object CullOracle:
     def rows(rect: Rect, clip: Rect, lineCount: Int): Vector[Int] =
         val area = rect.intersect(clip)

@@ -17,7 +17,8 @@ import tui4s.internal.*
   *     cells of the old painter (the old canvas cuts a text by chars at the
   *     left edge of a clip, so the clip starts at the left edge of the screen;
   *     `CullPropertyTest` checks the left edge by the clip law);
-  *   - every op of a plan lies inside the spans of the plan.
+  *   - every op of a plan lies inside the spans of the plan, and a second paint
+  *     of the same arguments gives the same plan (determinism).
   */
 // claude 2026-10-19: created (P5, A9)
 class PaintPropertyTest extends PropertyTest[Any]:
@@ -75,6 +76,7 @@ class PaintPropertyTest extends PropertyTest[Any]:
         assert(
           plans.forall(p => p.ops.forall(op => opCells(op).forall(inSpans(p)))),
         )
+        assert(Paint(laidB, b.sceneB(size), damage) == plans(1))
       }
     }
 end PaintPropertyTest
