@@ -281,3 +281,11 @@ The user answered the five launch questions (chat, 2026-10-19):
   including the reviewers. Fable itself only for a gate review or the skeptic
   on concurrency and terminal-restore code (unchanged lean-mode rule).
 <!-- claude 2026-10-19: created this round -->
+- D20 Cheap cadence (user, 2026-10-19: "yeah go cheaper"). L0 runs as six
+  workflows, not nine: P1 (running, 3 agents) -> PF-a + P1b (1 agent:
+  implement, verify, push) -> P2, P3, P5 (3 agents each; the Fable skeptic is
+  the only review seat) -> P4 + P6 (1 agent, one PTY run). PF-b folds into
+  the layout work of L1. A single-agent phase still does the one full check
+  and the PTY run when terminal code changed; the cut is the review seat, not
+  the verification.
+<!-- claude 2026-10-19: created D20 -->
