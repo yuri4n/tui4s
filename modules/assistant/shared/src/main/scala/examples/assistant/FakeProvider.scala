@@ -43,7 +43,8 @@ object FakeProvider:
       * names the message.
       */
     val demo: Script = r =>
-        val said = lastUserText(r).trim
+        val said  = lastUserText(r).trim
+        val shown = Title.of(said, 40)
         if said == "/fail" then
             Reply(
               pieces("This reply fails half way, as you asked."),
@@ -54,8 +55,7 @@ object FakeProvider:
         else
             Reply(
               pieces(
-                s"""You said: "${Title
-                    .of(said, 40)}". I am the fake provider """ +
+                s"""You said: "$shown". I am the fake provider """ +
                   "of tui4s: I answer from a script, with no network and no " +
                   "key. Send /fail to see an error, or press Esc while I " +
                   "write to stop me.",

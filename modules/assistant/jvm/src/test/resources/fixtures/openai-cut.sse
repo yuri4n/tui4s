@@ -1,0 +1,2 @@
+data: {"id":"chatcmpl-3","object":"chat.completion.chunk","created":1760000000,"model":"gpt-5","choices":[{"index":0,"delta":{"role":"assistant","content":"The connection was cut he"},"finish_reason":null}],"usage":null}
+
