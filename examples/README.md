@@ -15,10 +15,10 @@ package.
 | Counter styles | `examples.counterstyles.CounterStylesApp`  | `examples/target/bin/counterstyles` | Both component styles side by side: hook counters that the runner mounts (`component`, inside a `when`: `h` hides them and they lose their state) and `Component` counters. |
 | Todo           | `examples.todo.TodoApp`                    | `examples/target/bin/todo [file]`   | A list in a file (the argument, or `todos.txt` in the working directory): a text input, Enter adds, Tab to the list, Space toggles, `d` deletes, Ctrl-S saves, a paste is one edit, Esc quits. |
 | Dashboard      | `examples.dashboard.DashboardApp`          | `examples/target/bin/dashboard`     | Tabs, a gauge and a sparkline fed by a sampler (250 ms), a log pane fed by a stream (400 ms); the arrows, or Tab and Space or Enter, change the tab; `p` pauses the sampler; `q` quits. |
-| Printing       | `examples.printing.PrintingApp`            | `examples/target/bin/printing [--log file]` | A `println` while the UI is up does not reach the screen: the lines come after the terminal is restored, or go to the log file. This is also true after a `println` before the run (the app prints one line when it starts). `args` and `options` of a `TuiApp`. |
+| Printing       | `examples.printing.PrintingApp`            | `examples/target/bin/printing [--log file] [--fail-on-f]` | A `println` while the UI is up does not reach the screen: the lines come after the terminal is restored, or go to the log file. This is also true after a `println` before the run (the app prints one line when it starts). `args` and `options` of a `TuiApp`. The test aid `--fail-on-f` makes `f` fail the UI: exit code 1, and the failure comes after the restore. |
 | Widgets        | none (a library)                           | none                                | Reusable gauge and sparkline helpers, Kyo-only `TabsView`, and the terminal `Tabs` component adapter in `examples.widgets`. |
 
-<!-- claude 2026-10-13: changed the Printing row (T2, review R1-1): the println before the run -->
+<!-- claude 2026-10-19: changed the Printing row: the test aid --fail-on-f -->
 
 ## State and events with Kyo
 
@@ -440,8 +440,10 @@ before):
 | `counter resize`, `resize` | At 40x20 the screen is laid out again inside 40 columns (the help line wraps); at 100x30 again, the help line is one line. |
 | `counter kill -TERM`, `term` | `kill -TERM` to the app after its first frame: exit code 143, the alternate screen left, the cursor shown, nothing stray. |
 | `counter kill -INT`, `int` | `kill -INT`: exit code 130, the same restore. |
+| `counter kill -HUP`, `hup` | `kill -HUP` (the terminal window closes): exit code 129, the same restore. |
 | `printing`, `print` | The `println` before the run comes before the alternate screen. A `println` when the UI is built and at `+` never reaches the screen; after the restore come the two printed lines, then `EXIT=0`, and no warning that `scala.Console` was in use before the run (the constructor of `TuiApp` installed the capture first). |
 | `printing --log`, `printlog` | With `--log printing.log`: the `println` before the run comes before the alternate screen; after it, no printed line and no warning comes in the terminal, and the log file has exactly the two lines of the run. |
+| `printing --fail-on-f`, `printfail` | With the test aid `--fail-on-f`, the key `f` fails the UI (a render fails): exit code 1; no printed line and no failure on the screen while the UI is up; after the restore come the printed line of the run, then the failure (`java.lang.IllegalStateException: printing: f failed the UI (--fail-on-f)` and its stack trace), then `EXIT=1`. |
 | `counterkyo`, `kyoapp` | The KyoApp main: `+` shows `Count: 1`; `q` gives exit code 0 and the restore. |
 | `counterstyles`, `styles` | Enter on the `+` of a hook counter, then on the `+` of a `Component` counter: the counts are 1, 0, 1, 0; `h` hides the hook counters (1, 0); `h` shows them again at 0 (0, 0, 1, 0); `q`. |
 | `todo` | `todo todo-pty.txt`: raw mode; typed text shows in the input; Enter adds `[ ] buy milk` and empties the input; a bracketed paste of one line shows in the input and adds nothing; a paste with a line break gives a space (`tea time and cake`) and adds nothing; Enter adds it; Tab moves the focus to the list; Space toggles `[x] buy milk`; Ctrl-S shows `saved 2 items to todo-pty.txt`; Esc gives exit code 0 and the restore; the file is `[x] buy milk` and `[ ] tea time and cake`. |
@@ -453,6 +455,7 @@ before):
 <!-- claude 2026-10-13: changed the rows Resize and Native access (T1, review R3-9): the stty -a comparison -->
 <!-- claude 2026-10-13: changed the rows (T2, RC-31 rest, OS-19): the names of the output, the rows of all the examples -->
 <!-- claude 2026-10-13: changed the rows Ctrl-C and Printing (T2, reviews R1-8, R1-1): the name ctrlc; the println before the run -->
+<!-- claude 2026-10-19: created the rows hup and printfail -->
 
 A human does the steps that a pseudo-terminal cannot show (colours, real
 window resizes, look and feel) on the terminals of the platform, and writes

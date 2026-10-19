@@ -54,6 +54,29 @@ class PrintingSuite extends FunSuite:
       assertEquals(Printing.options(Chunk.empty), TuiOptions())
     }
 
+    // claude 2026-10-19: created: the test aid --fail-on-f
+    test("--fail-on-f: the key f fails the UI and the run ends; without it, f does nothing") {
+      val (failed, ended, kept) = run {
+        for
+            h      <- Headless.start(50, 6)(quit =>
+                        Printing.ui(quit, _ => Kyo.unit, failOnF = true),
+                      )
+            failed <- Abort.run[Throwable](h.char('f')).map(!_.isSuccess)
+            ended  <- h.awaitEnd(5.seconds)
+            plain  <- Headless.start(50, 6)(quit =>
+                        Printing.ui(quit, _ => Kyo.unit),
+                      )
+            _      <- plain.char('f')
+            kept   <- plain.finished.map(!_)
+        yield (failed, ended, kept)
+      }
+      assert(failed, "the key f did not fail")
+      assert(ended, "the run did not end")
+      assert(kept, "without --fail-on-f, the run ended at f")
+      assert(Printing.failOnF(Chunk("--fail-on-f")))
+      assert(!Printing.failOnF(Chunk("--log", "out.log")))
+    }
+
     private def discard(b: Boolean): Unit =
         val _ = b
 end PrintingSuite

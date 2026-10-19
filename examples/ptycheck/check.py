@@ -197,7 +197,8 @@ check("resize: back at 100 columns the help is one line again",
 
 # claude 2026-10-13: created (T2): the rows of T2, to the pipe row
 # kill -TERM and kill -INT from outside
-for name, sig, code in (("term", "TERM", 143), ("int", "INT", 130)):
+# claude 2026-10-19: changed: kill -HUP (129)
+for name, sig, code in (("term", "TERM", 143), ("int", "INT", 130), ("hup", "HUP", 129)):
     check(f"counter kill -{sig}: first screen shows 'Count: 0'", "Count: 0" in screen(f"{name}-start"), screen(f"{name}-start"))
     restored(f"{name}-kill", f"counter kill -{sig}", code)
 
@@ -225,6 +226,21 @@ check("printing --log: the println before the run comes before the alternate scr
 check("printing --log: no printed line in the terminal while the UI is up or after it (they go to the file)",
       "printing:" not in log_rest and R3_WARNING not in log_rest, repr(log_rest[:600]))
 restored("printlog-q", "printing --log")
+
+# Printing --fail-on-f: a failure inside the running UI
+# claude 2026-10-19: created: exit code 1, the failure after the restore and never on the screen
+check("printing --fail-on-f: first screen shows 'Count: 0'", "Count: 0" in screen("printfail-start"), screen("printfail-start"))
+shown = inside_alt(("printfail-start", "printfail-f"))
+check("printing --fail-on-f: no printed line and no failure on the screen while the UI is up",
+      "printing:" not in shown and "Exception" not in shown, repr(shown[:600]))
+fail_seg = seg("printfail-f")
+check("printing --fail-on-f: leaves the alternate screen and shows the cursor",
+      "\x1b[?1049l" in fail_seg and "\x1b[?25h" in fail_seg, repr(fail_seg[-300:]))
+fail_lines = after_restore("printfail-f").splitlines()
+failure = "java.lang.IllegalStateException: printing: f failed the UI (--fail-on-f)"
+check("printing --fail-on-f: after the restore come the printed line and the failure, then EXIT=1",
+      fail_lines[:2] == ["printing: the UI is built", failure] and "EXIT=1" in fail_lines
+      and fail_lines.index("EXIT=1") > 1, fail_lines[:8])
 
 # The Counter with its own main (KyoApp)
 check("counterkyo: + shows 'Count: 1'", "Count: 1" in screen("kyoapp-plus"), screen("kyoapp-plus"))

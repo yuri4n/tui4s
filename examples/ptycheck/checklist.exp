@@ -203,6 +203,8 @@ proc kill_row {name sig code} {
 # signal), the terminal restored (TuiApp's stop hook)
 kill_row term TERM 143
 kill_row int INT 130
+# claude 2026-10-19: created: kill -HUP (a closed terminal window): 129
+kill_row hup HUP 129
 
 # ---- Printing: a println while the UI is up is captured; the lines come
 # after the restore, or into the log file with --log
@@ -241,6 +243,18 @@ if {[file exists $printlog]} {
 } else {
     fail "printing --log" "no file $printlog"
 }
+
+# ---- Printing --fail-on-f: the key f fails the UI (a render fails); exit
+# code 1, the failure printed after the restore, nothing on the screen
+# claude 2026-10-19: created: the row of a failure inside the running UI
+stty_save printfail before
+mark "printfail-start"
+run_app "$bin/printing --fail-on-f"
+if {[first_frame "printing --fail-on-f" "Count:"]} {
+    mark "printfail-f"; send "f"
+}
+back_at_prompt "printing --fail-on-f" {1}
+stty_compare "printfail"
 
 # ---- Counter with its own main (KyoApp): + then q
 stty_save kyoapp before
