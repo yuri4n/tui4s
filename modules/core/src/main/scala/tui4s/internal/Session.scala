@@ -1,5 +1,5 @@
 // scalafix:off DisableSyntax
-// EDGE: the input Thread (crossterm poll, read) and the hook-safe release
+// EDGE: the input Thread (crossterm poll, read, join)
 // claude 2026-10-17: created this header (purity plan, phase P0)
 package tui4s.internal
 
@@ -7,27 +7,25 @@ import jatatui.core.backend.Backend
 import kyo.*
 import tui4s.*
 
-import java.util.concurrent.atomic.AtomicBoolean
 import scala.util.control.NonFatal
 
 /** The terminal side of a run, without the input thread: raw mode, the
   * alternate screen, the terminal modes, and the backend to draw on. The real
   * terminal implements it ([[TerminalIO]]), and so does the recording control
-  * of the tests. A [[Session]] calls it in this order: [[enter]], [[step]] for
-  * each step of the input thread, [[leave]].
+  * of the tests. A [[Session]] calls [[enter]] once, then [[step]] for each
+  * step of the input thread.
   */
-// claude 2026-10-13: changed (T1, RC-21): no resize (the runner's Canvas
-// resizes a TestBackend) and no jatatui Terminal in `opened` (the runner draws
-// on the Backend through its Canvas); HeadlessControl is not carried (no run
-// uses it: the tests have RecordingControl)
+// claude 2026-10-19: changed (P3, A1): enter pushes each release to the
+// stack of the run; no `opened` and no `leave`
 private[tui4s] trait TerminalControl:
     /** Enters the terminal modes for `opts` and returns the backend to draw on.
-      * Throws a [[TuiError]] (`NotATerminal`, `NativeAccessDenied`,
-      * `NativeLoadFailed`, `TerminalIO`); a failing enter undoes its own
-      * earlier steps.
+      * Each step pushes its release to `stack` in the same step, so the stack
+      * leaves the terminal again (the last step first). Throws a [[TuiError]]
+      * (`NotATerminal`, `NativeAccessDenied`, `NativeLoadFailed`,
+      * `TerminalIO`); the releases of the steps before the failure are then on
+      * `stack`.
       */
-    // claude 2026-10-13: changed (T1, review R1-2): NativeLoadFailed
-    def enter(opts: TuiOptions): Backend
+    def enter(opts: TuiOptions, stack: ReleaseStack): Backend
 
     /** A step of the session: "input-started", "input-stopped", "input-joined",
       * "input-hung". For logs and tests; the default does nothing.
@@ -38,167 +36,126 @@ private[tui4s] trait TerminalControl:
       * [[enter]] when the run has no input of its own. The default has none.
       */
     def input(): Option[InputPort] = None
-
-    /** The session is open: the canvas draws on the backend of [[enter]], the
-      * input thread runs, and `release` is the synchronous, idempotent release
-      * of the whole session (the real terminal runs it from a JVM shutdown
-      * hook). The default does nothing.
-      */
-    def opened(release: () => Unit): Unit = ()
-
-    /** Leaves the terminal modes: the last step of the release. Never throws. */
-    def leave(opts: TuiOptions): Unit
 end TerminalControl
 
 /** An open terminal: the canvas of the run and the input thread. Built by
   * [[Session.open]]; [[close]] is the synchronous release.
   */
-// claude 2026-10-13: changed (T1, RC-21): the runner's Canvas and inbox
-// (Channel[Msg]) replace the jatatui Terminal and the old engine's inbox
+// claude 2026-10-19: changed (P3, A1): the release stack of the run holds the
+// releases; no closed flag, no interrupted flag, no `safely`
 private[tui4s] final class Session private (
     val canvas: Canvas,
-    control: TerminalControl,
-    // claude 2026-10-19: changed: the checked options (RunOptions, A10)
-    runOpts: RunOptions,
-    inbox: Channel[Msg],
-    thread: InputThread | Null,
+    stack: ReleaseStack,
+    thread: Maybe[InputThread],
 ):
-    private val closed = AtomicBoolean(false)
-
-    // The thread that runs `close` was interrupted during the release.
-    private var interrupted = false
-
-    /** The first error of the release, if any. */
-    @volatile var releaseError: Throwable | Null = null
-
     /** Why the input thread failed (it then asked the run to end); `Absent`
       * when it did not fail.
       */
-    // claude 2026-10-13: created (T1): the run fails with TerminalIO after it
-    // claude 2026-10-19: changed: a Maybe, not null (purity plan, P1)
+    // claude 2026-10-19: changed (P3): the thread is a Maybe
     def inputFailure: Maybe[Throwable] =
-        val t = thread
-        if t == null then Absent else Maybe(t.failure).map(_.nn)
+      thread.flatMap(t => Maybe(t.failure).map(_.nn))
 
-    /** The release: close the canvas (it waits for a draw in progress, and the
-      * runner draws nothing after it), stop the input thread and close the
-      * inbox (a put that waits for room ends, so the thread is released, and
-      * the runner ends at its next take), join the thread, then leave the
-      * terminal modes. Synchronous, idempotent, never throws; every step runs
-      * even if an earlier one failed. An interrupt of the calling thread does
-      * not cut the release short: the interrupt flag is set again after the
-      * last step. A second caller (the shutdown hook and the run's own release)
-      * waits until the first one is done.
+    /** The release of the whole run: [[ReleaseStack.runAll]]. The canvas closes
+      * first (it waits for a draw in progress, and the runner draws nothing
+      * after it), then the input thread stops, then the terminal modes are
+      * left. Synchronous and idempotent; it never throws.
       */
-    // claude 2026-10-13: changed (T1): the inbox of the runner; the join waits
-    // for two poll intervals
-    def close()(using AllowUnsafe, Frame): Unit = synchronized {
-      if closed.compareAndSet(false, true) then
-          // claude 2026-10-13: created (T1, the bot fix of the review thread
-          // CountingBackend.scala:33): a release during a draw (the shutdown
-          // hook) waits for it, and no frame comes after the restore
-          safely(canvas.close())
-          if thread != null then safely(thread.requestStop())
-          safely(Session.closeInbox(inbox))
-          if thread != null then
-              safely(control.step("input-stopped"))
-              // claude 2026-10-19: changed: the checked poll interval
-              // (RunOptions, A10)
-              safely {
-                if join(thread, 2L * runOpts.pollMillis + 50) then
-                    control.step("input-joined")
-                else control.step("input-hung")
-              }
-          end if
-          // claude 2026-10-19: changed: the options of RunOptions (A10)
-          safely(control.leave(runOpts.options))
-          if interrupted then Thread.currentThread().interrupt()
-    }
-
-    /** Waits at most `timeoutMillis` for `t` to end; true when it ended. An
-      * interrupt is remembered and the wait goes on.
-      */
-    private def join(t: Thread, timeoutMillis: Long): Boolean =
-        val deadline = java.lang.System.nanoTime() + timeoutMillis * 1_000_000
-        var left     = timeoutMillis
-        while t.isAlive && left > 0 do
-            try t.join(left)
-            catch case _: InterruptedException => interrupted = true
-            left =
-              (deadline - java.lang.System.nanoTime() + 999_999) / 1_000_000
-        !t.isAlive
-    end join
-
-    private def safely(f: => Unit): Unit =
-      try f
-      catch
-          case _: InterruptedException => interrupted = true
-          case NonFatal(e)             =>
-            if releaseError == null then releaseError = e
+    // claude 2026-10-19: changed (P3, A1): the stack runs the release
+    def close(): Unit = stack.runAll()
 end Session
 
 private[tui4s] object Session:
-    /** Opens the terminal through `control`, makes the canvas on its backend,
-      * and starts the input thread on `input` (the control's own input for
-      * `None`). A failure leaves the terminal modes again, stops the input
-      * thread when it started, and gives the [[TuiError]].
+    /** Opens the terminal through `control`, starts the input thread on `input`
+      * (the control's own input for `None`) and makes the canvas on the
+      * backend. Each step pushes its release to `stack` in the same step: the
+      * input thread (stop it, close the inbox, join it), then the canvas (close
+      * it), so the canvas closes first. A failure runs the stack (the terminal
+      * is left and the input thread stops) and gives the [[TuiError]].
       *
       * One step, with no `map` after it: as the acquire of a bracket, its value
       * reaches the bracket with no point in between where an interrupt could
       * drop an open session.
       */
-    // claude 2026-10-13: changed (T1, RC-21): the Canvas on the backend, the
-    // runner's inbox; no jatatui Terminal and no inline viewport (D-22)
-    // claude 2026-10-19: changed: the checked options (RunOptions, A10)
+    // claude 2026-10-19: changed (P3, A1): the release stack; no `safely` and
+    // no undo of its own
     def open(
         runOpts: RunOptions,
         control: TerminalControl,
         input: Option[InputPort],
         inbox: Channel[Msg],
+        stack: ReleaseStack,
     )(using Frame): Either[TuiError, Session] < Sync =
       Sync.Unsafe
         .defer {
           try
-              val opts                    = runOpts.options
-              val backend                 = control.enter(opts)
-              var session: Session | Null = null
-              try
-                  val canvas = Canvas(backend)
-                  // claude 2026-10-13: changed (T1, the bot fix of the review
-                  // thread Session.scala:150 of PR 4): the session exists
-                  // before the input thread starts, so a failure after the
-                  // start closes the session, which stops and joins the
-                  // thread (it leaked before)
-                  val thread = input
-                    .orElse(control.input())
-                    .map(port => InputThread(port, inbox, runOpts.pollMillis))
-                  val s      =
-                    Session(canvas, control, runOpts, inbox, thread.orNull)
-                  session = s
-                  thread.foreach { t =>
-                    t.start()
-                    control.step("input-started")
-                  }
-                  control.opened(() => s.close())
-                  Right(s)
-              catch
-                  case NonFatal(e) =>
-                    val s = session
-                    if s != null then s.close()
-                    else
-                        try control.leave(opts)
-                        catch case NonFatal(_) => ()
-                    throw e
-              end try
+              val backend = control.enter(runOpts.options, stack)
+              val thread  = Maybe.fromOption(
+                input
+                  .orElse(control.input())
+                  .map(port => InputThread(port, inbox, runOpts.pollMillis)),
+              )
+              stack.add("input")(() =>
+                stopInput(control, inbox, thread, runOpts.pollMillis),
+              )
+              thread.foreach { t =>
+                t.start()
+                control.step("input-started")
+              }
+              val canvas  = Canvas(backend)
+              stack.add("canvas")(() => canvas.close())
+              Right(Session(canvas, stack, thread))
           catch
-              case e: TuiError => Left(e)
-              case NonFatal(e) => Left(TuiError.TerminalIO(e))
+              case e: Throwable =>
+                stack.runAll()
+                e match
+                    case e: TuiError => Left(e)
+                    case NonFatal(e) => Left(TuiError.TerminalIO(e))
+                    case e           => throw e
         }
 
     /** Closes the inbox; the messages that were still in it are dropped. */
     // claude 2026-10-13: changed (T1): the runner's inbox has no probes
     def closeInbox(inbox: Channel[Msg])(using AllowUnsafe, Frame): Unit =
       discard(inbox.unsafe.close())
+
+    /** The release of the input: stop the thread, close the inbox (a put that
+      * waits for room ends, so the thread is released, and the runner ends at
+      * its next take), then wait for two poll intervals for the thread to end.
+      * An interrupt does not cut the wait short; it is given to the stack at
+      * the end.
+      */
+    // claude 2026-10-19: created (P3, A1): the input steps of Session.close
+    private def stopInput(
+        control: TerminalControl,
+        inbox: Channel[Msg],
+        thread: Maybe[InputThread],
+        pollMillis: Int,
+    )(using AllowUnsafe, Frame): Unit =
+        thread.foreach(_.requestStop())
+        closeInbox(inbox)
+        thread.foreach { t =>
+          control.step("input-stopped")
+          val (joined, interrupted) = join(t, 2L * pollMillis + 50)
+          control.step(if joined then "input-joined" else "input-hung")
+          if interrupted then
+              throw InterruptedException("interrupted in the join of the input")
+        }
+    end stopInput
+
+    /** Waits at most `timeoutMillis` for `t` to end: (it ended, an interrupt
+      * came). An interrupt is remembered and the wait goes on.
+      */
+    private def join(t: Thread, timeoutMillis: Long): (Boolean, Boolean) =
+        val deadline    = java.lang.System.nanoTime() + timeoutMillis * 1_000_000
+        var left        = timeoutMillis
+        var interrupted = false
+        while t.isAlive && left > 0 do
+            try t.join(left)
+            catch case _: InterruptedException => interrupted = true
+            left =
+              (deadline - java.lang.System.nanoTime() + 999_999) / 1_000_000
+        (!t.isAlive, interrupted)
+    end join
 end Session
 
 /** The input thread: a platform daemon thread, so no Kyo worker waits in a

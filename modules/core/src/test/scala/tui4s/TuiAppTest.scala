@@ -182,10 +182,15 @@ class TuiAppTest extends Test[Any]:
         assert(MainCounter.exited.get == -1, "onExit ran after a failure")
         // The terminal never changed.
         assert(!fake.calls.exists(_.startsWith("execute")), fake.calls.toString)
-        // The main hook is added and removed; the terminal hook never came.
+        // claude 2026-10-19: changed (P3, A1): the terminal hook is added
+        // before the terminal changes; both hooks are removed again
+        val hookCalls = fake.calls.filter(_.startsWith("hook"))
         assert(
-          fake.calls.filter(_.startsWith("hook")) == Seq(
+          hookCalls.take(2).toSet == Set(
             "hook-added tui4s-stop",
+            "hook-added tui4s-restore",
+          ) && hookCalls.drop(2) == Seq(
+            "hook-removed tui4s-restore",
             "hook-removed tui4s-stop",
           ),
           fake.calls.toString,
@@ -247,7 +252,7 @@ class TuiAppTest extends Test[Any]:
         assert(MainCounter.exited.get == 1)
         assert(printed(err).isEmpty, err.lines.toString)
         assert(
-          fake.calls.containsSlice(Seq("raw-mode-off", "flush")),
+          fake.calls.containsSlice(Seq("flush", "raw-mode-off")),
           fake.calls.mkString("\n"),
         )
       }
@@ -276,7 +281,7 @@ class TuiAppTest extends Test[Any]:
         // Printed after the terminal was restored, and never on the screen.
         val calls = fake.calls
         assert(
-          calls.lastIndexOf("flush") <
+          calls.lastIndexOf("raw-mode-off") <
             calls.indexOf("err: java.lang.IllegalStateException: boom"),
           calls.mkString("\n"),
         )
@@ -309,7 +314,7 @@ class TuiAppTest extends Test[Any]:
         val boom  =
           calls.indexOf("err: java.lang.IllegalStateException: exit boom")
         assert(
-          calls.lastIndexOf("flush") < calls.indexOf("onExit") &&
+          calls.lastIndexOf("raw-mode-off") < calls.indexOf("onExit") &&
             calls.indexOf("onExit") < boom,
           calls.mkString("\n"),
         )
@@ -343,7 +348,7 @@ class TuiAppTest extends Test[Any]:
         )
         val calls = fake.calls
         val first = calls.indexWhere(_.startsWith("err: "))
-        assert(first > calls.lastIndexOf("flush"), calls.mkString("\n"))
+        assert(first > calls.lastIndexOf("raw-mode-off"), calls.mkString("\n"))
         assert(!fake.screen.contains("boom"), fake.screen.text)
       }
     }
@@ -435,7 +440,7 @@ class TuiAppTest extends Test[Any]:
           s"the stop hook took ${took.get} ms (-1: it did not run)",
         )
         assert(
-          fake.calls.containsSlice(Seq("raw-mode-off", "flush")),
+          fake.calls.containsSlice(Seq("flush", "raw-mode-off")),
           fake.calls.mkString("\n"),
         )
       }
@@ -491,7 +496,7 @@ class TuiAppTest extends Test[Any]:
         assert(code == 1, err.lines.toString)
         assert(took.get >= 0 && took.get < 1500, s"the stop hook took $took ms")
         assert(
-          fake.calls.containsSlice(Seq("raw-mode-off", "flush")),
+          fake.calls.containsSlice(Seq("flush", "raw-mode-off")),
           fake.calls.mkString("\n"),
         )
         assert(printed(err).isEmpty, err.lines.toString)

@@ -2,7 +2,7 @@ package tui4s
 
 import kyo.*
 import kyo.test.*
-import tui4s.internal.{LogSink, OutputCapture, TerminalIO}
+import tui4s.internal.{LogSink, OutputCapture, ReleaseStack, TerminalIO}
 
 import java.io.{ByteArrayOutputStream, PrintStream}
 import java.nio.charset.StandardCharsets
@@ -218,9 +218,11 @@ class OutputCaptureTest extends Test[Any]:
           () => err.stream,
           consoleCaptured = () => false,
         )
-        discard(io.enter(opts))
-        io.leave(opts)
-        io.leave(opts)
+        // claude 2026-10-19: changed (P3, A1): the release stack; it runs once
+        val stack = ReleaseStack(_ => ())
+        discard(io.enter(opts, stack))
+        stack.runAll()
+        stack.runAll()
         val text  = Files.readString(file, StandardCharsets.UTF_8)
         val calls = fake.calls
         val warn  = "err: " + TerminalIO.ConsoleNotCaptured
@@ -239,17 +241,19 @@ class OutputCaptureTest extends Test[Any]:
         (TuiOptions(), () => true),
         (TuiOptions(captureOutput = false), () => false),
       ).map { (opts, captured) =>
-        val fake = FakeCrossterm()
-        val err  = FakeErr(fake.log)
-        val io   = TerminalIO(
+        val fake  = FakeCrossterm()
+        val err   = FakeErr(fake.log)
+        val io    = TerminalIO(
           fake,
           LogSink(None),
           FakeHooks(fake.log),
           () => err.stream,
           consoleCaptured = captured,
         )
-        discard(io.enter(opts))
-        io.leave(opts)
+        // claude 2026-10-19: changed (P3, A1): the release stack
+        val stack = ReleaseStack(_ => ())
+        discard(io.enter(opts, stack))
+        stack.runAll()
         err.lines
       }
       assert(quiet.forall(_.isEmpty), quiet.toString)

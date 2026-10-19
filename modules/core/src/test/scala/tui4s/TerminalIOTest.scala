@@ -40,6 +40,11 @@ class TerminalIOTest extends Test[Any]:
     private val leaveDefault =
       "execute DisableBracketedPaste[],Show[],LeaveAlternateScreen[]"
 
+    /** The calls of `fake` without the hook calls. */
+    // claude 2026-10-19: created (P3, A1): the hook of the run comes first
+    private def terminalCalls(fake: FakeCrossterm): Seq[String] =
+      fake.calls.filterNot(_.startsWith("hook"))
+
     /** The Counter of the fixtures: `+`, `-`, and `q` quits (`Tui.quit`). */
     private val counter: (Unit < Sync) => UI < (Async & Scope) =
       _ => Counter.app
@@ -71,16 +76,18 @@ class TerminalIOTest extends Test[Any]:
             .andThen(fiber.get)
             .map { _ =>
               assert(fake.screen.contains("Count: 2"), fake.screen.text)
+              // claude 2026-10-19: changed (P3, A1): the hook comes first and
+              // goes last; the flush comes before raw mode ends
               assert(
                 fake.calls == Seq(
+                  "hook-added tui4s-restore",
                   "load",
                   "raw-mode-on",
                   enterDefault,
                   "backend",
-                  "hook-added tui4s-restore",
                   leaveDefault,
-                  "raw-mode-off",
                   "flush",
+                  "raw-mode-off",
                   "hook-removed tui4s-restore",
                 ),
                 fake.calls.mkString("\n"),
@@ -135,8 +142,13 @@ class TerminalIOTest extends Test[Any]:
           assert(
             r.failure.exists(_.getMessage == "stdin/stdout is not a terminal"),
           )
-          assert(fake.calls == Seq("load", "raw-mode-on"), fake.calls.toString)
-          assert(hooks.added.isEmpty)
+          // claude 2026-10-19: changed (P3, A1): the hook of the run is added
+          // before the terminal changes and removed again
+          assert(
+            terminalCalls(fake) == Seq("load", "raw-mode-on"),
+            fake.calls.toString,
+          )
+          assert(hooks.added.size == 1 && hooks.removed.size == 1)
           // The capture was stopped: a new one takes the output.
           val sink  = LogSink(None)
           val c     = OutputCapture.start(sink)
@@ -167,8 +179,10 @@ class TerminalIOTest extends Test[Any]:
             ,
             r.toString,
           )
-          assert(fake.calls == Seq("load"), fake.calls.toString)
-          assert(hooks.added.isEmpty)
+          // claude 2026-10-19: changed (P3, A1): the hook of the run is added
+          // before the terminal changes and removed again
+          assert(terminalCalls(fake) == Seq("load"), fake.calls.toString)
+          assert(hooks.added.size == 1 && hooks.removed.size == 1)
         }
     }
 
@@ -225,7 +239,7 @@ class TerminalIOTest extends Test[Any]:
             ,
             r.toString,
           )
-          assert(fake.calls == Seq("load"))
+          assert(terminalCalls(fake) == Seq("load"), fake.calls.toString)
         }
     }
 
@@ -245,7 +259,7 @@ class TerminalIOTest extends Test[Any]:
             ,
             r.toString,
           )
-          assert(fake.calls == Seq("load"))
+          assert(terminalCalls(fake) == Seq("load"), fake.calls.toString)
         }
     }
 
@@ -265,12 +279,14 @@ class TerminalIOTest extends Test[Any]:
             ,
             r.toString,
           )
+          // claude 2026-10-19: changed (P3, A1): the flush before raw mode ends
           assert(
-            fake.calls == Seq(
+            terminalCalls(fake) == Seq(
               "load",
               "raw-mode-on",
               enterDefault,
               leaveDefault,
+              "flush",
               "raw-mode-off",
             ),
             fake.calls.mkString("\n"),
@@ -294,8 +310,8 @@ class TerminalIOTest extends Test[Any]:
             calls.containsSlice(
               Seq(
                 leaveDefault,
-                "raw-mode-off",
                 "flush",
+                "raw-mode-off",
                 "hook-removed tui4s-restore",
               ),
             ),
@@ -323,8 +339,8 @@ class TerminalIOTest extends Test[Any]:
             calls.containsSlice(
               Seq(
                 leaveDefault,
-                "raw-mode-off",
                 "flush",
+                "raw-mode-off",
                 "hook-removed tui4s-restore",
               ),
             ),
@@ -515,7 +531,7 @@ class TerminalIOTest extends Test[Any]:
               assert(
                 calls.count(_ == "raw-mode-off") == 1 &&
                   calls
-                    .containsSlice(Seq(leaveDefault, "raw-mode-off", "flush")),
+                    .containsSlice(Seq(leaveDefault, "flush", "raw-mode-off")),
                 calls.mkString("\n"),
               )
               assert(hooks.removed.isEmpty, "a running hook is not removed")
@@ -547,7 +563,8 @@ class TerminalIOTest extends Test[Any]:
         .map { _ =>
           assert(fake.screen.contains("Count: 6"), fake.screen.text)
           assert(
-            fake.calls.containsSlice(Seq(leaveDefault, "raw-mode-off")),
+            fake.calls
+              .containsSlice(Seq(leaveDefault, "flush", "raw-mode-off")),
             fake.calls.mkString("\n"),
           )
         }

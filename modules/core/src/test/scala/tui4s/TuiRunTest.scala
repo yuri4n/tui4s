@@ -32,19 +32,21 @@ class TuiRunTest extends Test[Any]:
     private val counter: (Unit < Sync) => UI < (Async & Scope) =
       _ => Counter.app
 
-    /** The terminal was entered, then left; the shutdown hook was added, then
-      * removed.
+    /** The terminal was entered, then left; the shutdown hook was added before
+      * the terminal changed, and removed after raw mode ended.
       */
+    // claude 2026-10-19: changed (P3, A1): the order of the release stack
     private def enteredAndLeft(fake: FakeCrossterm): Boolean =
         val c     = fake.calls
         val enter = c.indexWhere(_.startsWith("execute EnterAlternateScreen"))
         val leave = c.indexWhere(_.startsWith("execute DisableBracketedPaste"))
+        val added = c.indexOf("hook-added tui4s-restore")
         enter >= 0 && leave > enter &&
         c.indexOf("raw-mode-on") < enter &&
         c.lastIndexOf("raw-mode-off") > leave &&
         c.count(_ == "raw-mode-off") == 1 &&
-        c.indexOf("hook-added tui4s-restore") > enter &&
-        c.indexOf("hook-removed tui4s-restore") > leave
+        added >= 0 && added < c.indexOf("load") &&
+        c.indexOf("hook-removed tui4s-restore") > c.lastIndexOf("raw-mode-off")
     end enteredAndLeft
 
     "a run starts, a scripted key quits it: the terminal is entered, then left"

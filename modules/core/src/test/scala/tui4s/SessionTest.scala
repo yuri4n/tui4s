@@ -4,7 +4,15 @@ import kyo.*
 import kyo.UI.{Keyboard, KeyboardEvent, Modifiers}
 import kyo.test.*
 import tui.crossterm.{Event as CEvent, KeyCode}
-import tui4s.internal.{InputPort, InputThread, Msg, RunOptions, Session, Size}
+import tui4s.internal.{
+  InputPort,
+  InputThread,
+  Msg,
+  ReleaseStack,
+  RunOptions,
+  Session,
+  Size,
+}
 import tui4s.testkit.*
 
 import java.util.concurrent.atomic.AtomicBoolean
@@ -25,12 +33,16 @@ class SessionTest extends Test[Any]:
     private def inbox(capacity: Int)(using Frame): Channel[Msg] < Sync =
       Channel.initUnscoped[Msg](capacity)
 
+    /** A release stack that drops the failures. */
+    // claude 2026-10-19: created (P3, A1): Session.open takes the stack
+    private def stack(): ReleaseStack = ReleaseStack(_ => ())
+
     "the release leaves the terminal also when the closing thread is interrupted"
       .timeout(30.seconds) in {
       val control = RecordingControl(10, 2)
       inbox(16).map { box =>
         Session
-          .open(defaults, control, Some(ScriptedInput.never), box)
+          .open(defaults, control, Some(ScriptedInput.never), box, stack())
           .map {
             case Left(e)        => assert(false, s"open failed: $e")
             case Right(session) =>
@@ -38,7 +50,6 @@ class SessionTest extends Test[Any]:
                 .defer {
                   val flagged = AtomicBoolean(false)
                   val closer  = new Thread(() =>
-                      import AllowUnsafe.embrace.danger
                       Thread.currentThread().interrupt()
                       session.close()
                       flagged.set(Thread.currentThread().isInterrupted),
@@ -144,23 +155,30 @@ class SessionTest extends Test[Any]:
       }
     }
 
+    // claude 2026-10-19: changed (P3, A1): the canvas fails (`opened` is gone)
     "a failure after the session is built closes the whole session".timeout(
       30.seconds,
     ) in {
       val steps   = java.util.concurrent.ConcurrentLinkedQueue[String]()
+      val noSize  = new Delegating(jatatui.core.backend.TestBackend(10, 2)):
+          override def size(): jatatui.core.layout.Size =
+            throw IllegalStateException("no canvas")
       val control = new tui4s.internal.TerminalControl:
-          def enter(opts: TuiOptions): jatatui.core.backend.Backend =
+          def enter(
+              opts: TuiOptions,
+              stack: ReleaseStack,
+          ): jatatui.core.backend.Backend       =
               val _ = steps.add("enter")
-              jatatui.core.backend.TestBackend(10, 2)
-          override def step(name: String): Unit                     =
+              stack.add("leave")(() =>
+                  val _ = steps.add("leave"),
+              )
+              noSize
+          end enter
+          override def step(name: String): Unit =
               val _ = steps.add(name)
-          override def opened(release: () => Unit): Unit            =
-            throw IllegalStateException("no hook")
-          def leave(opts: TuiOptions): Unit                         =
-              val _ = steps.add("leave")
       inbox(16).map { box =>
         Session
-          .open(defaults, control, Some(ScriptedInput.never), box)
+          .open(defaults, control, Some(ScriptedInput.never), box, stack())
           .map { r =>
             val all = scala.jdk.CollectionConverters
               .IteratorHasAsScala(steps.iterator())
@@ -207,18 +225,22 @@ class SessionTest extends Test[Any]:
               super.draw(content)
               add("draw-end")
           end draw
+      // claude 2026-10-19: changed (P3, A1): the release goes to the stack
       val control              = new tui4s.internal.TerminalControl:
-          def enter(opts: TuiOptions): jatatui.core.backend.Backend = slow
-          def leave(opts: TuiOptions): Unit                         = add("leave")
+          def enter(
+              opts: TuiOptions,
+              stack: ReleaseStack,
+          ): jatatui.core.backend.Backend =
+              stack.add("leave")(() => add("leave"))
+              slow
       val screen               = tui4s.internal.Rect(0, 0, 10, 2)
       val style                = jatatui.core.style.Style.empty()
       inbox(16).map { box =>
-        Session.open(defaults, control, None, box).map {
+        Session.open(defaults, control, None, box, stack()).map {
           case Left(e)        => assert(false, s"open failed: $e")
           case Right(session) =>
             Sync
               .defer {
-                import AllowUnsafe.embrace.danger
                 val drawer = Thread { () =>
                   session.canvas.put(0, 0, "x", style, screen)
                   discard(session.canvas.flush(Vector(screen)))
@@ -265,18 +287,24 @@ class SessionTest extends Test[Any]:
               false
           // claude 2026-10-19: changed: read gives a Maybe (P1)
           def read(): Maybe[CEvent]             = Absent
+      // claude 2026-10-19: changed (P3, A1): the release goes to the stack
       val control = new tui4s.internal.TerminalControl:
-          def enter(opts: TuiOptions): jatatui.core.backend.Backend =
+          def enter(
+              opts: TuiOptions,
+              stack: ReleaseStack,
+          ): jatatui.core.backend.Backend       =
               val _ = steps.add("enter")
+              stack.add("leave")(() =>
+                  val _ = steps.add("leave"),
+              )
               jatatui.core.backend.TestBackend(10, 2)
-          override def step(name: String): Unit                     =
+          end enter
+          override def step(name: String): Unit =
               val _ = steps.add(name)
               if name == "input-started" then
                   throw IllegalStateException("the step failed")
-          def leave(opts: TuiOptions): Unit                         =
-              val _ = steps.add("leave")
       inbox(16).map { box =>
-        Session.open(defaults, control, Some(port), box).map { r =>
+        Session.open(defaults, control, Some(port), box, stack()).map { r =>
           Sync
             .defer {
               Thread.sleep(200)
@@ -376,42 +404,43 @@ class SessionTest extends Test[Any]:
       val opts                  =
         RunOptions.of(TuiOptions(pollInterval = JDuration.ZERO))
       inbox(16).map { box =>
-        Session.open(opts, RecordingControl(10, 2), Some(port), box).map {
-          case Left(e)        => assert(false, s"open failed: $e")
-          case Right(session) =>
-            Sync
-              .defer {
-                import AllowUnsafe.embrace.danger
-                Thread.sleep(200)
-                session.close()
-                (polls.get, shortest.get)
-              }
-              .map { (n, least) =>
-                val millis = Seq(
-                  JDuration.ZERO,
-                  JDuration.ofNanos(500_000),
-                  JDuration.ofMillis(-5),
-                  JDuration.ofMillis(25),
-                  JDuration.ofDays(365L * 100),
-                  JDuration.ofSeconds(Long.MaxValue),
-                ).map(d =>
-                  scala.util.Try(ms(d)).fold(e => e.toString, _.toString),
-                )
-                assert(
-                  millis == Seq(
-                    "1",
-                    "1",
-                    "1",
-                    "25",
-                    s"${Int.MaxValue}",
-                    s"${Int.MaxValue}",
-                  ),
-                  millis.toString,
-                )
-                assert(least >= 1, s"a poll with $least ms")
-                assert(n > 0 && n < 10_000, s"$n polls in 200 ms")
-              }
-        }
+        Session
+          .open(opts, RecordingControl(10, 2), Some(port), box, stack())
+          .map {
+            case Left(e)        => assert(false, s"open failed: $e")
+            case Right(session) =>
+              Sync
+                .defer {
+                  Thread.sleep(200)
+                  session.close()
+                  (polls.get, shortest.get)
+                }
+                .map { (n, least) =>
+                  val millis = Seq(
+                    JDuration.ZERO,
+                    JDuration.ofNanos(500_000),
+                    JDuration.ofMillis(-5),
+                    JDuration.ofMillis(25),
+                    JDuration.ofDays(365L * 100),
+                    JDuration.ofSeconds(Long.MaxValue),
+                  ).map(d =>
+                    scala.util.Try(ms(d)).fold(e => e.toString, _.toString),
+                  )
+                  assert(
+                    millis == Seq(
+                      "1",
+                      "1",
+                      "1",
+                      "25",
+                      s"${Int.MaxValue}",
+                      s"${Int.MaxValue}",
+                    ),
+                    millis.toString,
+                  )
+                  assert(least >= 1, s"a poll with $least ms")
+                  assert(n > 0 && n < 10_000, s"$n polls in 200 ms")
+                }
+          }
       }
     }
 

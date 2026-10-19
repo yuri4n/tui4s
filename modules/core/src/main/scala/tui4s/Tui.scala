@@ -8,6 +8,7 @@ import tui4s.internal.{
   Msg,
   NativeCrossterm,
   OutputCapture,
+  ReleaseStack,
   RunOptions,
   Runner,
   Session,
@@ -97,11 +98,12 @@ object Tui:
     /** The run seam of the tests: `ui` on the terminal of `crossterm` (the real
       * one or a fake), with the shutdown hooks `hooks` and the stderr `err` for
       * what is printed after the restore; `restored` runs when the release has
-      * restored the terminal. A run has one [[internal.LogSink]] for its Kyo
-      * log ([[internal.TuiLog]], bound with `Log.let`) and its captured output.
+      * restored the terminal. A run has one [[internal.ReleaseStack]] for its
+      * releases and one [[internal.LogSink]] for its Kyo log
+      * ([[internal.TuiLog]], bound with `Log.let`) and its captured output.
       */
-    // claude 2026-10-13: created (T1, RC-2 part): PR 5 TuiRun.run and the
-    // session bracket of its Runner.runOn, on the kyo-ui runner
+    // claude 2026-10-19: changed (P3, A1): the release stack of the run; the
+    // sink pushes its finish to it
     private[tui4s] def runWith(
         options: TuiOptions,
         crossterm: Crossterm,
@@ -111,51 +113,60 @@ object Tui:
     )(ui: (Unit < Sync) => UI < (Async & Scope))(using
         Frame,
     ): Unit < (Async & Abort[TuiError]) =
-      Sync.Unsafe.defer(LogSink(options.logFile)).map { sink => // scalafix:ok DisableSyntax.unsafe; P6: LogSink.open: LogSink < Sync
-        // The release finishes the sink; this also covers a run that failed
+      Sync.acquireReleaseWith(
+        Sync.defer(ReleaseStack(ReleaseStack.printFailure(err))),
+      )(stack => Sync.defer(stack.runAll())) { stack =>
+        // The stack finishes the sink; this also covers a run that failed
         // before it had a terminal.
-        Sync.ensure(Sync.Unsafe.defer(sink.finish(err())))(     // scalafix:ok DisableSyntax.unsafe; P3: the release stack owns sink.finish (A1)
-          Abort
-            .run[TuiError](
-              TuiLog.let(sink)(
-                // claude 2026-10-19: changed: the options are checked once,
-                // here (RunOptions, amendment A10)
-                onTerminal(
-                  RunOptions.of(options),
-                  TerminalIO(crossterm, sink, hooks, err, restored),
-                )(ui),
-              ),
-            )
-            // The lines that Kyo has not written yet go to the log file (or
-            // to stderr) before the run returns.
-            // claude 2026-10-13: changed (T1): a TuiError that the canvas threw
-            // (a write to the terminal failed) is the failure of the run
-            .map { r =>
-              TuiLog
-                .flush(2.seconds)
-                .andThen(Abort.get(r match
-                    case Result.Panic(e: TuiError) => Result.fail(e)
-                    case other                     => other))
-            },
-        )
+        Sync
+          .defer {
+            val sink = LogSink(options.logFile)
+            stack.add("log sink")(() => sink.finish(err()))
+            sink
+          }
+          .map { sink =>
+            Abort
+              .run[TuiError](
+                TuiLog.let(sink)(
+                  onTerminal(
+                    RunOptions.of(options),
+                    TerminalIO(crossterm, sink, hooks, err, restored),
+                    stack,
+                  )(ui),
+                ),
+              )
+              // The lines that Kyo has not written yet go to the log file (or
+              // to stderr) before the run returns. A TuiError that the canvas
+              // threw (a write to the terminal failed) is the failure of the
+              // run.
+              .map { r =>
+                TuiLog
+                  .flush(2.seconds)
+                  .andThen(Abort.get(r match
+                      case Result.Panic(e: TuiError) => Result.fail(e)
+                      case other                     => other))
+              }
+          }
       }
 
     /** `ui` on the terminal of `control`: the session (terminal modes, canvas,
-      * input thread) is the acquire of a bracket, and its synchronous release
-      * restores the terminal when the run ends in any way (a quit, a failure,
-      * an interrupt). The runner runs on the calling fiber, as `Headless.start`
-      * builds it.
+      * input thread) is the acquire of a bracket, and the release runs the
+      * stack of the run: it restores the terminal when the run ends in any way
+      * (a quit, a failure, an interrupt). The runner runs on the calling fiber,
+      * as `Headless.start` builds it.
       */
-    // claude 2026-10-13: created (T1, RC-2 part)
-    // claude 2026-10-19: changed: the checked options (RunOptions, A10)
-    private def onTerminal(options: RunOptions, control: TerminalIO)(
+    // claude 2026-10-19: changed (P3, A1): the release is the stack
+    private def onTerminal(
+        options: RunOptions,
+        control: TerminalIO,
+        stack: ReleaseStack,
+    )(
         ui: (Unit < Sync) => UI < (Async & Scope),
     )(using Frame): Unit < (Async & Abort[TuiError]) =
       Channel.initUnscoped[Msg](options.inboxCapacity).map { inbox =>
-        Sync.acquireReleaseWith(Session.open(options, control, None, inbox))(
-          opened => Sync.Unsafe.defer(opened.foreach(_.close())), // scalafix:ok DisableSyntax.unsafe; P3: the release stack (A1)
-        ) { opened =>
-          // claude 2026-10-19: changed: Runner.init (P2, A7)
+        Sync.acquireReleaseWith(
+          Session.open(options, control, None, inbox, stack),
+        )(_ => Sync.defer(stack.runAll())) { opened =>
           Abort.get(opened).map { session =>
             Runner.init(inbox, session.canvas, options, Absent).map { runner =>
               Scope

@@ -4,7 +4,7 @@ import jatatui.core.backend.{Backend, ClearType, TestBackend, WindowSize}
 import jatatui.core.buffer.BufferUpdate
 import jatatui.core.layout.{Position, Size}
 import tui4s.*
-import tui4s.internal.TerminalControl
+import tui4s.internal.{ReleaseStack, TerminalControl}
 
 import java.util.concurrent.ConcurrentLinkedQueue
 import scala.jdk.CollectionConverters.*
@@ -44,16 +44,16 @@ private[tui4s] final class RecordingControl(width: Int = 80, height: Int = 24)
       */
     def screen: Screen = shown
 
-    def enter(opts: TuiOptions): Backend =
+    // claude 2026-10-19: changed (P3, A1): the release goes to the stack
+    def enter(opts: TuiOptions, stack: ReleaseStack): Backend =
         record("enter")
+        stack.add("leave-raw-mode")(() => record("leave-raw-mode"))
         RecordingControl.Flushed(
           backend,
           () => shown = Screen.of(backend.buffer(), None),
         )
 
     override def step(name: String): Unit = record(name)
-
-    def leave(opts: TuiOptions): Unit = record("leave-raw-mode")
 
     private def record(step: String): Unit =
         val _ = log.add(step)
