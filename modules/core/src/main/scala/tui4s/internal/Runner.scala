@@ -864,10 +864,10 @@ private[tui4s] final class Runner private (
                   // the plan; the canvas writes it and sends its changed
                   // cells; the plan counts the cells written
                   val plan         = Paint(w1.laid, w1.env, damage)
-                  // claude 2026-10-19: created (L1b): the new warnings of the
-                  // nodes of this frame, logged once in the run
-                  // claude 2026-10-19: changed: the screen of the last
-                  // frame, whose elements are scanned (PF-b)
+                  // claude 2026-10-19: changed: the elements of the screen of
+                  // the last frame are not scanned again (PF-b); created
+                  // (L1b): the new warnings of the nodes of this frame,
+                  // logged once in the run
                   val warns        =
                     Warnings.scan(w1.laid, damage, w1.warned, w.laid)
                   // claude 2026-10-19: created (PF-b, F9b): a plan equal to
