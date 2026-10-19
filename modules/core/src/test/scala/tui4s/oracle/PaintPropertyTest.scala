@@ -100,7 +100,7 @@ object PaintPropertyTest:
         /** Writes `plan` and flushes it. Returns the cells flushed. */
         def draw(plan: Plan): Int =
             canvas.write(plan)
-            canvas.flush(plan.spans.map(s => Rect(s.x, s.y, s.right - s.x, 1)))
+            canvas.flush(plan).getOrElse(-1)
 
         /** A frame as `Runner.frame` makes it: the cells written, the cells
           * flushed and the subtrees painted.

@@ -24,9 +24,7 @@ private[tui4s] object Render:
         // claude 2026-10-19: changed (P5): the plan of the pure painter
         val plan    = Paint(laid, env, damage)
         canvas.write(plan)
-        discard(
-          canvas.flush(plan.spans.map(s => Rect(s.x, s.y, s.right - s.x, 1))),
-        )
+        discard(canvas.flush(plan))
         backend.buffer()
     end buffer
 

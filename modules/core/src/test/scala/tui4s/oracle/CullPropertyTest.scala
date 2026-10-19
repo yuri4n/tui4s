@@ -43,7 +43,11 @@ class CullPropertyTest extends PropertyTest[Any]:
                 Paint.paintNode(o, laid, env, k, c.intersect(full)),
               )
               canvas.write(Plan(size, ops, Vector.empty, 0))
-              discard(canvas.flush(Vector(full)))
+              discard(
+                canvas.flush(
+                  Plan(size, Vector.empty, Plan.rowSpans(Vector(full), full), 0),
+                ),
+              )
               val buf     = backend.buffer()
               Vector.tabulate(size.h, size.w)((y, x) =>
                 buf.cellAt(x, y).toString,

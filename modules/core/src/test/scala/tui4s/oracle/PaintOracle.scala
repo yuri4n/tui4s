@@ -7,18 +7,19 @@ import jatatui.core.style.{Color as JColor, Style as JStyle}
 import kyo.*
 import kyo.Style.TextAlign
 import kyo.UI.Ast.*
-import scala.jdk.CollectionConverters.*
 import tui4s.internal.*
+
+import scala.jdk.CollectionConverters.*
 
 /** The oracle of P5: the painter and the canvas as they were at commit a50d1d6
   * (`modules/core/src/main/scala/tui4s/internal/Paint.scala`), the permanent
   * oracle of the pure painter (amendment A9). The code is copied without a
-  * change; only the comments with a date mark or a `scalafix:ok` reason are
-  * gone, the definitions are inside this object and they are not
-  * `private[tui4s]`. Do not change it: the pure painter and the new canvas must
-  * give the same cells. The old canvas skips chars, not cells, at the left edge
-  * of a clip (the bug that P5 fixes): a property that compares with it keeps
-  * the texts away from that edge.
+  * change; only the comments with a date mark or a suppression reason are gone,
+  * the definitions are inside this object and they are not `private[tui4s]`. Do
+  * not change it: the pure painter and the new canvas must give the same cells.
+  * The old canvas skips chars, not cells, at the left edge of a clip (the bug
+  * that P5 fixes): a property that compares with it keeps the texts away from
+  * that edge.
   *
   * The shim at the end gives the old code a `TestBackend` and reads the buffer
   * back as rows of cells with their styles.

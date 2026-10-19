@@ -209,13 +209,13 @@ class SessionTest extends Test[Any]:
     // the runner draws a frame
     "the release waits for a draw in progress, and a draw after the release writes nothing"
       .timeout(30.seconds) in {
-      val log                  = java.util.concurrent.ConcurrentLinkedQueue[String]()
-      val started              = java.util.concurrent.CountDownLatch(1)
-      val go                   = java.util.concurrent.CountDownLatch(1)
-      def add(s: String): Unit =
+      val log                                                      = java.util.concurrent.ConcurrentLinkedQueue[String]()
+      val started                                                  = java.util.concurrent.CountDownLatch(1)
+      val go                                                       = java.util.concurrent.CountDownLatch(1)
+      def add(s: String): Unit                                     =
           val _ = log.add(s)
       // A draw that waits until the test lets it end.
-      val slow                 = new Delegating(jatatui.core.backend.TestBackend(10, 2)):
+      val slow                                                     = new Delegating(jatatui.core.backend.TestBackend(10, 2)):
           override def draw(
               content: java.lang.Iterable[jatatui.core.buffer.BufferUpdate],
           ): Unit =
@@ -226,25 +226,33 @@ class SessionTest extends Test[Any]:
               add("draw-end")
           end draw
       // claude 2026-10-19: changed (P3, A1): the release goes to the stack
-      val control              = new tui4s.internal.TerminalControl:
+      val control                                                  = new tui4s.internal.TerminalControl:
           def enter(
               opts: TuiOptions,
               stack: ReleaseStack,
           ): jatatui.core.backend.Backend =
               stack.add("leave")(() => add("leave"))
               slow
-      val screen               = tui4s.internal.Rect(0, 0, 10, 2)
-      val style                = jatatui.core.style.Style.empty()
+      val screen                                                   = tui4s.internal.Rect(0, 0, 10, 2)
+      val style                                                    = jatatui.core.style.Style.empty()
+      // claude 2026-10-19: created (P5): one frame is a plan of one cell
+      def frame(c: tui4s.internal.Canvas, x: Int, s: String): Unit =
+          val p = tui4s.internal.Plan(
+            tui4s.internal.Size(10, 2),
+            Vector(tui4s.internal.Op.Put(x, 0, s, style)),
+            tui4s.internal.Plan.rowSpans(Vector(screen), screen),
+            0,
+          )
+          c.write(p)
+          discard(c.flush(p))
+      end frame
       inbox(16).map { box =>
         Session.open(defaults, control, None, box, stack()).map {
           case Left(e)        => assert(false, s"open failed: $e")
           case Right(session) =>
             Sync
               .defer {
-                val drawer = Thread { () =>
-                  session.canvas.put(0, 0, "x", style, screen)
-                  discard(session.canvas.flush(Vector(screen)))
-                }
+                val drawer = Thread(() => frame(session.canvas, 0, "x"))
                 drawer.start()
                 val _      = started.await(10, java.util.concurrent.TimeUnit.SECONDS)
                 // The release from another thread, as the shutdown hook does,
@@ -256,8 +264,7 @@ class SessionTest extends Test[Any]:
                 drawer.join(10000)
                 closer.join(10000)
                 // A frame after the release.
-                session.canvas.put(1, 0, "y", style, screen)
-                discard(session.canvas.flush(Vector(screen)))
+                frame(session.canvas, 1, "y")
                 scala.jdk.CollectionConverters
                   .IteratorHasAsScala(log.iterator())
                   .asScala

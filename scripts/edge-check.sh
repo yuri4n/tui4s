@@ -18,6 +18,7 @@ set -euo pipefail
 CDPATH='' cd "$(dirname "$0")/.."
 
 edge=(
+  modules/core/src/main/scala/tui4s/internal/Canvas.scala
   modules/core/src/main/scala/tui4s/internal/Crossterm.scala
   modules/core/src/main/scala/tui4s/internal/LogSink.scala
   modules/core/src/main/scala/tui4s/internal/OutputCapture.scala

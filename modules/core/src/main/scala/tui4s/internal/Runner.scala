@@ -5,7 +5,7 @@ package tui4s.internal
 import kyo.*
 import kyo.UI.Keyboard
 import tui4s.spi.Settle
-import tui4s.{FrameCause, FrameStats}
+import tui4s.{FrameCause, FrameStats, TuiError}
 
 /** The runner: one fiber that owns the world and the canvas.
   *
@@ -198,9 +198,11 @@ private[tui4s] final class Runner private (
           // claude 2026-10-13: created (C3, RC-14 part): a paste is one edit
           // of the focused text input
           case Msg.Paste(text, _)                                  => dispatch.onPaste(w, text)
+          // claude 2026-10-19: changed (P5): a failed resize ends the run
           case Msg.Resize(size, _)                                 =>
             Sync
               .defer(canvas.resize(size))
+              .map(orFail)
               .andThen(w.copy(size = size, full = true))
           case c: Msg.Content                                      => apply(w, c)
           // claude 2026-10-12: created the two cases below (K29, D-16): a
@@ -643,6 +645,17 @@ private[tui4s] final class Runner private (
               (w3.copy(laid = laid3), dmg3)
           end if
 
+    /** The value of a canvas call, or the end of the run: a write to the
+      * terminal that failed ([[tui4s.TuiError.TerminalIO]]) fails the run fiber
+      * with that error, and `Tui.runWith` gives it in `Abort[TuiError]`.
+      */
+    // claude 2026-10-19: created (P5): the canvas gives its failure as a value
+    private def orFail[A](r: Result[TuiError, A])(using Frame): A < Sync =
+      r match
+          case Result.Success(a) => a
+          case Result.Failure(e) => Abort.panic(e)
+          case Result.Panic(e)   => Abort.panic(e)
+
     private def frame(
         w: World,
         seq: Long,
@@ -658,54 +671,55 @@ private[tui4s] final class Runner private (
           Sync
             .defer {
               if idle then
-                  (
-                    w,
-                    // claude 2026-10-12: changed: repaired and settleTimeouts in
-                    // the frame stats (K29, D-17 c)
-                    FrameStats(
-                      seq,
-                      cause,
-                      0,
-                      0,
-                      0L,
-                      w.updates,
-                      repaired = w.repaired,
-                      settleTimeouts = w.settleTimeouts,
+                  Result.succeed(
+                    (
+                      w,
+                      // claude 2026-10-12: changed: repaired and settleTimeouts
+                      // in the frame stats (K29, D-17 c)
+                      FrameStats(
+                        seq,
+                        cause,
+                        0,
+                        0,
+                        0L,
+                        w.updates,
+                        repaired = w.repaired,
+                        settleTimeouts = w.settleTimeouts,
+                      ),
                     ),
                   )
               else
                   val (w1, damage) = layoutStep(w)
                   // claude 2026-10-19: changed (P5): the pure painter gives
-                  // the plan; the canvas writes it
+                  // the plan; the canvas writes it and sends its changed
+                  // cells; the plan counts the cells written
                   val plan         = Paint(w1.laid, w1.env, damage)
                   canvas.write(plan)
-                  val flushed      = canvas.flush(
-                    plan.spans.map(s => Rect(s.x, s.y, s.right - s.x, 1)),
-                  )
-                  val repainted    = canvas.takeWrites()
-                  val roots        = plan.roots
-                  val done         = w1.copy(
-                    dirtyRegions = Vector.empty,
-                    dirtyNodes = Set.empty,
-                    full = false,
-                  )
-                  (
-                    done,
-                    // claude 2026-10-12: changed: repaired and settleTimeouts in
-                    // the frame stats (K29, D-17 c)
-                    FrameStats(
-                      seq,
-                      cause,
-                      repainted,
-                      flushed,
-                      0L,
-                      w.updates,
-                      subtrees = roots,
-                      repaired = w.repaired,
-                      settleTimeouts = w.settleTimeouts,
-                    ),
-                  )
+                  canvas.flush(plan).map { flushed =>
+                    val done = w1.copy(
+                      dirtyRegions = Vector.empty,
+                      dirtyNodes = Set.empty,
+                      full = false,
+                    )
+                    (
+                      done,
+                      // claude 2026-10-12: changed: repaired and settleTimeouts
+                      // in the frame stats (K29, D-17 c)
+                      FrameStats(
+                        seq,
+                        cause,
+                        plan.cells,
+                        flushed,
+                        0L,
+                        w.updates,
+                        subtrees = plan.roots,
+                        repaired = w.repaired,
+                        settleTimeouts = w.settleTimeouts,
+                      ),
+                    )
+                  }
             }
+            .map(orFail)
             .map { (w1, s) =>
               nanos.map { t1 =>
                 val emit = stats match

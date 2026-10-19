@@ -31,6 +31,27 @@ class HeadlessTest extends RunnerSuite:
       yield assert(fin1)
     }
 
+    // claude 2026-10-19: created (P5): the repair-tick rule of AGENTS.md
+    "a repair frame of a region whose UI holds a handler paints again and sends no cell (repaired > 0, flushed == 0)" in {
+      Knobs.let(Knobs(repairInterval = 50.millis)) {
+        for
+            n  <- Signal.initRef(0)
+            h  <- Headless.start(20, 2)(_ =>
+                    div(n.map(v => button(s"n=$v").onClick(n.set(v + 1)))),
+                  )
+            _  <- h.drainFrames
+            fs <- framesUntil(h, 2.seconds)(_.repaired > 0)
+        yield
+            val repairs = fs.filter(_.repaired > 0)
+            assert(repairs.nonEmpty, s"no repair frame in 2 s: $fs")
+            assert(
+              repairs.forall(f => f.repainted > 0 && f.flushed == 0),
+              repairs.toString,
+            )
+        end for
+      }
+    }
+
     "resize: the frame of the resize lays the content out again" in {
       for
           h  <- Headless.start(6, 3)(_ => div(p("hello world")))
