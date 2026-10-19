@@ -330,3 +330,17 @@ Cada decisión tiene una recomendación (R).
   SchedulerDefaults (con un test por plataforma); la precarga en otro hilo
   solo en la JVM. Abierto: Oracle GraalVM o GraalVM Community para CI (revisar
   la licencia de Oracle). <!-- claude 2026-10-17: changed D16 with the numbers -->
+
+## 5. Decisiones de lanzamiento (2026-10-19)
+
+D17 los ejemplos de uso son la documentación (snippets compilados, ejemplos
+en el Scaladoc; los docs y el README empiezan por el ejemplo; el usuario solo
+revisa ejemplos). D18 sin pull requests: una rama, CI por `workflow_dispatch`.
+D10 máquina: la cuenta AWS del usuario con alchemy desde `bench/infra/`
+(instancia acotada, se apaga sola). D11 el proyecto de Vercel lo crea la
+sesión. D16 GraalVM Community en CI. D19 las skills salen del repo; fuente:
+github.com/yuri4n/functional-design-skills v0.2.0.
+Orden del programa: L0 P1 -> PF-a -> P1b -> P2 -> P3 -> P4 -> P5 -> PF-b ->
+P6 -> L1 -> L2 -> L3 -> L4 -> L5 (+L5b) -> L6 (el tag necesita aprobación
+humana).
+<!-- claude 2026-10-19: created this section -->

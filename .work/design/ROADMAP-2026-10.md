@@ -256,3 +256,15 @@ Each decision has a recommendation (R).
   access to scrollIntoView. R: yes, drafts only.
 - D14 Process: lean mode stays; a skeptic only for concurrency and
   terminal-restore code. R: yes.
+
+## 5. Launch decisions (2026-10-19)
+
+D17 examples are the documentation (compiled snippets, Scaladoc examples,
+docs and README lead with them; the user reviews only examples). D18 no pull
+requests: one branch, CI by `workflow_dispatch`. D10 machine: the user's AWS
+account via alchemy from `bench/infra/` (bounded, auto-terminate). D11 Vercel
+project created from the session. D16 GraalVM Community in CI. D19 the skills
+left the repo; source: github.com/yuri4n/functional-design-skills v0.2.0.
+Program order: L0 P1 -> PF-a -> P1b -> P2 -> P3 -> P4 -> P5 -> PF-b -> P6 ->
+L1 -> L2 -> L3 -> L4 -> L5 (+L5b) -> L6 (tag needs human approval).
+<!-- claude 2026-10-19: created this section -->

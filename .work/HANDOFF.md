@@ -1,3 +1,10 @@
+## 2026-10-19: FULL PROGRAM LAUNCHED (D17-D19, see DECISIONS.md sixteenth round)
+
+- Branch `chore/cleanup-7p2rll` at 4ab4068 (skills removed, CI workflow_dispatch). No PRs (D18).
+- Running: L0-P1 workflow (55 P1 sites, A10, isatty LinkageError, probe interval, /tmp/jni-* leak, JMH exclusion).
+- Upstream drafts land in `.work/upstream/` (the user posts them).
+<!-- claude 2026-10-19: created this item -->
+
 # Handoff: where to start (rewritten 2026-10-01 evening, session paused at the user's request)
 
 Say to the next session: **"continue from .work/HANDOFF.md"**.

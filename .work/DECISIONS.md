@@ -253,3 +253,31 @@ Eighth round (2026-10-11, gate 0, after W0; recorded by Claude from the user's a
   - Still open: D10 who gives a bare-metal machine; D11 the docs domain and the Vercel token owner; D16 packaging waits
     for the startup measurements (AOT cache, native-image) of workflow wf_5ed848c4-01d.
 - The user is careful with credits ("No tengo tantos créditos"): keep workflows small (shape 4), no extra spikes.
+
+## Sixteenth round (2026-10-19): launch of the full program
+
+The user answered the five launch questions (chat, 2026-10-19):
+
+- D17 Documentation = usage examples. The user reviews only the usage
+  examples, in the code and outside it. Every public API ships with a
+  compiled example (a snippet suite, Scaladoc examples), and the docs site
+  and the README lead with the example. L1, L2, L3 and L5 prompts carry this.
+- D18 No pull requests. All work lands on `chore/cleanup-7p2rll`; CI runs on
+  demand with `workflow_dispatch` (added 4ab4068). The user merges when they
+  want to; the session never creates a PR.
+- D10 (machine): the user's default AWS account, bootstrapped with alchemy
+  (alchemy.run) from `bench/infra/`: a bounded instance, auto-terminate,
+  results to S3. The cloud session has `AWS_*` credentials in its
+  environment (never print them). Lands with L5.
+- D11 (host): the session creates the Vercel project when the docs land. The
+  domain stays open.
+- D16 (edition): GraalVM Community in CI.
+- D19 Skills: `.claude/skills` left the repo (4ab4068). Source of truth:
+  <https://github.com/yuri4n/functional-design-skills> (v0.2.0); the repo
+  copy was stale by about 4,600 lines. The kyo-test-prop row fix went to
+  that repo's main (926cf69). In the cloud container the published skills
+  are linked into `~/.claude/skills`.
+- Orchestration: Fable orchestrates; Opus runs every delegable agent,
+  including the reviewers. Fable itself only for a gate review or the skeptic
+  on concurrency and terminal-restore code (unchanged lean-mode rule).
+<!-- claude 2026-10-19: created this round -->
