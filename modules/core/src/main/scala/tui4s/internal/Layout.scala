@@ -63,18 +63,36 @@ end Node
 
 /** The laid-out screen: a flat, immutable index of nodes, plus the container
   * that owns the items of each region.
+  *
+  * Invariant (I1): the nodes at or under the path of a node are the nodes that
+  * its `kids` reach. A kid path extends the path of its owner, and the items
+  * of one container are prefix-free (`flatten` stops at an element or a
+  * text). `layoutAll` and `relayout` keep the invariant.
   */
 private[tui4s] final case class Laid(
     nodes: Map[Loc, Node],
     regionOwner: Map[Loc, Loc],
 ):
+    /** The screen without the node at `prefix`, its subtree and the regions
+      * under it. The walk follows `kids`, so it visits only the subtree, not
+      * the whole node map (I1 makes it equal to a filter of the paths). The
+      * region map is still filtered as a whole: it is usually much smaller.
+      */
+    // claude 2026-10-19: changed: a walk of the subtree through `kids`, not a
+    // filter of the whole node map (PF-a, F1)
     def without(prefix: Loc): Laid =
-      Laid(
-        nodes.filterNot((p, _) => p.isAtOrUnder(prefix)),
-        regionOwner.filterNot((r, o) =>
-          r.isAtOrUnder(prefix) || o.isAtOrUnder(prefix),
-        ),
-      )
+        def subtree(p: Loc): Iterator[Loc] =
+          nodes
+            .get(p)
+            .iterator
+            .flatMap(n => Iterator.single(p) ++ n.kids.iterator.flatMap(subtree))
+        Laid(
+          nodes -- subtree(prefix),
+          regionOwner.filterNot((r, o) =>
+            r.isAtOrUnder(prefix) || o.isAtOrUnder(prefix),
+          ),
+        )
+    end without
 end Laid
 
 private[tui4s] object Laid:
