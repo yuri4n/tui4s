@@ -17,8 +17,11 @@ replaces tui-scala. tui4s has no UI DSL of its own: the DSL is kyo-ui.
 | `modules/core`  | `core`     | `io.github.yuri4n::tui4s-core`   | kyo-ui                                  | `core-v<semver>` | yes       |
 | `modules/zio`   | `zio`      | `io.github.yuri4n::tui4s-zio`    | a ZIO DSL over kyo-ui (planned)         | `zio-v<semver>`  | yes       |
 | `modules/cats`  | `cats`     | `io.github.yuri4n::tui4s-cats`   | a Cats Effect DSL over kyo-ui (planned) | `cats-v<semver>` | yes       |
+| `modules/use`   | `use` (`useJVM`, `useJS`) | `io.github.yuri4n::tui4s-use` (JVM and Scala.js) | kyo-ui (composables) | `use-v<semver>` | yes |
+| `modules/widgets` | `widgets` (`widgetsJVM`, `widgetsJS`) | `io.github.yuri4n::tui4s-widgets` (JVM and Scala.js) | kyo-ui (widgets, L2b) | `widgets-v<semver>` | yes |
 | `examples`      | `examples` | none                             | -                                       | none             | no        |
 | `docs`          | none       | none (Nuxt Docus site)           | -                                       | none             | no        |
+<!-- claude 2026-10-19: created the rows of use and widgets (L2a) -->
 
 The core uses Kyo and kyo-ui (both at `Versions.kyo`). The `zio` and `cats`
 modules will let ZIO and Cats Effect users write tui4s apps without Kyo types
@@ -636,8 +639,9 @@ One-time setup (human): sign in to central.sonatype.com with GitHub (this
 verifies `io.github.yuri4n`), make a user token, make a GPG key, and put its
 public key on a key server. Then add these secrets to the GitHub environment
 `maven-central`: `PGP_SECRET`, `PGP_PASSPHRASE`, `SONATYPE_USERNAME`,
-`SONATYPE_PASSWORD`. The environment accepts only the tags `core-v*`, `zio-v*`
-and `cats-v*`.
+`SONATYPE_PASSWORD`. The environment accepts only the tags `core-v*`, `zio-v*`,
+`cats-v*`, `use-v*` and `widgets-v*`.
+<!-- claude 2026-10-19: changed: use-v* and widgets-v* (L2a); a human adds them to the environment -->
 
 | Error message                                          | Cause and fix                                                       |
 | ------------------------------------------------------ | ------------------------------------------------------------------- |

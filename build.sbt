@@ -5,12 +5,17 @@
 //   core -> io.github.yuri4n::tui4s-core  (kyo-ui on Kyo + jatatui)
 //   zio  -> io.github.yuri4n::tui4s-zio   (ZIO integration)
 //   cats -> io.github.yuri4n::tui4s-cats  (Cats Effect integration)
+//   use     -> io.github.yuri4n::tui4s-use      (composables; JVM and JS)
+//   widgets -> io.github.yuri4n::tui4s-widgets  (widgets; JVM and JS)
+// claude 2026-10-19: changed: the two cross-built modules (L2a)
 // ModuleVersioning and sbt-ci-release set `version` and `publishTo`. Never set
 // them here.
 
 // claude 2026-10-12: created: sbt-tpolecat types that build.sbt uses
 import org.typelevel.sbt.tpolecat.DevMode
 import org.typelevel.scalacoptions.ScalacOptions
+// claude 2026-10-19: created: the type of a cross-built module (L2a)
+import sbtcrossproject.CrossProject
 
 ThisBuild / organization      := "io.github.yuri4n"
 ThisBuild / homepage          := Some(url("https://github.com/yuri4n/tui4s"))
@@ -83,9 +88,10 @@ def module(id: String): Project =
     )
     .settings(name := s"tui4s-$id")
 
+// claude 2026-10-19: changed: the cross-built modules (L2a)
 lazy val root = project
   .in(file("."))
-  .aggregate(core, zio, cats, examples)
+  .aggregate(core, zio, cats, use, widgets, examples)
   .settings(
     name           := "tui4s",
     publish / skip := true,
@@ -94,6 +100,82 @@ lazy val root = project
 lazy val core = module("core")
 lazy val zio  = module("zio").dependsOn(core)
 lazy val cats = module("cats").dependsOn(core)
+
+/** A published module in `modules/<id>` for the JVM and for Scala.js, with no
+  * dependency on the core: plain kyo-ui code (D6). The sources are in
+  * `shared/`, `jvm/` and `js/` (CrossType.Full); the sbt ids are `<id>JVM` and
+  * `<id>JS`. The artifacts are `tui4s-<id>` and `tui4s-<id>_sjs1`. The tests
+  * use kyo-test on both platforms (Node.js runs the JS tests).
+  */
+// claude 2026-10-19: created (L2a)
+def crossModule(id: String): CrossProject =
+  CrossProject(id, file(s"modules/$id"))(JVMPlatform, JSPlatform)
+    .crossType(CrossType.Full)
+    .settings(
+      ModuleVersioning(
+        tagPrefix = s"$id-v",
+        paths = Seq(s"modules/$id", "build.sbt", "project"),
+      ),
+      name                   := s"tui4s-$id",
+      // modules/<id>/compat.sbt sets the intention of the aggregate project
+      // <id> (its base directory); both platforms take it from there.
+      versionPolicyIntention :=
+        (LocalProject(id) / versionPolicyIntention).value,
+      // kyo-kernel's POM brings JMH in compile scope (see
+      // modules/core/build.sbt): keep it out of the POM of the module.
+      libraryDependencies ++= Seq(
+        ("io.getkyo" %%% "kyo-ui"          % Versions.kyo)
+          .excludeAll(ExclusionRule("org.openjdk.jmh")),
+        "io.getkyo"  %%% "kyo-test-runner" % Versions.kyo % Test,
+        "io.getkyo"  %%% "kyo-test-prop"   % Versions.kyo % Test,
+      ),
+    )
+    .jvmSettings(
+      Test / testFrameworks +=
+        new TestFramework("kyo.test.runner.SbtFramework"),
+      // A forked test JVM, as in the core: Kyo starts one scheduler per
+      // class loader, and nothing stops it.
+      Test / fork := true,
+      Test / javaOptions ++= Seq(
+        "-Xmx1g",
+        "--sun-misc-unsafe-memory-access=allow",
+        "--enable-native-access=ALL-UNNAMED",
+      ),
+    )
+    .jsSettings(
+      // kyo-test has another framework class on Scala.js.
+      Test / testFrameworks +=
+        new TestFramework("kyo.test.runner.JsFramework"),
+    )
+
+/** The project `<id>` of a cross-built module: it aggregates `<id>JVM` and
+  * `<id>JS`, so that `<id>/test`, `<id>/publishSigned` and the release tag
+  * `<id>-v<semver>` (scripts/release.sh, release.yml) act on both. Its base
+  * directory `modules/<id>` holds `compat.sbt`.
+  */
+// claude 2026-10-19: created (L2a)
+def crossAggregate(id: String, m: CrossProject): Project =
+  Project(id, file(s"modules/$id"))
+    .aggregate(m.jvm, m.js)
+    .settings(
+      ModuleVersioning(
+        tagPrefix = s"$id-v",
+        paths = Seq(s"modules/$id", "build.sbt", "project"),
+      ),
+      name           := s"tui4s-$id",
+      publish / skip := true,
+    )
+
+// claude 2026-10-19: created (L2a): the composables (tui4s.use) and the
+// widgets (tui4s.widgets); widgets does not depend on use (L2b decides)
+lazy val useCross     = crossModule("use")
+lazy val useJVM       = useCross.jvm
+lazy val useJS        = useCross.js
+lazy val use          = crossAggregate("use", useCross)
+lazy val widgetsCross = crossModule("widgets")
+lazy val widgetsJVM   = widgetsCross.jvm
+lazy val widgetsJS    = widgetsCross.js
+lazy val widgets      = crossAggregate("widgets", widgetsCross)
 
 // Optional named shared state; widgets use Kyo's native signals and callbacks.
 lazy val pini4s = ProjectRef(file("vendor/pini4s"), "root")
@@ -107,9 +189,10 @@ lazy val launchers =
 // The zio and cats modules are empty in this version.
 // claude 2026-10-13: changed (T1): core only; no `run / connectInput`; the
 // JVM flags of a real run; munit tests; the launchers task
+// claude 2026-10-19: changed: the composables and the widgets (L2a)
 lazy val examples = project
   .in(file("examples"))
-  .dependsOn(core, pini4s)
+  .dependsOn(core, useJVM, widgetsJVM, pini4s)
   .enablePlugins(JavaAppPackaging)
   .settings(
     name           := "tui4s-examples",
@@ -201,7 +284,8 @@ addCommandAlias(
   "check",
   "; scalafmtCheckAll; scalafmtSbtCheck; Test/compile; scalafixAll --check; test; versionPolicyCheck",
 )
+// claude 2026-10-19: changed: use and widgets (L2a)
 addCommandAlias(
   "versions",
-  "; show core/version; show zio/version; show cats/version",
+  "; show core/version; show zio/version; show cats/version; show useJVM/version; show widgetsJVM/version",
 )

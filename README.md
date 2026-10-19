@@ -657,6 +657,9 @@ Each module is released on its own, with its own version.
 | `io.github.yuri4n::tui4s-core`   | Kyo users: run a kyo-ui value in the terminal. The base of the others. |
 | `io.github.yuri4n::tui4s-zio`    | ZIO users (planned).                   |
 | `io.github.yuri4n::tui4s-cats`   | Cats Effect users (planned).           |
+| `io.github.yuri4n::tui4s-use`    | Composables over Kyo signals, for the JVM and Scala.js. It does not need tui4s-core. |
+| `io.github.yuri4n::tui4s-widgets` | Widgets for the JVM and Scala.js (planned). It does not need tui4s-core. |
+<!-- claude 2026-10-19: created the two rows above (L2a) -->
 
 ## Requirements
 

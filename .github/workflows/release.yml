@@ -5,7 +5,10 @@ name: Release
 # three tags are pushed at once, so push release tags one by one.
 on:
   push:
-    tags: ["core-v*", "zio-v*", "cats-v*"]
+    # claude 2026-10-19: changed: use-v* and widgets-v* (L2a); the sbt project of a
+    # cross-built module aggregates its JVM and JS projects, so the steps below
+    # test and publish both artifacts
+    tags: ["core-v*", "zio-v*", "cats-v*", "use-v*", "widgets-v*"]
 
 concurrency:
   group: release-${{ github.ref_name }}
@@ -17,7 +20,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    # Holds the secrets. Only tags core-v*, zio-v* and cats-v* can use it.
+    # Holds the secrets. Only tags core-v*, zio-v*, cats-v*, use-v* and widgets-v* can use it.
     environment: maven-central
     steps:
       - uses: actions/checkout@v7
@@ -30,8 +33,8 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
         run: |
-          if [[ ! "$TAG" =~ ^(core|zio|cats)-v([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?)$ ]]; then
-            echo "::error::Tag '$TAG' does not match <core|zio|cats>-v<semver>"; exit 1
+          if [[ ! "$TAG" =~ ^(core|zio|cats|use|widgets)-v([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?)$ ]]; then
+            echo "::error::Tag '$TAG' does not match <core|zio|cats|use|widgets>-v<semver>"; exit 1
           fi
           echo "module=${BASH_REMATCH[1]}"  >> "$GITHUB_OUTPUT"
           echo "version=${BASH_REMATCH[2]}" >> "$GITHUB_OUTPUT"

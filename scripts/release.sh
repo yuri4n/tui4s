@@ -5,7 +5,9 @@
 # Usage: scripts/release.sh <module> <version> [--dry-run] [--yes]
 #   scripts/release.sh core 0.2.0 --dry-run   # validate only, delete the local tag afterwards
 #   scripts/release.sh zio 0.1.3              # validate, ask, push the tag
-# Env: MODULES (default "core zio cats"), REMOTE (default origin), BRANCH (default main)
+# Env: MODULES (default "core zio cats use widgets"), REMOTE (default origin), BRANCH (default main)
+# claude 2026-10-19: changed: the cross-built modules use and widgets (L2a); their sbt
+# project <module> aggregates <module>JVM and <module>JS, so one tag publishes both
 set -euo pipefail
 
 die() { echo "release: $*" >&2; exit 1; }
@@ -15,7 +17,7 @@ script_dir=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source-path=SCRIPTDIR source=version-order.sh
 . "$script_dir/version-order.sh"
 
-MODULES=${MODULES:-"core zio cats"}
+MODULES=${MODULES:-"core zio cats use widgets"}
 REMOTE=${REMOTE:-origin}
 BRANCH=${BRANCH:-main}
 
