@@ -58,7 +58,32 @@
   *     cut). A text wraps in a column and in a row of a definite `width`. Every
   *     measure counts cells: a wide character takes two, and a cut never splits
   *     it.
+  *
+  * The style properties in the terminal: the 76 cases of kyo-ui's `Style.Prop`
+  * (kyo-ui 1.0.0-RC7), by case name. `StyleTableTest` compares this list with
+  * the surface list of kyo-ui and with the runner, so they do not drift.
+  *   - honored: `Align`, `AlignSelf`, `BgColor`, `BorderColorProp`,
+  *     `BorderRadiusProp`, `BorderStyleProp`, `BorderWidthProp`,
+  *     `DisabledProp`, `FlexDirectionProp`, `FlexGrowProp`, `FlexShrinkProp`,
+  *     `FocusProp`, `FontStyleProp`, `FontWeightProp`, `Gap`, `Height`,
+  *     `HiddenProp`, `Justify`, `ListStyleProp`, `Margin`, `MaxHeight`,
+  *     `MaxWidth`, `MinHeight`, `MinWidth`, `OpacityProp`, `OverflowProp`,
+  *     `OverflowXProp`, `OverflowYProp`, `Padding`, `ScrollbarColorProp`,
+  *     `ScrollbarWidthProp`, `TextAlignProp`, `TextColor`,
+  *     `TextDecorationProp`, `TextOverflowProp`, `TextTransformProp`,
+  *     `TextWrapProp`, `WhiteSpaceProp`, `Width`.
+  *   - ignored: `AccentColorProp`, `ActiveProp`, `AnimationDelayProp`,
+  *     `AnimationProp`, `BackgroundClipProp`, `BgGradientProp`, `BlurProp`,
+  *     `BorderCollapseProp`, `Bottom`, `BrightnessProp`, `ContrastProp`,
+  *     `CursorProp`, `DisplayProp`, `FlexBasisProp`, `FlexWrapProp`,
+  *     `FontFamilyProp`, `FontSizeProp`, `FontVariantLigaturesProp`,
+  *     `GrayscaleProp`, `HoverProp`, `HueRotateProp`, `InvertProp`, `Left`,
+  *     `LetterSpacingProp`, `LineHeightProp`, `PositionProp`, `Right`,
+  *     `SaturateProp`, `ScrollMarginTopProp`, `ScrollbarGutterProp`,
+  *     `SepiaProp`, `ShadowProp`, `StrokeDashoffsetProp`, `Top`,
+  *     `TransitionProp`, `TranslateProp`, `ZIndexProp`.
   */
 // claude 2026-10-19: changed: the package Scaladoc names scroll, wrap and
-// ellipsis, with the key table (L1a; the tab stop, no focus: L1a review)
+// ellipsis, with the key table (L1a), and the table of the style properties
+// (L1b)
 package object tui4s

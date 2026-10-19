@@ -158,9 +158,44 @@ private[tui4s] final case class Border(
   *     input scrolls and puts its caret by cells, the label of a select or a
   *     dropdown fits by cells (`Paint.fit`), and the ellipsis never splits a
   *     wide glyph.
+  *
+  * The position, display, wrap and colour-variable properties, and the size of
+  * the window (the audit of 2026-10-19, kyo-ui 1.0.0-RC7; the CSS is the CSS of
+  * `CssStyleRenderer`):
+  *   - `position` (`Position`: flow, overlay, relative, dropdown, sticky,
+  *     absolute, fixed). The CSS: `flow` is `position: static`; `overlay` is
+  *     `position: fixed; top: 0; left: 0; width: 100%; height: 100%`;
+  *     `relative`, `sticky`, `absolute` and `fixed` are the CSS keywords of the
+  *     same name; `dropdown` is `position: absolute; top: 100%; right: 0;
+  *     z-index: 50`. The old runner ignored it.
+  *   - `top`, `right`, `bottom`, `left` (`Length`; CSS `top`, `right`,
+  *     `bottom`, `left`). kyo-ui has no `inset`. The old runner ignored them.
+  *   - `zIndex` (`Int`; CSS `z-index`). The old runner ignored it.
+  *   - `display` (`Display`: block, inline, inlineBlock, flex, inlineFlex,
+  *     listItem, table, tableRow, tableCell; CSS `display`). kyo-ui has no
+  *     `none` value and no `grid` value. `displayNone` (and `hidden(true)`) is
+  *     `HiddenProp`, CSS `display: none`. The old runner ignored `display`. It
+  *     honored `HiddenProp`: the element has no layout and no paint
+  *     (`Layout.flatten` drops it), and the regions in it stay mounted
+  *     (`Mount.walk` walks it), so their state stays.
+  *   - `flexWrap` (`FlexWrap`: wrap, noWrap; CSS `flex-wrap`). kyo-ui has no
+  *     `wrapReverse` and no `alignContent`. The old runner ignored it.
+  *   - `Color.Var(name)` (`Color.variable(name)`; CSS `var(--name)`). The case
+  *     has no fallback value. kyo-ui declares a custom property only in a
+  *     `Stylesheet`: `Stylesheet.vars(name -> value)` is a `:root` block, and
+  *     `Stylesheet.scopedVars(selector, name -> value)` is a block for a
+  *     selector. No `Style.Prop` declares a custom property. A page gets its
+  *     stylesheet through `UI.PageHead.css` or `UI.runStylesheet`, not through
+  *     the element tree. The old runner gave no colour for it.
+  *   - The size of the window: `UIWindow.size` (`Signal[(Int, Int)]`, in CSS
+  *     pixels) is in the Scala.js jar of kyo-ui only. A private `SignalRef`
+  *     holds it, and the DOM `resize` event writes it. The JVM jar has no
+  *     signal of the window size, and a runner cannot write the Scala.js one.
+  *     The old runner gave the UI no size.
   */
 // claude 2026-10-19: changed: the audit of the overflow and text-flow
-// properties (L1a; the tab stop, the row wrap, the direct texts: L1a review)
+// properties (L1a), and of the position, display, wrap and colour-variable
+// properties and the window size (L1b)
 private[tui4s] final case class Props(
     dir: Dir,
     /** `rowReverse` or `columnReverse`: the items go from the end. */
@@ -215,6 +250,54 @@ private[tui4s] final case class Props(
 end Props
 
 private[tui4s] object Props:
+
+    /** The cases of kyo-ui's `Style.Prop` that the runner honors, by case name.
+      * The runner ignores the other cases. The package Scaladoc of `tui4s`
+      * lists the two sets, and `StyleTableTest` compares them with the surface
+      * list of kyo-ui, so they do not drift.
+      */
+    // claude 2026-10-19: created (L1b): the honored properties
+    val honored: Set[String] = Set(
+      "Align",
+      "AlignSelf",
+      "BgColor",
+      "BorderColorProp",
+      "BorderRadiusProp",
+      "BorderStyleProp",
+      "BorderWidthProp",
+      "DisabledProp",
+      "FlexDirectionProp",
+      "FlexGrowProp",
+      "FlexShrinkProp",
+      "FocusProp",
+      "FontStyleProp",
+      "FontWeightProp",
+      "Gap",
+      "Height",
+      "HiddenProp",
+      "Justify",
+      "ListStyleProp",
+      "Margin",
+      "MaxHeight",
+      "MaxWidth",
+      "MinHeight",
+      "MinWidth",
+      "OpacityProp",
+      "OverflowProp",
+      "OverflowXProp",
+      "OverflowYProp",
+      "Padding",
+      "ScrollbarColorProp",
+      "ScrollbarWidthProp",
+      "TextAlignProp",
+      "TextColor",
+      "TextDecorationProp",
+      "TextOverflowProp",
+      "TextTransformProp",
+      "TextWrapProp",
+      "WhiteSpaceProp",
+      "Width",
+    )
 
     /** The props of a text node or of the screen: no box, inherited text. */
     def neutral(text: TextAttrs): Props =
