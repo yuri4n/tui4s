@@ -95,7 +95,29 @@ private[tui4s] final case class Border(
     fg: Option[JColor],
 )
 
-/** The resolved layout and paint properties of one element in the terminal. */
+/** The resolved layout and paint properties of one element in the terminal.
+  *
+  * The overflow and text-flow properties (the audit of 2026-10-19, kyo-ui
+  * 1.0.0-RC7; the DOM runner `CssStyleRenderer` gives the CSS):
+  *   - `overflow`, `overflowX`, `overflowY` (`Overflow`: visible, hidden,
+  *     scroll, auto; CSS `overflow`, `overflow-x`, `overflow-y`): ignored. Each
+  *     box clips its content to its content box, and nothing scrolls.
+  *   - `whiteSpace` (`WhiteSpace`: normal, noWrap, pre, preWrap, preLine; CSS
+  *     `white-space`): ignored. A text keeps its spaces and its line breaks,
+  *     and it wraps in a column, never in a row.
+  *   - `textWrap` (`TextWrap`: wrap, noWrap, ellipsis, balance, pretty; CSS
+  *     `overflow-wrap: break-word`, `overflow-wrap: normal`,
+  *     `overflow-wrap: normal; text-overflow: ellipsis`, `text-wrap: balance`,
+  *     `text-wrap: pretty`): ignored. A word wider than its line always splits
+  *     (as `break-word`).
+  *   - `textOverflow` (`TextOverflow`: clip, ellipsis; CSS `text-overflow`):
+  *     ignored. A text is clipped by cells at the edge of its box.
+  *   - The text measure counts cells: `Layout.textWidth` is jatatui's
+  *     `Span.width` (2 cells for a wide character or an emoji), the wrap splits
+  *     a long word by cells, and the painter cuts a text into `Glyph`s.
+  */
+// claude 2026-10-19: changed: the audit of the overflow and text-flow
+// properties (L1a)
 private[tui4s] final case class Props(
     dir: Dir,
     /** `rowReverse` or `columnReverse`: the items go from the end. */
