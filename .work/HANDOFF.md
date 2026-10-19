@@ -117,8 +117,32 @@
   USER MUST KNOW: the app opts in to Anthropic server-side fallbacks for the default model (header
   anthropic-beta: server-side-fallback-2026-07-01, field fallbacks: "default"; Anthropic.fallbacks in Wires.scala);
   the OpenAI default id 'gpt-5' is unchecked data; effort/thinking not sent; the run log file has the umask mode.
+- L4 DONE, pushed e41fd0f (32 files, +2485/-143; tui4s.widgets.Theme (terminal, web) -> Theme.palette (colour vars,
+  the terminal) and Theme.stylesheet (full CSS, the web; [data-theme] scopes); Look enum + switch in the assistant
+  settings; JS interpreters: FetchHttp (streamed reader, AbortController in Scope, redirect=error, credentials=omit,
+  no-referrer; 5-min idle), BrowserKeys over LocalStorage (one entry per provider, masked, forget, warning),
+  ConversationStore on LocalStorage, console AppLog; index.html CSP connect-src only the two provider hosts; project
+  examples/web (assistantWeb, KyoApp main with UI.runStylesheet + UI.runMount('#app')); Surface enum service (rows/
+  cols/lines units, web chords Alt-N/Alt-arrows/Alt-,/Alt-L/Alt-P/F1, first look, key vault); bundle 9.74 MB /
+  1.20 MB gzip (locales-minimal), mounts in ~0.9 s; scripts/web-build.sh -> dist/assistant; scripts/web-smoke.mjs
+  (Playwright, passes; not in CI); README 'The same app on the web'; 707 kyo-test + 124 examples; PTY 91/91 screen
+  rows). Review: 1 blocking (the typed key was in the DOM value attribute: fixed), 5 should, 7 nits; 11 applied, 1
+  deferred (Surface mixes data and the KeyVault capability), 1 n/a.
+  Open: tui4s-widgets has no unit scale for the web (px/em = cells; Modal/CommandPalette/Panel/ListView/Pager sizes
+  show as CSS px or font ems; Pager/ListView clip ~20% on the web; documented in the package Scaladoc); RadioGroup
+  has no click handler (keyboard only on the web); kyo-ui upstream drafts to write (D13): (1) DOM keydown on a field
+  inside a nested reactive region skips the field's handlers, (2) no preventDefault on a handled keydown, (3) any
+  Enter submits the enclosing form (so the web composer is outside a form), (4) a Stylesheet cannot override inline
+  element styles (Panel corners); the PTY assistant first-screen row raced once right after the launchers build.
+  Note: an sbt server died of its 3 GB heap after several Scala.js links; the agent restarted it by its own PID.
+- STATE 2026-10-19 (for the compaction): branch chore/cleanup-7p2rll at e41fd0f, all of L0-L4 + D25 pushed; CI
+  green through L3 (#?? queued for e41fd0f); tasks left: L5 (docs site + bench/ + alchemy infra; Vercel project when
+  the user says), L5b (native-image metadata, AOT launchers, GraalVM CE in CI), L6 (release checklist; tag needs
+  human approval). Human steps pending: maven-central tag patterns (runner-v*, app-v*, testkit-v*, use-v*,
+  widgets-v*); D24 default keep; the Anthropic server-side fallbacks opt-in in Wires.scala (user must know).
 - RULE (user, 2026-10-19): after L4 lands, STOP: report it, do not start L5, wait for the user (they will /compact).
-- NEXT: L4 (3 agents): the standalone Scala.js build of the assistant (D5), Theme (D8) in tui4s-widgets rendered to
+  L4 landed; waiting.
+- (history) L4 ran as 3 agents: the standalone Scala.js build of the assistant (D5), Theme (D8) in tui4s-widgets rendered to
   one Stylesheet for both platforms, JS interpreters (fetch SSE, localStorage key with a warning), units em/pct.
 - (history) L3 ran as 3 agents: shared crossProject (domain + UI, kyo-ui/use/widgets only), tui main
   (TuiApp), providers Anthropic/OpenAI (JVM SSE over kyo-http) + scripted fake; keys from env or a 0600 file only.
