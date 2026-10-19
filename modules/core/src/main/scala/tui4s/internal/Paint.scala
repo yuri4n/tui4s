@@ -155,10 +155,72 @@ private[tui4s] object Paint:
               // claude 2026-10-19: changed: the kids of a viewport are clipped
               // to its port (L1a)
               val inner = n.port.intersect(clip)
+              // claude 2026-10-19: created (L1a): the scroll indicator
+              val bar   = n.view.toVector
+                .flatMap(v => indicator(BarLook.of(n.props), v, area))
               n.kids.foldLeft(
                 ops ++ fill ++ frame ++ decorate(laid, env, n, e, area),
-              )((o, k) => paintNode(o, laid, env, k, inner))
+              )((o, k) => paintNode(o, laid, env, k, inner)) ++ bar
       }
+
+    /** The thumb of a scroll indicator of `len` cells: its first cell and its
+      * number of cells, for a port of `port` rows over `content` rows at the
+      * offset `offset`. The thumb has the share of the track that the port has
+      * of the content (at least 1 cell); it is at the top at offset 0 and at
+      * the bottom at the last offset.
+      */
+    // claude 2026-10-19: created (L1a)
+    def thumb(len: Int, port: Int, content: Int, offset: Int): (Int, Int) =
+        val size = ((len * port + content / 2) / content.max(1)).max(1).min(len)
+        val room = len - size
+        val last = content - port
+        val at   =
+          if last <= 0 then 0 else ((offset * room + last / 2) / last).min(room)
+        (at.max(0), size)
+
+    /** The ops of the scroll indicator of the view `v` inside `clip`. `look`
+      * gives its glyphs and styles, so a theme can give another look.
+      */
+    // claude 2026-10-19: created (L1a)
+    def indicator(look: BarLook, v: View, clip: Rect): Vector[Op] =
+      v.bar.toVector.flatMap { bar =>
+        val (at, size) = thumb(bar.h, v.port.h, v.content.h, v.offset.y)
+        (0 until bar.h).toVector.flatMap { i =>
+          val (sym, st) =
+            if i >= at && i < at + size then (look.thumb, look.thumbStyle)
+            else (look.track, look.trackStyle)
+          put(bar.x, bar.y + i, sym, st, clip)
+        }
+      }
+
+    /** The look of a scroll indicator: the glyph and the style of its track and
+      * of its thumb.
+      */
+    // claude 2026-10-19: created (L1a)
+    final case class BarLook(
+        track: String,
+        trackStyle: JStyle,
+        thumb: String,
+        thumbStyle: JStyle,
+    )
+
+    object BarLook:
+        /** The default look of the indicator of an element with the props `p`:
+          * a thin line for the track (dim, or the track colour of
+          * `scrollbarColor`) and a full block for the thumb (the text colour,
+          * or the thumb colour of `scrollbarColor`).
+          */
+        def of(p: Props): BarLook =
+            val base       = p.text.copy(underline = false, reverse = false)
+            val (th, tr)   = p.scrollbarColor.getOrElse((None, None))
+            val thumbStyle = th.fold(base.style)(c => JStyle.empty().withFg(c))
+            val trackStyle =
+              tr.fold(base.copy(dim = true).style)(c =>
+                JStyle.empty().withFg(c),
+              )
+            BarLook("│", trackStyle, "█", thumbStyle)
+        end of
+    end BarLook
 
     /** The op that writes `symbol` at (x, y), when the cell is inside `clip`. */
     // claude 2026-10-19: created (P5): the pure `Canvas.put`

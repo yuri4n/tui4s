@@ -14,6 +14,7 @@ import kyo.Style.{
   ListStyle,
   Overflow,
   Prop,
+  ScrollbarWidth,
   TextAlign,
   TextDecoration,
   TextTransform,
@@ -108,7 +109,9 @@ private[tui4s] final case class Border(
   *     that scrolls is focusable. `visible` keeps the old rule: each box clips
   *     its content to its content box. Each axis keeps its own value (CSS
   *     computes `visible` next to a non-visible axis to `auto`; the runner does
-  *     not).
+  *     not). A viewport whose content is taller than its port, with at least 3
+  *     rows, shows a scroll indicator in its right column
+  *     (`scrollbarWidth(none)` hides it, `scrollbarColor` gives its colours).
   *   - `whiteSpace` (`WhiteSpace`: normal, noWrap, pre, preWrap, preLine; CSS
   *     `white-space`): ignored. A text keeps its spaces and its line breaks,
   *     and it wraps in a column, never in a row.
@@ -157,6 +160,13 @@ private[tui4s] final case class Props(
     // claude 2026-10-19: created (L1a): the overflow of each axis
     overflowX: Overflow = Overflow.visible,
     overflowY: Overflow = Overflow.visible,
+    /** `scrollbarWidth`: `none` hides the scroll indicator (the viewport still
+      * scrolls); `auto` and `thin` give one column.
+      */
+    // claude 2026-10-19: created the two fields below (L1a): the indicator
+    scrollbarWidth: ScrollbarWidth = ScrollbarWidth.auto,
+    /** `scrollbarColor(thumb, track)`: the colours of the indicator. */
+    scrollbarColor: Option[(Option[JColor], Option[JColor])] = None,
 ):
     def insets: Sides = border.fold(Sides.zero)(_.sides) + padding + decoration
 
@@ -424,6 +434,10 @@ private[tui4s] object Props:
               p.copy(overflowX = v, overflowY = v)
             case Prop.OverflowXProp(v)             => p.copy(overflowX = v)
             case Prop.OverflowYProp(v)             => p.copy(overflowY = v)
+            // claude 2026-10-19: created (L1a): the look of the indicator
+            case Prop.ScrollbarWidthProp(v)        => p.copy(scrollbarWidth = v)
+            case Prop.ScrollbarColorProp(th, tr)   =>
+              p.copy(scrollbarColor = Some((color(th), color(tr))))
             case Prop.BorderWidthProp(t, r, b, l)  =>
               val sides = Sides(
                 side(t).min(1),

@@ -5,7 +5,7 @@ package tui4s.internal
 import jatatui.core.style.Color as JColor
 import jatatui.core.text.Span
 import kyo.*
-import kyo.Style.{Alignment, Justification, ListStyle, Overflow}
+import kyo.Style.{Alignment, Justification, ListStyle, Overflow, ScrollbarWidth}
 import kyo.UI.Ast.*
 
 /** What a region shows now. */
@@ -728,54 +728,73 @@ private[tui4s] object Layout:
       * the natural size of the kids (at least the size of the port), moved by
       * the scroll offset of `env` (clamped to the content; 0 on an axis that is
       * `hidden`). The painter clips them to the port.
+      *
+      * The scroll indicator: when the vertical axis scrolls, the content is
+      * taller than the port, the port has at least 3 rows and 2 columns, and
+      * `scrollbarWidth` is not `none`, the indicator takes the right column of
+      * the padding box (as the classic scrollbar of a browser). Only then the
+      * content box loses that column, and the kids are measured again in the
+      * narrower width.
       */
     // claude 2026-10-19: created (L1a): the one arrange of layoutChildren and
-    // relayout
+    // relayout, with the indicator column
     def arrangeKids(node: Node, env: Scene, root: UI): Arranged =
-        val box       = node.content
-        val tableCols = node.kind match
+        val box                         = node.content
+        def colsIn(w: Int): Vector[Int] = node.kind match
             case Kind.El(e: Table) =>
-              tableSize(e, node.path, node.props, box.w, env)._1
+              tableSize(e, node.path, node.props, w, env)._1
             case _                 => Vector.empty
-        val viewport  = node.kind match
+        val viewport                    = node.kind match
             case Kind.El(_) => node.props.clips
             case _          => false
+        val (kids0, regions, _)         = measuredKids(node, env, root, box.w)
         if !viewport then
-            val (kids, regions, _) = measuredKids(node, env, root, box.w)
             Arranged(
-              kids,
+              kids0,
               regions,
-              arrange(node.props, box, kids, node.cols),
-              tableCols,
+              arrange(node.props, box, kids0, node.cols),
+              colsIn(box.w),
               box.w,
               None,
             )
         else
-            val p                  = node.props
-            val (kids, regions, _) = measuredKids(node, env, root, box.w)
-            val natural            = node.kind match
-                case Kind.El(e: Table) =>
-                  tableSize(e, node.path, p, box.w, env)._2
-                case _                 => combine(p, kids)
-            val content            = Size(
-              if p.overflowX == Overflow.visible then box.w
-              else natural.w.max(box.w),
-              if p.overflowY == Overflow.visible then box.h
-              else natural.h.max(box.h),
+            val p                                           = node.props
+            def natural(ks: Vector[Measured], w: Int): Size = node.kind match
+                case Kind.El(e: Table) => tableSize(e, node.path, p, w, env)._2
+                case _                 => combine(p, ks)
+            val showBar                                     =
+              Props.scrolls(p.overflowY) &&
+                p.scrollbarWidth != ScrollbarWidth.none && box.h >= 3 &&
+                box.w >= 2 && natural(kids0, box.w).h > box.h
+            val pad                                         =
+              node.rect.inset(p.border.fold(Sides.zero)(_.sides))
+            val bar                                         =
+              Option.when(showBar)(Rect(pad.right - 1, pad.y, 1, pad.h))
+            val port                                        =
+              if showBar then box.copy(w = box.w - 1) else box
+            val kids                                        =
+              if showBar then measuredKids(node, env, root, port.w)._1
+              else kids0
+            val size                                        = natural(kids, port.w)
+            val content                                     = Size(
+              if p.overflowX == Overflow.visible then port.w
+              else size.w.max(port.w),
+              if p.overflowY == Overflow.visible then port.h
+              else size.h.max(port.h),
             )
-            val view0              =
-              View(Offset.zero, content, box, None, p.overflowX, p.overflowY)
-            val view               =
+            val view0                                       =
+              View(Offset.zero, content, port, bar, p.overflowX, p.overflowY)
+            val view                                        =
               view0.copy(offset = view0.clamp(env.scroll(node.path)))
-            val o                  = view.offset
-            val inBox              =
-              Rect(box.x - o.x, box.y - o.y, content.w, content.h)
+            val o                                           = view.offset
+            val inBox                                       =
+              Rect(port.x - o.x, port.y - o.y, content.w, content.h)
             Arranged(
               kids,
               regions,
               arrange(p, inBox, kids, node.cols),
-              tableCols,
-              box.w,
+              colsIn(port.w),
+              port.w,
               Some(view),
             )
         end if

@@ -230,6 +230,71 @@ class GoldenScreenTest extends ScreenSuite:
       }
     }
 
+    // claude 2026-10-19: created (L1a)
+    "the scroll indicator" - {
+      def lines(n: Int): Seq[UI.Ast.HtmlChildVal] =
+        (1 to n).map[UI.Ast.HtmlChildVal](i => span(s"l$i"))
+      "a list that overflows shows a track with a thumb in its right column; the thumb moves with the offset; none when nothing overflows" in {
+        val ui  = div.style(_.height(4.px).overflowY(_.scroll))(lines(8)*)
+        assertScreen(ui, 4, 4, "l1 █\nl2 █\nl3 │\nl4 │")
+        assertScreen(
+          ui,
+          4,
+          4,
+          "l3 │\nl4 █\nl5 █\nl6 │",
+          scroll = Map(Loc.root -> Offset(0, 2)),
+        )
+        assertScreen(
+          ui,
+          4,
+          4,
+          "l5 │\nl6 │\nl7 █\nl8 █",
+          scroll = Map(Loc.root -> Offset(0, 4)),
+        )
+        val few = div.style(_.height(4.px).overflowY(_.scroll))(lines(2)*)
+        assertScreen(few, 4, 4, "l1\nl2")
+        // 2 rows are too few for an indicator
+        val low = div.style(_.height(2.px).overflowY(_.scroll))(lines(8)*)
+        assertScreen(low, 4, 2, "l1\nl2")
+      }
+      "with a border and a padding, the indicator is in the right column of the padding box" in {
+        val ui = div.style(
+          _.border(1.px, _.white)
+            .padding(0.px, 1.px)
+            .height(6.px)
+            .overflowY(_.auto),
+        )(lines(10)*)
+        assertScreen(
+          ui,
+          8,
+          6,
+          """┌──────┐
+            |│ l1  █│
+            |│ l2  █│
+            |│ l3  ││
+            |│ l4  ││
+            |└──────┘""".stripMargin,
+        )
+      }
+      "scrollbarWidth(none) hides it (the viewport keeps its width); scrollbarColor colours it" in {
+        val none = div.style(
+          _.height(3.px).overflowY(_.scroll).scrollbarWidth(_.none),
+        )(span("abcd"), span("b"), span("c"), span("d"))
+        assertScreen(none, 4, 3, "abcd\nb\nc")
+        val b    = buffer(
+          div.style(
+            _.height(3.px)
+              .overflowY(_.scroll)
+              .scrollbarColor(Style.Color.red, Style.Color.blue),
+          )(lines(6)*),
+          4,
+          3,
+        )
+        assert(b.cellAt(3, 0).fg == JColor.Rgb(239, 68, 68))
+        assert(b.cellAt(3, 2).fg == JColor.Rgb(59, 130, 246))
+      }
+    }
+
     "text wraps in a column" - {
       "at the spaces" in {
         assertScreen(div("one two three"), 6, 3, "one\ntwo\nthree")

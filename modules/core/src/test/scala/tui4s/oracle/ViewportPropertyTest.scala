@@ -16,7 +16,10 @@ import tui4s.internal.*
   *   - the follow-focus rule shows the target in its innermost viewport and
   *     moves that viewport the least distance that shows it (all offsets that
   *     show it are tried); a new layout with the new offsets puts the target at
-  *     the same content position, in the window.
+  *     the same content position, in the window;
+  *   - the thumb of the indicator lies inside its track, has at least 1 cell,
+  *     is at the top at offset 0 and at the bottom at the last offset, and
+  *     moves down when the offset grows.
   */
 // claude 2026-10-19: created (L1a)
 class ViewportPropertyTest extends PropertyTest[Any]:
@@ -107,6 +110,24 @@ class ViewportPropertyTest extends PropertyTest[Any]:
               assert(v1.offset.y == o1)
               assert(box1.y - v1.port.y + v1.offset.y == a)
           end if
+      }
+
+      // claude 2026-10-19: created (L1a): the thumb of the indicator
+      forAll(
+        UiGen.between(3, 40),
+        UiGen.between(3, 40),
+        UiGen.between(1, 200),
+        UiGen.between(0, 200),
+      ) { (len, port, extra, o) =>
+        val content         = port + extra
+        val offset          = o.min(extra)
+        val (at, size)      = Paint.thumb(len, port, content, offset)
+        val (top, _)        = Paint.thumb(len, port, content, 0)
+        val (bottom, bsize) = Paint.thumb(len, port, content, extra)
+        val (next, _)       =
+          Paint.thumb(len, port, content, (offset + 1).min(extra))
+        assert(size >= 1 && at >= 0 && at + size <= len)
+        assert(top == 0 && bottom + bsize == len && next >= at)
       }
     }
 end ViewportPropertyTest
