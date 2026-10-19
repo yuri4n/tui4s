@@ -152,23 +152,38 @@ lazy val runnerTestSettings = Seq(
   Test / testForkedParallel := false,
 )
 
-/** A published module in `modules/<id>`, versioned from its `<id>-v*` tags. */
-def module(id: String): Project =
+/** A published module in `modules/<id>`, versioned from its `<id>-v*` tags. A
+  * change in `modules/<id>`, in `watch` (more directories whose code goes into
+  * the module), in `build.sbt` or in `project` makes it unreleased.
+  */
+// claude 2026-10-19: changed: the directories of `watch` (D25 hygiene)
+def module(id: String, watch: Seq[String] = Seq.empty): Project =
   Project(id, file(s"modules/$id"))
     .settings(
       ModuleVersioning(
         tagPrefix = s"$id-v",
         // claude 2026-10-09: changed paths: also watch build.sbt and project/
-        paths = Seq(s"modules/$id", "build.sbt", "project"),
+        paths = Seq(s"modules/$id") ++ watch ++ Seq("build.sbt", "project"),
       ),
     )
     .settings(name := s"tui4s-$id")
 
 // claude 2026-10-19: changed: the cross-built modules (L2a); the four modules
-// of the split of the core (D25)
+// of the split of the core (D25); the assistant (L3)
 lazy val root = project
   .in(file("."))
-  .aggregate(runner, app, testkit, core, zio, cats, use, widgets, examples)
+  .aggregate(
+    runner,
+    app,
+    testkit,
+    core,
+    zio,
+    cats,
+    use,
+    widgets,
+    assistant,
+    examples,
+  )
   .settings(
     name           := "tui4s",
     publish / skip := true,
@@ -186,7 +201,12 @@ lazy val runner  = module("runner").settings(runnerTestSettings)
 lazy val app     = module("app").dependsOn(runner).settings(runnerTestSettings)
 lazy val testkit =
   module("testkit").dependsOn(runner).settings(runnerTestSettings)
-lazy val core    = module("core")
+// claude 2026-10-19: changed: the composite watches the code of its three
+// modules, so a change there makes it unreleased too (D25 hygiene)
+lazy val core    = module(
+  "core",
+  watch = Seq("modules/runner", "modules/app", "modules/testkit"),
+)
   .dependsOn(runner % "compile->compile;test->test", app, testkit)
   .settings(runnerTestSettings)
 // claude 2026-10-19: changed: zio and cats depend on the runner (D25)
@@ -278,6 +298,27 @@ lazy val widgetsJVM   = widgetsCross.jvm
 lazy val widgetsJS    = widgetsCross.js
 lazy val widgets      = crossAggregate("widgets", widgetsCross)
 
+/** The flagship example app, the AI assistant (L3, D3): the domain, the
+  * services, the store and the UI in `shared/` (plain kyo-ui, tui4s-use and
+  * tui4s-widgets: no tui4s-core), the interpreters of the JVM in `jvm/` (the
+  * HTTP client of kyo-http, the keys, the files). The JS side is empty: the web
+  * target (L4) adds its interpreters there. The terminal main is
+  * `examples.assistant.AssistantApp` in the examples project. Not published.
+  */
+// claude 2026-10-19: created (L3)
+lazy val assistantCross = crossModule("assistant")
+  .dependsOn(widgetsCross)
+  .settings(publish / skip := true)
+  .jvmSettings(
+    // kyo-http (the client of the providers). kyo-ui brings it already; the
+    // module names it because it calls it. JMH stays out, as in use.
+    libraryDependencies += ("io.getkyo" %% "kyo-http" % Versions.kyo)
+      .excludeAll(ExclusionRule("org.openjdk.jmh")),
+  )
+lazy val assistantJVM   = assistantCross.jvm
+lazy val assistantJS    = assistantCross.js
+lazy val assistant      = crossAggregate("assistant", assistantCross)
+
 // Optional named shared state; widgets use Kyo's native signals and callbacks.
 lazy val pini4s = ProjectRef(file("vendor/pini4s"), "root")
 
@@ -290,10 +331,10 @@ lazy val launchers =
 // The zio and cats modules are empty in this version.
 // claude 2026-10-19: changed: core, the composables and the widgets; no
 // `run / connectInput`; the JVM flags of a real run; munit tests; the
-// launchers task (T1, L2a)
+// launchers task (T1, L2a); the assistant (L3)
 lazy val examples = project
   .in(file("examples"))
-  .dependsOn(core, useJVM, widgetsJVM, pini4s)
+  .dependsOn(core, useJVM, widgetsJVM, assistantJVM, pini4s)
   .enablePlugins(JavaAppPackaging)
   .settings(
     name           := "tui4s-examples",
