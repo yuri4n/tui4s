@@ -1,0 +1,226 @@
+package examples.assistant
+
+import kyo.*
+import kyo.test.*
+import tui4s.use.Storage
+
+/** The store of the app on the interpreters in memory, wired with Kyo layers as
+  * the main wires the real ones: send and the reply that streams, a failure, a
+  * cancel, new, switch, rename, delete, the settings, and the conversations
+  * that a second start loads. On the JVM and on Node.js.
+  */
+// claude 2026-10-19: created (L3)
+class AssistantTest extends Test[Any]:
+    import AssistantTest.*
+
+    "send: the reply streams into the conversation; the title comes from the message; the store keeps it" in {
+      for
+          storage <- Storage.inMemory
+          seen    <- Scope.run(
+                       withStoreOn(
+                         storage,
+                         FakeProvider.make(delay = Duration.Zero),
+                       ) { a =>
+                         for
+                             _ <- a.composer.set("hi there")
+                             _ <- a.send
+                             _ <- idle(a)
+                             c <- a.active.current
+                             t <- a.tokens.current
+                             s <- a.composer.get
+                         yield (c, t, s)
+                       },
+                     )
+          ids     <- ConversationStore.make(storage).list
+      yield
+          val (c, tokens, composer) = seen
+          val ms                    = c.get.messages
+          assert(
+            composer == "" && c.get.title == "hi there" &&
+              ms.map(_.role) == Chunk(Role.User, Role.Assistant) &&
+              ms(1).status == MessageStatus.Done &&
+              ms(1).content.startsWith("You said: \"hi there\".") &&
+              tokens.output > 0 && ids == Chunk(c.get.id),
+          )
+    }
+
+    "a failure of the provider marks the reply Failed and keeps its text" in {
+      Scope.run(withStore(FakeProvider.make(delay = Duration.Zero)) { a =>
+        for
+            _ <- a.composer.set("/fail")
+            _ <- a.send
+            _ <- idle(a)
+            c <- a.active.current
+        yield
+            val m = c.get.messages.last
+            assert(
+              m.status == MessageStatus.Failed(
+                ChatError.Network("the fake provider failed on purpose"),
+              ) && m.content.startsWith("This reply fails"),
+            )
+      })
+    }
+
+    "cancel stops the stream: the reply keeps its text and is marked stopped" in {
+      Scope.run(withStore(FakeProvider.make(delay = 20.millis)) { a =>
+        for
+            _ <- a.composer.set("hi")
+            _ <- a.send
+            _ <-
+              until(
+                a.active.current.map(_.exists(_.messages.last.content.nonEmpty)),
+              )
+            _ <- a.cancel
+            c <- a.active.current
+            s <- a.streaming.current
+            _ <- Async.sleep(100.millis)
+            d <- a.active.current
+        yield
+            val m = c.get.messages.last
+            assert(
+              m.status == MessageStatus.Failed(ChatError.Cancelled) &&
+                m.content.nonEmpty && !m.content.endsWith("stop me.") &&
+                s == Streaming.Idle && d == c,
+            )
+      })
+    }
+
+    "new, switch, rename and delete" in {
+      Scope.run(withStore(FakeProvider.make(delay = Duration.Zero)) { a =>
+        for
+            first  <- a.selection.key.current
+            _      <- a.newChat
+            same   <- a.selection.key.current
+            _      <- a.composer.set("one")
+            _      <- a.send
+            _      <- idle(a)
+            _      <- a.newChat
+            second <- a.selection.key.current
+            n      <- a.chats.current.map(_.size)
+            _      <- a.nextChat
+            back   <- a.selection.key.current
+            _      <- a.renameActive("  a better\ntitle ")
+            title  <- a.active.current.map(_.map(_.title))
+            _      <- a.deleteActive
+            left   <- a.chats.current
+            _      <- a.deleteActive
+            last   <- a.chats.current
+        yield assert(
+          same == first && second != first && n == 2 && back == first &&
+            title == Present("a better title") && left.map(
+              _.id,
+            ) == second.toChunk &&
+            last.size == 1 && last.head.messages.isEmpty,
+        )
+      })
+    }
+
+    "the settings: a provider with no key stays out; with a key it takes its default model" in {
+      Scope.run(
+        withStore(
+          FakeProvider.make(delay = Duration.Zero),
+          keys = Map(ProviderChoice.OpenAI -> "sk-o"),
+        ) { a =>
+          for
+              start <- a.settings.current
+              _     <- a.setProvider(ProviderChoice.Anthropic)
+              same  <- a.settings.current
+              _     <- a.setProvider(ProviderChoice.Fake)
+              _     <- a.setModel("my-model")
+              fake  <- a.settings.current
+              lines <- a.log.lines.current
+          yield assert(
+            start.provider == ProviderChoice.OpenAI && start.model == Models.openai &&
+              same == start && fake.provider == ProviderChoice.Fake &&
+              fake.model == "my-model" &&
+              lines.exists(_.contains("Anthropic has no key")) &&
+              !lines.exists(_.contains("sk-o")),
+          )
+        },
+      )
+    }
+
+    "a second start loads the stored conversations and the settings" in {
+      for
+          storage <- Storage.inMemory
+          fake     = FakeProvider.make(delay = Duration.Zero)
+          _       <- Scope.run(withStoreOn(storage, fake) { a =>
+                       a.composer
+                         .set("remember me")
+                         .andThen(a.send)
+                         .andThen(idle(a))
+                         .andThen(a.setModel("kept-model"))
+                     })
+          seen    <- Scope.run(withStoreOn(storage, fake) { a =>
+                       Kyo.zip(a.active.current, a.settings.current)
+                     })
+      yield
+          val (c, s) = seen
+          assert(
+            c.map(_.title) == Present("remember me") && s.model == "kept-model",
+          )
+    }
+
+    "--fake forces the fake provider, also with a key" in {
+      Scope.run(
+        withStore(
+          FakeProvider.make(delay = Duration.Zero),
+          keys = Map(ProviderChoice.Anthropic -> "sk-a"),
+          mode = StartMode.FakeOnly,
+        ) { a =>
+          a.settings.current.map(s =>
+            assert(
+              s.provider == ProviderChoice.Fake &&
+                a.providers.available == Chunk(ProviderChoice.Fake),
+            ),
+          )
+        },
+      )
+    }
+end AssistantTest
+
+/** The wiring of a store in memory, and the waits of the tests. */
+// claude 2026-10-19: created (L3)
+object AssistantTest:
+    /** `f` with a store on `storage`, the provider `fake`, and `keys`; the
+      * layers as the main wires them, with the interpreters in memory.
+      */
+    def withStoreOn[A](
+        storage: Storage,
+        fake: ChatProvider,
+        keys: Map[ProviderChoice, String] = Map.empty,
+        mode: StartMode = StartMode.Detect,
+    )(f: Assistant => A < (Async & Scope))(using Frame): A < (Async & Scope) =
+        val (files, secrets) = Wiring.inMemory(storage, keys)
+        Memo.run(
+          Env.runLayer(
+            files,
+            secrets,
+            Wiring.conversations,
+            Wiring.log,
+            Wiring.providers((_, _) => fake, fake, mode),
+          )(Assistant.make(mode).map(f)),
+        )
+    end withStoreOn
+
+    /** `f` with a store on a new storage in memory. */
+    def withStore[A](
+        fake: ChatProvider,
+        keys: Map[ProviderChoice, String] = Map.empty,
+        mode: StartMode = StartMode.Detect,
+    )(f: Assistant => A < (Async & Scope))(using Frame): A < (Async & Scope) =
+      Storage.inMemory.map(withStoreOn(_, fake, keys, mode)(f))
+
+    /** Waits until `cond` holds: a read every 5 ms, at most 5 s. */
+    def until(cond: => Boolean < Sync)(using Frame): Unit < Async =
+      Loop(0)(i =>
+        cond.map(ok =>
+          if ok || i > 1000 then Loop.done(())
+          else Async.sleep(5.millis).andThen(Loop.continue(i + 1)),
+        ),
+      )
+
+    /** Waits until no reply streams. */
+    def idle(a: Assistant)(using Frame): Unit < Async =
+      until(a.streaming.current.map(_ == Streaming.Idle))
+end AssistantTest

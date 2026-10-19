@@ -9,7 +9,7 @@ import tui4s.use.Chord
   * command its action ([[AssistantUi.keymap]]).
   */
 // claude 2026-10-19: created (L3)
-enum Command derives CanEqual:
+enum ChatCommand derives CanEqual:
     /** Starts a new conversation. */
     case NewChat
 
@@ -52,7 +52,7 @@ enum Command derives CanEqual:
         case RenameChat   => "rename chat"
         case OpenSettings => "settings"
         case ToggleLog    => "log"
-        case Cancel       => "stop the reply"
+        case Cancel       => "stop"
         case Help         => "help"
         case Palette      => "commands"
         case Quit         => "quit"
@@ -74,18 +74,18 @@ enum Command derives CanEqual:
         case Help         => Chunk(Chord(Keyboard.F1))
         case Palette      => Chunk(Chord.ctrl('p'))
         case Quit         => Chunk(Chord.ctrl('q'))
-end Command
+end ChatCommand
 
 /** The order of the commands. */
 // claude 2026-10-19: created (L3)
-object Command:
+object ChatCommand:
     /** The commands of the palette, in its order (the palette does not list
       * itself).
       */
-    val palette: Chunk[Command] =
+    val palette: Chunk[ChatCommand] =
       Chunk.from(values).filterNot(_ == Palette)
 
     /** The commands of the hint bar under the composer. */
-    val hints: Chunk[Command] =
+    val hints: Chunk[ChatCommand] =
       Chunk(Palette, NewChat, Cancel, ToggleLog, Help, Quit)
-end Command
+end ChatCommand
