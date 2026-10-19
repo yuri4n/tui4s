@@ -182,20 +182,20 @@ private[tui4s] object Paint:
         Option.when(w > 0)(Glyph(g, w))
       }
 
-    /** The first glyphs of `gs` whose cells fit in `room` cells (it stops at
-      * the first glyph that does not fit, as `Buffer.setStringn` does).
+    /** The ops of `text` written at (x, y) inside `clip`. The clip cuts the
+      * text by cells, not by chars: each glyph keeps the cells that it has in a
+      * paint without the clip, and the text stops at the first glyph that does
+      * not end before the right edge of the clip (that cell keeps its value, as
+      * `Buffer.setStringn` does).
+      *
+      * Law: inside the clip, the cells are the cells of the same text painted
+      * on the whole screen, except the cells of a wide glyph that the right
+      * edge cuts. A wide glyph that the left edge cuts shows its hidden half in
+      * the clip: an empty cell (a space with no style).
       */
-    // claude 2026-10-19: created (P5)
-    private def fitting(gs: Vector[Glyph], room: Int): Vector[Glyph] =
-      gs.zip(gs.scanLeft(0)(_ + _.width).drop(1))
-        .takeWhile(_._2 <= room)
-        .map(_._1)
-
-    /** The ops of `text` written at (x, y) inside `clip`: the glyphs from the
-      * left edge of the clip that fit before its right edge.
-      */
-    // claude 2026-10-19: created (P5): the pure `Canvas.text`; it skips chars
-    // at the left edge of the clip, as the old canvas did
+    // claude 2026-10-19: created (P5): the pure `Canvas.text`, with the clip
+    // by cells (the old canvas skipped chars, so a wide character, an emoji or
+    // a combining mark before the left edge moved the text)
     def text(
         x: Int,
         y: Int,
@@ -205,11 +205,21 @@ private[tui4s] object Paint:
     ): Vector[Op] =
       if y < clip.y || y >= clip.bottom then Vector.empty
       else
-          val skip = (clip.x - x).max(0)
-          val sx   = x + skip
-          val fit  = fitting(glyphs(text.drop(skip)), clip.right - sx)
-          if fit.isEmpty then Vector.empty
-          else Vector(Op.Run(sx, y, fit, style))
+          val gs            = glyphs(text)
+          // each glyph at its cell, up to the first that ends right of the clip
+          val placed        = gs
+            .zip(gs.scanLeft(x)(_ + _.width))
+            .takeWhile((g, gx) => gx + g.width <= clip.right)
+          val (left, shown) = placed.span((_, gx) => gx < clip.x)
+          // the hidden half of a glyph that starts left of the clip
+          val hidden        = left.lastOption.collect {
+            case (g, gx) if gx + g.width > clip.x =>
+              Op.Clear(Rect(clip.x, y, gx + g.width - clip.x, 1), None)
+          }
+          val run           = shown.headOption.map((_, sx) =>
+            Op.Run(sx, y, shown.map(_._1), style),
+          )
+          hidden.toVector ++ run.toVector
 
     // claude 2026-10-19: changed (P5): it gives the ops of the border
     private def border(
