@@ -1,6 +1,7 @@
 // scalafix:off DisableSyntax
-// EDGE: the crossterm JNI (CrosstermJni) and the isatty downcall (FFM)
+// EDGE: the crossterm JNI (CrosstermJni), the isatty downcall (FFM), the files of the JNI copy
 // claude 2026-10-17: created this header (purity plan, phase P0)
+// claude 2026-10-19: changed the EDGE line: the files of the JNI copy (C3)
 package tui4s.internal
 
 import jatatui.core.backend.Backend
@@ -16,6 +17,8 @@ import tui4s.*
 
 import java.lang.foreign.{FunctionDescriptor, Linker, ValueLayout}
 import java.lang.invoke.MethodHandle
+import java.nio.file.{Files, Path}
+import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 import scala.util.control.NonFatal
 
@@ -76,10 +79,13 @@ private[tui4s] final class NativeCrossterm extends Crossterm:
         if j == null then throw IllegalStateException("crossterm is not loaded")
         j
 
+    // claude 2026-10-19: changed: the extracted copy is deleted after the
+    // load (C3)
     def load(): Unit =
       if jni == null then
           try jni = new CrosstermJni()
           catch case e: Throwable => throw NativeCrossterm.loadError(e)
+          val _ = NativeCopy.removeLoaded()
 
     def stdinIsTerminal(): Boolean = Tty.isatty(0).getOrElse(true)
 
@@ -130,6 +136,72 @@ private[tui4s] object NativeCrossterm:
           else walk(t.getCause, t :: acc)
         walk(e, Nil)
 end NativeCrossterm
+
+/** The copy of the crossterm library that jatatui's `NativeLoader` writes on
+  * each start. `System.loadLibrary("crossterm")` fails (the library is not on
+  * `java.library.path`, which the JVM reads only when it starts), so the loader
+  * copies the library from the jar into a new directory `jni-<n>` of
+  * `java.io.tmpdir` (about 900 KB) and loads it from there. Nothing deletes the
+  * copy, so each start leaves one more directory. The JVM maps a library when
+  * it loads it, and on Linux and macOS the mapping stays when the file is
+  * deleted. So after the load, [[removeLoaded]] deletes the copy that this
+  * process loaded, and its directory. It finds the copy in `/proc/self/maps`
+  * (Linux). Where that file is not readable (macOS, Windows), or a delete
+  * fails, it does nothing, and the copy stays as before.
+  */
+// claude 2026-10-19: created: the workaround for the /tmp/jni-* leak (C3)
+private[tui4s] object NativeCopy:
+    /** Deletes the copies of the crossterm library that this process loaded
+      * from a `jni-*` directory of `tmp`, then each such directory when it is
+      * empty. `maps` is the memory map of this process. Gives the directories
+      * that it deleted. Never throws.
+      */
+    def removeLoaded(
+        maps: Path = Path.of("/proc/self/maps"),
+        tmp: Path = Path.of(System.getProperty("java.io.tmpdir", "/tmp")),
+    ): List[Path] =
+      try
+          if !Files.isReadable(maps) then Nil
+          else
+              val root = tmp.toRealPath()
+              Files
+                .readAllLines(maps)
+                .asScala
+                .toList
+                .flatMap(mappedPath)
+                .distinct
+                .filter(isCopy(_, root))
+                .flatMap(delete)
+      catch case NonFatal(_) => Nil
+
+    /** The file of a line of `/proc/<pid>/maps`; none for an anonymous mapping
+      * and for a file that is deleted.
+      */
+    private[tui4s] def mappedPath(line: String): Option[Path] =
+      line.trim.split("\\s+", 6) match
+          case Array(_, _, _, _, _, file)
+              if file.startsWith("/") && !file.endsWith(" (deleted)") =>
+            Some(Path.of(file))
+          case _ => None
+
+    /** True for a copy of `NativeLoader`:
+      * `<root>/jni-<n>/libnative-<platform>-crossterm.so`.
+      */
+    private def isCopy(file: Path, root: Path): Boolean =
+        val dir = file.getParent
+        dir != null && dir.getParent == root &&
+        dir.getFileName.toString.startsWith("jni-") &&
+        file.getFileName.toString.matches("libnative-.+-crossterm\\.so")
+
+    /** Deletes `file`, then its directory when it is empty. */
+    private def delete(file: Path): Option[Path] =
+        val dir = file.getParent
+        try
+            val _ = Files.deleteIfExists(file)
+            Files.delete(dir)
+            Some(dir)
+        catch case NonFatal(_) => None
+end NativeCopy
 
 /** `isatty` of the C library, through the foreign function API. It needs the
   * same native access as the crossterm library, so call it after that loaded.
