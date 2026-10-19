@@ -66,7 +66,15 @@
   7 nits, applied. Open: cursor not hidden under a non-trapping overlay; Shift-Enter needs a terminal that reports Shift
   (no keyboard-enhancement flags pushed); inputFilter/inputMask ignored; one-line inputs run onChange only on Enter.
 - L1 DONE 2026-10-19 (L1a, L1b, L1c). 47/76 style properties honored; branch vs main now about +17k/-10k.
-- NEXT: PF-b (1 agent: F5, F6, F4 cache, F9b, the L1 perf notes), then L2 (tui4s-widgets, tui4s-use; sbt-scalajs).
+- PF-b DONE, pushed 6e1212a (15 files, +968/-140; PerfProbe stress probe; F5 measure kids reused per constraint;
+  F6 relayout keeps the natural size of a clean node via Scene.changes/prior; F4 lines as a value in the laid node;
+  F9b a frame whose Plan equals the last skips the canvas; Warnings.scan skips the last screen's elements. Allocation
+  per op: list full -35%, list edit -85%, list scroll -55%, log append -40%, dashboard -23%; timings noisy on 4 vCPU
+  (use -Dtui4s.stress=100). 389 core leaves, 68 examples, PTY 148/148). Skipped (do not pay): F1 owns index, F2 Set,
+  F8 eq fast path. Open: list scroll still O(rows) (a pure translate of a clean viewport would fix it); log append
+  re-places the forced subtree.
+- NEXT: L2 in two workflows: L2a build (sbt-scalajs + crossproject, modules/use) + tui4s-use (13 composables);
+  L2b tui4s-widgets (the 28-widget catalog of realapp-web.json PART B) + a gallery example.
 - (history) L1 ran in three workflows (cheap cadence: implementer + API/examples reviewer + fixer, Opus): L1a viewport scroll
   and clip, wrap and ellipsis, wide characters; L1b overlay and z-order, terminal-size Signal, Color.Var, FlexWrap and
   Display, one warning per ignored property; L1c native inputs and the multi-line textarea (Alt-Enter, Ctrl-J,
