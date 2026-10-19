@@ -96,8 +96,16 @@
   validation, file picker, Markdown viewer, calendar popup, line chart, chat transcript (L3). Open: on the web
   aria-activedescendant does not scroll (L4 may need UI.scrollIntoView); Toasts/Spinner re-render on each tick.
 - L2 DONE 2026-10-19 (L2a, L2b).
-- NEXT: D25 split (1 agent): modules runner, app, testkit, core (composite, holds the Headless-based suites);
-  then L3 examples.assistant.
+- D25 DONE, pushed 132358f (123 files, +478/-234; modules runner (45 main, 57 test files), app (TuiApp), testkit
+  (Headless + Screen aliases), core (object tui4s.Core + 29 integration suites; depends on runner compile->compile;
+  test->test, app, testkit); Screen/CellStyle/CellColor now in package tui4s (runner); runnerTestSettings in the root
+  build; release.sh order runner app testkit core zio cats use widgets; release.yml tags; edge paths; publishLocal of
+  the four OK; runner 210 + core 179 + use/widgets 200 + examples 110 tests; PTY 156/156). Issue #17 closed.
+  HUMAN STEP: GitHub environment maven-central must accept runner-v*, app-v*, testkit-v* (and use-v*, widgets-v*).
+  Open (small): core should watch modules/{runner,app,testkit} for the version policy -> fold into L3's build touch.
+  Local checkouts switching to the branch: `sbt runner/clean core/clean` once (stale target/ after the git mv).
+- NEXT: L3 examples.assistant (3 agents): shared crossProject (domain + UI, kyo-ui/use/widgets only), tui main
+  (TuiApp), providers Anthropic/OpenAI (JVM SSE over kyo-http) + scripted fake; keys from env or a 0600 file only.
 - (history) L1 ran in three workflows (cheap cadence: implementer + API/examples reviewer + fixer, Opus): L1a viewport scroll
   and clip, wrap and ellipsis, wide characters; L1b overlay and z-order, terminal-size Signal, Color.Var, FlexWrap and
   Display, one warning per ignored property; L1c native inputs and the multi-line textarea (Alt-Enter, Ctrl-J,
