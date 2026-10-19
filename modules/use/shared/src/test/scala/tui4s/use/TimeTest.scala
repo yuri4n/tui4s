@@ -3,21 +3,32 @@ package tui4s.use
 import kyo.*
 import kyo.test.*
 
-/** `useNow`, `useTimeAgo`, `debounced`, `throttled` and `useDebouncedFn` on
-  * Kyo's controlled clock: the tests move the time, so they do not wait for it.
-  * A fiber of a composable starts and reacts at wall-clock speed, so the tests
-  * do not depend on the time when it reads its first value. A wait for a value
-  * covers Kyo's repair interval of `Signal.observe` (1 s of the controlled
-  * clock): a write that lands while the watch arms is seen at the next repair.
+/** `useNow`, `timeAgo`, `debounced`, `throttled` and `useDebouncedFn` on Kyo's
+  * controlled clock. A test moves the clock only after a fence (see
+  * [[Controlled]]): the composable has taken its step and armed its sleeps. So
+  * the tests check exact times. The waits for a fence or a value are on the
+  * live clock, with a bound of 5 s; the clock does not move while they wait.
   * The leaves run one at a time. The laws of the timing rules are in
   * [[TimingPropertyTest]].
   */
-// claude 2026-10-19: created (L2a)
+// claude 2026-10-19: created (L2a); changed: fences and exact times, not
+// steps of the clock with wall-clock bounds (L2a review)
 class TimeTest extends Test[Any]:
     import Controlled.*
+    import Steps.Entry.{Wake, Write}
     import TimeAgo.Scale
 
     override def config: RunConfig = super.config.sequential
+
+    /** The instant `ms` milliseconds after the epoch. */
+    private def at(ms: Int): Instant = Instant.Epoch + ms.millis
+
+    /** The fence of a pacing shell: `n` steps, then `sleeps` armed sleeps. */
+    private def step[S, A](ctl: Clock.TimeControl, steps: Steps[S, A])(
+        n: Int,
+        sleeps: Int,
+    )(using Frame): Boolean < Async =
+      steps.await(n).map(ok => fence(ctl, sleeps).map(ok && _))
 
     "useNow starts at the time of the clock and ticks on each multiple of the period" in {
       Clock.withTimeControl { ctl =>
@@ -25,17 +36,18 @@ class TimeTest extends Test[Any]:
           for
               now   <- useNow(1.second)
               start <- now.current
+              f0    <- fence(ctl, 1)
               _     <- ctl.advance(400.millis)
               early <- now.current
-              tick  <- advanceUntil(ctl, now, 100.millis)(_ > start)
-              t1    <- now.current
+              _     <- ctl.advance(600.millis)
+              t1    <- eventually(now)(_ == at(1000))
+              f1    <- fence(ctl, 1)
+              _     <- ctl.advance(1.second)
+              t2    <- eventually(now)(_ == at(2000))
           yield
-              assert(start == Instant.Epoch)
+              assert(start == Instant.Epoch && f0 && f1)
               assert(early == Instant.Epoch)
-              assert(tick.isDefined)
-              // The tick is at 1 s; the fiber can read the clock a step late.
-              assert(t1 >= Instant.Epoch + 1.second)
-              assert(t1 < Instant.Epoch + 1500.millis)
+              assert(t1 && t2)
         }
       }
     }
@@ -71,12 +83,12 @@ class TimeTest extends Test[Any]:
       assert(TimeAgo.english(TimeAgo.In(2, Scale.Day)) == "in 2 days")
     }
 
-    "useTimeAgo follows both signals and takes a formatter" in {
+    "timeAgo follows both signals and takes a formatter" in {
       for
           at   <- Signal.initRef(Instant.Epoch)
           now  <- Signal.initRef(Instant.Epoch + 2.minutes)
-          text  = useTimeAgo(at, now)
-          short = useTimeAgo(at, now, _.toString)
+          text  = timeAgo(at, now)
+          short = timeAgo(at, now, _.toString)
           t1   <- text.current
           _    <- now.set(Instant.Epoch + 3.hours)
           t2   <- text.current
@@ -90,72 +102,168 @@ class TimeTest extends Test[Any]:
           assert(s1 == "JustNow")
     }
 
-    "debounced: a burst shows nothing before the quiet time, then its last value" in {
+    "the shell of debounced: a burst shows only its last value, `quiet` after the last write" in {
+      Clock.withTimeControl { ctl =>
+        Scope.run {
+          val steps = Steps(Pacing.debounce[Int](100.millis))
+          for
+              src   <- Signal.initRef(0)
+              out   <- Pacing.run(src, steps.traced)
+              // The value at the start waits; then the watch arms.
+              f0    <- step(ctl, steps)(1, 2)
+              _     <- ctl.advance(30.millis)
+              _     <- src.set(1)
+              f1    <- step(ctl, steps)(2, 2)
+              _     <- ctl.advance(30.millis)
+              _     <- src.set(2)
+              f2    <- step(ctl, steps)(3, 2)
+              _     <- ctl.advance(30.millis)
+              _     <- src.set(3)
+              f3    <- step(ctl, steps)(4, 2)
+              _     <- ctl.advance(99.millis)
+              early <- out.current
+              _     <- ctl.advance(1.millis)
+              shown <- eventually(out)(_ == 3)
+              log   <- steps.entries
+          yield
+              assert(f0 && f1 && f2 && f3)
+              assert(early == 0 && shown)
+              assert(
+                log == Chunk(
+                  Write(0, at(0)),
+                  Write(1, at(30)),
+                  Write(2, at(60)),
+                  Write(3, at(90)),
+                  Wake(at(190)),
+                ),
+              )
+          end for
+        }
+      }
+    }
+
+    "the shell of throttled: the values in a window wait for its end, the newest wins; after the window a value shows at once" in {
+      Clock.withTimeControl { ctl =>
+        Scope.run {
+          val steps = Steps(Pacing.throttle[Int](100.millis))
+          for
+              src    <- Signal.initRef(0)
+              out    <- Pacing.run(src, steps.traced)
+              // The value at the start shows and opens a window to 100 ms.
+              f0     <- step(ctl, steps)(1, 1)
+              _      <- src.set(1)
+              f1     <- step(ctl, steps)(2, 2)
+              _      <- src.set(2)
+              f2     <- step(ctl, steps)(3, 2)
+              _      <- ctl.advance(99.millis)
+              inside <- out.current
+              _      <- ctl.advance(1.millis)
+              two    <- eventually(out)(_ == 2)
+              f3     <- step(ctl, steps)(4, 1)
+              // The window of 2 ends at 200 ms with no value that waits.
+              _      <- ctl.advance(100.millis)
+              _      <- src.set(3)
+              three  <- eventually(out)(_ == 3)
+              log    <- steps.entries
+          yield
+              assert(f0 && f1 && f2 && f3)
+              assert(inside == 0 && two && three)
+              assert(
+                log == Chunk(
+                  Write(0, at(0)),
+                  Write(1, at(0)),
+                  Write(2, at(0)),
+                  Wake(at(100)),
+                  Write(3, at(200)),
+                ),
+              )
+          end for
+        }
+      }
+    }
+
+    "debounced and throttled: a write shows `quiet` after it, or at once when no window is open" in {
       Clock.withTimeControl { ctl =>
         Scope.run {
           for
               src   <- Signal.initRef(0)
-              out   <- debounced(src, 100.millis)
-              _     <- src.set(1)
-              _     <- src.set(2)
-              _     <- src.set(3)
-              early <- values(ctl, out, 10.millis, 5)
-              last  <- advanceUntil(ctl, out, 20.millis)(_ == 3)
-              after <- values(ctl, out, 50.millis, 4)
+              deb   <- debounced(src, 100.millis)
+              thr   <- throttled(src, 100.millis)
+              // debounced: the wait of 0 and the watch; throttled: the watch.
+              f0    <- fence(ctl, 3)
+              _     <- ctl.advance(100.millis)
+              _     <- src.set(7)
+              // 3 armed sleeps: debounced has seen 7.
+              f1    <- fence(ctl, 3)
+              now   <- eventually(thr)(_ == 7)
+              _     <- ctl.advance(99.millis)
+              early <- deb.current
+              _     <- ctl.advance(1.millis)
+              late  <- eventually(deb)(_ == 7)
           yield
-              assert(early.forall(_ == 0))
-              assert(last.isDefined)
-              assert(after.forall(_ == 3))
+              assert(f0 && f1)
+              assert(now && early == 0 && late)
         }
       }
     }
 
-    "throttled: a value shows at once; the values in its window wait for the end, and the newest wins" in {
+    "useDebouncedFn: a burst of calls runs the function once, with the last argument, `quiet` after the last call" in {
       Clock.withTimeControl { ctl =>
         Scope.run {
           for
-              src    <- Signal.initRef(0)
-              out    <- throttled(src, 100.millis)
-              // 1 shows at once or at the end of the window of the first
-              // value: then a window is open.
-              _      <- src.set(1)
-              one    <- advanceUntil(ctl, out, 10.millis, 150)(_ == 1)
-              t1     <- Clock.now
-              _      <- src.set(2)
-              _      <- src.set(3)
-              inside <- values(ctl, out, 5.millis, 4)
-              three  <- advanceUntil(ctl, out, 10.millis, 150)(_ == 3)
-              t3     <- Clock.now
-              // After a quiet window, a value shows at once.
-              _      <- ctl.advance(300.millis)
-              _      <- src.set(4)
-              four   <- advanceUntil(ctl, out, 1.millis, 300)(_ == 4)
+              ran   <- Signal.initRef(Chunk.empty[(String, Instant)])
+              fn    <- useDebouncedFn[String](100.millis)(q =>
+                         Clock.now.map(t => ran.updateAndGet(_ :+ ((q, t))).unit),
+                       )
+              _     <- fn("a")
+              f1    <- fence(ctl, 1)
+              _     <- ctl.advance(30.millis)
+              _     <- fn("ab")
+              f2    <- fence(ctl, 1)
+              _     <- ctl.advance(30.millis)
+              _     <- fn("abc")
+              f3    <- fence(ctl, 1)
+              _     <- ctl.advance(99.millis)
+              early <- ran.current
+              _     <- ctl.advance(1.millis)
+              once  <- eventually(ran)(_.nonEmpty)
+              _     <- ctl.advance(1.second)
+              after <- ran.current
           yield
-              assert(one.isDefined)
-              assert(inside.forall(_ == 1))
-              assert(three.isDefined)
-              assert(t3 >= t1 + 90.millis)
-              assert(four.exists(_ < 50))
+              assert(f1 && f2 && f3)
+              assert(early.isEmpty && once)
+              assert(after == Chunk(("abc", at(160))))
         }
       }
     }
 
-    "useDebouncedFn: a burst of calls runs the function once, with the last argument" in {
+    "useDebouncedFn: a call stops a run that has started at once" in {
       Clock.withTimeControl { ctl =>
         Scope.run {
           for
-              ran  <- Signal.initRef(Chunk.empty[String])
-              fn   <- useDebouncedFn[String](100.millis)(q =>
-                        ran.updateAndGet(_ :+ q).unit,
-                      )
-              _    <- fn("a")
-              _    <- fn("ab")
-              _    <- fn("abc")
-              done <- advanceUntil(ctl, ran, 20.millis, 150)(_.nonEmpty)
-              more <- values(ctl, ran, 50.millis, 4)
-          yield
-              assert(done.isDefined)
-              assert(more.forall(_ == Chunk("abc")))
+              gate    <- Promise.init[Unit, Any]
+              started <- Signal.initRef(Chunk.empty[String])
+              stopped <- Signal.initRef(Chunk.empty[String])
+              fn      <- useDebouncedFn[String](100.millis)(q =>
+                           started
+                             .updateAndGet(_ :+ q)
+                             .andThen(
+                               Sync.ensure(stopped.updateAndGet(_ :+ q).unit)(
+                                 gate.get,
+                               ),
+                             ),
+                         )
+              _       <- fn("a")
+              f1      <- fence(ctl, 1)
+              _       <- ctl.advance(100.millis)
+              runs    <- eventually(started)(_ == Chunk("a"))
+              // The clock does not move: the call stops the run of "a".
+              _       <- fn("b")
+              stop    <- eventually(stopped)(_ == Chunk("a"))
+              f2      <- fence(ctl, 1)
+              _       <- ctl.advance(100.millis)
+              again   <- eventually(started)(_ == Chunk("a", "b"))
+          yield assert(f1 && runs && stop && f2 && again)
         }
       }
     }

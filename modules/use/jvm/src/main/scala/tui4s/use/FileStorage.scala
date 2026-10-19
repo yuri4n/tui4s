@@ -18,8 +18,12 @@ import java.nio.file.{
   * new file in `dir` and moves it over the old one in one atomic step, so a
   * reader never sees half a value. On a POSIX file system, a new directory and
   * each file are for the owner only (`rwx------`, `rw-------`).
+  *
+  * {{{
+  * val storage = FileStorage(FileStorage.appDir("todo"))
+  * }}}
   */
-// claude 2026-10-19: created (L2a)
+// claude 2026-10-19: created (L2a); changed: an example (L2a review)
 final class FileStorage(val dir: JPath) extends Storage:
 
     /** The text under `key`, or Absent when its file does not exist. */
@@ -59,7 +63,8 @@ final class FileStorage(val dir: JPath) extends Storage:
       }
 end FileStorage
 
-// claude 2026-10-19: created (L2a)
+/** The file of a key and the data directory of an app. */
+// claude 2026-10-19: created (L2a); changed: Scaladoc (L2a review)
 object FileStorage:
     /** The file of `key` in `dir`. */
     def file(dir: JPath, key: String): JPath =

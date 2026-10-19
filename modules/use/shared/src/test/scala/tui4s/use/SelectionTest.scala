@@ -78,6 +78,10 @@ end SelectionTest
 // claude 2026-10-19: created (L2a)
 class SelectionPropertyTest extends PropertyTest[Any]:
 
+    // claude 2026-10-19: created (L2a review): 200 samples, as the core's
+    // oracle suites
+    override protected def numSamples: Int = 200
+
     /** 0 to 30 distinct keys, in a random order. */
     private val keys: Gen[Chunk[Int]] =
       Gen

@@ -51,7 +51,8 @@ final case class Chord(key: Keyboard, mods: Modifiers = Modifiers.none)
     end label
 end Chord
 
-// claude 2026-10-19: created (L2a)
+/** Makes the chords of a character and of Ctrl and a letter. */
+// claude 2026-10-19: created (L2a); changed: Scaladoc (L2a review)
 object Chord:
     /** A character with no modifier key. */
     def char(c: Char): Chord = Chord(Keyboard.Char(c))
@@ -76,16 +77,23 @@ final case class Binding(
     action: Any < Async,
 )
 
-// claude 2026-10-19: created (L2a)
+/** Makes a binding from its chords. */
+// claude 2026-10-19: created (L2a); changed: Scaladoc (L2a review)
 object Binding:
-    /** A binding of one or more chords. */
+    /** A binding of one or more chords.
+      *
+      * {{{
+      * Binding.of("down", Chord(Keyboard.ArrowDown), Chord.char('j'))(selection.moveDown)
+      * }}}
+      */
     def of(help: String, chord: Chord, more: Chord*)(
         action: Any < Async,
     ): Binding =
       Binding(Chunk(chord) ++ Chunk.from(more), help, action)
+end Binding
 
 /** A key map as data: a handler for `onKeyDown` and the key hints for a help
-  * line. Make it with [[useKeymap]].
+  * line. Make it with [[Keymap.of]].
   *
   * @param bindings
   *   the bindings, in order: the first one that matches a key runs
@@ -110,20 +118,25 @@ final class Keymap private[use] (val bindings: Chunk[Binding]):
         .map(b => (b.chords.map(_.label).mkString("/"), b.help))
 end Keymap
 
-/** A declarative key map: the first binding whose chord matches a key runs. The
-  * keymap is plain data; its `handler` goes to `onKeyDown`, and its `help`
-  * lists the key hints for a help line or a help box.
-  *
-  * {{{
-  * val keys = useKeymap(
-  *   Binding.of("undo", Chord.ctrl('z'))(history.undo),
-  *   Binding.of("up", Chord(Keyboard.ArrowUp), Chord.char('k'))(selection.moveUp),
-  * )
-  * div.onKeyDown(keys.handler)(
-  *   list,
-  *   span(keys.help.map((k, h) => s"$k: $h").mkString("  ")),
-  * )
-  * }}}
+/** Makes a [[Keymap]]. A keymap is plain data with no lifetime, so it has no
+  * `use` name.
   */
-// claude 2026-10-19: created (L2a)
-def useKeymap(bindings: Binding*): Keymap = Keymap(Chunk.from(bindings))
+// claude 2026-10-19: created (L2a review: the name of a pure value)
+object Keymap:
+    /** A declarative key map: the first binding whose chord matches a key runs.
+      * Its `handler` goes to `onKeyDown`, and its `help` lists the key hints
+      * for a help line or a help box.
+      *
+      * {{{
+      * val keys = Keymap.of(
+      *   Binding.of("undo", Chord.ctrl('z'))(history.undo),
+      *   Binding.of("up", Chord(Keyboard.ArrowUp), Chord.char('k'))(selection.moveUp),
+      * )
+      * div.onKeyDown(keys.handler)(
+      *   list,
+      *   span(keys.help.map((k, h) => s"$k: $h").mkString("  ")),
+      * )
+      * }}}
+      */
+    def of(bindings: Binding*): Keymap = Keymap(Chunk.from(bindings))
+end Keymap

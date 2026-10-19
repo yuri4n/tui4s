@@ -276,7 +276,7 @@ class DashboardSuite extends FunSuite:
       assert(wx >= 50 && wy <= 2, wide.text)
       assert(nx == 0 && ny > 5, narrow.text)
     }
-    // claude 2026-10-19: created (L2a): the stamp (useNow, useTimeAgo) and
+    // claude 2026-10-19: created (L2a): the stamp (useNow, timeAgo) and
     // the help from the keymap
     test(
       "the status line says how long ago the last sample came; the help lists the keys of the keymap",

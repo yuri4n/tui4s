@@ -25,10 +25,7 @@ def debounced[A](source: Signal[A], quiet: Duration)(using
     CanEqual[A, A],
     Frame,
 ): Signal[A] < (Sync & Scope) =
-  Pacing.run(source, Pacing.Debounce.start[A])(
-    (_, a, now) => Pacing.Debounce.write(a, now, quiet),
-    Pacing.Debounce.wake,
-  )
+  Pacing.run(source, Pacing.debounce[A](quiet))
 
 /** A signal that follows `source` at most once per `every`: the first value
   * shows at once and opens a window of `every`; the last value that comes in
@@ -52,40 +49,50 @@ def throttled[A](source: Signal[A], every: Duration)(using
     CanEqual[A, A],
     Frame,
 ): Signal[A] < (Sync & Scope) =
-  Pacing.run(source, Pacing.Throttle.start[A])(
-    (s, a, now) => Pacing.Throttle.write(s, a, now, every),
-    (s, now) => Pacing.Throttle.wake(s, now, every),
-  )
+  Pacing.run(source, Pacing.throttle[A](every))
 
 /** A function that runs `f` with its last argument when it is not called for
-  * `quiet`. Each call starts the wait again. A call while `f` runs interrupts
-  * that run: the newest call wins (for example a search as the user types). The
-  * function itself returns at once, so a key handler can call it.
+  * `quiet`. Each call stops the wait of the call before it, and also a run of
+  * `f` that has started: the newest call wins (for example a search as the user
+  * types). The function returns at once, so a key handler can call it. When the
+  * caller's `Scope` closes, the wait or the run stops, and a later call does
+  * nothing.
   *
   * {{{
   * for search <- useDebouncedFn[String](300.millis)(q => results.set(find(q)))
   * yield input.value(query).onInput(search)
   * }}}
   */
-// claude 2026-10-19: created (L2a)
+// claude 2026-10-19: created (L2a); changed: a call stops the wait or the run
+// of the call before it at once (L2a review)
 def useDebouncedFn[A](quiet: Duration)(f: A => Unit < Async)(using
     Frame,
 ): (A => Unit < Sync) < (Sync & Scope) =
   for
-      calls   <- Signal.initRef(0L)
-      latest  <- AtomicRef.init(Maybe.empty[A])
-      settled <- debounced(calls, quiet)
-      _       <- Fiber.init(
-                   settled.observe(n =>
-                     if n == 0L then Kyo.unit
-                     else
-                         latest.get.map {
-                           case Present(a) => Fiber.init(f(a)).unit
-                           case Absent     => Kyo.unit
-                         },
-                   ),
-                 )
-  yield (a: A) => latest.set(Present(a)).andThen(calls.updateAndGet(_ + 1).unit)
+      // The fiber of the last call; Absent after the close of the Scope.
+      last <-
+        AtomicRef.init[Maybe[Maybe[Fiber[Unit, Any]]]](Present(Maybe.empty))
+      _    <- Scope.ensure(last.getAndSet(Absent).map(stop))
+  yield (a: A) =>
+    Fiber
+      .initUnscoped(Async.sleep(quiet).andThen(f(a)))
+      .map(next =>
+        last
+          .getAndUpdate(_.map(_ => Present(next)))
+          .map {
+            case Present(before) => stop(Present(before))
+            case Absent          => next.interrupt.unit
+          },
+      )
+
+/** Interrupts the fiber in `slot`, if there is one. */
+// claude 2026-10-19: created (L2a review)
+private def stop(slot: Maybe[Maybe[Fiber[Unit, Any]]])(using
+    Frame,
+): Unit < Sync =
+  slot match
+      case Present(Present(fiber)) => fiber.interrupt.unit
+      case _                       => Kyo.unit
 
 /** The pure timing rules of [[debounced]] and [[throttled]], and their shell. A
   * rule takes the writes of the source with their times and the wake-ups that
@@ -97,6 +104,35 @@ private[use] object Pacing:
 
     /** One step of a rule. */
     final case class Step[S, A](state: S, emit: Maybe[A], wake: Maybe[Instant])
+
+    /** A rule: its start state, its step for a write and its step for a
+      * wake-up.
+      */
+    // claude 2026-10-19: created (L2a review: one value for the shell, the
+    // simulator and the tests)
+    final case class Rule[S, A](
+        start: S,
+        write: (S, A, Instant) => Step[S, A],
+        wake: (S, Instant) => Step[S, A],
+    )
+
+    /** The rule of [[debounced]]. */
+    // claude 2026-10-19: created (L2a review)
+    def debounce[A](quiet: Duration): Rule[Debounce.State[A], A] =
+      Rule(
+        Debounce.start,
+        (_, a, now) => Debounce.write(a, now, quiet),
+        Debounce.wake,
+      )
+
+    /** The rule of [[throttled]]. */
+    // claude 2026-10-19: created (L2a review)
+    def throttle[A](every: Duration): Rule[Throttle.State[A], A] =
+      Rule(
+        Throttle.start,
+        (s, a, now) => Throttle.write(s, a, now, every),
+        (s, now) => Throttle.wake(s, now, every),
+      )
 
     object Debounce:
         /** The value that waits and the time it shows. */
@@ -158,43 +194,49 @@ private[use] object Pacing:
     /** The shell of a rule: `Signal.observe` gives the writes of `source`, and
       * a fiber in the scope of each value sleeps until a wake-up. A new value
       * closes that scope, so the wake-up of the value before it stops; the step
-      * of the new value asks for the next one.
+      * of the new value asks for the next one. The current value of `source` is
+      * the first write.
       */
-    def run[S, A](source: Signal[A], start: S)(
-        onWrite: (S, A, Instant) => Step[S, A],
-        onWake: (S, Instant) => Step[S, A],
-    )(using CanEqual[A, A], Frame): Signal[A] < (Sync & Scope) =
-      for
-          first <- source.current
-          out   <- Signal.initRef(first)
-          state <- AtomicRef.init(start)
-          _     <- Fiber.init(source.observe { a =>
-                     def apply(step: Step[S, A]): Maybe[Instant] < Sync =
-                       (step.emit match
-                           case Present(v) => out.set(v)
-                           case Absent     => Kyo.unit
-                       ).andThen(state.set(step.state)).andThen(step.wake)
-                     def sleeper(at: Instant): Unit < Async             =
-                       Loop(at) { next =>
-                         for
-                             now0 <- Clock.now
-                             _    <- Async.sleep(next.minusOrZero(now0))
-                             now  <- Clock.now
-                             s    <- state.get
-                             more <- apply(onWake(s, now))
-                         yield more match
-                             case Present(t) => Loop.continue(t)
-                             case Absent     => Loop.done
-                       }
-                     for
-                         now  <- Clock.now
-                         s    <- state.get
-                         wake <- apply(onWrite(s, a, now))
-                         _    <- wake match
-                                     case Present(at) => Fiber.init(sleeper(at)).unit
-                                     case Absent      => Kyo.unit
-                     yield ()
-                     end for
-                   })
-      yield out
+    // claude 2026-10-19: changed: it takes a Rule (L2a review)
+    def run[S, A](source: Signal[A], rule: Rule[S, A])(using
+        CanEqual[A, A],
+        Frame,
+    ): Signal[A] < (Sync & Scope) =
+        val onWrite = rule.write
+        val onWake  = rule.wake
+        for
+            first <- source.current
+            out   <- Signal.initRef(first)
+            state <- AtomicRef.init(rule.start)
+            _     <- Fiber.init(source.observe { a =>
+                       def apply(step: Step[S, A]): Maybe[Instant] < Sync =
+                         (step.emit match
+                             case Present(v) => out.set(v)
+                             case Absent     => Kyo.unit
+                         ).andThen(state.set(step.state)).andThen(step.wake)
+                       def sleeper(at: Instant): Unit < Async             =
+                         Loop(at) { next =>
+                           for
+                               now0 <- Clock.now
+                               _    <- Async.sleep(next.minusOrZero(now0))
+                               now  <- Clock.now
+                               s    <- state.get
+                               more <- apply(onWake(s, now))
+                           yield more match
+                               case Present(t) => Loop.continue(t)
+                               case Absent     => Loop.done
+                         }
+                       for
+                           now  <- Clock.now
+                           s    <- state.get
+                           wake <- apply(onWrite(s, a, now))
+                           _    <- wake match
+                                       case Present(at) => Fiber.init(sleeper(at)).unit
+                                       case Absent      => Kyo.unit
+                       yield ()
+                       end for
+                     })
+        yield out
+        end for
+    end run
 end Pacing

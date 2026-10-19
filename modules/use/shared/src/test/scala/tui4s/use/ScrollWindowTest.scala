@@ -18,8 +18,12 @@ class ScrollWindowTest extends Test[Any]:
           w0   <- win.current
           _    <- sel.set(15)
           down <- eventually(win)(_.offset == 6)
+          // claude 2026-10-19: changed (L2a review): a new size after the
+          // selection is a sentinel: when the window has it, the fiber has
+          // seen the selection too
           _    <- sel.set(8)
-          stay <- eventually(win)(_.offset == 6).andThen(win.current)
+          _    <- size.set(11)
+          stay <- eventually(win)(_.slice.size == 11).andThen(win.current)
           _    <- sel.set(2)
           up   <- eventually(win)(_.offset == 2)
           _    <- list.set(Chunk.range(0, 5))
@@ -27,7 +31,7 @@ class ScrollWindowTest extends Test[Any]:
       yield
           assert(w0 == Window(0, Chunk.range(0, 10)))
           assert(down && up && cut)
-          assert(stay.slice.head == 6)
+          assert(stay.offset == 6 && stay.slice.head == 6)
     }
 end ScrollWindowTest
 
@@ -37,6 +41,10 @@ end ScrollWindowTest
   */
 // claude 2026-10-19: created (L2a)
 class ScrollWindowPropertyTest extends PropertyTest[Any]:
+
+    // claude 2026-10-19: created (L2a review): 200 samples, as the core's
+    // oracle suites
+    override protected def numSamples: Int = 200
 
     private def small(max: Int): Gen[Int] =
       Gen.int.map(Math.floorMod(_, max + 1))

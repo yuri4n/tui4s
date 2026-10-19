@@ -57,11 +57,32 @@ class DialogTest extends Test[Any]:
           gone  <- eventually(d.request)(_ == Absent)
       yield assert(shown && done && gone)
     }
+
+    // claude 2026-10-19: created (L2a review): launch never waits
+    "launch never waits: with 16 flows in the queue, it drops the next one" in {
+      for
+          d        <- useDialog[Int, Unit]
+          _        <- d.launch(d.open(0))
+          _        <- eventually(d.request)(_ == Present(0))
+          _        <- Kyo.foreach(1 to 17)(i => d.launch(d.open(i)))
+          answered <- Loop(0) { n =>
+                        eventually(d.request, 500.millis)(_ == Present(n)).map(
+                          ok =>
+                            if ok then d.close(()).andThen(Loop.continue(n + 1))
+                            else Loop.done(n),
+                        )
+                      }
+      yield assert(answered == 17)
+    }
 end DialogTest
 
 /** The law: a close with no open request does nothing. */
 // claude 2026-10-19: created (L2a)
 class DialogPropertyTest extends PropertyTest[Any]:
+
+    // Each sample starts a dialog fiber and waits for its request, so the
+    // suite keeps kyo-test-prop's 100 samples (the pure suites run 200).
+    // claude 2026-10-19: created (L2a review)
 
     "close without open is a no-op" - {
       forAll(Gen.listOfN(5, Gen.int)) { answers =>

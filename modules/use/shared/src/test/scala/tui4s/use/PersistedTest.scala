@@ -65,13 +65,36 @@ end PersistedTest
 // claude 2026-10-19: created (L2a)
 class TextCodecPropertyTest extends PropertyTest[Any]:
 
+    // claude 2026-10-19: created (L2a review): 200 samples, as the core's
+    // oracle suites
+    override protected def numSamples: Int = 200
+
     private def roundTrip[A](a: A)(using c: TextCodec[A]): Boolean =
       c.decode(c.encode(a)) == Result.succeed(a)
+
+    /** A `Double` compares by its bits: NaN is not `==` to itself. */
+    // claude 2026-10-19: created (L2a review): NaN, the infinities and all
+    // magnitudes
+    private def roundTripBits(d: Double): Boolean =
+      TextCodec.double.decode(TextCodec.double.encode(d)) match
+          case Result.Success(back) =>
+            java.lang.Double.doubleToLongBits(back) ==
+              java.lang.Double.doubleToLongBits(d)
+          case _                    => false
 
     "decode(encode(a)) is a" - {
       forAll(Gen.int, Gen.long, Gen.string, Gen.boolean) { (i, l, s, b) =>
         assert(roundTrip(i) && roundTrip(l) && roundTrip(s) && roundTrip(b))
-        assert(roundTrip(i.toDouble / 3))
+      }
+    }
+
+    "a Double: decode(encode(d)) has the bits of d" - {
+      forAll(Gen.double) { d =>
+        assert(roundTripBits(d))
+        assert(
+          roundTripBits(Double.NaN) && roundTripBits(Double.PositiveInfinity) &&
+            roundTripBits(Double.NegativeInfinity) && roundTripBits(-0.0),
+        )
       }
     }
 end TextCodecPropertyTest

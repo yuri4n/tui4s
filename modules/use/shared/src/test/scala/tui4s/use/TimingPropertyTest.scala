@@ -5,28 +5,27 @@ import kyo.test.prop.{Gen, PropertyTest}
 
 /** The laws of the timing rules of `debounced` and `throttled`, on their pure
   * steps (`Pacing`). [[TimingPropertyTest.simulate]] drives a rule as its shell
-  * does: a wake-up at its time, unless a write comes first; a write cancels the
-  * wake-up of the value before it.
+  * does: the value at the start is a write at the epoch; a wake-up comes at its
+  * time, unless a write comes first; a write cancels the wake-up of the value
+  * before it.
   *
   * The laws: `debounced` shows at most one value per quiet window, each value
   * that it shows had a quiet window after it, and the last write always shows,
-  * `quiet` after it came. `throttled` shows at most one value per window, the
-  * first write shows at once, and the last write always shows, at most `every`
-  * after it came.
+  * `quiet` after it came. `throttled` shows at most one value per window; the
+  * value at the start opens a window, and a first write after that window shows
+  * at once; the last write always shows, at most `every` after it came.
   */
-// claude 2026-10-19: created (L2a)
+// claude 2026-10-19: created (L2a); changed: the value at the start is a
+// write, as in the shell; 200 samples (L2a review)
 class TimingPropertyTest extends PropertyTest[Any]:
     import TimingPropertyTest.*
 
+    override protected def numSamples: Int = 200
+
     "debounced" - {
       forAll(writes, period) { (ws, quiet) =>
-        val out   = simulate[Pacing.Debounce.State[Int], Int](
-          Pacing.Debounce.start[Int],
-          (_, a, now) => Pacing.Debounce.write(a, now, quiet),
-          Pacing.Debounce.wake,
-          ws,
-        )
-        val times = writeTimes(ws)
+        val out   = simulate(Pacing.debounce[Int](quiet), initial, ws)
+        val times = (Instant.Epoch, initial) +: writeTimes(ws)
         // At most one value per quiet window.
         assert(spaced(out, quiet))
         // Each value had a quiet window after its write (a write at the
@@ -43,17 +42,20 @@ class TimingPropertyTest extends PropertyTest[Any]:
 
     "throttled" - {
       forAll(writes, period) { (ws, every) =>
-        val out   = simulate[Pacing.Throttle.State[Int], Int](
-          Pacing.Throttle.start[Int],
-          (s, a, now) => Pacing.Throttle.write(s, a, now, every),
-          (s, now) => Pacing.Throttle.wake(s, now, every),
-          ws,
-        )
-        val times = writeTimes(ws)
+        val out   = simulate(Pacing.throttle[Int](every), initial, ws)
+        val times = (Instant.Epoch, initial) +: writeTimes(ws)
         // At most one value per window.
         assert(spaced(out, every))
-        // The first write shows at once.
-        assert(out.headOption == times.headOption)
+        // The value at the start shows at once and opens a window.
+        assert(out.headOption == Some((Instant.Epoch, initial)))
+        // A first write after that window shows at once.
+        assert(
+          times
+            .lift(1)
+            .forall((w, a) =>
+              w < Instant.Epoch + every || out.lift(1) == Some((w, a)),
+            ),
+        )
         // The last write shows, at most `every` after it came.
         assert(out.lastOption.map(_._2) == times.lastOption.map(_._2))
         assert(
@@ -96,11 +98,18 @@ object TimingPropertyTest:
     def spaced[A](out: Chunk[(Instant, A)], d: Duration): Boolean =
       out.zip(out.drop(1)).forall { case ((a, _), (b, _)) => b >= a + d }
 
-    /** The values that a rule shows for the writes `ws`, with their times. */
+    /** The value at the start of the source (the writes have 0 to 4). */
+    val initial: Int = 9
+
+    /** The values that `rule` shows for a source that starts with `first` (a
+      * write at the epoch, as in the shell) and then has the writes `ws`, with
+      * their times.
+      */
+    // claude 2026-10-19: changed: a Rule, and the value at the start is the
+    // first write (L2a review)
     def simulate[S, A](
-        start: S,
-        onWrite: (S, A, Instant) => Pacing.Step[S, A],
-        onWake: (S, Instant) => Pacing.Step[S, A],
+        rule: Pacing.Rule[S, A],
+        first: A,
         ws: Chunk[(Duration, A)],
     ): Chunk[(Instant, A)] =
         final case class Sim(
@@ -116,19 +125,22 @@ object TimingPropertyTest:
         def drain(sim: Sim, until: Maybe[Instant], fuel: Int = 100): Sim =
           sim.wake match
               case Present(w) if fuel > 0 && until.forall(w <= _) =>
-                val step = onWake(sim.s, w)
+                val step = rule.wake(sim.s, w)
                 drain(
                   Sim(step.state, step.wake, add(sim.out, w, step.emit)),
                   until,
                   fuel - 1,
                 )
               case _                                              => sim
-        val last                                                         = writeTimes(ws).foldLeft(Sim(start, Absent, Chunk.empty)) {
-          case (sim, (t, a)) =>
-            val ready = drain(sim, Present(t))
-            val step  = onWrite(ready.s, a, t)
-            Sim(step.state, step.wake, add(ready.out, t, step.emit))
-        }
+        val writes                                                       =
+          (Instant.Epoch, first) +: writeTimes(ws)
+        val last                                                         =
+          writes.foldLeft(Sim(rule.start, Absent, Chunk.empty)) {
+            case (sim, (t, a)) =>
+              val ready = drain(sim, Present(t))
+              val step  = rule.write(ready.s, a, t)
+              Sim(step.state, step.wake, add(ready.out, t, step.emit))
+          }
         drain(last, Absent).out
     end simulate
 end TimingPropertyTest

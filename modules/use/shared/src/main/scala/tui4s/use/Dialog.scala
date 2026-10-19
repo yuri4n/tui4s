@@ -51,12 +51,21 @@ final class Dialog[Q, A] private[use] (
 
     /** Starts `flow` (a flow that opens the dialog) on the fiber of the dialog,
       * after the flows before it, and returns at once: a key handler calls it.
-      * It waits only when 16 flows wait already. A flow that fails is logged
-      * (Kyo's `Log`) and the next flow runs. The flows end when the `Scope` of
-      * [[useDialog]] closes.
+      * It never waits. When 16 flows wait already, or when the `Scope` of
+      * [[useDialog]] has closed, it drops `flow` and logs a warning (Kyo's
+      * `Log`). A flow that fails is logged and the next flow runs. The flows
+      * end when the `Scope` of [[useDialog]] closes.
       */
-    def launch(flow: => Any < Async): Unit < Async =
-      Abort.run[Closed](flows.put(() => flow.unit)).unit
+    // claude 2026-10-19: changed: an offer that never waits, so a key handler
+    // never stops the runner (L2a review)
+    def launch(flow: => Any < Async): Unit < Sync =
+      Abort.run[Closed](flows.offer(() => flow.unit)).map {
+        case Result.Success(true) => Kyo.unit
+        case _                    =>
+          Log.warn(
+            "a dialog flow was dropped: 16 flows wait, or the dialog ended",
+          )
+      }
 end Dialog
 
 /** The pure state of [[Dialog]]. */

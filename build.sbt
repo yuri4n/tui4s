@@ -171,8 +171,10 @@ def crossAggregate(id: String, m: CrossProject): Project =
 lazy val useCross     = crossModule("use").settings(
   // kyo-system (Path, Command): the files of usePersisted and the process
   // of useProcess on the JVM. kyo-ui brings it already; the module names it
-  // because it calls it.
-  libraryDependencies += "io.getkyo" %%% "kyo-system" % Versions.kyo,
+  // because it calls it. Its POM brings JMH through kyo-kernel too.
+  // claude 2026-10-19: changed: JMH is out of the POM (L2a review)
+  libraryDependencies += ("io.getkyo" %%% "kyo-system" % Versions.kyo)
+    .excludeAll(ExclusionRule("org.openjdk.jmh")),
 )
 lazy val useJVM       = useCross.jvm
 lazy val useJS        = useCross.js
@@ -192,9 +194,9 @@ lazy val launchers =
 
 // The sample apps use the terminal runner and optional stores.
 // The zio and cats modules are empty in this version.
-// claude 2026-10-13: changed (T1): core only; no `run / connectInput`; the
-// JVM flags of a real run; munit tests; the launchers task
-// claude 2026-10-19: changed: the composables and the widgets (L2a)
+// claude 2026-10-19: changed: core, the composables and the widgets; no
+// `run / connectInput`; the JVM flags of a real run; munit tests; the
+// launchers task (T1, L2a)
 lazy val examples = project
   .in(file("examples"))
   .dependsOn(core, useJVM, widgetsJVM, pini4s)

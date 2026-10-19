@@ -30,7 +30,7 @@ def useNow(every: Duration)(using Frame): Signal[Instant] < (Sync & Scope) =
   yield now
 
 /** How far an instant is from now, in its largest whole unit: the value that
-  * [[useTimeAgo]] formats. [[TimeAgo.english]] gives English text.
+  * [[timeAgo]] formats. [[TimeAgo.english]] gives English text.
   */
 // claude 2026-10-19: created (L2a)
 enum TimeAgo derives CanEqual:
@@ -44,7 +44,8 @@ enum TimeAgo derives CanEqual:
     case In(amount: Long, unit: TimeAgo.Scale)
 end TimeAgo
 
-// claude 2026-10-19: created (L2a)
+/** The units, the rule of [[TimeAgo.between]] and the English text. */
+// claude 2026-10-19: created (L2a); changed: Scaladoc (L2a review)
 object TimeAgo:
     /** The unit of a [[TimeAgo]]. A month is 30 days and a year is 365 days. */
     enum Scale derives CanEqual:
@@ -89,16 +90,17 @@ end TimeAgo
 
 /** The text of how long ago `at` was, from the time `now` (for example the
   * signal of [[useNow]]). It changes when either signal changes. `format` gives
-  * the text; the default is English ([[TimeAgo.english]]).
+  * the text; the default is English ([[TimeAgo.english]]). It is a pure
+  * transform of two signals with no lifetime, so it has no `use` name.
   *
   * {{{
   * def stamp(updated: Signal[Instant]): UI < (Sync & Scope) =
   *   for now <- useNow(1.second)
-  *   yield span(useTimeAgo(updated, now).map(t => s"updated $t"))
+  *   yield span(timeAgo(updated, now).map(t => s"updated $t"))
   * }}}
   */
-// claude 2026-10-19: created (L2a)
-def useTimeAgo(
+// claude 2026-10-19: created (L2a; the name: L2a review)
+def timeAgo(
     at: Signal[Instant],
     now: Signal[Instant],
     format: TimeAgo => String = TimeAgo.english,

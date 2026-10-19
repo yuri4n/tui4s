@@ -12,6 +12,10 @@ import java.nio.charset.StandardCharsets.UTF_8
 // claude 2026-10-19: created (L2a)
 class LinesPropertyTest extends PropertyTest[Any]:
 
+    // claude 2026-10-19: created (L2a review): 200 samples, as the core's
+    // oracle suites
+    override protected def numSamples: Int = 200
+
     private val word: Gen[String] =
       Gen.oneOf("", "a", "hello world", "é", "中文", "👍", "x\r", "tab\there")
 

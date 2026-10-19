@@ -2,9 +2,10 @@ package examples.todo
 
 import kyo.*
 import kyo.UI.*
+// claude 2026-10-19: created: the composables of tui4s-use (L2a)
+import tui4s.use.{Binding, Chord, Keymap, useHistory}
 // claude 2026-10-13: changed (T2, adapt): tui4s.Tui (the prototype had
 // tui4s.kyoui.Tui)
-import tui4s.use.{Binding, Chord, Keymap, useHistory, useKeymap}
 import tui4s.{Tui, TuiApp}
 
 import java.nio.charset.StandardCharsets
@@ -269,7 +270,7 @@ object Todo:
                           case other             => status.set(s"save failed: $other")
                         },
                       )
-          keys      = useKeymap(
+          keys      = Keymap.of(
                         Binding.of("undo", Chord.ctrl('z'))(
                           history.undo.andThen(select),
                         ),

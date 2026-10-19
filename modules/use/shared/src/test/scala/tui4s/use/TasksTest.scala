@@ -78,12 +78,36 @@ class TasksTest extends Test[Any]:
       )
     }
 
-    "useStreamFold folds the stream; useStreamText joins its pieces" in {
+    // claude 2026-10-19: changed: the status Done (L2a review)
+    "useStreamFold folds the stream; useStreamText joins its pieces; the end is Done" in {
       for
           sum  <- useStreamFold(Stream.init(Seq(1, 2, 3)), 0)(_ + _)
           text <- useStreamText(Stream.init(Seq("he", "ll", "o")))
-          s    <- eventually(sum)(_ == 6)
-          t    <- eventually(text)(_ == "hello")
-      yield assert(s && t)
+          s    <- eventually(sum.value)(_ == 6)
+          t    <- eventually(text.value)(_ == "hello")
+          done <- eventually(text.status)(_ == StreamStatus.Done)
+      yield assert(s && t && done)
+    }
+
+    // claude 2026-10-19: created (L2a review)
+    "useStreamFold: a stream that fails keeps its value and is Failed; one that runs is Running" in {
+      val boom = new IllegalStateException("boom")
+      for
+          gate    <- Promise.init[Unit, Any]
+          failing <-
+            useStreamFold(
+              Stream
+                .init(Seq(1, 2))
+                .concat(Stream.init(Sync.defer[Seq[Int], Any](throw boom))),
+              0,
+            )(_ + _)
+          open    <- useStreamFold(Stream.init(gate.get.andThen(Seq(1))), 0)(
+                       _ + _,
+                     )
+          failed  <- eventually(failing.status)(_ == StreamStatus.Failed(boom))
+          value   <- failing.value.current
+          running <- open.status.current
+      yield assert(failed && value == 3 && running == StreamStatus.Running)
+      end for
     }
 end TasksTest

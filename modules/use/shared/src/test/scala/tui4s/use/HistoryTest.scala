@@ -56,6 +56,10 @@ end HistoryTest
   */
 // claude 2026-10-19: created (L2a)
 class HistoryPropertyTest extends PropertyTest[Any]:
+
+    // claude 2026-10-19: created (L2a review): 200 samples, as the core's
+    // oracle suites
+    override protected def numSamples: Int = 200
     import History.Timeline
 
     /** A step: a write of a value (Some) or an undo (None, odd) or a redo. */

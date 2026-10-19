@@ -2,8 +2,6 @@ package tui4s.use
 
 import kyo.*
 
-import java.nio.charset.StandardCharsets.UTF_8
-
 /** A process that runs: Kyo's `Process` (for `pid`, `destroy`, ...), its output
   * lines (the standard output and the standard error together, in order) as a
   * stream, and its exit code as a signal (Absent while it runs).
@@ -33,7 +31,11 @@ end ProcessError
 /** Starts `cmd` (the program, then its arguments, with no shell) on the JVM,
   * with kyo-system's `Command`. The child gets an empty standard input, never
   * the terminal of the app, and its standard error goes into its output lines.
-  * When the caller's `Scope` closes, the process is killed and its fibers end.
+  * When the caller's `Scope` closes, the process and the processes that it
+  * started (its descendants at that time) are killed, and the fibers end; the
+  * close does not wait for the end of the output. A program that the child
+  * started and left (its parent ended before) is not a descendant: it keeps
+  * running, and a Kyo thread reads the output that it holds open until it ends.
   * On Scala.js it fails with [[ProcessError.Unsupported]].
   *
   * {{{
@@ -41,7 +43,7 @@ end ProcessError
   *     run    <- useProcess(Chunk("sbt", "test"))
   *     output <- useStreamFold(run.lines, Chunk.empty[String])((ls, l) => (ls :+ l).takeRight(500))
   * yield div(
-  *   pre(output.map(_.mkString("\n"))),
+  *   pre(output.value.map(_.mkString("\n"))),
   *   span(run.exit.map(_.fold("running")(c => s"exit ${c.toInt}"))),
   * )
   * }}}
@@ -51,31 +53,3 @@ def useProcess(cmd: Chunk[String])(using
     Frame,
 ): RunningProcess < (Sync & Scope & Abort[ProcessError]) =
   ProcessPlatform.start(cmd)
-
-/** The pure line split of the output of a process. */
-// claude 2026-10-19: created (L2a)
-private[use] object Lines:
-    /** The complete lines of `carry ++ bytes` (UTF-8, without the line break
-      * and a "\r" before it), and the bytes after the last line break. A line
-      * break is never inside a UTF-8 character, so a cut of the bytes at any
-      * place gives the same lines.
-      */
-    def split(
-        carry: Chunk[Byte],
-        bytes: Chunk[Byte],
-    ): (Chunk[Byte], Chunk[String]) =
-        val all = carry ++ bytes
-        val cut = all.lastIndexOf('\n'.toByte)
-        if cut < 0 then (all, Chunk.empty)
-        else
-            val text = String(all.take(cut).toArray, UTF_8)
-            (all.drop(cut + 1), Chunk.from(text.split("\n", -1)).map(line))
-    end split
-
-    /** The last line, when the output does not end with a line break. */
-    def last(carry: Chunk[Byte]): Maybe[String] =
-      if carry.isEmpty then Absent
-      else Present(line(String(carry.toArray, UTF_8)))
-
-    private def line(s: String): String = s.stripSuffix("\r")
-end Lines

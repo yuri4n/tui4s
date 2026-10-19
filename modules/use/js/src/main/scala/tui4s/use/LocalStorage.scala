@@ -5,8 +5,12 @@ import kyo.*
 /** A [[Storage]] in the `localStorage` of the browser (Scala.js only), through
   * kyo-ui's `UIWindow`. Each key gets `prefix` before it. It needs a browser:
   * Node.js has no `window`.
+  *
+  * {{{
+  * val storage = LocalStorage("todo/")
+  * }}}
   */
-// claude 2026-10-19: created (L2a)
+// claude 2026-10-19: created (L2a); changed: an example (L2a review)
 final class LocalStorage(prefix: String) extends Storage:
     /** The text under `prefix + key`, or Absent. */
     def get(key: String)(using Frame): Maybe[String] < Sync =

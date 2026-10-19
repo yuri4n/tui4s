@@ -48,7 +48,7 @@ class KeymapTest extends Test[Any]:
     "the handler runs the first binding that matches; another key does nothing; help lists the bindings with a text" in {
       for
           ran    <- Signal.initRef(Chunk.empty[String])
-          keys    = useKeymap(
+          keys    = Keymap.of(
                       Binding.of("undo", Chord.ctrl('z'))(
                         ran.updateAndGet(_ :+ "undo"),
                       ),

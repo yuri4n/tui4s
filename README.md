@@ -652,7 +652,7 @@ bits); a paste keeps it.
 
 ## Composables (tui4s-use)
 
-<!-- claude 2026-10-19: created this section (L2a): the code blocks are the text of the region "native" of the Native recipes and of the region "composables" of the Dashboard example (ReadmeSuite checks them) -->
+<!-- claude 2026-10-19: created this section (L2a): the code blocks are the text of the region "native" of the Native recipes, of the region "composables" of the Dashboard example and of the regions of the Recipes example (ReadmeSuite checks them); changed: the names timeAgo and Keymap.of, the stream status, the %%% line (L2a review) -->
 `io.github.yuri4n::tui4s-use` has composables: plain functions over Kyo's
 `Signal`, `SignalRef` and `Scope`. The module does not depend on tui4s-core.
 It builds for the JVM and for Scala.js, so a composable works in the terminal
@@ -660,6 +660,8 @@ and on the web. Add it next to tui4s-core:
 
 ```scala
 libraryDependencies += "io.github.yuri4n" %% "tui4s-use" % "<version>"
+// a Scala.js or a cross-built project:
+libraryDependencies += "io.github.yuri4n" %%% "tui4s-use" % "<version>"
 ```
 
 ### You may not need a composable
@@ -710,15 +712,15 @@ These five need no library:
 | Composable | What it gives | Type |
 | --- | --- | --- |
 | `useNow(every)` | The time of Kyo's `Clock` as a signal. It ticks on each multiple of `every`. | `Signal[Instant] < (Sync & Scope)` |
-| `useTimeAgo(at, now, format)` | "5 minutes ago": the `TimeAgo` ADT and an English formatter that you can replace. | `Signal[String]` |
+| `timeAgo(at, now, format)` | "5 minutes ago": the `TimeAgo` ADT and an English formatter that you can replace. It has no lifetime, so it has no `use` name. | `Signal[String]` |
 | `debounced(s, quiet)`, `throttled(s, every)` | A signal after a quiet time, or at most once per window. The last value always shows. | `Signal[A] < (Sync & Scope)` |
-| `useDebouncedFn(quiet)(f)` | A function that runs `f` after a quiet time. The newest call wins. | `(A => Unit < Sync) < (Sync & Scope)` |
+| `useDebouncedFn(quiet)(f)` | A function that runs `f` after a quiet time. A call stops the wait or the run of the call before it. | `(A => Unit < Sync) < (Sync & Scope)` |
 | `useAsync(input)(f)` | The `AsyncState` (`Idle`, `Loading`, `Done`, `Failed`) of the work for the current input. A new input interrupts the old work. | `Signal[AsyncState[E, A]] < (Sync & Scope)` |
-| `useStreamFold(s, zero)(f)`, `useStreamText(s)` | A stream folded into a signal, or a text stream joined (the tokens of a chat answer). | `Signal[B] < (Sync & Scope)` |
-| `useKeymap(bindings*)` | A key map as data: a handler for `onKeyDown` and the key hints. | `Keymap` |
+| `useStreamFold(s, zero)(f)`, `useStreamText(s)` | A stream folded into a signal, or a text stream joined (the tokens of a chat answer), with the status of the stream (`Running`, `Done`, `Failed`). | `StreamState[B] < (Sync & Scope)` |
+| `Keymap.of(bindings*)` | A key map as data: a handler for `onKeyDown` and the key hints. It has no lifetime, so it has no `use` name. | `Keymap` |
 | `useSelection(items, key, edge, page)` | The selected item by its key, with the moves. It follows its item when the list changes. | `Selection[A, K] < Sync` |
 | `useScrollWindow(items, size, selected)` | The visible slice of a long list (a virtual list). The window moves the least distance. | `Signal[Window[A]] < (Sync & Scope)` |
-| `useDialog[Q, A]` | A modal: `open` waits for the answer, `close` gives it, `launch` starts a flow from a key handler. | `Dialog[Q, A] < (Sync & Scope)` |
+| `useDialog[Q, A]` | A modal: `open` waits for the answer, `close` gives it, `launch` starts a flow from a key handler and never waits. | `Dialog[Q, A] < (Sync & Scope)` |
 | `useHistory(ref, limit)` | Undo and redo over a `SignalRef`. | `History[A] < Sync` |
 | `usePersisted(key, initial, storage)` | A `SignalRef` kept in a `Storage`: files on the JVM, `localStorage` in a browser. | `SignalRef[A] < (Sync & Scope)` |
 | `useProcess(cmd)` | A program that runs (JVM): its output lines as a stream and its exit code as a signal. The end of the `Scope` kills it. Scala.js gives `ProcessError.Unsupported`. | `RunningProcess < (Sync & Scope & Abort[ProcessError])` |
@@ -732,7 +734,8 @@ closure runs again on each change, and each run starts a new composable.
 
 A key handler of tui4s runs on the runner, one at a time. A handler that
 waits for the answer of a dialog stops all input, so it starts the flow with
-`Dialog.launch`. `debounced`, `throttled`, `useAsync`, `useScrollWindow` and
+`Dialog.launch`. `launch` never waits: when 16 flows wait already, it drops
+the flow and logs a warning. `debounced`, `throttled`, `useAsync`, `useScrollWindow` and
 `usePersisted` watch a signal with `Signal.observe`. A write that lands while
 the watch arms is seen at Kyo's next repair, at most 1 s later.
 
@@ -747,7 +750,7 @@ status line says how long ago the last sample came:
       * help box lists them.
       */
     def keys(s: State)(using Frame): Keymap =
-      useKeymap(
+      Keymap.of(
         Binding.of("pause or resume the sampler", Chord.char('p'))(pause(s)),
         Binding.of("this help (Esc closes it)", Chord.char('?'))(
           s.help.set(true),
@@ -761,12 +764,220 @@ status line says how long ago the last sample came:
       */
     def stamp(s: State)(using Frame): UI < (Sync & Scope) =
       for now <- useNow(1.second)
-      yield span(useTimeAgo(s.updated, now).map(t => s"updated $t"))
+      yield span(timeAgo(s.updated, now).map(t => s"updated $t"))
         .style(_.color(Style.Color.gray))
 ```
 
 The Todo example writes its list through `useHistory`: Ctrl-Z undoes a change
 of the list, and Ctrl-Y redoes it.
+
+### More composables, one recipe each
+
+<!-- claude 2026-10-19: created this section (L2a review): each block is the text of a region of the Recipes example (ReadmeSuite checks them) -->
+Each recipe is a small UI in `examples.composables.Recipes`. Its suite
+(`RecipesSuite`) runs each one on the headless test kit.
+
+A search as the user types (`debounced` and `useAsync`):
+
+<!-- from: examples/src/main/scala/examples/composables/Recipes.scala#search -->
+```scala
+    /** A search as the user types: `debounced` waits until the query is quiet
+      * for 200 ms, and `useAsync` runs `find` for it. A new query interrupts
+      * the search for the old one.
+      */
+    def search(find: String => Chunk[String] < Async)(using
+        Frame,
+    ): UI < (Sync & Scope) =
+      for
+          query   <- Signal.initRef("")
+          quiet   <- debounced(query, 200.millis)
+          results <- useAsync(quiet.map(q => Maybe.when(q.nonEmpty)(q)))(find)
+      yield div(
+        input.value(query).focusAuto(true),
+        results.map {
+          case AsyncState.Idle       => span("type to search")
+          case AsyncState.Loading    => span("searching...")
+          case AsyncState.Done(rows) => span(s"found: ${rows.mkString(", ")}")
+          case AsyncState.Failed(e)  => span(s"failed: $e")
+        },
+      )
+```
+
+A progress that changes faster than the screen needs (`throttled`):
+
+<!-- from: examples/src/main/scala/examples/composables/Recipes.scala#progress -->
+```scala
+    /** A progress that changes faster than the screen needs: `throttled` shows
+      * it at most once per 100 ms, and the last value always shows.
+      */
+    def progress(done: Signal[Int])(using Frame): UI < (Sync & Scope) =
+      for shown <- throttled(done, 100.millis)
+      yield span(shown.map(n => s"$n %"))
+```
+
+A note that saves itself after the edits stop (`useDebouncedFn`):
+
+<!-- from: examples/src/main/scala/examples/composables/Recipes.scala#autosave -->
+```scala
+    /** A note that saves itself: each edit starts the wait again, and `save`
+      * runs 300 ms after the last edit, with the last text.
+      */
+    def autosave(save: String => Unit < Async)(using
+        Frame,
+    ): UI < (Sync & Scope) =
+      for
+          note   <- Signal.initRef("")
+          status <- Signal.initRef("saved")
+          later  <- useDebouncedFn[String](300.millis)(text =>
+                      save(text).andThen(status.set("saved")),
+                    )
+      yield div(
+        input
+          .value(note)
+          .focusAuto(true)
+          .onInput(text => status.set("editing").andThen(later(text))),
+        span(status),
+      )
+```
+
+An answer that comes in pieces, with its status (`useStreamText`; `useStreamFold` is the general fold):
+
+<!-- from: examples/src/main/scala/examples/composables/Recipes.scala#answer -->
+```scala
+    /** An answer that comes in pieces (the tokens of a chat model):
+      * `useStreamText` joins them, and its status says when the answer is
+      * complete.
+      */
+    def answer(tokens: Stream[String, Async])(using
+        Frame,
+    ): UI < (Sync & Scope) =
+      for reply <- useStreamText(tokens)
+      yield div(
+        span(reply.value),
+        span(reply.status.map {
+          case StreamStatus.Running   => "..."
+          case StreamStatus.Done      => "(complete)"
+          case StreamStatus.Failed(e) => s"(failed: ${e.getMessage})"
+        }),
+      )
+```
+
+A long list with a selection and a visible window (`useSelection` and `useScrollWindow`):
+
+<!-- from: examples/src/main/scala/examples/composables/Recipes.scala#list -->
+```scala
+    /** A long list that shows 5 rows: `useSelection` keeps the selected row by
+      * its key, and `useScrollWindow` gives the rows to show. The arrows move
+      * the selection.
+      */
+    def list(items: Signal[Chunk[String]])(using Frame): UI < (Sync & Scope) =
+      for
+          selection <- useSelection(items, identity[String])
+          window    <- useScrollWindow(items, Signal.initConst(5), selection.index)
+          keys       = Keymap.of(
+                         Binding.of("up", Chord(Keyboard.ArrowUp))(selection.moveUp),
+                         Binding.of("down", Chord(Keyboard.ArrowDown))(
+                           selection.moveDown,
+                         ),
+                       )
+      yield div
+        .tabIndex(0)
+        .focusAuto(true)
+        .onKeyDown(keys.handler)(
+          window
+            .combineLatest(selection.key)
+            .map((w, key) =>
+              div(
+                UI.fragment(
+                  w.slice.map(row =>
+                    span(if key.contains(row) then s"> $row" else s"  $row"),
+                  )*,
+                ),
+              ),
+            ),
+        )
+```
+
+A delete that asks first (`useDialog`; a key handler starts the flow with `launch`):
+
+<!-- from: examples/src/main/scala/examples/composables/Recipes.scala#confirm -->
+```scala
+    /** A delete that asks first: `d` starts a flow (`launch`) that opens the
+      * dialog and waits for its answer; `y` or `n` answers.
+      */
+    def confirm(items: SignalRef[Chunk[String]])(using
+        Frame,
+    ): UI < (Sync & Scope) =
+      for
+          ask   <- useDialog[String, Boolean]
+          delete = items.get.map(xs =>
+                     if xs.isEmpty then Kyo.unit
+                     else
+                         ask
+                           .open(s"Delete ${xs.head}?")
+                           .map(yes =>
+                             if yes then items.updateAndGet(_.drop(1)).unit
+                             else Kyo.unit,
+                           ),
+                   )
+          keys   = Keymap.of(
+                     Binding.of("delete", Chord.char('d'))(ask.launch(delete)),
+                     Binding.of("yes", Chord.char('y'))(ask.close(true)),
+                     Binding.of("no", Chord.char('n'))(ask.close(false)),
+                   )
+      yield div
+        .tabIndex(0)
+        .focusAuto(true)
+        .onKeyDown(keys.handler)(
+          span(items.map(_.mkString(", "))),
+          span(ask.request.map(_.fold("")(q => s"$q (y/n)"))),
+        )
+```
+
+A setting that the next run keeps (`usePersisted`):
+
+<!-- from: examples/src/main/scala/examples/composables/Recipes.scala#setting -->
+```scala
+    /** A setting that the next run keeps: `usePersisted` reads it from
+      * `storage` and writes each change. `t` changes it. An app gives
+      * `Storage.forApp("<app>")`; a test gives `Storage.inMemory`.
+      */
+    def setting(storage: Storage)(using Frame): UI < (Sync & Scope) =
+      for
+          dark <- usePersisted("dark", false, storage)
+          keys  = Keymap.of(
+                    Binding.of("theme", Chord.char('t'))(dark.updateAndGet(!_)),
+                  )
+      yield div
+        .tabIndex(0)
+        .focusAuto(true)
+        .onKeyDown(keys.handler)(
+          span(dark.map(d => if d then "theme: dark" else "theme: light")),
+        )
+```
+
+The output and the exit code of a program (`useProcess`, on the JVM):
+
+<!-- from: examples/src/main/scala/examples/composables/Recipes.scala#process -->
+```scala
+    /** The output of a program, a line at a time, and its exit code:
+      * `useProcess` starts it, and the end of the `Scope` kills it.
+      */
+    def process(cmd: Chunk[String])(using Frame): UI < (Sync & Scope) =
+      Abort.run[ProcessError](useProcess(cmd)).map {
+        case Result.Success(run) =>
+          useStreamFold(run.lines, Chunk.empty[String])((ls, l) =>
+            (ls :+ l).takeRight(5),
+          ).map(out =>
+            div(
+              span(out.value.map(_.mkString(" | "))),
+              span(run.exit.map(_.fold("running")(c => s"exit ${c.toInt}"))),
+            ),
+          )
+        case Result.Failure(e)   => span(s"cannot start: $e")
+        case Result.Panic(t)     => span(s"cannot start: $t")
+      }
+```
 
 ## Modules
 

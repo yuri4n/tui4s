@@ -65,46 +65,98 @@ def useAsync[I, E, A](
                })
   yield state
 
-// claude 2026-10-19: created (L2a)
+/** Makes an [[AsyncState]] from a result. */
+// claude 2026-10-19: created (L2a); changed: Scaladoc (L2a review)
 object AsyncState:
-    /** The state of a finished work. */
+    /** The state of a finished work.
+      *
+      * {{{
+      * AsyncState.of(Result.succeed(rows)) // Done(rows)
+      * }}}
+      */
     def of[E, A](r: Result[E, A]): AsyncState[E, A] = r match
         case Result.Success(a) => Done(a)
         case Result.Failure(e) => Failed(Result.Failure(e))
         case Result.Panic(t)   => Failed(Result.Panic(t))
+end AsyncState
 
-/** A signal that folds the values of `stream` into a state, from `zero`. The
-  * stream runs in a fiber that ends when the caller's `Scope` closes; each
-  * chunk of the stream is one write of the signal.
+/** How far a stream of [[useStreamFold]] or [[useStreamText]] is. */
+// claude 2026-10-19: created (L2a review)
+enum StreamStatus derives CanEqual:
+    /** The stream runs: more values can come. */
+    case Running
+
+    /** The stream ended: the value is final. */
+    case Done
+
+    /** The stream failed with `error` (a panic: the stream has no typed
+      * failure). The value keeps the values before the failure.
+      */
+    case Failed(error: Throwable)
+end StreamStatus
+
+/** The value that a stream folds into, and the status of the stream. */
+// claude 2026-10-19: created (L2a review)
+final case class StreamState[B](value: Signal[B], status: Signal[StreamStatus])
+
+/** The fold of the values of `stream` into a signal, from `zero`, and the
+  * status of the stream ([[StreamStatus]]: Running, Done or Failed). Each chunk
+  * of the stream is one write of the value. A failure of the stream goes to
+  * Kyo's `Log` and to the status. The stream runs in a fiber that ends when the
+  * caller's `Scope` closes; the status then stays Running.
   *
   * {{{
   * for count <- useStreamFold(events, 0)((n, _) => n + 1)
-  * yield span(count.map(n => s"$n events"))
+  * yield span(count.value.map(n => s"$n events"))
   * }}}
   */
-// claude 2026-10-19: created (L2a)
+// claude 2026-10-19: created (L2a); changed: the status of the stream (L2a
+// review)
 def useStreamFold[A, B](stream: Stream[A, Async], zero: B)(f: (B, A) => B)(using
     Tag[Emit[Chunk[A]]],
     Frame,
-): Signal[B] < (Sync & Scope) =
+): StreamState[B] < (Sync & Scope) =
   for
-      state <- Signal.initRef(zero)
-      _     <- Fiber.init(
-                 stream.foreachChunk(c => state.updateAndGet(b => c.foldLeft(b)(f))),
-               )
-  yield state
+      value  <- Signal.initRef(zero)
+      status <- Signal.initRef[StreamStatus](StreamStatus.Running)
+      _      <- Fiber.init(
+                  Abort
+                    .run[Throwable](
+                      stream.foreachChunk(c =>
+                        value.updateAndGet(b => c.foldLeft(b)(f)).unit,
+                      ),
+                    )
+                    .map {
+                      case Result.Success(_) => status.set(StreamStatus.Done)
+                      case Result.Failure(t) => failed(status, t)
+                      case Result.Panic(t)   => failed(status, t)
+                    },
+                )
+  yield StreamState(value, status)
 
-/** A signal of the text of `stream`: its pieces, joined in order (for example
-  * the tokens of a chat answer). The stream runs in a fiber that ends when the
-  * caller's `Scope` closes.
+/** Logs the failure `t` of a stream and sets the status. */
+// claude 2026-10-19: created (L2a review)
+private def failed(status: SignalRef[StreamStatus], t: Throwable)(using
+    Frame,
+): Unit < Sync =
+  Log
+    .warn(s"a stream of useStreamFold failed: $t")
+    .andThen(status.set(StreamStatus.Failed(t)))
+
+/** The text of `stream`: its pieces, joined in order (for example the tokens of
+  * a chat answer), and the status of the stream. The stream runs in a fiber
+  * that ends when the caller's `Scope` closes.
   *
   * {{{
   * for answer <- useStreamText(tokens)
-  * yield p(answer)
+  * yield div(
+  *   p(answer.value),
+  *   span(answer.status.map(s => if s == StreamStatus.Running then "..." else "")),
+  * )
   * }}}
   */
-// claude 2026-10-19: created (L2a)
+// claude 2026-10-19: created (L2a); changed: the status (L2a review)
 def useStreamText(stream: Stream[String, Async])(using
     Frame,
-): Signal[String] < (Sync & Scope) =
+): StreamState[String] < (Sync & Scope) =
   useStreamFold(stream, "")(_ + _)

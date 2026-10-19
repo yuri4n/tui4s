@@ -5,7 +5,7 @@ package examples.dashboard
 import examples.widgets.{Tabs, Widgets}
 import kyo.*
 import kyo.UI.*
-import tui4s.use.{Binding, Chord, Keymap, useKeymap, useNow, useTimeAgo}
+import tui4s.use.{Binding, Chord, Keymap, timeAgo, useNow}
 import tui4s.{TerminalSize, Tui, TuiApp}
 
 /** The Dashboard in plain kyo-ui: one tab per series (CPU, Memory, Network), a
@@ -20,7 +20,7 @@ import tui4s.{TerminalSize, Tui, TuiApp}
   * gauge, the sparkline, the tabs) are in `examples.widgets.Widgets`. The keys
   * `p`, `?` and `q` are a keymap of tui4s-use (the help box lists them), and
   * the status line says how long ago the last sample came (`useNow`,
-  * `useTimeAgo`).
+  * `timeAgo`).
   */
 // claude 2026-10-19: changed: the Scaladoc names the log pane that scrolls
 // (L1a), the help, the toast and the two columns (L1b), the keymap and the
@@ -81,8 +81,8 @@ object Dashboard:
     /** One sampler tick with given values (a test or a benchmark can call it
       * directly); it also keeps the time of the sample.
       */
-    // claude 2026-10-13: changed (T2, review R1-6): there is no bench yet
-    // claude 2026-10-19: changed: the time of the sample (L2a)
+    // claude 2026-10-19: changed: the time of the sample; there is no bench
+    // yet (T2, review R1-6, L2a)
     def tick(s: State, values: Chunk[Double])(using Frame): Unit < Sync =
       s.metrics
         .updateAndGet(m =>
@@ -180,7 +180,7 @@ object Dashboard:
       * help box lists them.
       */
     def keys(s: State)(using Frame): Keymap =
-      useKeymap(
+      Keymap.of(
         Binding.of("pause or resume the sampler", Chord.char('p'))(pause(s)),
         Binding.of("this help (Esc closes it)", Chord.char('?'))(
           s.help.set(true),
@@ -194,7 +194,7 @@ object Dashboard:
       */
     def stamp(s: State)(using Frame): UI < (Sync & Scope) =
       for now <- useNow(1.second)
-      yield span(useTimeAgo(s.updated, now).map(t => s"updated $t"))
+      yield span(timeAgo(s.updated, now).map(t => s"updated $t"))
         .style(_.color(Style.Color.gray))
     // endregion: composables
 

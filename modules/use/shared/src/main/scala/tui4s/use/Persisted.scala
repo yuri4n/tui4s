@@ -3,11 +3,15 @@ package tui4s.use
 import kyo.*
 
 /** The text form of a value for a [[Storage]]: `encode`, and a `decode` that
-  * can fail with a reason. The law: `decode(encode(a))` is `Success(a)`. The
-  * module has instances for `String`, `Int`, `Long`, `Double` and `Boolean`;
-  * give one for another type, for example with a JSON library.
+  * can fail with a reason. The law: `decode(encode(a))` is `Success(a)` (for a
+  * `Double`, the same bits). The module has instances for `String`, `Int`,
+  * `Long`, `Double` and `Boolean`. The text of a `String` is the bare text,
+  * with no quotes: that is why this small codec exists next to Kyo's `Json`.
+  * For a structured value, give an instance over kyo-schema's `Json` and
+  * `Schema` (kyo-ui brings them).
   */
-// claude 2026-10-19: created (L2a)
+// claude 2026-10-19: created (L2a); changed: why it exists next to Kyo's
+// Json (L2a review)
 trait TextCodec[A]:
     /** The text of `a`. */
     def encode(a: A): String
@@ -15,9 +19,18 @@ trait TextCodec[A]:
     /** The value of `text`, or the reason why it is not one. */
     def decode(text: String): Result[String, A]
 
-// claude 2026-10-19: created (L2a)
+/** The codecs of the plain types, and [[TextCodec.instance]] for another. */
+// claude 2026-10-19: created (L2a); changed: Scaladoc (L2a review)
 object TextCodec:
-    /** A codec from two functions. */
+    /** A codec from two functions.
+      *
+      * {{{
+      * given TextCodec[Edge] = TextCodec.instance(
+      *   _.toString,
+      *   t => Edge.values.find(_.toString == t).fold(Result.fail(s"not an Edge: $t"))(Result.succeed),
+      * )
+      * }}}
+      */
     def instance[A](
         enc: A => String,
         dec: String => Result[String, A],
@@ -43,9 +56,16 @@ object TextCodec:
     given long: TextCodec[Long] =
       instance(_.toString, parse("a Long", _.toLongOption))
 
-    /** The text of a `Double` (`toString`). */
+    /** The text of a `Double` (`toString`; "NaN", "Infinity"). Negative zero is
+      * "-0.0" on every platform: Scala.js gives "0" for it.
+      */
+    // claude 2026-10-19: changed: negative zero (the law found it on
+    // Scala.js; L2a review)
     given double: TextCodec[Double] =
-      instance(_.toString, parse("a Double", _.toDoubleOption))
+      instance(
+        d => if d == 0.0 && 1.0 / d < 0.0 then "-0.0" else d.toString,
+        parse("a Double", _.toDoubleOption),
+      )
 
     /** "true" or "false". */
     given boolean: TextCodec[Boolean] =
@@ -53,7 +73,17 @@ object TextCodec:
 end TextCodec
 
 /** A key-value store of texts: the capability of [[usePersisted]]. A failure of
-  * the storage is a panic of the effect.
+  * the storage is a panic of the effect. An app takes [[Storage.forApp]], a
+  * test takes [[Storage.inMemory]], and a custom store implements the two
+  * methods.
+  *
+  * {{{
+  * for
+  *     storage <- Storage.forApp("todo")
+  *     _       <- storage.set("theme", "dark")
+  *     theme   <- storage.get("theme") // Present("dark")
+  * yield theme
+  * }}}
   */
 // claude 2026-10-19: created (L2a)
 trait Storage:
@@ -63,9 +93,18 @@ trait Storage:
     /** Writes `value` under `key`. */
     def set(key: String, value: String)(using Frame): Unit < Sync
 
-// claude 2026-10-19: created (L2a)
+/** The storages of the module. */
+// claude 2026-10-19: created (L2a); changed: Scaladoc (L2a review)
 object Storage:
-    /** A storage in memory (for a test, or for state that a run need not keep). */
+    /** A storage in memory (for a test, or for state that a run need not keep).
+      *
+      * {{{
+      * for
+      *     storage <- Storage.inMemory
+      *     ref     <- usePersisted("count", 0, storage)
+      * yield ref
+      * }}}
+      */
     def inMemory(using Frame): Storage < Sync =
       AtomicRef
         .init(Map.empty[String, String])
@@ -81,6 +120,11 @@ object Storage:
       * each key in the data directory of the app ([[FileStorage]]). On
       * Scala.js: the `localStorage` of the browser, with the prefix `app/`
       * ([[LocalStorage]]).
+      *
+      * {{{
+      * for storage <- Storage.forApp("todo")
+      * yield usePersisted("filter", "all", storage)
+      * }}}
       */
     def forApp(app: String)(using Frame): Storage < Sync =
       StoragePlatform.forApp(app)
@@ -131,13 +175,16 @@ def usePersisted[A](key: String, initial: A, storage: Storage)(using
         last   <- AtomicRef.init(stored)
         save    = (a: A) =>
                       val text = codec.encode(a)
-                      last
-                        .getAndSet(Present(text))
-                        .map(prev =>
-                          if prev == Present(text) then Kyo.unit else write(text),
-                        )
-        _      <- Fiber.init(ref.observe(save))
+                      last.get.map(prev =>
+                        if prev == Present(text) then Kyo.unit
+                        else write(text).andThen(last.set(Present(text))),
+                      )
+        // claude 2026-10-19: changed: the last write is registered first, so
+        // it runs after the end of the fiber of the writes (Kyo runs the
+        // finalizers in reverse order); `last` changes after a write (L2a
+        // review)
         _      <- Scope.ensure(ref.get.map(save))
+        _      <- Fiber.init(ref.observe(save))
     yield ref
     end for
 end usePersisted
