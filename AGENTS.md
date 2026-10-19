@@ -28,9 +28,11 @@ issue #17). All the artifacts use the same packages (`tui4s`,
 | `modules/cats`  | `cats`     | `io.github.yuri4n::tui4s-cats`   | a Cats Effect DSL over kyo-ui (planned) | `cats-v<semver>` | yes       |
 | `modules/use`   | `use` (`useJVM`, `useJS`) | `io.github.yuri4n::tui4s-use` (JVM and Scala.js) | kyo-ui (composables) | `use-v<semver>` | yes |
 | `modules/widgets` | `widgets` (`widgetsJVM`, `widgetsJS`) | `io.github.yuri4n::tui4s-widgets` (JVM and Scala.js) | kyo-ui (widgets, on tui4s-use) | `widgets-v<semver>` | yes |
-| `modules/assistant` | `assistant` (`assistantJVM`, `assistantJS`) | none | kyo-ui (the flagship example app: its domain, services, store and UI in `shared`, the interpreters of the JVM in `jvm`) | none | no |
+| `modules/assistant` | `assistant` (`assistantJVM`, `assistantJS`) | none | kyo-ui (the flagship example app: its domain, services, store and UI in `shared`, the interpreters of the JVM in `jvm` and of the browser in `js`) | none | no |
 | `examples`      | `examples` | none                             | -                                       | none             | no        |
+| `examples/web`  | `assistantWeb` | none                         | kyo-ui (the assistant on the web: a Scala.js app of static files from `modules/assistant`; `scripts/web-build.sh` builds `dist/assistant`) | none | no |
 | `docs`          | none       | none (Nuxt Docus site)           | -                                       | none             | no        |
+<!-- claude 2026-10-19: created the row of examples/web; changed: the js part of the assistant (L4) -->
 <!-- claude 2026-10-19: created the rows of use and widgets (L2a); changed: the widgets row (L2b) -->
 <!-- claude 2026-10-19: changed: the rows runner, app, testkit and the composite core (D25) -->
 <!-- claude 2026-10-19: created the row of the assistant (L3) -->
@@ -227,8 +229,11 @@ nothing.
   domain with laws, services as traits with their interpreters in a `make`
   (one for each platform, and one in memory for the tests), one store for the
   app, the wiring with Kyo layers in the main, and errors as values (`Abort`
-  with a sealed error type). Follow it for a new app.
+  with a sealed error type). Follow it for a new app. Its `js` part has the
+  interpreters of the browser (`fetch`, the keys in `localStorage`), and the
+  service `Surface` gives the platform differences of the UI (units, chords).
   <!-- claude 2026-10-19: created this item (L3) -->
+  <!-- claude 2026-10-19: changed: the interpreters of the browser, Surface (L4) -->
 - A shared store belongs to one app or provider. The same definition must
   return the same whole instance within that owner and run setup once.
   Component unmount must not destroy it; owner shutdown must clean up its
@@ -294,9 +299,12 @@ nothing.
 | `sbt examples/launchers`             | Stages the distribution and writes compatible `examples/target/bin/<package>` launchers plus the PTY classpath. |
 | `examples/target/bin/<app>`          | Runs an example in the real terminal (its own JVM): `counter`, `counterkyo`, `twocounters`, `counterstyles`, `todo`, `dashboard`, `printing`, `forms`, `gallery`, `assistant` (`--fake`: no network). |
 | `examples/ptycheck/run.sh`           | Runs the real-terminal checklist in a pseudo-terminal (CI job `terminal`). |
+| `bash scripts/web-build.sh`          | Links the web assistant (`assistantWeb/fullLinkJS`) and writes `dist/assistant` (index.html, main.js). With an sbt server, set `SBT="sbt --client"`. |
+| `node scripts/web-smoke.mjs`         | Runs the web assistant from `dist/assistant` in headless Chromium (Playwright): a send, the streamed reply, Esc, the look switch. |
 <!-- claude 2026-10-19: created the rows of use/test and useJS/compile; changed: Node.js in the shell (L2a); gallery in the app list (L2b) -->
 <!-- claude 2026-10-19: changed: the rows runner/test and core/test (D25) -->
 <!-- claude 2026-10-19: changed: assistant in the app list (L3) -->
+<!-- claude 2026-10-19: created the rows of the web build and the web smoke test (L4) -->
 
 A test suite lives in the lowest module whose main classpath it needs: a
 suite that needs only the runner is in `modules/runner/src/test`; a suite

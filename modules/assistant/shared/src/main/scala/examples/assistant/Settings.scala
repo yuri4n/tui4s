@@ -160,6 +160,7 @@ object Look:
         ),
     )
 
+    // region: looks
     /** The colours of all the looks for a terminal (`TuiApp.stylesheet`): the
       * root of the app selects one with its `data-theme`.
       */
@@ -170,4 +171,5 @@ object Look:
       */
     def stylesheet(first: Look): Stylesheet =
       Theme.stylesheet(first.theme, values.filterNot(_ == first).map(_.theme)*)
+    // endregion: looks
 end Look

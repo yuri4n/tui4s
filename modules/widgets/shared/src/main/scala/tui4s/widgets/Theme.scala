@@ -139,6 +139,7 @@ object Theme:
       spacing = 0.5,
     )
 
+    // region: web
     /** The native web look: the system font of the browser, light colours, the
       * dark colours under `prefers-color-scheme: dark`, and round corners.
       */
@@ -177,6 +178,7 @@ object Theme:
       corners = Corners.Rounded(6),
       spacing = 0.5,
     )
+    // endregion: web
 
     /** The line height of the web, in em: a row of text is this high. */
     val lineHeight: Double = 1.25

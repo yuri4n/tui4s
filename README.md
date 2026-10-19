@@ -1520,6 +1520,158 @@ memory and the fake provider:
       }
 ```
 
+## The same app on the web
+
+<!-- claude 2026-10-19: created this section (L4): the code blocks are the regions "web" of Theme.scala, "looks" of Settings.scala and "web" of the web main (ReadmeSuite checks the text; the JVM and Scala.js builds compile the first two, the web build compiles the main) -->
+The assistant also runs in a browser, from the same shared code (D5: code
+once, one build for each platform). The web app is static files: one page
+and one script. There is no server of tui4s and no link to the terminal app.
+The parts:
+
+- `modules/assistant/js`: the interpreters of the browser. `FetchHttp` is
+  the HTTP seam on `fetch` (the body comes from its stream reader into the
+  shared SSE parser; Esc aborts the request). `BrowserKeys` keeps the key
+  that you type in the settings in the `localStorage` of the browser.
+  `AssistantWeb` gives the layers: the storage, the keys, the providers and
+  the log (in memory and in `console.debug`).
+- `examples/web` (sbt `assistantWeb`): the web main and `index.html`. It
+  only wires, as the terminal main does.
+
+A look (`tui4s.widgets.Theme`) is one value for both platforms: the colours
+of the widgets, and the font, the corners and the spacing of the web. Two
+looks are built in, `Theme.terminal` and `Theme.web`:
+
+<!-- from: modules/widgets/shared/src/main/scala/tui4s/widgets/Theme.scala#web -->
+```scala
+    /** The native web look: the system font of the browser, light colours, the
+      * dark colours under `prefers-color-scheme: dark`, and round corners.
+      */
+    val web: Theme = Theme(
+      name = "web",
+      colors = Palette(
+        accent = "#2563eb",
+        muted = "#6b7280",
+        border = "#d1d5db",
+        surface = "#ffffff",
+        selection = "#dbeafe",
+        success = "#15803d",
+        warning = "#b45309",
+        danger = "#dc2626",
+        background = "#f8fafc",
+        text = "#111827",
+      ),
+      dark = Present(
+        Palette(
+          accent = "#60a5fa",
+          muted = "#9ca3af",
+          border = "#374151",
+          surface = "#1f2937",
+          selection = "#1e3a8a",
+          success = "#4ade80",
+          warning = "#fbbf24",
+          danger = "#f87171",
+          background = "#111827",
+          text = "#f3f4f6",
+        ),
+      ),
+      font = Font(
+        "system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif",
+        16,
+      ),
+      corners = Corners.Rounded(6),
+      spacing = 0.5,
+    )
+```
+
+`Theme.palette` gives the colours that a terminal reads; `Theme.stylesheet`
+gives all of it to a page. With more than one theme, each one is a block
+for `[data-theme="<name>"]`, so the settings of the assistant switch the
+look on both platforms (in the terminal, the colours change; on the web,
+the whole look changes):
+
+<!-- from: modules/assistant/shared/src/main/scala/examples/assistant/Settings.scala#looks -->
+```scala
+    /** The colours of all the looks for a terminal (`TuiApp.stylesheet`): the
+      * root of the app selects one with its `data-theme`.
+      */
+    val palette: Stylesheet = Theme.palette(Terminal.theme, Web.theme)
+
+    /** All of all the looks for the web (`UI.runStylesheet`); `first` is the
+      * look of the page outside the app.
+      */
+    def stylesheet(first: Look): Stylesheet =
+      Theme.stylesheet(first.theme, values.filterNot(_ == first).map(_.theme)*)
+```
+
+The web main gives the layers of the browser and mounts the shared UI with
+kyo-ui's `UI.runMount`. The web build compiles this block (it uses Scala.js
+APIs: `UIWindow`, `UI.runMount`):
+
+<!-- from: examples/web/src/main/scala/examples/assistant/AssistantWebApp.scala#web -->
+```scala
+    run {
+      val keys   = AssistantWeb.keys
+      val screen =
+        UIWindow.size.map((w, h) => Surface.cells(w, h, Theme.web.font.size))
+      for
+          _  <- UI.runStylesheet(Look.stylesheet(Look.Web))
+          ui <- Memo.run(
+                  Env.runLayer(
+                    AssistantWeb.storage,
+                    Layer(keys: Secrets),
+                    Wiring.conversations,
+                    AssistantWeb.log,
+                    Wiring.providers(
+                      AssistantWeb.live,
+                      FakeProvider.make(),
+                      StartMode.Detect,
+                    ),
+                    Layer(Surface.Browser(keys)),
+                  )(AssistantUi.run(StartMode.Detect, Kyo.unit, screen)),
+                )
+          _  <- UI.runMount(ui, "#app")
+      yield ()
+      end for
+    }
+```
+
+The sizes of the shared UI are in cells in a terminal, and tui4s reads one
+em as one cell. A browser reads one em as the size of the font. So the UI
+takes its sizes from `Surface` (a platform service, given as a layer):
+`surface.rows(n)` is `n` cells in a terminal and `n` lines of text in a
+browser; `surface.cols(n)` is `n` cells or `n` characters.
+
+Build and run it (JDK 25 and sbt; the build prints the size of the script):
+
+```sh
+bash scripts/web-build.sh                         # dist/assistant: index.html and main.js
+python3 -m http.server -d dist/assistant 8000     # a static server for your own use
+node scripts/web-smoke.mjs                        # the smoke test (Playwright and Chromium)
+```
+
+Then open <http://localhost:8000>. With no key, the provider is the fake one
+(no network). To use a real provider, open the settings (Alt-, or Ctrl-S),
+paste your key in the field of the provider, and push Keep. The page loads
+again with that provider.
+
+**Your key stays in this browser; anyone with this profile can read it.**
+The page keeps the key in `localStorage` (one entry for each provider) and
+sends it only to the host of its provider (the page policy lets it call no
+other host). The page never shows the key and never logs it. For Anthropic,
+the page sends the header `anthropic-dangerous-direct-browser-access`: a
+browser call to the API needs it, and its risk is the one above (a script
+or an extension in the page can read the key). Use a key with a low spend
+limit, and push Forget when you are done.
+
+The keys of the web: a browser acts on most Ctrl chords on Windows and
+Linux (Ctrl-S saves the page, Ctrl-P prints, Ctrl-R loads the page again),
+and kyo-ui cannot stop that. So each command also has an Alt chord (Alt-P:
+the commands, Alt-N: a new chat, Alt-↑ and Alt-↓: the chats; Ctrl-PgUp and
+Ctrl-PgDn switch the tabs of the browser). On macOS, use the Ctrl chords
+(the browser uses Cmd). Enter sends; Shift-Enter starts a new line where
+the caret is; Alt-Enter and Ctrl-J add a line break at the end. Esc stops a
+reply and closes a layer.
+
 ## Modules
 
 Each module is released on its own, with its own version.
