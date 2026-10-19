@@ -445,11 +445,14 @@ private[tui4s] object Paint:
                 paintNode(o, laid, env, k, inner, cover),
               )
             case _ if n.rect.intersect(clip).isEmpty => ops
-            // claude 2026-10-19: changed: the text flow; the ellipsis (L1a)
+            // claude 2026-10-19: changed: the lines of the layout when they
+            // are the lines at the width of the node (PF-b, F4); before: the
+            // text flow, the ellipsis (L1a)
             case Kind.Txt(txt, flow)                 =>
               val lines =
-                Layout
-                  .textLines(n.props.text(txt), n.rect.w, flow)
+                n.lines
+                  .flatMap(_.at(n.rect.w, flow))
+                  .getOrElse(Layout.textLines(n.props.text(txt), n.rect.w, flow))
                   .map(l =>
                     if flow.cut == Cut.Ellipsis && Layout
                           .textWidth(l) > n.rect.w

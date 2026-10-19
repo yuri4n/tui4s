@@ -113,6 +113,37 @@ private[tui4s] object Changes:
     def of(ps: Iterable[Loc]): Changes =
       At(ps.iterator.flatMap(_.prefixes).toSet)
 
+/** The lines of a text node with the flow `flow` in `w` cells
+  * ([[Layout.textLines]]); `widest` is the width of the widest line. The
+  * layout wraps a text once, when it measures it, and the painter takes these
+  * lines (F4).
+  */
+// claude 2026-10-19: created (PF-b, F4): the line cache
+private[tui4s] final case class Lines(
+    w: Int,
+    flow: TextFlow,
+    rows: Vector[String],
+    widest: Int,
+):
+    /** The lines of the same text with the flow `f` in `at` cells, when these
+      * lines are them: at the same width; with no wrap (the lines do not
+      * depend on the width); or at a width from `widest` to `w`. Law (the
+      * greedy wrap is stable): a line that fits in `w` cells and is not wider
+      * than `widest` fits in `at` cells, and a word that does not fit in `w`
+      * cells does not fit in `at` cells, so each break is the same.
+      */
+    def at(at: Int, f: TextFlow): Option[Vector[String]] =
+      Option.when(
+        f == flow && (at == w || flow.wrap == Wrapping.Off ||
+          (widest <= at && at <= w)),
+      )(rows)
+end Lines
+
+private[tui4s] object Lines:
+    /** The lines `rows` in `w` cells with the flow `flow`. */
+    def of(w: Int, flow: TextFlow, rows: Vector[String]): Lines =
+      Lines(w, flow, rows, rows.map(Layout.textWidth).maxOption.getOrElse(0))
+
 /** The constraint that a natural size answers: the width and the definite
   * height that a measure gives the item ([[Layout.measureItem]]).
   */
@@ -240,6 +271,8 @@ private[tui4s] final case class Node(
     // (a viewport with a scroll indicator measures its kids at two widths)
     fit: Option[Fit] = None,
     alt: Option[(Fit, Size)] = None,
+    // claude 2026-10-19: created (PF-b, F4): the lines of a text node
+    lines: Option[Lines] = None,
 ):
     def content: Rect             = rect.inset(props.insets)
     def bgForKids: Option[JColor] = props.bg.orElse(bgUnder)
@@ -657,14 +690,16 @@ private[tui4s] object Layout:
       * measured ([[Kids]], none for a text, a table and an element with an
       * intrinsic size).
       */
-    // claude 2026-10-19: changed: the kids of the measure (PF-b, F5)
     final case class Measured(
         item: Item,
         props: Props,
         size: Size,
+        // claude 2026-10-19: created (PF-b, F5): the kids of the measure
         kids: Option[Kids] = None,
         // claude 2026-10-19: created (PF-b, F6): the constraint of `size`
         fit: Option[Fit] = None,
+        // claude 2026-10-19: created (PF-b, F4): the lines of a text
+        lines: Option[Lines] = None,
     )
 
     private def clamp(v: Int, min: Option[Int], max: Option[Int]): Int =
@@ -680,19 +715,21 @@ private[tui4s] object Layout:
         index: Int,
     ): Measured =
       item.ui match
-          // claude 2026-10-19: changed: the text flow of the parent; a text
-          // that does not wrap keeps its width in a viewport that scrolls
-          // horizontally (L1a)
+          // claude 2026-10-19: changed: the lines go with the size (PF-b, F4);
+          // before: the text flow of the parent, a text that does not wrap
+          // keeps its width in a viewport that scrolls horizontally (L1a)
           case t: Text    =>
             val flow  = TextFlow.of(parent)
-            val lines = textLines(parent.text(t.value), availW, flow)
-            val w     = lines.map(textWidth).maxOption.getOrElse(0)
+            val lines =
+              Lines.of(availW, flow, textLines(parent.text(t.value), availW, flow))
+            val w     = lines.widest
             val keep  =
               flow.wrap == Wrapping.Off && Props.scrolls(parent.overflowX)
             Measured(
               item,
               Props.neutral(parent.text),
-              Size(if keep then w else w.min(availW.max(0)), lines.size),
+              Size(if keep then w else w.min(availW.max(0)), lines.rows.size),
+              lines = Some(lines),
             )
           // claude 2026-10-19: changed: the natural size of a clean node of
           // the prior screen (PF-b, F6); the kids of the measure go with the
@@ -755,6 +792,7 @@ private[tui4s] object Layout:
       *   height is relative to it. `None` makes a percentage height `auto`, as
       *   in CSS.
       */
+    // claude 2026-10-19: changed: the size of measureWith (PF-b, F5)
     def measureElement(
         e: Element,
         path: Loc,
@@ -1100,9 +1138,13 @@ private[tui4s] object Layout:
               .toMap
             items.map { m =>
               (m.item.ui, size.get(m.item.path)) match
+                  // claude 2026-10-19: changed: the lines at the new width go
+                  // with the size (PF-b, F4)
                   case (t: Text, Some(s)) if s < m.size.w =>
-                    m.copy(size =
-                      m.size.copy(h = textLines(p.text(t.value), s, flow).size),
+                    val ls = textLines(p.text(t.value), s, flow)
+                    m.copy(
+                      size = m.size.copy(h = ls.size),
+                      lines = Some(Lines.of(s, flow, ls)),
                     )
                   case _                                  => m
             }
@@ -1343,8 +1385,8 @@ private[tui4s] object Layout:
       * the content height when the height of `node` is definite (the screen, an
       * explicit height, or a size that the flex parent imposed), else none.
       */
-    // claude 2026-10-12: created (PR #10 review: Codex, Layout.scala:264)
-    // claude 2026-10-19: changed: a function of its own (PF-b, F5)
+    // claude 2026-10-19: changed: a function of its own (PF-b, F5); created
+    // 2026-10-12 in measuredKids (PR #10 review: Codex, Layout.scala:264)
     def kidsH(node: Node): Option[Int] =
       node.kind match
           case Kind.Screen => Some(node.content.h)
@@ -1470,9 +1512,9 @@ private[tui4s] object Layout:
     /** The flow arrange of [[arrangeKids]]: the kids out of the flow get an
       * empty rect here.
       */
-    // claude 2026-10-19: created (L1b): the old body of arrangeKids
     // claude 2026-10-19: changed: `pre`, and the kids measured in the content
-    // box for the natural size (PF-b, F5)
+    // box for the natural size (PF-b, F5); created (L1b): the old body of
+    // arrangeKids
     private def arrangeFlow(
         node: Node,
         env: Scene,
@@ -1826,6 +1868,8 @@ private[tui4s] object Layout:
               Some(ctx.owner),
               index,
               Vector.empty,
+              // claude 2026-10-19: created (PF-b, F4): the lines of the measure
+              lines = m.lines,
             )
             acc.put(node)
           case e: Element =>

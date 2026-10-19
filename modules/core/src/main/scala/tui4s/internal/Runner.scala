@@ -728,8 +728,8 @@ private[tui4s] final class Runner private (
       * whose layout inputs changed in the step ([[Changes]]): a relayout keeps
       * the natural size of a node under none of them.
       */
-    // claude 2026-10-19: created (L1a): the old body of layoutStep
-    // claude 2026-10-19: changed: the changed paths (PF-b, F6)
+    // claude 2026-10-19: changed: the changed paths (PF-b, F6); created (L1a):
+    // the old body of layoutStep
     private def laidOut(
         w: World,
         changed: Vector[Loc],
