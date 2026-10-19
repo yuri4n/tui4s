@@ -46,6 +46,17 @@
   fixed with a golden + negative control), 11 others applied. Open: UI.scrollIntoView is a no-op under tui4s (sink
   private[kyo]; draft .work/upstream/kyo-ui-scroll-into-view.md); a viewport needs a bounded height (CSS min-height
   gotcha, documented); a scroll re-lays the viewport content (PF-b F5/F6 still to do, after L1c); no stick-to-bottom.
+- L1b DONE, pushed 48acbcf (37 files, +3642/-298; layers for position/zIndex with containing blocks and a damage rule
+  (whole rows under a layer); Tui.size: Signal[TerminalSize] via a Kyo Local; Color.Var from a kyo.Stylesheet given to
+  the run (Tui.run(options, sheet), TuiApp.stylesheet, Headless.start(..., stylesheet)); CssVars with :root/scoped
+  blocks; flexWrap lines; focusAuto seeding + focusRestore sweep; Warnings once per property name per run through TuiLog;
+  StyleTableTest keeps the package Scaladoc table, Props.honored and the surface list in sync: 47 of 76 honored;
+  Headless.awaitLog; 350 core leaves, 56 examples, PTY 136/136, glitch 0/500 x2). Review: 5 should, 8 nits, applied.
+  The first verification agent was cut off mid sbt check; a finalizer agent ran the check, the PTY kit and the push.
+  Open: a bug found in passing (an incremental frame of the plain flow can differ from a full frame: a CJK value in a
+  1-cell text input) -> fix in L1c with a negative control and the full-screen step property; PTY check.py class-load
+  INFO line classifies jars by the old paths (cosmetic) -> L1c; relative layers in big lists repaint whole rows (perf,
+  L5 bench); L4 may want a Kyo-free theme option that renders to the stylesheet channel (D8).
 - NEXT: L1 in three workflows (cheap cadence: implementer + API/examples reviewer + fixer, Opus): L1a viewport scroll
   and clip, wrap and ellipsis, wide characters; L1b overlay and z-order, terminal-size Signal, Color.Var, FlexWrap and
   Display, one warning per ignored property; L1c native inputs and the multi-line textarea (Alt-Enter, Ctrl-J,
