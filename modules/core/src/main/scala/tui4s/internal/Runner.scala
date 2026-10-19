@@ -551,21 +551,53 @@ private[tui4s] final class Runner private (
 
     // ---- layout, paint, flush ----
 
+    /** The focus after a layout of `w.laid` (the screen before it: `before`),
+      * and the focus seeds of kyo-ui's `focusAuto` and `focusRestore`, as the
+      * client of kyo-ui does them:
+      *   1. The sweep: the seeds whose element left the screen go, the newest
+      *      first, up to a seed whose element is still there. The first of them
+      *      with `focusRestore(true)` gives the focus back to the element that
+      *      had it before the seed, when that element can still take it.
+      *   2. The seed: the first element in focus order with `focusAuto(true)`
+      *      that `before` did not have takes the focus, once (the next layouts
+      *      have it), and it is a new seed. On the first frame every element is
+      *      new, as the native autofocus of a page.
+      *   3. Else the focus stays when its element can still take it; else, with
+      *      `autoFocus`, the first element with `focusAuto(true)` takes it,
+      *      else the first element in focus order.
+      * So a modal whose first focusable element has `focusAuto(true)` gets the
+      * focus when it appears, and with `focusRestore(true)` the focus goes back
+      * to its trigger when it closes.
+      */
     // claude 2026-10-19: changed: the focusable nodes of the layout (a
-    // viewport stop, L1a review)
-    private def fixFocus(w: World): Option[Loc] =
-        w.focus match
-            case Some(f) if Layout.isFocusable(w.laid, f) => Some(f)
-            case _ if !options.autoFocus                  => None
-            case _                                        =>
-              val order = Layout.focusOrder(w.laid)
-              val auto  = order.find(p =>
-                w.laid.nodes.get(p).map(_.kind).exists {
-                  case Kind.El(e) => e.attrs.focusAuto.getOrElse(false)
-                  case _          => false
-                },
-              )
-              auto.orElse(order.headOption)
+    // viewport stop, L1a review); the seeds of focusAuto and focusRestore
+    // (L1b)
+    private def fixFocus(w: World, before: Laid): (Option[Loc], List[Seed]) =
+        def has(p: Loc)(f: UI.Ast.Element => Boolean): Boolean =
+          w.laid.nodes.get(p).map(_.kind).exists {
+            case Kind.El(e) => f(e)
+            case _          => false
+          }
+        def auto(p: Loc): Boolean                              = has(p)(_.attrs.focusAuto.getOrElse(false))
+        val gone                                               = w.seeds.takeWhile(s => !w.laid.nodes.contains(s.at))
+        val kept                                               = w.seeds.drop(gone.size)
+        val now                                                = gone
+          .flatMap(_.back)
+          .find(Layout.isFocusable(w.laid, _))
+          .orElse(w.focus)
+        val order                                              = Layout.focusOrder(w.laid)
+        order.find(p => auto(p) && !before.nodes.contains(p)) match
+            case Some(p) =>
+              val back =
+                if has(p)(_.attrs.focusRestore.getOrElse(false)) then now
+                else None
+              (Some(p), Seed(p, back) :: kept)
+            case None    =>
+              val focus = now match
+                  case Some(f) if Layout.isFocusable(w.laid, f) => Some(f)
+                  case _ if !options.autoFocus                  => None
+                  case _                                        => order.find(auto).orElse(order.headOption)
+              (focus, kept)
         end match
     end fixFocus
 
@@ -603,11 +635,17 @@ private[tui4s] final class Runner private (
     /** Lays out what changed, then scrolls the scroll target into view
       * ([[reveal]]). Pure: returns the new world and the damage to paint.
       */
-    // claude 2026-10-19: changed: the follow-focus step (L1a)
+    // claude 2026-10-19: changed: the follow-focus step (L1a); the damage of
+    // the layers that moved, came or went (L1b)
     private def layoutStep(w: World): (World, Vector[Damage]) =
         val (w1, damage) = laidOut(w)
         val (w2, more)   = reveal(w1)
-        (w2, if w.full then damage else damage ++ more)
+        (
+          w2,
+          if w.full then damage
+          else damage ++ more ++ Layout.layerDamage(w.laid, w2.laid),
+        )
+    end layoutStep
 
     /** The follow-focus step (D13: kyo-ui's `scrollIntoView` is private, so the
       * runner has its own rule). When the scroll target ([[Scroll.target]]: the
@@ -642,13 +680,14 @@ private[tui4s] final class Runner private (
     // claude 2026-10-19: created (L1a): the old body of layoutStep
     private def laidOut(w: World): (World, Vector[Damage]) =
       if w.full then
-          val laid0 = Layout.layoutAll(w.root, w.env)
-          val focus = fixFocus(w.copy(laid = laid0))
-          val w1    = w.copy(focus = focus)
+          val laid0          = Layout.layoutAll(w.root, w.env)
+          // claude 2026-10-19: changed: the focus seeds (L1b)
+          val (focus, seeds) = fixFocus(w.copy(laid = laid0), w.laid)
+          val w1             = w.copy(focus = focus, seeds = seeds)
           // claude 2026-10-19: changed: a new focus lays out again only the
           // owners of the old and the new focus, not the whole screen (PF-a,
           // F8); the full frame paints everything, so the damage is dropped
-          val laid  =
+          val laid           =
             if focus == w.focus then laid0
             else
                 relayoutAll(
@@ -666,11 +705,11 @@ private[tui4s] final class Runner private (
             ),
           )
       else
-          val env           = w.env
+          val env            = w.env
           // claude 2026-10-19: changed: Loc.tops, not a compare of each pair
           // (PF-a, F2)
-          val regions       = Loc.tops(w.dirtyRegions)
-          val (laid1, dmg1) = regions.foldLeft((w.laid, Vector.empty[Damage])) {
+          val regions        = Loc.tops(w.dirtyRegions)
+          val (laid1, dmg1)  = regions.foldLeft((w.laid, Vector.empty[Damage])) {
             case ((l, d), r) =>
               l.regionOwner.get(r) match
                   case Some(owner) =>
@@ -679,15 +718,16 @@ private[tui4s] final class Runner private (
                     (l2, d ++ d2)
                   case None        => (l, d)
           }
-          val (laid2, dmg2) =
+          val (laid2, dmg2)  =
             relayoutIn(
               w,
               w.scrolled,
               relayoutAll(w, w.dirtyNodes, laid1, dmg1, env),
               env,
             )
-          val w2            = w.copy(laid = laid2)
-          val focus         = fixFocus(w2)
+          // claude 2026-10-19: changed: the focus seeds (L1b)
+          val (focus, seeds) = fixFocus(w.copy(laid = laid2), w.laid)
+          val w2             = w.copy(laid = laid2, seeds = seeds)
           if focus == w.focus then (w2, dmg2)
           else
               val w3            = w2.copy(focus = focus)

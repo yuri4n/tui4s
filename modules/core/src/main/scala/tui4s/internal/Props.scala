@@ -13,6 +13,7 @@ import kyo.Style.{
   Justification,
   ListStyle,
   Overflow,
+  Position,
   Prop,
   ScrollbarWidth,
   TextAlign,
@@ -34,6 +35,40 @@ private[tui4s] enum Dir:
 // claude 2026-10-19: created (L1a): an ADT, not a Boolean
 private[tui4s] enum WordBreak derives CanEqual:
     case Split, Keep
+
+/** How an element is placed (CSS `position`), from kyo-ui's `Position`:
+  * `Static` (`flow`) is in the flex flow; `Relative` and `Sticky` are in the
+  * flow too, and `Relative` moves by its offsets; `Absolute` (also `dropdown`)
+  * and `Fixed` (also `overlay`) are out of the flow. Every value but `Static`
+  * is positioned: a containing block for its absolute descendants, painted
+  * after the flow ([[Paint]]).
+  */
+// claude 2026-10-19: created (L1b): the positions of kyo-ui
+private[tui4s] enum Pos derives CanEqual:
+    case Static, Relative, Sticky, Absolute, Fixed
+
+    /** True when the element is out of the flex flow: absolute or fixed. */
+    def outOfFlow: Boolean = this match
+        case Absolute | Fixed => true
+        case _                => false
+
+    /** True when the element is positioned: not static. */
+    def positioned: Boolean = this != Static
+end Pos
+
+/** The offsets of a positioned element (CSS `top`, `right`, `bottom`, `left`).
+  * None is `auto`.
+  */
+// claude 2026-10-19: created (L1b)
+private[tui4s] final case class Inset(
+    top: Option[Length],
+    right: Option[Length],
+    bottom: Option[Length],
+    left: Option[Length],
+)
+
+private[tui4s] object Inset:
+    val auto: Inset = Inset(None, None, None, None)
 
 /** Text attributes. Children inherit them, like CSS `color`, `font-weight`,
   * `text-decoration`, `text-align`, `white-space` and `overflow-wrap`.
@@ -167,10 +202,19 @@ private[tui4s] final case class Border(
   *     `position: fixed; top: 0; left: 0; width: 100%; height: 100%`;
   *     `relative`, `sticky`, `absolute` and `fixed` are the CSS keywords of the
   *     same name; `dropdown` is `position: absolute; top: 100%; right: 0;
-  *     z-index: 50`. The old runner ignored it.
+  *     z-index: 50`. The old runner ignored it. Now ([[Pos]], the layers of
+  *     [[Layout]]): `absolute` and `fixed` leave the flex flow and take their
+  *     box from their containing block (the nearest positioned ancestor, else
+  *     the screen; the screen for `fixed`); `relative` stays in the flow and
+  *     moves by its offsets; `sticky` stays in the flow and does not stick.
+  *     Each positioned element is a layer: it paints after the flow, in the
+  *     order of [[Paint]].
   *   - `top`, `right`, `bottom`, `left` (`Length`; CSS `top`, `right`,
   *     `bottom`, `left`). kyo-ui has no `inset`. The old runner ignored them.
-  *   - `zIndex` (`Int`; CSS `z-index`). The old runner ignored it.
+  *     Now ([[Inset]], [[Offsets]]): the offsets of a positioned element; a
+  *     percentage is of the width or the height of the containing block.
+  *   - `zIndex` (`Int`; CSS `z-index`). The old runner ignored it. Now: the
+  *     paint order of the layers (0 when none).
   *   - `display` (`Display`: block, inline, inlineBlock, flex, inlineFlex,
   *     listItem, table, tableRow, tableCell; CSS `display`). kyo-ui has no
   *     `none` value and no `grid` value. `displayNone` (and `hidden(true)`) is
@@ -240,6 +284,14 @@ private[tui4s] final case class Props(
       */
     // claude 2026-10-19: created (L1a)
     textOverflow: TextOverflow = TextOverflow.clip,
+    /** `position`: see [[Pos]]. */
+    // claude 2026-10-19: created the three fields below (L1b): the position,
+    // the offsets and the z-index
+    position: Pos = Pos.Static,
+    /** `top`, `right`, `bottom`, `left`. */
+    inset: Inset = Inset.auto,
+    /** `zIndex`: the paint order of a positioned element (none is 0). */
+    z: Option[Int] = None,
 ):
     def insets: Sides = border.fold(Sides.zero)(_.sides) + padding + decoration
 
@@ -265,6 +317,7 @@ private[tui4s] object Props:
       "BorderRadiusProp",
       "BorderStyleProp",
       "BorderWidthProp",
+      "Bottom",
       "DisabledProp",
       "FlexDirectionProp",
       "FlexGrowProp",
@@ -276,6 +329,7 @@ private[tui4s] object Props:
       "Height",
       "HiddenProp",
       "Justify",
+      "Left",
       "ListStyleProp",
       "Margin",
       "MaxHeight",
@@ -287,6 +341,8 @@ private[tui4s] object Props:
       "OverflowXProp",
       "OverflowYProp",
       "Padding",
+      "PositionProp",
+      "Right",
       "ScrollbarColorProp",
       "ScrollbarWidthProp",
       "TextAlignProp",
@@ -295,8 +351,10 @@ private[tui4s] object Props:
       "TextOverflowProp",
       "TextTransformProp",
       "TextWrapProp",
+      "Top",
       "WhiteSpaceProp",
       "Width",
+      "ZIndexProp",
     )
 
     /** The props of a text node or of the screen: no box, inherited text. */
@@ -479,6 +537,39 @@ private[tui4s] object Props:
         case _: Anchor => t.copy(underline = true)
         case _         => t
 
+    /** An offset: `auto` is none. */
+    // claude 2026-10-19: created (L1b)
+    private def offset(l: Length): Option[Length] = l match
+        case Length.Auto => None
+        case other       => Some(other)
+
+    /** `p` after `position(v)`, as the CSS of kyo-ui's DOM runner: `overlay` is
+      * fixed with `top: 0; left: 0; width: 100%; height: 100%`, and `dropdown`
+      * is absolute with `top: 100%; right: 0; z-index: 50`.
+      */
+    // claude 2026-10-19: created (L1b)
+    private def position(p: Props, v: Position): Props = v match
+        case Position.flow     => p.copy(position = Pos.Static)
+        case Position.relative => p.copy(position = Pos.Relative)
+        case Position.sticky   => p.copy(position = Pos.Sticky)
+        case Position.absolute => p.copy(position = Pos.Absolute)
+        case Position.fixed    => p.copy(position = Pos.Fixed)
+        case Position.overlay  =>
+          p.copy(
+            position = Pos.Fixed,
+            inset = p.inset
+              .copy(top = Some(Length.Px(0)), left = Some(Length.Px(0))),
+            width = Some(Length.Pct(100)),
+            height = Some(Length.Pct(100)),
+          )
+        case Position.dropdown =>
+          p.copy(
+            position = Pos.Absolute,
+            inset = p.inset
+              .copy(top = Some(Length.Pct(100)), right = Some(Length.Px(0))),
+            z = Some(50),
+          )
+
     def applyStyle(p: Props, s: kyo.Style): Props =
       s.props.foldLeft(p) { (p, prop) =>
         prop match
@@ -561,6 +652,18 @@ private[tui4s] object Props:
                     )
                   case _                 =>
                     p.copy(text = p.text.copy(breaks = WordBreak.Split))
+            // claude 2026-10-19: created (L1b): the position, as the DOM
+            // runner maps it to CSS (`overlay` and `dropdown` set offsets)
+            case Prop.PositionProp(v)              => position(p, v)
+            case Prop.Top(v)                       =>
+              p.copy(inset = p.inset.copy(top = offset(v)))
+            case Prop.Right(v)                     =>
+              p.copy(inset = p.inset.copy(right = offset(v)))
+            case Prop.Bottom(v)                    =>
+              p.copy(inset = p.inset.copy(bottom = offset(v)))
+            case Prop.Left(v)                      =>
+              p.copy(inset = p.inset.copy(left = offset(v)))
+            case Prop.ZIndexProp(v)                => p.copy(z = Some(v))
             case Prop.BorderWidthProp(t, r, b, l)  =>
               val sides = Sides(
                 side(t).min(1),

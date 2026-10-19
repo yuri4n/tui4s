@@ -26,9 +26,30 @@ import kyo.UI.Ast.*
   *     of the root (the content boxes of its owners and the screen), so every
   *     op lies inside the spans of the plan.
   *   - A text is clipped by cells (see [[text]]).
+  *
+  * The paint order (CSS stacking, for the common cases): first the flow (the
+  * nodes that are not positioned, in document order), then the positioned
+  * elements (the layers of [[Layout]]: `position` relative, sticky, absolute,
+  * fixed) by `zIndex` (0 when none), the equal ones in document order. Each
+  * positioned element is a stacking context of its own (as CSS makes one for a
+  * positioned element with a `zIndex`): its positioned descendants paint after
+  * it and inside its place in the order, never under it. The runner does not
+  * follow the other rules of CSS stacking: an `auto` z-index makes no context
+  * of its own there, and a negative `zIndex` paints the element under the flow
+  * there; here it paints after the flow, before the layers of `zIndex` 0.
+  * `opacity`, `transform` and `filter` make no context here.
+  *
+  * The damage rule: the cells of the damage of a frame (its clears, the rects
+  * of its roots, the boxes of the layers under its roots) that lie under the
+  * box of a layer are painted again in paint order after the roots, in whole
+  * rows: the rows are cleared, the flow paints them, then each layer paints
+  * them. A `Damage.Region` is painted again so too. So that layer and every
+  * layer above it paint again over the damaged roots, and nothing under a layer
+  * ever shows through it. A layer that moves, comes or goes gives the regions
+  * of its old box and of its new box ([[Layout.layerDamage]]).
   */
 // claude 2026-10-19: changed (P5): a pure function to a Plan; the canvas
-// writes the plan
+// writes the plan; changed: the layers and the damage rule (L1b)
 private[tui4s] object Paint:
 
     /** The horizontal scroll of a text field `width` cells wide whose graphemes
@@ -56,53 +77,215 @@ private[tui4s] object Paint:
     end scrollStart
 
     /** The plan of one frame: the clears of `damage` first, then the paint of
-      * each root of `damage` that is not under another root. The spans of the
-      * plan are the rects of the clears and of the roots (each cut to its
-      * clip), on the screen of `env`.
+      * each root of `damage` that is not under another root and not in a layer,
+      * then the damage rule (see the object): the cells of the damage under the
+      * box of a layer, and the regions, painted again in paint order. The spans
+      * of the plan are the rects of the clears, of the roots (each cut to its
+      * clip), of the layers under the roots, of the regions and of the cells
+      * painted again, on the screen of `env`.
       */
     // claude 2026-10-19: changed (P5): the clears and the roots give ops; the
-    // clip of a root is cut to the screen
+    // clip of a root is cut to the screen; changed: the layers (L1b)
     def apply(laid: Laid, env: Scene, damage: Vector[Damage]): Plan =
-        val screen = Rect(0, 0, env.screen.w, env.screen.h)
-        val clears = damage.collect { case c: Damage.Clear => c }.distinct
-        val roots  = damage.collect { case Damage.Paint(p) => p }.distinct
+        val screen  = Rect(0, 0, env.screen.w, env.screen.h)
+        val clears  = damage.collect { case c: Damage.Clear => c }.distinct
+        val roots   = damage.collect { case Damage.Paint(p) => p }.distinct
+        val regions = damage
+          .collect { case Damage.Region(r) => r.intersect(screen) }
+          .filterNot(_.isEmpty)
+          .distinct
         // a root under another root is painted by it (Loc.tops, PF-a, F2)
-        val top    = Loc.tops(roots)
-        val ops0   = clears.foldLeft(Vector.empty[Op]) { (ops, c) =>
+        val top     = Loc.tops(roots)
+        val ops0    = clears.foldLeft(Vector.empty[Op]) { (ops, c) =>
           val r = c.rect.intersect(screen)
           if r.isEmpty then ops else ops :+ Op.Clear(r, c.bg)
         }
-        val ops    = top.foldLeft(ops0)((ops, p) =>
+        val layers  = paintOrder(laid)
+        // a root in a layer is painted by the damage rule below
+        val inFlow  = top.filterNot(inLayer(laid, _))
+        val ops1    = inFlow.foldLeft(ops0)((ops, p) =>
           paintNode(ops, laid, env, p, clipOf(laid, p).intersect(screen)),
         )
         // claude 2026-10-19: changed: the span of a root is cut to its clip,
         // so a root inside a viewport names only cells of the port (L1a
         // review)
-        val rects  = clears.map(_.rect) ++ top.flatMap(p =>
+        val rects   = clears.map(_.rect) ++ top.flatMap(p =>
           laid.nodes.get(p).map(_.rect.intersect(clipOf(laid, p))),
+        ) ++ layers.collect {
+          case (p, box) if top.exists(r => p.isAtOrUnder(r)) => box
+        }
+        // the damage rule: the rows of the cells of the damage under the box
+        // of a layer, and of the regions, painted again in whole rows (a clip
+        // in a row could cut a wide glyph, and the flow would not give it
+        // back)
+        val under   = layers.flatMap { (_, box) =>
+          rects.map(_.intersect(box).intersect(screen)).filterNot(_.isEmpty)
+        } ++ regions
+        val again   = rows(under, screen)
+        val ops     = again.foldLeft(ops1) { (ops, u) =>
+          val flow = paintNode(
+            ops :+ Op.Clear(u, None),
+            laid,
+            env,
+            Loc.screen,
+            u,
+          )
+          layers.foldLeft(flow) { case (o, (p, _)) =>
+            paintNode(
+              o,
+              laid,
+              env,
+              p,
+              clipOf(laid, p).intersect(screen).intersect(u),
+              Cover.Opaque,
+            )
+          }
+        }
+        Plan(
+          env.screen,
+          ops,
+          Plan.rowSpans(rects ++ regions ++ again, screen),
+          top.size,
         )
-        Plan(env.screen, ops, Plan.rowSpans(rects, screen), top.size)
     end apply
 
-    /** A node is clipped by the ports of its owners: the content box of a box,
-      * the port of a viewport.
+    /** The whole rows of `screen` that the rects of `rs` touch, as disjoint
+      * rects in row order (the rows that touch merge).
       */
-    // claude 2026-10-19: changed: the port of a viewport (L1a)
-    private def clipOf(laid: Laid, p: Loc): Rect =
+    // claude 2026-10-19: created (L1b)
+    def rows(rs: Vector[Rect], screen: Rect): Vector[Rect] =
+      rs.map(r => (r.y, r.bottom))
+        .sorted
+        .foldLeft(Vector.empty[(Int, Int)]) { case (acc, (y0, y1)) =>
+          acc.lastOption match
+              case Some((a, b)) if y0 <= b =>
+                acc.updated(acc.size - 1, (a, b.max(y1)))
+              case _                       => acc :+ (y0, y1)
+        }
+        .map((y0, y1) => Rect(screen.x, y0, screen.w, y1 - y0))
+
+    /** True when the node at `p` is a layer or is inside one (on its chain of
+      * owners).
+      */
+    // claude 2026-10-19: created (L1b)
+    def inLayer(laid: Laid, p: Loc): Boolean =
+        @annotation.tailrec
+        def up(q: Option[Loc]): Boolean = q.flatMap(laid.nodes.get) match
+            case None                        => false
+            case Some(n) if n.layer.nonEmpty => true
+            case Some(n)                     => up(n.owner)
+        up(Some(p))
+
+    /** The layers of `laid` in paint order, each with its box
+      * ([[Layout.layerBox]] inside the screen): by `zIndex`, the equal ones in
+      * document order, and each layer before the layers inside it, which keep
+      * that order among them (see the object).
+      */
+    // claude 2026-10-19: created (L1b)
+    def paintOrder(laid: Laid): Vector[(Loc, Rect)] =
+      if laid.layers.isEmpty then Vector.empty
+      else
+          val screen                              = laid.nodes.get(Loc.screen).fold(Rect.empty)(_.rect)
+          // the key of a node: the (zIndex, document place) of each layer on
+          // its chain of owners, the outermost first
+          def key(p: Loc): List[(Int, List[Int])] =
+            chain(laid, p).map((z, n) => (z, docPlace(laid, n)))
+          laid.layers.toVector
+            .flatMap(p => laid.nodes.get(p).map(n => (p, n)))
+            .map((p, n) =>
+              (p, key(p), Layout.layerBox(laid, n).intersect(screen)),
+            )
+            .sortWith((a, b) => before(a._2, b._2))
+            .map((p, _, box) => (p, box))
+    end paintOrder
+
+    /** The (zIndex, node) of each layer on the chain of owners of `p` (`p`
+      * itself too), the outermost first.
+      */
+    // claude 2026-10-19: created (L1b)
+    private def chain(laid: Laid, p: Loc): List[(Int, Node)] =
+        @annotation.tailrec
+        def up(q: Option[Loc], acc: List[(Int, Node)]): List[(Int, Node)] =
+          q.flatMap(laid.nodes.get) match
+              case None    => acc
+              case Some(n) =>
+                up(n.owner, n.layer.fold(acc)(l => (l.z, n) :: acc))
+        up(Some(p), Nil)
+    end chain
+
+    /** The document place of `n`: the index of each node on its chain of owners
+      * in the kids of its owner, the outermost first. One place is before
+      * another in document order when it is less (a prefix first).
+      */
+    // claude 2026-10-19: created (L1b)
+    private def docPlace(laid: Laid, n: Node): List[Int] =
+        @annotation.tailrec
+        def up(q: Option[Node], acc: List[Int]): List[Int] = q match
+            case None    => acc
+            case Some(m) =>
+              m.kind match
+                  case Kind.Screen => acc
+                  case _           => up(m.owner.flatMap(laid.nodes.get), m.index :: acc)
+        up(Some(n), Nil)
+    end docPlace
+
+    /** True when the paint key `a` is before `b`: the first pair that differs
+      * decides (a lower zIndex, then an earlier document place); a key that is
+      * a prefix of the other is first (a layer before the layers inside it).
+      */
+    // claude 2026-10-19: created (L1b)
+    @annotation.tailrec
+    private def before(
+        a: List[(Int, List[Int])],
+        b: List[(Int, List[Int])],
+    ): Boolean =
+      (a, b) match
+          case (Nil, Nil)                               => false
+          case (Nil, _)                                 => true
+          case (_, Nil)                                 => false
+          case ((za, _) :: _, (zb, _) :: _) if za != zb => za < zb
+          case ((_, pa) :: _, (_, pb) :: _) if pa != pb => less(pa, pb)
+          case (_ :: ra, _ :: rb)                       => before(ra, rb)
+
+    /** The order of document places: the first index that differs decides; a
+      * prefix is first.
+      */
+    @annotation.tailrec
+    private def less(a: List[Int], b: List[Int]): Boolean = (a, b) match
+        case (Nil, Nil)                 => false
+        case (Nil, _)                   => true
+        case (_, Nil)                   => false
+        case (x :: _, y :: _) if x != y => x < y
+        case (_ :: xs, _ :: ys)         => less(xs, ys)
+
+    /** A node is clipped by the ports of its owners: the content box of a box,
+      * the port of a viewport. A layer is clipped by the clip of its containing
+      * block ([[Layout.overlayClip]]), not by the boxes of its owners; the
+      * nodes inside a layer by the ports of their owners up to the layer, and
+      * by the clip of the layer.
+      */
+    // claude 2026-10-19: changed: the port of a viewport (L1a); the layers
+    // (L1b)
+    def clipOf(laid: Laid, p: Loc): Rect =
+        @annotation.tailrec
         def up(q: Option[Loc], acc: Rect): Rect =
           q.flatMap(laid.nodes.get) match
               case None    => acc
               case Some(n) =>
-                up(
-                  n.owner,
-                  acc.intersect(n.kind match
-                      case Kind.Screen => n.rect
-                      case _           => n.port),
-                )
+                val here = acc.intersect(n.kind match
+                    case Kind.Screen => n.rect
+                    case _           => n.port)
+                n.layer match
+                    case Some(l) =>
+                      here.intersect(Layout.overlayClip(laid, l.cb))
+                    case None    => up(n.owner, here)
+        val all                                 = Rect(0, 0, Int.MaxValue / 2, Int.MaxValue / 2)
         laid.nodes
           .get(p)
           .fold(Rect.empty)(n =>
-            up(n.owner, Rect(0, 0, Int.MaxValue / 2, Int.MaxValue / 2)),
+            n.layer match
+                case Some(l) => Layout.overlayClip(laid, l.cb)
+                case None    => up(n.owner, all),
           )
     end clipOf
 
@@ -113,6 +296,23 @@ private[tui4s] object Paint:
     def visibleRows(rect: Rect, clip: Rect): Range =
       (clip.y - rect.y).max(0) until (clip.bottom - rect.y).min(rect.h)
 
+    /** What a background does to the cells under it: `Fill` gives them the
+      * colour and keeps their symbols (in the flow nothing is under a box);
+      * `Opaque` clears them first (in a layer, the flow and the lower layers
+      * are under it, and a box with a background hides them, as in CSS).
+      */
+    // claude 2026-10-19: created (L1b)
+    enum Cover derives CanEqual:
+        case Fill, Opaque
+
+    /** The kids of `n` in the flow: not layers. A layer paints in the layer
+      * pass of [[apply]].
+      */
+    // claude 2026-10-19: created (L1b)
+    private def flowKids(laid: Laid, n: Node): Vector[Loc] =
+      if laid.layers.isEmpty then n.kids
+      else n.kids.filterNot(laid.layers.contains)
+
     /** `ops` and then the ops of the node at `p` and its subtree inside `clip`
       * (a clip inside the screen). Every op of a subtree lies inside `n.rect`
       * and `clip` (law I4: fill, border, decoration and text take that area,
@@ -120,19 +320,23 @@ private[tui4s] object Paint:
       * not meet the clip is skipped with its subtree, and a text paints only
       * its visible rows (the paint cull).
       */
-    // claude 2026-10-19: changed (P5): it adds ops to `ops`; it writes nothing
+    // claude 2026-10-19: changed (P5): it adds ops to `ops`; it writes
+    // nothing; changed: the layers paint in their own pass (L1b)
     def paintNode(
         ops: Vector[Op],
         laid: Laid,
         env: Scene,
         p: Loc,
         clip: Rect,
+        cover: Cover = Cover.Fill,
     ): Vector[Op] =
       laid.nodes.get(p).fold(ops) { n =>
         n.kind match
             case Kind.Screen                         =>
               val inner = n.rect.intersect(clip)
-              n.kids.foldLeft(ops)((o, k) => paintNode(o, laid, env, k, inner))
+              flowKids(laid, n).foldLeft(ops)((o, k) =>
+                paintNode(o, laid, env, k, inner, cover),
+              )
             case _ if n.rect.intersect(clip).isEmpty => ops
             // claude 2026-10-19: changed: the text flow; the ellipsis (L1a)
             case Kind.Txt(txt, flow)                 =>
@@ -160,7 +364,14 @@ private[tui4s] object Paint:
               }
             case Kind.El(e)                          =>
               val area  = n.rect.intersect(clip)
-              val fill  = n.props.bg.toVector.map(bg => Op.Fill(area, bg))
+              // claude 2026-10-19: changed: in a layer, a background covers
+              // what is under it (a clear); a layer with no background shows
+              // it (L1b)
+              val fill  = n.props.bg.toVector.map(bg =>
+                cover match
+                    case Cover.Opaque => Op.Clear(area, Some(bg))
+                    case Cover.Fill   => Op.Fill(area, bg),
+              )
               val frame =
                 n.props.border.toVector
                   .flatMap(b => border(n.rect, b, n.props.text, area))
@@ -177,9 +388,9 @@ private[tui4s] object Paint:
                   area,
                 ),
               )
-              n.kids.foldLeft(
+              flowKids(laid, n).foldLeft(
                 ops ++ fill ++ frame ++ decorate(laid, env, n, e, area),
-              )((o, k) => paintNode(o, laid, env, k, inner)) ++ bar
+              )((o, k) => paintNode(o, laid, env, k, inner, cover)) ++ bar
       }
 
     /** The thumb of a scroll indicator of `len` cells: its first cell and its

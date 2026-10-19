@@ -72,6 +72,8 @@ object LayoutPropertyTest:
     def show(d: Damage): String = d match
         case Damage.Clear(r, bg) => s"clear $r $bg"
         case Damage.Paint(p)     => s"paint ${p.showLoc}"
+        // claude 2026-10-19: created (L1b): the region of a layer
+        case Damage.Region(r)    => s"region $r"
 
     def oldShow(d: LayoutOracle.Damage): String = d match
         case LayoutOracle.Damage.Clear(r, bg) => s"clear $r $bg"

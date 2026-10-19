@@ -505,4 +505,124 @@ class GoldenScreenTest extends ScreenSuite:
         )
       }
     }
+
+    // claude 2026-10-19: created (L1b)
+    "overlays and z-order" - {
+      val list = ul(li("one"), li("two"), li("three"), li("four"), li("five"))
+      "a centered modal over a list: its background covers the list" in {
+        val ui = div(
+          list,
+          div.style(_.position(_.overlay).justify(_.center).align(_.center))(
+            div.style(_.border(1.px, _.white).bg(_.black).padding(0.px, 1.px))(
+              "Help",
+            ),
+          ),
+        )
+        assertScreen(
+          ui,
+          12,
+          5,
+          """one
+            |tw┌──────┐
+            |th│ Help │
+            |fo└──────┘
+            |five""".stripMargin,
+        )
+      }
+      "a toast at the bottom right" in {
+        val ui = div(
+          list,
+          div.style(
+            _.position(_.fixed)
+              .bottom(0.px)
+              .right(0.px)
+              .bg(_.blue)
+              .padding(0.px, 1.px),
+          )("Saved"),
+        )
+        assertScreen(
+          ui,
+          12,
+          5,
+          """one
+            |two
+            |three
+            |four
+            |five  Saved""".stripMargin,
+        )
+      }
+      "a dropdown under a button, at the right edge of its relative box" in {
+        val ui = div(
+          div.style(_.row.justify(_.end))(
+            div.style(_.position(_.relative))(
+              button("Menu"),
+              div.style(
+                _.position(_.dropdown)
+                  .width(9.px)
+                  .border(1.px, _.white)
+                  .bg(_.black),
+              )(
+                "Open",
+                "Save as",
+              ),
+            ),
+          ),
+          list,
+        )
+        assertScreen(
+          ui,
+          14,
+          6,
+          """      [ Menu ]
+            |one  ┌───────┐
+            |two  │Open   │
+            |three│Save as│
+            |four └───────┘
+            |five""".stripMargin,
+        )
+      }
+      "a relative shift moves the element, not its siblings" in {
+        val ui = div.style(_.row)(
+          span("ab"),
+          span("cd").style(_.position(_.relative).left(1.px).top(1.px)),
+          span("ef"),
+        )
+        assertScreen(
+          ui,
+          8,
+          2,
+          """ab  ef
+            |   cd""".stripMargin,
+        )
+      }
+      "a higher zIndex paints over a lower one; equal ones in document order" in {
+        def box(t: String, x: Int, z: Int) =
+          div.style(
+            _.position(_.fixed).top(0.px).left(x.px).zIndex(z).bg(_.black),
+          )(t)
+        assertScreen(
+          div(box("AAAA", 0, 2), box("BBBB", 2, 1), box("CC", 5, 1)),
+          8,
+          1,
+          "AAAABCC",
+        )
+      }
+      "a fixed element escapes a viewport; an absolute one in it is clipped" in {
+        val ui =
+          div.style(_.height(2.px).overflow(_.hidden).position(_.relative))(
+            "x",
+            div.style(_.position(_.absolute).top(1.px).left(2.px))("abs\nabs"),
+            div.style(_.position(_.fixed).top(3.px).left(0.px))("fixed"),
+          )
+        assertScreen(
+          ui,
+          8,
+          4,
+          """x
+            |  abs
+            |
+            |fixed""".stripMargin,
+        )
+      }
+    }
 end GoldenScreenTest

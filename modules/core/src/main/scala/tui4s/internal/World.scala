@@ -39,6 +39,14 @@ private[tui4s] enum Source:
     case Comp(spec: ComponentSpec, key: String)
 end Source
 
+/** A focus seed of kyo-ui's `focusAuto`: the element at `at` took the focus
+  * when it appeared. `back` is the element that had the focus before it, when
+  * the element at `at` has `focusRestore(true)`: the focus goes back there when
+  * that element leaves the screen.
+  */
+// claude 2026-10-19: created (L1b)
+private[tui4s] final case class Seed(at: Loc, back: Option[Loc])
+
 /** One rendered item of a `Foreach` region. */
 private[tui4s] final case class ItemState(
     key: String,
@@ -116,6 +124,9 @@ private[tui4s] final case class World(
     // claude 2026-10-19: created (L1a review): the viewports that a key
     // scrolled in this step; the frame lays them out in place
     scrolled: Set[Loc] = Set.empty,
+    // claude 2026-10-19: created (L1b): the focus seeds of kyo-ui's
+    // focusAuto, the newest first (Runner.fixFocus)
+    seeds: List[Seed] = Nil,
 ):
     // claude 2026-10-19: changed: the scroll offsets (L1a)
     def env: Scene =

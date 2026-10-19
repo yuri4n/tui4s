@@ -63,25 +63,25 @@
   * (kyo-ui 1.0.0-RC7), by case name. `StyleTableTest` compares this list with
   * the surface list of kyo-ui and with the runner, so they do not drift.
   *   - honored: `Align`, `AlignSelf`, `BgColor`, `BorderColorProp`,
-  *     `BorderRadiusProp`, `BorderStyleProp`, `BorderWidthProp`,
+  *     `BorderRadiusProp`, `BorderStyleProp`, `BorderWidthProp`, `Bottom`,
   *     `DisabledProp`, `FlexDirectionProp`, `FlexGrowProp`, `FlexShrinkProp`,
   *     `FocusProp`, `FontStyleProp`, `FontWeightProp`, `Gap`, `Height`,
-  *     `HiddenProp`, `Justify`, `ListStyleProp`, `Margin`, `MaxHeight`,
+  *     `HiddenProp`, `Justify`, `Left`, `ListStyleProp`, `Margin`, `MaxHeight`,
   *     `MaxWidth`, `MinHeight`, `MinWidth`, `OpacityProp`, `OverflowProp`,
-  *     `OverflowXProp`, `OverflowYProp`, `Padding`, `ScrollbarColorProp`,
-  *     `ScrollbarWidthProp`, `TextAlignProp`, `TextColor`,
-  *     `TextDecorationProp`, `TextOverflowProp`, `TextTransformProp`,
-  *     `TextWrapProp`, `WhiteSpaceProp`, `Width`.
+  *     `OverflowXProp`, `OverflowYProp`, `Padding`, `PositionProp`, `Right`,
+  *     `ScrollbarColorProp`, `ScrollbarWidthProp`, `TextAlignProp`,
+  *     `TextColor`, `TextDecorationProp`, `TextOverflowProp`,
+  *     `TextTransformProp`, `TextWrapProp`, `Top`, `WhiteSpaceProp`, `Width`,
+  *     `ZIndexProp`.
   *   - ignored: `AccentColorProp`, `ActiveProp`, `AnimationDelayProp`,
   *     `AnimationProp`, `BackgroundClipProp`, `BgGradientProp`, `BlurProp`,
-  *     `BorderCollapseProp`, `Bottom`, `BrightnessProp`, `ContrastProp`,
-  *     `CursorProp`, `DisplayProp`, `FlexBasisProp`, `FlexWrapProp`,
-  *     `FontFamilyProp`, `FontSizeProp`, `FontVariantLigaturesProp`,
-  *     `GrayscaleProp`, `HoverProp`, `HueRotateProp`, `InvertProp`, `Left`,
-  *     `LetterSpacingProp`, `LineHeightProp`, `PositionProp`, `Right`,
-  *     `SaturateProp`, `ScrollMarginTopProp`, `ScrollbarGutterProp`,
-  *     `SepiaProp`, `ShadowProp`, `StrokeDashoffsetProp`, `Top`,
-  *     `TransitionProp`, `TranslateProp`, `ZIndexProp`.
+  *     `BorderCollapseProp`, `BrightnessProp`, `ContrastProp`, `CursorProp`,
+  *     `DisplayProp`, `FlexBasisProp`, `FlexWrapProp`, `FontFamilyProp`,
+  *     `FontSizeProp`, `FontVariantLigaturesProp`, `GrayscaleProp`,
+  *     `HoverProp`, `HueRotateProp`, `InvertProp`, `LetterSpacingProp`,
+  *     `LineHeightProp`, `SaturateProp`, `ScrollMarginTopProp`,
+  *     `ScrollbarGutterProp`, `SepiaProp`, `ShadowProp`,
+  *     `StrokeDashoffsetProp`, `TransitionProp`, `TranslateProp`.
   */
 // claude 2026-10-19: changed: the package Scaladoc names scroll, wrap and
 // ellipsis, with the key table (L1a), and the table of the style properties

@@ -23,6 +23,8 @@
 # L1a part: attrs.field ariaAttrs (the scroll target of aria-activedescendant) and dataAttrs (kyo-ui's
 #   preventScrollKeys).
 # claude 2026-10-19: changed: the L1a part (two attrs.field lines)
+# L1b part: attrs.field focusRestore (the focus seeds of focusAuto, Runner.fixFocus).
+# claude 2026-10-19: changed: the L1b part (one attrs.field line)
 ast.type	UI.Ast.Activatable	trait public extends UI,Element
 ast.type	UI.Ast.Anchor	case class public extends UI,Inline,Interactive,Focusable,Activatable,Clickable
 ast.type	UI.Ast.AsHtmlChild	trait public extends 
@@ -190,6 +192,7 @@ attrs.field	UI.Ast.Attrs.ariaAttrs	Map[String,String]
 attrs.field	UI.Ast.Attrs.dataAttrs	Map[String,String]
 attrs.field	UI.Ast.Attrs.focusAuto	Maybe[Boolean]
 attrs.field	UI.Ast.Attrs.focusGroup	Maybe[String]
+attrs.field	UI.Ast.Attrs.focusRestore	Maybe[Boolean]
 attrs.field	UI.Ast.Attrs.focusTrap	Maybe[Boolean]
 attrs.field	UI.Ast.Attrs.identifier	Maybe[String]
 attrs.field	UI.Ast.Attrs.onBlur	Maybe[<[Any,Async]]

@@ -99,6 +99,8 @@ object KyoUiSurface:
       "focusTrap",
       "focusGroup",
       "focusAuto",
+      // claude 2026-10-19: created (L1b): the focus seeds
+      "focusRestore",
       "stopPropagation",
       "onClick",
       "onClickEvt",

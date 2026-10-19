@@ -147,8 +147,12 @@ private[tui4s] object Scroll:
       * least distance that shows the border box of `target` (the [[nearest]]
       * rule on each axis that scrolls), the innermost first; the box moves with
       * each scroll before the next viewport. `hidden` does not scroll. Gives
-      * the new offsets and the viewports that moved, innermost first.
+      * the new offsets and the viewports that moved, innermost first. The walk
+      * stops at an absolute or fixed element: a scroll of a viewport around it
+      * does not move it.
       */
+    // claude 2026-10-19: changed: the walk stops at an element out of the
+    // flow (L1b)
     def follow(
         laid: Laid,
         target: Loc,
@@ -164,8 +168,12 @@ private[tui4s] object Scroll:
           q.flatMap(laid.nodes.get) match
               case None    => (acc, moved)
               case Some(n) =>
+                // the viewports outside an element out of the flow do not
+                // move it
+                val onward =
+                  if n.layer.exists(_.pos.outOfFlow) then None else n.owner
                 n.view match
-                    case None    => up(n.owner, box, acc, moved)
+                    case None    => up(onward, box, acc, moved)
                     case Some(v) =>
                       val o    = v.offset
                       val m    = v.max
@@ -184,10 +192,10 @@ private[tui4s] object Scroll:
                         m.y,
                       )
                       val next = Offset(nx, ny)
-                      if next == o then up(n.owner, box, acc, moved)
+                      if next == o then up(onward, box, acc, moved)
                       else
                           up(
-                            n.owner,
+                            onward,
                             box.copy(
                               x = box.x - (nx - o.x),
                               y = box.y - (ny - o.y),
@@ -196,9 +204,13 @@ private[tui4s] object Scroll:
                             moved :+ n.path,
                           )
                       end if
+                end match
         laid.nodes.get(target) match
             case None    => (scroll, Vector.empty)
-            case Some(t) => up(t.owner, t.rect, scroll, Vector.empty)
+            case Some(t) =>
+              val first =
+                if t.layer.exists(_.pos.outOfFlow) then None else t.owner
+              up(first, t.rect, scroll, Vector.empty)
     end follow
 
     /** The offset of `v` after the key `k`, or none when `v` does not scroll

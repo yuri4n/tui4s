@@ -137,6 +137,15 @@ end TextFlow
   * the scroll state of a viewport (an element with an axis that is not
   * `overflow: visible`), and none for any other node.
   */
+/** The paint layer of a positioned element (CSS `position` other than
+  * `static`). `z` is its `zIndex` (0 when none; kyo-ui's `dropdown` gives 50).
+  * `cb` is the path of its containing block, the node that places it: its owner
+  * for `relative` and `sticky`, the nearest positioned ancestor for `absolute`
+  * (the screen when none), the screen for `fixed`.
+  */
+// claude 2026-10-19: created (L1b)
+private[tui4s] final case class Layer(pos: Pos, z: Int, cb: Loc)
+
 // claude 2026-10-19: changed: the view of a viewport, and its port (L1a)
 private[tui4s] final case class Node(
     path: Loc,
@@ -151,6 +160,8 @@ private[tui4s] final case class Node(
     index: Int,
     cols: Vector[Int],
     view: Option[View] = None,
+    // claude 2026-10-19: created (L1b): the layer of a positioned element
+    layer: Option[Layer] = None,
 ):
     def content: Rect             = rect.inset(props.insets)
     def bgForKids: Option[JColor] = props.bg.orElse(bgUnder)
@@ -169,10 +180,23 @@ end Node
   * one container are prefix-free (`flatten` stops at an element or a text).
   * `layoutAll` and `relayout` keep the invariant.
   */
+// claude 2026-10-19: changed: the paths of the layers (L1b)
 private[tui4s] final case class Laid(
     nodes: Map[Loc, Node],
     regionOwner: Map[Loc, Loc],
+    layers: Set[Loc] = Set.empty,
 ):
+    /** The screen with `n` at its path: the node, and the path in `layers` when
+      * `n` has a layer.
+      */
+    // claude 2026-10-19: created (L1b)
+    def put(n: Node): Laid =
+      copy(
+        nodes = nodes.updated(n.path, n),
+        layers =
+          if n.layer.isDefined then layers + n.path else layers - n.path,
+      )
+
     /** The screen without the node at `prefix`, its subtree and the regions
       * under it. The walk follows `kids`, so it visits only the subtree, not
       * the whole node map (I1 makes it equal to a filter of the paths). The
@@ -188,30 +212,41 @@ private[tui4s] final case class Laid(
             .flatMap(n =>
               Iterator.single(p) ++ n.kids.iterator.flatMap(subtree),
             )
+        // claude 2026-10-19: changed: the layers under the prefix go too (L1b)
         Laid(
           nodes -- subtree(prefix),
           regionOwner.filterNot((r, o) =>
             r.isAtOrUnder(prefix) || o.isAtOrUnder(prefix),
           ),
+          layers.filterNot(_.isAtOrUnder(prefix)),
         )
     end without
 
     /** The screen with the node at `prefix` and its subtree moved by `dx`
       * columns and `dy` rows: their rects, and the ports and the indicators of
       * the viewports among them. A scroll moves the kids of a viewport so: a
-      * layout does not depend on the position of a box.
+      * layout does not depend on the position of a box. An absolute or fixed
+      * element whose containing block is not at or under `prefix` does not
+      * move, with its subtree: its containing block did not move.
       */
-    // claude 2026-10-19: created (L1a review)
+    // claude 2026-10-19: changed: an element out of the flow stays with its
+    // containing block (L1b)
     def shift(prefix: Loc, dx: Int, dy: Int): Laid =
         def move(r: Rect): Rect                             = Rect(r.x + dx, r.y + dy, r.w, r.h)
         def go(acc: Map[Loc, Node], p: Loc): Map[Loc, Node] =
           nodes.get(p).fold(acc) { n =>
-            val moved = n.copy(
-              rect = move(n.rect),
-              view = n.view
-                .map(v => v.copy(port = move(v.port), bar = v.bar.map(move))),
-            )
-            n.kids.foldLeft(acc.updated(p, moved))(go)
+            val stays = p != prefix && n.layer
+              .exists(l => l.pos.outOfFlow && !l.cb.isAtOrUnder(prefix))
+            if stays then acc
+            else
+                val moved = n.copy(
+                  rect = move(n.rect),
+                  view = n.view.map(v =>
+                    v.copy(port = move(v.port), bar = v.bar.map(move)),
+                  ),
+                )
+                n.kids.foldLeft(acc.updated(p, moved))(go)
+            end if
           }
         copy(nodes = go(nodes, prefix))
     end shift
@@ -223,9 +258,17 @@ private[tui4s] object Laid:
 /** A change of the screen that paint must apply: clear a rectangle to a
   * background, or paint a node and its subtree.
   */
+// claude 2026-10-19: changed: the region of a layer (L1b)
 private[tui4s] enum Damage:
     case Clear(rect: Rect, bg: Option[JColor])
     case Paint(path: Loc)
+
+    /** The cells of `rect` are painted again from the flow and from the layers,
+      * in paint order: the old place or the new place of a layer that moved,
+      * came or went ([[Layout.layerDamage]]).
+      */
+    case Region(rect: Rect)
+end Damage
 
 /** A flex item of a container: an element or a text, with the regions it is
   * inside (innermost first).
@@ -237,6 +280,54 @@ private[tui4s] final case class Flat(items: Vector[Item], regions: Vector[Loc]):
 
 private[tui4s] object Flat:
     val empty: Flat = Flat(Vector.empty, Vector.empty)
+
+/** The offsets of a positioned element in cells (`top`, `right`, `bottom`,
+  * `left`), against a box of `w` x `h` cells: a percentage of `left` and
+  * `right` is of `w`, of `top` and `bottom` of `h`. None is `auto`.
+  */
+// claude 2026-10-19: created (L1b)
+private[tui4s] final case class Offsets(
+    t: Option[Int],
+    r: Option[Int],
+    b: Option[Int],
+    l: Option[Int],
+):
+    /** The width between the two horizontal offsets in a box `w` cells wide,
+      * when both are given.
+      */
+    def stretchW(w: Int): Option[Int] =
+      for a <- l; c <- r yield (w - a - c).max(0)
+
+    /** The height between the two vertical offsets in a box `h` cells high,
+      * when both are given.
+      */
+    def stretchH(h: Int): Option[Int] =
+      for a <- t; c <- b yield (h - a - c).max(0)
+end Offsets
+
+private[tui4s] object Offsets:
+    val none: Offsets = Offsets(None, None, None, None)
+
+    /** The offsets of `p` in a box of `w` x `h` cells. */
+    def cells(p: Props, w: Int, h: Int, env: Scene): Offsets =
+        def hor(l: Length): Option[Int] = Props.cells(l, w, env.screen.h)
+        def ver(l: Length): Option[Int] = l match
+            case Length.Pct(v) => Some((v * h / 100).toInt)
+            case _             => Props.cells(l, 0, env.screen.h)
+        Offsets(
+          p.inset.top.flatMap(ver),
+          p.inset.right.flatMap(hor),
+          p.inset.bottom.flatMap(ver),
+          p.inset.left.flatMap(hor),
+        )
+    end cells
+
+    /** The offsets that size an element: those of an element out of the flow
+      * (absolute, fixed), none for any other element.
+      */
+    def of(p: Props, w: Int, h: Int, env: Scene): Offsets =
+      if p.position.outOfFlow then cells(p, w, h, env) else none
+end Offsets
 
 /** Flexbox in terminal cells, following kyo-ui's base CSS (everything is flex,
   * reactive boundaries are transparent).
@@ -533,8 +624,16 @@ private[tui4s] object Layout:
         def cellsH(l: Length): Option[Int] = l match
             case Length.Pct(v) => availH.map(h => (v * h / 100).toInt)
             case _             => Props.cells(l, 0, env.screen.h)
-        val fixedH                         = p.height.flatMap(cellsH)
-        val inner                          = (fixedW.getOrElse(availW) - ins.h).max(0)
+        val fixedH0                        = p.height.flatMap(cellsH)
+        // claude 2026-10-19: created (L1b): an element out of the flow gets
+        // `availW` and `availH` from its containing block; its offsets take
+        // their cells from them, and two opposite offsets give its size
+        val off                            = Offsets.of(p, availW, availH.getOrElse(0), env)
+        val fixedW1                        = fixedW.orElse(off.stretchW(availW))
+        val fixedH                         = fixedH0.orElse(availH.flatMap(off.stretchH))
+        val inner                          =
+          (fixedW1.getOrElse(availW - off.l.getOrElse(0) - off.r.getOrElse(0)) -
+            ins.h).max(0)
         val innerH                         = fixedH.map(h => (h - ins.v).max(0))
         val content: Size                  = intrinsic(e).getOrElse {
           e match
@@ -545,10 +644,10 @@ private[tui4s] object Layout:
                   measureItem(it, inner, innerH, p, env, p.listStyle, i),
                 )
                 // claude 2026-10-19: changed: the heights of `settle` (L1a
-                // review)
-                combine(p, settle(p, inner, measured))
+                // review); the items in the flow only (L1b)
+                combine(p, settle(p, inner, measured).filterNot(outOfFlow))
         }
-        val w                              = fixedW.getOrElse(content.w + ins.h)
+        val w                              = fixedW1.getOrElse(content.w + ins.h)
         val h                              = fixedH.getOrElse(content.h + ins.v)
         Size(
           clamp(
@@ -731,20 +830,31 @@ private[tui4s] object Layout:
             p.overflowX != Overflow.visible
         then items
         else
-            val order = if p.reverse then items.reverse else items
-            val sizes = flexSizes(Dir.Row, inner, p.gap, order)
-            items.zip(if p.reverse then sizes.reverse else sizes).map {
-              (m, s) =>
-                m.item.ui match
-                    case t: Text if s < m.size.w =>
-                      m.copy(size =
-                        m.size
-                          .copy(h = textLines(p.text(t.value), s, flow).size),
-                      )
-                    case _                       => m
+            // claude 2026-10-19: changed: only the items in the flow share the
+            // row (L1b)
+            val inFlow = items.filterNot(outOfFlow)
+            val order  = if p.reverse then inFlow.reverse else inFlow
+            val sizes  = flexSizes(Dir.Row, inner, p.gap, order)
+            val size   = inFlow
+              .map(_.item.path)
+              .zip(if p.reverse then sizes.reverse else sizes)
+              .toMap
+            items.map { m =>
+              (m.item.ui, size.get(m.item.path)) match
+                  case (t: Text, Some(s)) if s < m.size.w =>
+                    m.copy(size =
+                      m.size.copy(h = textLines(p.text(t.value), s, flow).size),
+                    )
+                  case _                                  => m
             }
         end if
     end settle
+
+    /** True when the item is out of the flex flow: an element with `position`
+      * absolute or fixed (also kyo-ui's `overlay` and `dropdown`).
+      */
+    // claude 2026-10-19: created (L1b)
+    def outOfFlow(m: Measured): Boolean = m.props.position.outOfFlow
 
     def arrange(
         p0: Props,
@@ -940,7 +1050,17 @@ private[tui4s] object Layout:
         tableCols: Vector[Int],
         inner: Int,
         view: Option[View],
-    )
+        // claude 2026-10-19: created the two fields below (L1b): the layer
+        // and the width that each kid is measured in
+        layers: Vector[Option[Layer]] = Vector.empty,
+        avail: Vector[Int] = Vector.empty,
+    ):
+        /** The layer of the kid `i`. */
+        def layerOf(i: Int): Option[Layer] = layers.lift(i).flatten
+
+        /** The width that the kid `i` is measured in. */
+        def availOf(i: Int): Int = avail.lift(i).getOrElse(inner)
+    end Arranged
 
     /** Measures and arranges the kids of `node` (which is already positioned).
       * The kids of a box are arranged in its content box. The kids of a
@@ -958,9 +1078,35 @@ private[tui4s] object Layout:
       * narrower width.
       */
     // claude 2026-10-19: created (L1a): the one arrange of layoutChildren and
-    // relayout, with the indicator column
-    def arrangeKids(node: Node, env: Scene, root: UI): Arranged =
+    // relayout, with the indicator column; changed: the kids out of the flow
+    // and the positioned kids (L1b, see `positioned`)
+    def arrangeKids(
+        node: Node,
+        env: Scene,
+        root: UI,
+        find: Loc => Option[Node],
+    ): Arranged =
+      positioned(node, arrangeFlow(node, env, root), env, find)
+
+    /** The flow arrange of [[arrangeKids]]: the kids out of the flow get an
+      * empty rect here.
+      */
+    // claude 2026-10-19: created (L1b): the old body of arrangeKids
+    private def arrangeFlow(node: Node, env: Scene, root: UI): Arranged =
         val box                         = node.content
+        // the items in the flow are arranged; a kid out of the flow keeps an
+        // empty rect until `positioned` places it (not in a table)
+        def arrange(
+            p: Props,
+            area: Rect,
+            ks: Vector[Measured],
+            cols: Vector[Int],
+        ): Vector[Rect]                 = node.kind match
+            case Kind.El(_: Table) => Layout.arrange(p, area, ks, cols)
+            case _                 =>
+              val flow  = ks.filterNot(outOfFlow)
+              val rects = Layout.arrange(p, area, flow, cols).iterator
+              ks.map(m => if outOfFlow(m) then Rect.empty else rects.next())
         def colsIn(w: Int): Vector[Int] = node.kind match
             case Kind.El(e: Table) =>
               tableSize(e, node.path, node.props, w, env)._1
@@ -982,7 +1128,8 @@ private[tui4s] object Layout:
             val p                                           = node.props
             def natural(ks: Vector[Measured], w: Int): Size = node.kind match
                 case Kind.El(e: Table) => tableSize(e, node.path, p, w, env)._2
-                case _                 => combine(p, ks)
+                // claude 2026-10-19: changed: the items in the flow (L1b)
+                case _                 => combine(p, ks.filterNot(outOfFlow))
             val showBar                                     =
               Props.scrolls(p.overflowY) &&
                 p.scrollbarWidth != ScrollbarWidth.none && box.h >= 3 &&
@@ -1019,31 +1166,238 @@ private[tui4s] object Layout:
               Some(view),
             )
         end if
-    end arrangeKids
+    end arrangeFlow
+
+    /** The kids of `node` after the flow arrange `a`: each positioned kid gets
+      * its layer ([[Layer]]), each `relative` kid moves by its offsets, and
+      * each absolute or fixed kid is measured and placed against its containing
+      * block ([[outOfFlowRect]]). A table places its rows in the flow: their
+      * position is ignored. `find` gives the laid-out ancestors (the containing
+      * block of an absolute kid can be one of them).
+      */
+    // claude 2026-10-19: created (L1b)
+    private def positioned(
+        node: Node,
+        a: Arranged,
+        env: Scene,
+        find: Loc => Option[Node],
+    ): Arranged =
+      node.kind match
+          case Kind.El(_: Table)                                => a
+          case _ if !a.kids.exists(_.props.position.positioned) => a
+          case _                                                =>
+            val area   = a.view.fold(node.content)(_.port)
+            val screen = Rect(0, 0, env.screen.w, env.screen.h)
+            val placed =
+              a.kids.zip(a.rects).zipWithIndex.map { case ((m, r), i) =>
+                val p = m.props
+                val z = p.z.getOrElse(0)
+                p.position match
+                    case Pos.Static   => (m, r, None, a.inner)
+                    case Pos.Sticky   =>
+                      (m, r, Some(Layer(Pos.Sticky, z, node.path)), a.inner)
+                    case Pos.Relative =>
+                      val o  = Offsets.cells(p, area.w, area.h, env)
+                      val dx = o.l.orElse(o.r.map(-_)).getOrElse(0)
+                      val dy = o.t.orElse(o.b.map(-_)).getOrElse(0)
+                      (
+                        m,
+                        r.copy(x = r.x + dx, y = r.y + dy),
+                        Some(Layer(Pos.Relative, z, node.path)),
+                        a.inner,
+                      )
+                    case pos          =>
+                      val cb       =
+                        if pos == Pos.Fixed then Loc.screen
+                        else containingBlock(node, find)
+                      val cbRect   =
+                        if cb == node.path then padding(node)
+                        else find(cb).fold(screen)(padding)
+                      val box      =
+                        if cb == Loc.screen then screen else cbRect
+                      val (m2, r2) = outOfFlowRect(m, i, node, area, box, env)
+                      (m2, r2, Some(Layer(pos, z, cb)), box.w)
+                end match
+              }
+            a.copy(
+              kids = placed.map(_._1),
+              rects = placed.map(_._2),
+              layers = placed.map(_._3),
+              avail = placed.map(_._4),
+            )
+    end positioned
+
+    /** The padding box of a node: its border box inside its border. The
+      * containing block of an absolute element is the padding box of its
+      * positioned ancestor, as in CSS.
+      */
+    // claude 2026-10-19: created (L1b)
+    def padding(n: Node): Rect =
+      n.kind match
+          case Kind.Screen => n.rect
+          case _           => n.rect.inset(n.props.border.fold(Sides.zero)(_.sides))
+
+    /** The containing block of an absolute kid of `node`: `node` when it is
+      * positioned (or the screen), else the nearest positioned ancestor of
+      * `node`, else the screen.
+      */
+    // claude 2026-10-19: created (L1b)
+    @annotation.tailrec
+    def containingBlock(node: Node, find: Loc => Option[Node]): Loc =
+      node.kind match
+          case Kind.Screen                         => Loc.screen
+          case _ if node.props.position.positioned => node.path
+          case _                                   =>
+            node.owner.flatMap(find) match
+                case Some(o) => containingBlock(o, find)
+                case None    => Loc.screen
+
+    /** The measured item and the box of an absolute or fixed kid (the kid `i`
+      * of `node`) against its containing block `cb` (a padding box). It is
+      * measured in the width of `cb` ([[measureElement]] takes its offsets and
+      * its percentages from that width and that height). On each axis: the
+      * start offset places it from the start edge of `cb` (`left`, `top`), else
+      * the end offset from the end edge (`right`, `bottom`), else it is at the
+      * start of the content box `area` of `node` (CSS puts it at its place in
+      * the flow; the runner puts it at the start of the box of its parent). Two
+      * opposite offsets give its size, else `width` and `height`, else its
+      * natural size.
+      */
+    // claude 2026-10-19: created (L1b)
+    private def outOfFlowRect(
+        m: Measured,
+        i: Int,
+        node: Node,
+        area: Rect,
+        cb: Rect,
+        env: Scene,
+    ): (Measured, Rect) =
+        val m2 = measureItem(
+          m.item,
+          cb.w,
+          Some(cb.h),
+          node.props,
+          env,
+          node.props.listStyle,
+          i,
+        )
+        val mg = m2.props.margin
+        val o  = Offsets.cells(m2.props, cb.w - mg.h, cb.h - mg.v, env)
+        val sz = m2.size
+        val x  = o.l
+          .map(cb.x + mg.l + _)
+          .orElse(o.r.map(c => cb.right - mg.r - c - sz.w))
+          .getOrElse(area.x + mg.l)
+        val y  = o.t
+          .map(cb.y + mg.t + _)
+          .orElse(o.b.map(c => cb.bottom - mg.b - c - sz.h))
+          .getOrElse(area.y + mg.t)
+        (m2, Rect(x, y, sz.w, sz.h))
+    end outOfFlowRect
 
     /** The cells that the damage inside the node at `from` can name: the ports
-      * of the viewports at `from` and above it. None when no viewport holds it
-      * (the damage stays as it is).
+      * of the viewports at `from` and above it, up to the first layer, whose
+      * box ([[layerBox]]) ends the walk. None when no viewport and no layer
+      * holds it (the damage stays as it is).
       */
     // claude 2026-10-19: created (L1a): a viewport clips the damage of its
     // subtree, so a clear of a kid that scrolled out does not touch the cells
-    // outside the viewport
+    // outside the viewport; changed: a layer clips the damage of its subtree
+    // to its box (L1b)
     def damageClip(laid: Laid, from: Option[Loc]): Option[Rect] =
         @annotation.tailrec
         def up(q: Option[Loc], acc: Option[Rect]): Option[Rect] =
           q.flatMap(laid.nodes.get) match
               case None    => acc
               case Some(n) =>
-                up(
-                  n.owner,
-                  n.view.fold(acc)(v =>
-                    Some(acc.fold(v.port)(_.intersect(v.port))),
-                  ),
+                val here = n.view.fold(acc)(v =>
+                  Some(acc.fold(v.port)(_.intersect(v.port))),
                 )
+                if n.layer.isDefined then
+                    val box = layerBox(laid, n)
+                    Some(here.fold(box)(_.intersect(box)))
+                else up(n.owner, here)
         up(from, None)
     end damageClip
 
-    /** Lays out a measured item at `rect` and its whole subtree into `acc`. */
+    /** The cells that the damage of the node `n` itself can name: the box of a
+      * layer, else the [[damageClip]] of its owner.
+      */
+    // claude 2026-10-19: created (L1b)
+    def selfClip(laid: Laid, n: Node): Option[Rect] =
+      if n.layer.isDefined then Some(layerBox(laid, n))
+      else damageClip(laid, n.owner)
+
+    /** The cells that the layer `n` can paint: its border box inside the clip
+      * of its containing block ([[overlayClip]]). The border box of any other
+      * node.
+      */
+    // claude 2026-10-19: created (L1b)
+    def layerBox(laid: Laid, n: Node): Rect =
+      n.layer.fold(n.rect)(l => n.rect.intersect(overlayClip(laid, l.cb)))
+
+    /** The clip of a layer whose containing block is `cb`: the ports of the
+      * viewports at `cb` and above it, and the screen. From a layer the walk
+      * goes on at its containing block, so a fixed element escapes every
+      * viewport, and an absolute element escapes the viewports above its
+      * containing block, as CSS clips an element by the overflow of its chain
+      * of containing blocks. A box that is not a viewport does not clip a layer
+      * (CSS `overflow: visible`).
+      */
+    // claude 2026-10-19: created (L1b)
+    def overlayClip(laid: Laid, cb: Loc): Rect =
+        @annotation.tailrec
+        def up(q: Option[Loc], acc: Rect): Rect =
+          q.flatMap(laid.nodes.get) match
+              case None    => acc
+              case Some(n) =>
+                n.kind match
+                    case Kind.Screen => acc.intersect(n.rect)
+                    case _           =>
+                      up(
+                        n.layer.fold(n.owner)(l => Some(l.cb)),
+                        n.view.fold(acc)(v => acc.intersect(v.port)),
+                      )
+        up(Some(cb), Rect(0, 0, Int.MaxValue / 2, Int.MaxValue / 2))
+    end overlayClip
+
+    /** The box of the containing block `cb` (its padding box, the screen for
+      * the screen), or none when `laid` does not have it.
+      */
+    // claude 2026-10-19: created (L1b)
+    def cbBox(laid: Laid, cb: Loc): Option[Rect] =
+      laid.nodes.get(cb).map(padding)
+
+    /** The damage of the layers of a step from `before` to `after`: for each
+      * layer whose box or z-index changed, or that came or went, a
+      * `Damage.Region` of its old box and of its new box. So the cells that a
+      * layer leaves show the flow and the other layers again.
+      */
+    // claude 2026-10-19: created (L1b)
+    def layerDamage(before: Laid, after: Laid): Vector[Damage] =
+        def boxes(l: Laid): Map[Loc, (Rect, Int)] =
+          l.layers.iterator
+            .flatMap(p =>
+              l.nodes
+                .get(p)
+                .map(n => p -> (layerBox(l, n), n.layer.fold(0)(_.z))),
+            )
+            .toMap
+        val b0                                    = boxes(before)
+        val b1                                    = boxes(after)
+        (b0.keySet ++ b1.keySet).toVector
+          .sortBy(_.showLoc)
+          .filter(p => b0.get(p) != b1.get(p))
+          .flatMap(p => b0.get(p).map(_._1).toVector ++ b1.get(p).map(_._1))
+          .filterNot(_.isEmpty)
+          .distinct
+          .map(Damage.Region(_))
+    end layerDamage
+
+    /** Lays out a measured item at `rect` and its whole subtree into `acc`;
+      * `layer` is its layer when it is positioned.
+      */
+    // claude 2026-10-19: changed: the layer of a positioned element (L1b)
     def place(
         m: Measured,
         rect: Rect,
@@ -1052,6 +1406,7 @@ private[tui4s] object Layout:
         env: Scene,
         root: UI,
         acc: Laid,
+        layer: Option[Layer] = None,
     ): Laid =
       m.item.ui match
           case t: Text    =>
@@ -1068,7 +1423,7 @@ private[tui4s] object Layout:
               index,
               Vector.empty,
             )
-            acc.copy(nodes = acc.nodes.updated(node.path, node))
+            acc.put(node)
           case e: Element =>
             val node0 = Node(
               m.item.path,
@@ -1082,6 +1437,7 @@ private[tui4s] object Layout:
               Some(ctx.owner),
               index,
               ctx.cols,
+              layer = layer,
             )
             layoutChildren(node0, env, root, acc)
           case _          => acc
@@ -1091,8 +1447,9 @@ private[tui4s] object Layout:
       */
     // claude 2026-10-19: changed: the kids of `arrangeKids`; the view of a
     // viewport (L1a)
+    // claude 2026-10-19: changed: the layer and the width of each kid (L1b)
     def layoutChildren(node: Node, env: Scene, root: UI, acc: Laid): Laid =
-        val a        = arrangeKids(node, env, root)
+        val a        = arrangeKids(node, env, root, acc.nodes.get)
         val kids     = a.kids
         val regions  = a.regions
         val rects    = a.rects
@@ -1105,14 +1462,24 @@ private[tui4s] object Layout:
           a.tableCols,
         )
         val withKids = node.copy(kids = kids.map(_.item.path), view = a.view)
-        val acc1     = acc.copy(
-          nodes = acc.nodes.updated(node.path, withKids),
-          regionOwner = regions.foldLeft(acc.regionOwner)((ro, r) =>
-            ro.updated(r, node.path),
-          ),
-        )
-        kids.zip(rects).zipWithIndex.foldLeft(acc1) { case (a, ((m, r), i)) =>
-          place(m, r, ctx, i, env, root, a)
+        val acc1     = acc
+          .put(withKids)
+          .copy(
+            regionOwner = regions.foldLeft(acc.regionOwner)((ro, r) =>
+              ro.updated(r, node.path),
+            ),
+          )
+        kids.zip(rects).zipWithIndex.foldLeft(acc1) { case (l, ((m, r), i)) =>
+          place(
+            m,
+            r,
+            ctx.copy(availW = a.availOf(i)),
+            i,
+            env,
+            root,
+            l,
+            a.layerOf(i),
+          )
         }
     end layoutChildren
 
@@ -1201,7 +1568,10 @@ private[tui4s] object Layout:
                   case _          => node0
               // claude 2026-10-19: changed: the kids of `arrangeKids`, the
               // view of a viewport, and its clip of the damage (L1a)
-              val a                        = arrangeKids(node, env, root)
+              // claude 2026-10-19: changed: the positioned kids, their layers
+              // and their widths; a layer clips the damage of its kids to its
+              // box (L1b)
+              val a                        = arrangeKids(node, env, root, laid.nodes.get)
               val kids                     = a.kids
               val regions                  = a.regions
               val rects                    = a.rects
@@ -1215,7 +1585,7 @@ private[tui4s] object Layout:
                 tableCols,
               )
               val clip                     =
-                damageClip(laid, node.owner).fold(a.view.map(_.port))(c =>
+                selfClip(laid, node).fold(a.view.map(_.port))(c =>
                   Some(a.view.fold(c)(v => c.intersect(v.port))),
                 )
               def clear(r: Rect): Damage   =
@@ -1243,13 +1613,21 @@ private[tui4s] object Layout:
                         // claude 2026-10-12: changed (PR #10 review: Codex,
                         // Layout.scala:703): the OLD node's columns against
                         // the new ones (`ctx.cols` was built from `tableCols`)
-                        o.props == m.props && o.cols == tableCols,
+                        o.props == m.props && o.cols == tableCols &&
+                        // claude 2026-10-19: created (L1b): the same layer;
+                        // a kid out of the flow, the same width
+                        o.layer == a.layerOf(i) && a
+                          .layerOf(i)
+                          .forall(l =>
+                            !l.pos.outOfFlow || o.availW == a.availOf(i),
+                          ),
                     )
                     same match
                         case Some(o) if o.rect == r => (l, d, n)
                         case Some(o)
                             if a.view.isDefined && o.rect.w == r.w &&
-                              o.rect.h == r.h && o.availW == a.inner =>
+                              o.rect.h == r.h && o.availW == a.availOf(i) &&
+                              o.layer == a.layerOf(i) =>
                           (
                             l.shift(o.path, r.x - o.rect.x, r.y - o.rect.y),
                             d ++ Vector(
@@ -1261,7 +1639,16 @@ private[tui4s] object Layout:
                           )
                         case _                      =>
                           val cleared = old.fold(l)(o => l.without(o.path))
-                          val placed  = place(m, r, ctx, i, env, root, cleared)
+                          val placed  = place(
+                            m,
+                            r,
+                            ctx.copy(availW = a.availOf(i)),
+                            i,
+                            env,
+                            root,
+                            cleared,
+                            a.layerOf(i),
+                          )
                           val dmg     = old
                             .map(o => clear(o.rect))
                             .toVector ++
@@ -1271,12 +1658,13 @@ private[tui4s] object Layout:
                 }
               val updatedNode              =
                 node.copy(kids = kids.map(_.item.path), view = a.view)
-              val laid3                    = laid2.copy(
-                nodes = laid2.nodes.updated(container, updatedNode),
-                regionOwner = regions.foldLeft(laid2.regionOwner)((ro, r) =>
-                  ro.updated(r, container),
-                ),
-              )
+              val laid3                    = laid2
+                .put(updatedNode)
+                .copy(
+                  regionOwner = regions.foldLeft(laid2.regionOwner)((ro, r) =>
+                    ro.updated(r, container),
+                  ),
+                )
               val propsChanged             = node.props != node0.props
               // claude 2026-10-19: changed: a new view (a scroll, a new
               // content size) paints the viewport again; the owner is laid
@@ -1286,8 +1674,13 @@ private[tui4s] object Layout:
               /* claude 2026-10-12: changed (PR #10 review: Codex,
                * Layout.scala:264): the */
               // owner's content height, as `measuredKids` gives it
-              val ownerH                   =
-                node.owner.flatMap(laid3.nodes.get).map(_.content.h)
+              // claude 2026-10-19: changed: the height of the containing
+              // block of an element out of the flow (L1b)
+              val ownerH                   = node.layer match
+                  case Some(l) if l.pos.outOfFlow =>
+                    cbBox(laid3, l.cb).map(_.h)
+                  case _                          =>
+                    node.owner.flatMap(laid3.nodes.get).map(_.content.h)
               // claude 2026-10-19: changed: no measure when no kid changed
               // (a scroll): the natural size stays (L1a review)
               val newNatural               =
@@ -1298,7 +1691,7 @@ private[tui4s] object Layout:
                   case (Some(owner), true) =>
                     relayout(laid3, owner, Set(container), env, root)
                   case _                   =>
-                    val above      = damageClip(laid3, node.owner)
+                    val above      = selfClip(laid3, node)
                     val selfDamage =
                       if propsChanged || viewChanged then
                           Vector(
