@@ -597,7 +597,32 @@ private[tui4s] object Layout:
 
     // ---- measure ----
 
-    final case class Measured(item: Item, props: Props, size: Size)
+    /** The kids of an element, measured in the width `w` and the height `h`
+      * (the definite height that their percentages resolve against): the
+      * measured items after [[settle]], and the regions met while flattening.
+      * A measure and a layout of the same element at the same `w` and `h` give
+      * the same kids (the measure is a pure function of them), so the layout
+      * reuses them (F5).
+      */
+    // claude 2026-10-19: created (PF-b, F5): the kids of a measure
+    final case class Kids(
+        w: Int,
+        h: Option[Int],
+        items: Vector[Measured],
+        regions: Vector[Loc],
+    )
+
+    /** A measured item: its props, its size, and the kids that the measure
+      * measured ([[Kids]], none for a text, a table and an element with an
+      * intrinsic size).
+      */
+    // claude 2026-10-19: changed: the kids of the measure (PF-b, F5)
+    final case class Measured(
+        item: Item,
+        props: Props,
+        size: Size,
+        kids: Option[Kids] = None,
+    )
 
     private def clamp(v: Int, min: Option[Int], max: Option[Int]): Int =
       max.fold(v)(v.min).max(min.getOrElse(0))
@@ -626,26 +651,25 @@ private[tui4s] object Layout:
               Props.neutral(parent.text),
               Size(if keep then w else w.min(availW.max(0)), lines.size),
             )
+          // claude 2026-10-19: changed: the kids of the measure go with the
+          // size (PF-b, F5)
           case e: Element =>
-            val p = Props.resolve(
+            val p             = Props.resolve(
               e,
               parent.text,
               env.focus.contains(item.path),
               listStyle,
               index,
             )
-            Measured(
-              item,
+            val (size, kids)  = measureWith(
+              e,
+              item.path,
               p,
-              measureElement(
-                e,
-                item.path,
-                p,
-                availW - p.margin.h,
-                availH.map(h => (h - p.margin.v).max(0)),
-                env,
-              ),
+              availW - p.margin.h,
+              availH.map(h => (h - p.margin.v).max(0)),
+              env,
             )
+            Measured(item, p, size, kids)
           case _          => Measured(item, Props.neutral(parent.text), Size.zero)
 
     /** @param availH
@@ -661,6 +685,23 @@ private[tui4s] object Layout:
         availH: Option[Int],
         env: Scene,
     ): Size =
+      measureWith(e, path, p, availW, availH, env)._1
+
+    /** [[measureElement]], and the kids that it measured. When `known` holds
+      * the kids at the width and the height that the measure gives them, it
+      * takes them and measures no kid again (the law of [[Kids]]).
+      */
+    // claude 2026-10-19: created (PF-b, F5): the old body of measureElement,
+    // with its kids tupled to its size
+    def measureWith(
+        e: Element,
+        path: Loc,
+        p: Props,
+        availW: Int,
+        availH: Option[Int],
+        env: Scene,
+        known: Option[Kids] = None,
+    ): (Size, Option[Kids]) =
         val ins                            = p.insets
         val fixedW                         = p.width.flatMap(Props.cells(_, availW, env.screen.h))
         /* claude 2026-10-12: changed (PR #10 review: Codex, Layout.scala:264):
@@ -680,19 +721,39 @@ private[tui4s] object Layout:
           (fixedW1.getOrElse(availW - off.l.getOrElse(0) - off.r.getOrElse(0)) -
             ins.h).max(0)
         val innerH                         = fixedH.map(h => (h - ins.v).max(0))
+        val kids: Option[Kids]             = intrinsic(e) match
+            case Some(_) => None
+            case None    =>
+              e match
+                  case _: Table => None
+                  case _        =>
+                    known.filter(k => k.w == inner && k.h == innerH).orElse {
+                      val flat = itemsOf(e, path, env)
+                      Some(
+                        Kids(
+                          inner,
+                          innerH,
+                          settle(
+                            p,
+                            inner,
+                            flat.items.zipWithIndex.map((it, i) =>
+                              measureItem(it, inner, innerH, p, env, p.listStyle, i),
+                            ),
+                          ),
+                          flat.regions,
+                        ),
+                      )
+                    }
+        // claude 2026-10-19: changed: the kids of `measureWith` (PF-b, F5);
+        // before: the heights of `settle` (L1a review), the items in the flow
+        // only (L1b)
         val content: Size                  = intrinsic(e).getOrElse {
           e match
               case _: Table => tableSize(e, path, p, inner, env)._2
               case _        =>
-                val flat     = itemsOf(e, path, env)
-                val measured = flat.items.zipWithIndex.map((it, i) =>
-                  measureItem(it, inner, innerH, p, env, p.listStyle, i),
-                )
-                // claude 2026-10-19: changed: the heights of `settle` (L1a
-                // review); the items in the flow only (L1b)
                 combine(
                   p,
-                  settle(p, inner, measured).filterNot(outOfFlow),
+                  kids.fold(Vector.empty[Measured])(_.items).filterNot(outOfFlow),
                   p.dir match
                       case Dir.Row    => Some(inner)
                       case Dir.Column => innerH,
@@ -700,15 +761,18 @@ private[tui4s] object Layout:
         }
         val w                              = fixedW1.getOrElse(content.w + ins.h)
         val h                              = fixedH.getOrElse(content.h + ins.v)
-        Size(
-          clamp(
-            w,
-            p.minW.flatMap(Props.cells(_, availW, env.screen.h)),
-            p.maxW.flatMap(Props.cells(_, availW, env.screen.h)),
+        (
+          Size(
+            clamp(
+              w,
+              p.minW.flatMap(Props.cells(_, availW, env.screen.h)),
+              p.maxW.flatMap(Props.cells(_, availW, env.screen.h)),
+            ),
+            clamp(h, p.minH.flatMap(cellsH), p.maxH.flatMap(cellsH)),
           ),
-          clamp(h, p.minH.flatMap(cellsH), p.maxH.flatMap(cellsH)),
+          kids,
         )
-    end measureElement
+    end measureWith
 
     /** The natural content size of a container from its measured items (margins
       * and gaps included). A container that wraps (`flexWrap(wrap)`) and has a
@@ -1130,26 +1194,18 @@ private[tui4s] object Layout:
     /** The items of a node, measured in its content width, plus the regions met
       * while flattening.
       */
-    // claude 2026-10-19: changed: the width of the kids is a parameter (the
-    // port of a viewport can be narrower than the content box, L1a); the
-    // heights of `settle` (L1a review)
+    // claude 2026-10-19: changed: the kids of the measure of the node, `pre`,
+    // when their width and height are the ones here (PF-b, F5); before: the
+    // width of the kids is a parameter (L1a), the heights of `settle` (L1a
+    // review)
     def measuredKids(
         node: Node,
         env: Scene,
         root: UI,
         inner: Int,
+        pre: Option[Kids] = None,
     ): (Vector[Measured], Vector[Loc], Vector[Int]) =
-        /* claude 2026-10-12: created (PR #10 review: Codex, Layout.scala:264):
-         * the height */
-        // that the kids' percentages resolve against: the content height when
-        // this node's height is definite (the screen, an explicit height, or
-        // a size that the flex parent imposed), else none
-        val availH: Option[Int] = node.kind match
-            case Kind.Screen => Some(node.content.h)
-            case _
-                if node.props.height.isDefined || node.rect.h != node.natural.h =>
-              Some(node.content.h)
-            case _           => None
+        val availH = kidsH(node)
         node.kind match
             case Kind.Screen       =>
               val flat = flatten(root, Loc.root, Nil, env)
@@ -1174,6 +1230,11 @@ private[tui4s] object Layout:
                 ),
                 flat.regions,
                 Vector.empty,
+              )
+            case Kind.El(_)
+                if pre.exists(k => k.w == inner && k.h == availH) =>
+              pre.fold((Vector.empty, Vector.empty, Vector.empty))(k =>
+                (k.items, k.regions, Vector.empty),
               )
             case Kind.El(e)        =>
               val flat = itemsOf(e, node.path, env)
@@ -1200,6 +1261,20 @@ private[tui4s] object Layout:
         end match
     end measuredKids
 
+    /** The height that the percentages of the kids of `node` resolve against:
+      * the content height when the height of `node` is definite (the screen, an
+      * explicit height, or a size that the flex parent imposed), else none.
+      */
+    // claude 2026-10-12: created (PR #10 review: Codex, Layout.scala:264)
+    // claude 2026-10-19: changed: a function of its own (PF-b, F5)
+    def kidsH(node: Node): Option[Int] =
+      node.kind match
+          case Kind.Screen => Some(node.content.h)
+          case _
+              if node.props.height.isDefined || node.rect.h != node.natural.h =>
+            Some(node.content.h)
+          case _           => None
+
     /** The kids of a node, measured and arranged: the measured items, the
       * regions met while flattening, their rects, the column widths of a table,
       * the width the kids are measured in, and the view of a viewport.
@@ -1216,6 +1291,9 @@ private[tui4s] object Layout:
         // and the width that each kid is measured in
         layers: Vector[Option[Layer]] = Vector.empty,
         avail: Vector[Int] = Vector.empty,
+        // claude 2026-10-19: created (PF-b, F5): the kids measured in the
+        // content box, for the natural size of the node
+        measured: Option[Kids] = None,
     ):
         /** The layer of the kid `i`. */
         def layerOf(i: Int): Option[Layer] = layers.lift(i).flatten
@@ -1242,12 +1320,14 @@ private[tui4s] object Layout:
       * A textarea has no kids: its text is the content of a view of its own
       * ([[areaView]]).
       */
-    // claude 2026-10-19: changed: the view of a textarea (L1c)
+    // claude 2026-10-19: changed: the kids of the measure of the node, `pre`
+    // (PF-b, F5); before: the view of a textarea (L1c)
     def arrangeKids(
         node: Node,
         env: Scene,
         root: UI,
         find: Loc => Option[Node],
+        pre: Option[Kids] = None,
     ): Arranged =
       node.kind match
           case Kind.El(ta: Textarea) =>
@@ -1260,7 +1340,7 @@ private[tui4s] object Layout:
               Some(areaView(node, ta, env)),
             )
           case _                     =>
-            positioned(node, arrangeFlow(node, env, root), env, find)
+            positioned(node, arrangeFlow(node, env, root, pre), env, find)
 
     /** The view of a textarea: its content is its text in visual lines
       * ([[AreaText.lines]]), as wide as the port. The vertical axis scrolls
@@ -1307,7 +1387,14 @@ private[tui4s] object Layout:
       * empty rect here.
       */
     // claude 2026-10-19: created (L1b): the old body of arrangeKids
-    private def arrangeFlow(node: Node, env: Scene, root: UI): Arranged =
+    // claude 2026-10-19: changed: `pre`, and the kids measured in the content
+    // box for the natural size (PF-b, F5)
+    private def arrangeFlow(
+        node: Node,
+        env: Scene,
+        root: UI,
+        pre: Option[Kids],
+    ): Arranged =
         val box                         = node.content
         // the items in the flow are arranged; a kid out of the flow keeps an
         // empty rect until `positioned` places it (not in a table)
@@ -1329,7 +1416,11 @@ private[tui4s] object Layout:
         val viewport                    = node.kind match
             case Kind.El(_) => node.props.clips
             case _          => false
-        val (kids0, regions, _)         = measuredKids(node, env, root, box.w)
+        val (kids0, regions, _)         = measuredKids(node, env, root, box.w, pre)
+        val measured                    = node.kind match
+            case Kind.El(_: Table) => None
+            case Kind.El(_)        => Some(Kids(box.w, kidsH(node), kids0, regions))
+            case _                 => None
         if !viewport then
             Arranged(
               kids0,
@@ -1338,6 +1429,7 @@ private[tui4s] object Layout:
               colsIn(box.w),
               box.w,
               None,
+              measured = measured,
             )
         else
             val p                                           = node.props
@@ -1384,6 +1476,7 @@ private[tui4s] object Layout:
               colsIn(port.w),
               port.w,
               Some(view),
+              measured = measured,
             )
         end if
     end arrangeFlow
@@ -1662,15 +1755,23 @@ private[tui4s] object Layout:
               ctx.cols,
               layer = layer,
             )
-            layoutChildren(node0, env, root, acc)
+            // claude 2026-10-19: changed: the kids of the measure (PF-b, F5)
+            layoutChildren(node0, env, root, acc, m.kids)
           case _          => acc
 
     /** Measures, arranges and places the children of `node` (which is already
       * positioned).
       */
-    // claude 2026-10-19: changed: the layer and the width of each kid (L1b)
-    def layoutChildren(node: Node, env: Scene, root: UI, acc: Laid): Laid =
-        val a        = arrangeKids(node, env, root, acc.nodes.get)
+    // claude 2026-10-19: changed: the kids of the measure of the node, `pre`
+    // (PF-b, F5); before: the layer and the width of each kid (L1b)
+    def layoutChildren(
+        node: Node,
+        env: Scene,
+        root: UI,
+        acc: Laid,
+        pre: Option[Kids] = None,
+    ): Laid =
+        val a        = arrangeKids(node, env, root, acc.nodes.get, pre)
         val kids     = a.kids
         val regions  = a.regions
         val rects    = a.rects
@@ -1732,20 +1833,26 @@ private[tui4s] object Layout:
           case (Kind.Txt(a, _), b: Text) => a == b.value
           case _                         => false
 
-    // claude 2026-10-12: changed: the unused parameter `kids` is removed;
-    // changed (PR #10 review: Codex, Layout.scala:264): `availH` added
-    private def naturalOf(node: Node, availH: Option[Int], env: Scene): Size =
+    // claude 2026-10-19: changed: the kids that the arrange measured, `known`
+    // (PF-b, F5); before: `availH` (PR #10 review: Codex, Layout.scala:264)
+    private def naturalOf(
+        node: Node,
+        availH: Option[Int],
+        env: Scene,
+        known: Option[Kids],
+    ): Size =
       node.kind match
           case Kind.Screen    => node.natural
           case Kind.El(e)     =>
-            measureElement(
+            measureWith(
               e,
               node.path,
               node.props,
               node.availW - node.props.margin.h,
               availH.map(h => (h - node.props.margin.v).max(0)),
               env,
-            )
+              known,
+            )._1
           case Kind.Txt(_, _) => node.natural
 
     /** Re-arranges the items of `container`. Items that keep their element,
@@ -1908,7 +2015,7 @@ private[tui4s] object Layout:
               val newNatural               =
                 if laidOut == 0 && removed.isEmpty && !propsChanged then
                     node0.natural
-                else naturalOf(updatedNode, ownerH, env)
+                else naturalOf(updatedNode, ownerH, env, a.measured)
               (node.owner, newNatural != node0.natural || propsChanged) match
                   case (Some(owner), true) =>
                     relayout(laid3, owner, Set(container), env, root)
