@@ -197,6 +197,107 @@ typed events, and optional shared stores. The small
 components that explicitly share state. Neither tabs nor native bindings
 require it.
 
+## Scroll, wrap and ellipsis
+
+<!-- claude 2026-10-19: created this section (L1a): the code block is the text of the region "scroll" of the Todo example (ReadmeSuite checks it) -->
+The Todo example (`examples/src/main/scala/examples/todo/Todo.scala`) puts
+its list and its input in a viewport that scrolls, and a long title ends with
+"…". These are plain kyo-ui styles:
+
+<!-- from: examples/src/main/scala/examples/todo/Todo.scala#scroll -->
+```scala
+    /** One line of text: a longer text ends with "…" at the edge of its box
+      * (CSS `overflow: hidden`, `text-overflow: ellipsis`,
+      * `white-space: nowrap`).
+      */
+    val oneLine: Style =
+      Style.overflow(_.hidden).textOverflow(_.ellipsis).whiteSpace(_.noWrap)
+
+    /** A row: the check box keeps its 3 cells, and a long title ends with "…".
+      * The list names the selected row by its id.
+      */
+    def row(r: Row): Ast.Li =
+      li.id(s"item-${r.item.id}")
+        .style(
+          (if r.selected then
+               Style.bg(Style.Color.indigo).color(Style.Color.white)
+           else Style.empty).gap(1.px),
+        )(
+          checkbox.checked(r.item.done).style(_.flexShrink(0)),
+          span(r.item.text).style(
+            if r.item.done then oneLine.strikethrough.color(Style.Color.gray)
+            else oneLine,
+          ),
+        )
+
+    /** The list keeps the focus while the arrows move the selection:
+      * `aria-activedescendant` names the selected row, so the viewport around
+      * the list scrolls to it, and `preventScrollKeys` keeps the arrows from
+      * scrolling it too.
+      */
+    def list(
+        rows: Signal[Chunk[Row]],
+        onKey: KeyboardEvent => Any < Async,
+    ): UI =
+      rows
+        .map(_.find(_.selected).fold("")(r => s"item-${r.item.id}"))
+        .map(selected =>
+          ul.id("list")
+            .tabIndex(0)
+            .preventScrollKeys
+            .aria("activedescendant", selected)
+            .onKeyDown(onKey)
+            .style(
+              _.border(1.px, Style.Color.slate)
+                .minHeight(4.px)
+                .focus(_.border(1.px, Style.Color.blue)),
+            )(
+              rows.foreachKeyed(_.item.id.toString)(row),
+            ): UI,
+        )
+
+    /** The list and the input bar under it, in a viewport that takes the free
+      * rows and scrolls (`overflowY: auto`; `tabIndex(-1)`: it is not a tab
+      * stop, its list and input are).
+      */
+    def body(list: UI, input: UI): UI =
+      div.tabIndex(-1).style(_.overflowY(_.auto).flexGrow(1))(list, input)
+```
+
+An element with `overflow`, `overflowX` or `overflowY` other than `visible`
+is a viewport. tui4s lays out its content at its natural size on that axis,
+clips it to the box, and shows the window at the scroll offset. `hidden`
+clips and does not scroll. `scroll` and `auto` also scroll, and such a
+viewport is focusable (Tab reaches it; `tabIndex(-1)` takes it out). When
+its content is taller than the box and the box has 3 rows or more, a scroll
+indicator (a track with a thumb) takes its right column
+(`scrollbarWidth(_.none)` hides it, `scrollbarColor` colours it). In a
+column, a viewport can shrink to the free rows: give it, or a box around it,
+a height (`height`, `maxHeight`, `height(100.pct)` on the root, `flexGrow`).
+
+| Key on the focused element (or on an element inside the viewport) | Scroll |
+| --- | --- |
+| ArrowUp, ArrowDown | one row |
+| PageUp, PageDown | one viewport height |
+| Home, End | to the top, to the bottom |
+| ArrowLeft, ArrowRight | one column (a viewport that scrolls horizontally) |
+
+The innermost viewport that can move scrolls. A key does not scroll when the
+focused element uses it (a text input moves its caret, a select cycles, the
+arrows of a focus group move the focus), or when an element of the focus
+chain has kyo-ui's `preventScrollKeys`. When the focus moves, each viewport
+around the focused element scrolls the least distance that shows it, as a
+browser does; a key or a paste on the focused element keeps it in view too.
+A list that keeps the focus and moves a selection names the selected element
+with `aria("activedescendant", id)`, and the viewport follows that element.
+
+Text: `whiteSpace(_.noWrap)` keeps one line, `pre` keeps the spaces and the
+line breaks with no wrap, `preWrap` keeps them and wraps, `normal` and
+`preLine` collapse the spaces. A text wraps in a column, and in a row box of
+a definite `width`. `textOverflow(_.ellipsis)` with `overflow(_.hidden)` puts
+"…" at the cut. Every measure counts terminal cells: a wide character (CJK,
+an emoji) takes two cells, and a cut never splits it.
+
 ## Modules
 
 Each module is released on its own, with its own version.

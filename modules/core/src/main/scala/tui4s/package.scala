@@ -25,6 +25,37 @@
   * the output capture), runs the UI with `Tui.run`, and gives the exit code (0
   * after a quit, 1 after a failure; 143 and 130 when `kill -TERM` and
   * `kill -INT` stop the JVM).
+  *
+  * Scroll, wrap and ellipsis are plain kyo-ui styles:
+  * {{{
+  * div.style(_.height(10.px).overflowY(_.scroll))(lines*)   // a viewport
+  * span(title).style(
+  *   _.overflow(_.hidden).textOverflow(_.ellipsis).whiteSpace(_.noWrap))
+  * }}}
+  *   - Viewports (`overflow`, `overflowX`, `overflowY`): an element with an
+  *     axis that is not `visible` lays out its content at its natural size on
+  *     that axis and clips it to its box. `hidden` does not scroll; `scroll`
+  *     and `auto` scroll, and the element is focusable (`tabIndex(-1)` takes it
+  *     out of the tab order). A content taller than a box of 3 rows or more
+  *     shows a scroll indicator in the right column (`scrollbarWidth`,
+  *     `scrollbarColor`). The scroll offset is kept while the viewport stays
+  *     mounted, and it starts at 0 after an unmount.
+  *   - The keys of a viewport (on the focused element or inside it): ArrowUp
+  *     and ArrowDown scroll one row, PageUp and PageDown one viewport height,
+  *     Home and End to the top and to the bottom, ArrowLeft and ArrowRight one
+  *     column (horizontal scroll only). The innermost viewport that can move
+  *     scrolls. No scroll when the focused element uses the key (a text input,
+  *     a select, a focus group) or when the focus chain has kyo-ui's
+  *     `preventScrollKeys`.
+  *   - Follow-focus: when the focus moves (or the element that its
+  *     `aria-activedescendant` names), and after a key or a paste on the
+  *     focused element, each viewport around it scrolls the least distance that
+  *     shows it.
+  *   - Text: `whiteSpace` (`noWrap`, `pre`, `preWrap`, `normal`, `preLine`),
+  *     `textWrap` (`wrap`, `noWrap`, `ellipsis`) and `textOverflow` with
+  *     `overflow(_.hidden)` ("…" at the cut). A text wraps in a column and in a
+  *     row of a definite `width`. Every measure counts cells: a wide character
+  *     takes two, and a cut never splits it.
   */
 // claude 2026-10-12: created (OS-13 part): the package Scaladoc; changed:
 // plain words instead of the pull request ids (review R1-4, R2-3); changed:
@@ -33,4 +64,6 @@
 // claude 2026-10-13: changed: Tui.run in the real terminal (T1)
 // claude 2026-10-13: changed: the two component styles (C4)
 // claude 2026-10-13: changed: TuiApp (T2)
+// claude 2026-10-19: changed: scroll, wrap and ellipsis, with the key table
+// (L1a)
 package object tui4s

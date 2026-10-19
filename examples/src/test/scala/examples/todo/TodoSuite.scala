@@ -156,4 +156,53 @@ class TodoSuite extends FunSuite:
       }
       assert(ended, "Esc did not end the run")
     }
+
+    /** The numbers of the rows "item <n>" that `s` shows, top first. */
+    // claude 2026-10-19: created (L1a)
+    private def items(s: Screen): Vector[Int] =
+      """\[.\] item (\d+)""".r
+        .findAllMatchIn(s.text)
+        .map(_.group(1).nn.toInt)
+        .toVector
+
+    // claude 2026-10-19: created (L1a)
+    test(
+      "a list longer than the screen: each add keeps the input in view with the newest items above it; Tab to the list and the arrows keep the selected row in view; a long title ends with …",
+    ) {
+      val (added, top, bottom, long) = run {
+        for
+            h      <- Headless.start(50, 12)(_ => Todo.app(file().toString))
+            _      <- Kyo.foreach(1 to 12)(i =>
+                        h.typeText(s"item $i").andThen(h.key(Keyboard.Enter)),
+                      )
+            added  <- h.screen
+            _      <- h.key(Keyboard.Tab)
+            top    <- h.screen
+            _      <- Kyo.foreach(1 to 11)(_ => h.key(Keyboard.ArrowDown))
+            bottom <- h.screen
+            // Shift-Tab: from the list back to the input (Tab would go to
+            // the check box of the first row)
+            _      <- h.key(Keyboard.Tab, Modifiers(shift = true))
+            _      <-
+              h.typeText(
+                "a very long title that is wider than the list on this screen",
+              )
+            _      <- h.key(Keyboard.Enter)
+            long   <- h.screen
+        yield (added, top, bottom, long)
+      }
+      // the body has the 9 rows between the header and the footer: the
+      // newest items, the bottom border of the list, the input
+      assert(items(added) == (6 to 12).toVector, added.text)
+      assert(added.contains("New:") && added.contains("█"), added.text)
+      // the list has the focus; its selected row is the first one
+      assert(items(top) == (1 to 9).toVector, top.text)
+      // the selection went down to the last row; the list followed it
+      assert(items(bottom) == (4 to 12).toVector, bottom.text)
+      val title                      = long.text.linesIterator.find(_.contains("a very long"))
+      assert(
+        title.exists(l => l.contains("…") && !l.contains("screen")),
+        long.text,
+      )
+    }
 end TodoSuite

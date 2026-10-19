@@ -12,9 +12,13 @@ import tui4s.{Tui, TuiApp}
   * stream (a line every 400 ms). ArrowLeft and ArrowRight change the tab; the
   * tabs are buttons in one focus group, so Tab moves to the next tab and Enter
   * or Space selects it; `p` pauses the sampler (the log goes on); `q` quits.
-  * The widgets (the gauge, the sparkline, the tabs) are in
+  * The log pane is a viewport that scrolls, with the newest line first: Tab
+  * after the last tab reaches it, and the arrows, PageUp, PageDown, Home and
+  * End scroll it. The widgets (the gauge, the sparkline, the tabs) are in
   * `examples.widgets.Widgets`.
   */
+// claude 2026-10-19: changed: the Scaladoc names the log pane that scrolls
+// (L1a)
 // claude 2026-10-13: changed (T2, RC-33): the Scaladoc (the prototype said
 // "tabs (Left / Right)"); the periods of the sampler and of the log are
 // parameters, so that a test can use short ones
@@ -110,12 +114,33 @@ object Dashboard:
         Widgets.sparkline(s.metrics.map(_.history(t)), Style.Color.blue),
       )
 
+    /** The lines that the log keeps. */
+    // claude 2026-10-19: created (L1a)
+    val logLines: Int = 50
+
+    /** The log pane: its title, and its lines in a viewport 9 rows high (7
+      * lines inside the border) that scrolls (`overflowY: scroll`), the newest
+      * line first. The viewport is focusable, and it shows a scroll indicator
+      * when the lines do not fit; a focused viewport has a heavy border.
+      */
+    // claude 2026-10-19: changed: a viewport that scrolls (L1a)
     def logPane(s: State): UI =
-      div.style(
-        _.border(1.px, Style.Color.slate).padding(0.px, 1.px).height(10.px),
-      )(
+      div(
         h3("Log"),
-        ul(s.logs.foreachKeyed(_._1.toString)((_, line) => li(line))),
+        div
+          .id("log")
+          .style(
+            _.border(1.px, Style.Color.slate)
+              .padding(0.px, 1.px)
+              .height(9.px)
+              .overflowY(_.scroll),
+          )(
+            ul(
+              s.logs
+                .map(_.reverse)
+                .foreachKeyed(_._1.toString)((_, line) => li(line)),
+            ),
+          ),
       )
 
     def view(s: State): UI =
@@ -154,8 +179,11 @@ object Dashboard:
           _ <- Fiber.init(sampler(s, sampleEvery))
           _ <- Fiber.init(
                  logStream(logEvery).foreach(line =>
+                   // claude 2026-10-19: changed: the log keeps `logLines`
+                   // lines, so the pane has some to scroll (L1a)
                    s.logs.updateAndGet(l =>
-                     (l :+ (l.lastOption.fold(1)(_._1 + 1), line)).takeRight(6),
+                     (l :+ (l.lastOption.fold(1)(_._1 + 1), line))
+                       .takeRight(logLines),
                    ),
                  ),
                )

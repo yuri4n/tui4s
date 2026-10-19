@@ -16,7 +16,14 @@ import java.nio.file.{Files, Paths}
   * (`Tui.quit`). In the input, `d` and `q` are text. A paste (the bracketed
   * paste of the terminal) is one edit of the input, and a line break in it is a
   * space: a paste never adds an item.
+  *
+  * The list and the input under it are in one viewport that scrolls (`body`): a
+  * list longer than the screen keeps the focused input in view, so each new
+  * item shows above it; in the list, the selected row stays in view (the list
+  * names it with `aria-activedescendant`). A long title ends with "…".
   */
+// claude 2026-10-19: changed: the Scaladoc names the scroll and the ellipsis
+// (L1a)
 // claude 2026-10-13: changed (T2, RC-33): the Scaladoc names the keys; a file
 // that cannot be read is in the status line (the prototype showed "loaded 0
 // items")
@@ -88,42 +95,81 @@ object Todo:
         span(count).style(_.color(Style.Color.gray)),
       )
 
+    // claude 2026-10-19: changed: the input has the first focus
+    // (`focusAuto`), as it comes after the list (L1a)
     def inputBar(draft: SignalRef[String], add: => Any < Async): UI =
       form.onSubmit(add)(
         div.style(_.row.gap(1.px))(
           span("New:"),
           input
             .id("draft")
+            .focusAuto(true)
             .placeholder("What needs doing? (Enter adds)")
             .value(draft)
             .style(_.width(40.px)),
         ),
       )
 
-    def row(r: Row): Ast.Li =
-      li.style(if r.selected then
-          Style.bg(Style.Color.indigo).color(Style.Color.white)
-      else Style.empty)(
-        checkbox.checked(r.item.done),
-        span(" " + r.item.text).style(if r.item.done then
-            Style.strikethrough.color(Style.Color.gray)
-        else Style.empty),
-      )
+    // claude 2026-10-19: created the region below (L1a): the README section
+    // "Scroll, wrap and ellipsis" shows it
+    // region: scroll
+    /** One line of text: a longer text ends with "…" at the edge of its box
+      * (CSS `overflow: hidden`, `text-overflow: ellipsis`,
+      * `white-space: nowrap`).
+      */
+    val oneLine: Style =
+      Style.overflow(_.hidden).textOverflow(_.ellipsis).whiteSpace(_.noWrap)
 
+    /** A row: the check box keeps its 3 cells, and a long title ends with "…".
+      * The list names the selected row by its id.
+      */
+    def row(r: Row): Ast.Li =
+      li.id(s"item-${r.item.id}")
+        .style(
+          (if r.selected then
+               Style.bg(Style.Color.indigo).color(Style.Color.white)
+           else Style.empty).gap(1.px),
+        )(
+          checkbox.checked(r.item.done).style(_.flexShrink(0)),
+          span(r.item.text).style(
+            if r.item.done then oneLine.strikethrough.color(Style.Color.gray)
+            else oneLine,
+          ),
+        )
+
+    /** The list keeps the focus while the arrows move the selection:
+      * `aria-activedescendant` names the selected row, so the viewport around
+      * the list scrolls to it, and `preventScrollKeys` keeps the arrows from
+      * scrolling it too.
+      */
     def list(
         rows: Signal[Chunk[Row]],
         onKey: KeyboardEvent => Any < Async,
     ): UI =
-      ul.id("list")
-        .tabIndex(0)
-        .onKeyDown(onKey)
-        .style(
-          _.border(1.px, Style.Color.slate)
-            .minHeight(4.px)
-            .focus(_.border(1.px, Style.Color.blue)),
-        )(
-          rows.foreachKeyed(_.item.id.toString)(row),
+      rows
+        .map(_.find(_.selected).fold("")(r => s"item-${r.item.id}"))
+        .map(selected =>
+          ul.id("list")
+            .tabIndex(0)
+            .preventScrollKeys
+            .aria("activedescendant", selected)
+            .onKeyDown(onKey)
+            .style(
+              _.border(1.px, Style.Color.slate)
+                .minHeight(4.px)
+                .focus(_.border(1.px, Style.Color.blue)),
+            )(
+              rows.foreachKeyed(_.item.id.toString)(row),
+            ): UI,
         )
+
+    /** The list and the input bar under it, in a viewport that takes the free
+      * rows and scrolls (`overflowY: auto`; `tabIndex(-1)`: it is not a tab
+      * stop, its list and input are).
+      */
+    def body(list: UI, input: UI): UI =
+      div.tabIndex(-1).style(_.overflowY(_.auto).flexGrow(1))(list, input)
+    // endregion: scroll
 
     def footer(status: Signal[String]): UI =
       div(
@@ -198,16 +244,20 @@ object Todo:
                          case other             => status.set(s"save failed: $other")
                        },
                      )
-      yield main.onKeyDown {
-        case KeyboardEvent(Keyboard.Char('s'), mods, _) if mods.ctrl => saveAll
-        case KeyboardEvent(Keyboard.Escape, _, _)                    => Tui.quit
-        case _                                                       => ()
-      }(
-        header(count),
-        inputBar(draft, add),
-        list(rows, listKeys),
-        footer(status),
-      )
+      // claude 2026-10-19: changed: the screen height, and the body that
+      // scrolls (L1a)
+      yield main
+        .onKeyDown {
+          case KeyboardEvent(Keyboard.Char('s'), mods, _) if mods.ctrl =>
+            saveAll
+          case KeyboardEvent(Keyboard.Escape, _, _)                    => Tui.quit
+          case _                                                       => ()
+        }
+        .style(_.height(100.pct))(
+          header(count),
+          body(list(rows, listKeys), inputBar(draft, add)),
+          footer(status),
+        )
 end Todo
 
 /** Runs the Todo app in the real terminal. The list is in a file: the first

@@ -170,4 +170,46 @@ class DashboardSuite extends FunSuite:
         run(start.map(h => h.char('q').andThen(h.awaitEnd(10.seconds))))
       assert(ended, "q did not end the run")
     }
+
+    /** The numbers of the log lines that `s` shows, top first. */
+    // claude 2026-10-19: created (L1a)
+    private def events(s: Screen): Vector[Int] =
+      """event #(\d+)""".r
+        .findAllMatchIn(s.text)
+        .map(_.group(1).nn.toInt)
+        .toVector
+
+    // claude 2026-10-19: created (L1a)
+    test(
+      "the log pane scrolls: Tab after the last tab reaches it, PageDown shows older lines, the indicator moves, Home goes back",
+    ) {
+      val (focus, before, after, home)        = run {
+        for
+            s      <- Dashboard.init
+            _      <- s.logs.set(
+                        Chunk.from(
+                          (1 to 30).map(i => (i, s"event #$i: request served")),
+                        ),
+                      )
+            h      <- Headless.start(80, 30)(_ => Dashboard.view(s))
+            fs     <- Kyo.foreach(1 to 3)(_ => h.key(Keyboard.Tab))
+            before <- h.screen
+            _      <- h.key(Keyboard.PageDown)
+            after  <- h.screen
+            _      <- h.key(Keyboard.Home)
+            home   <- h.screen
+        yield (fs.lastOption.flatMap(_.focus), before, after, home)
+      }
+      assert(focus.contains("log"), s"$focus")
+      // 7 rows, the newest line first
+      assert(events(before) == (30 to 24 by -1).toVector, before.text)
+      assert(events(after) == (23 to 17 by -1).toVector, after.text)
+      assert(events(home) == events(before), home.text)
+      // the thumb: on the row of the newest line before, not after
+      def thumbOn(s: Screen, n: Int): Boolean =
+        s.text.linesIterator
+          .find(_.contains(s"event #$n:"))
+          .exists(_.contains("█"))
+      assert(thumbOn(before, 30) && !thumbOn(after, 23), after.text)
+    }
 end DashboardSuite

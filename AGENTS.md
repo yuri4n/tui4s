@@ -85,6 +85,34 @@ Each UI has a munit suite on `Headless`.
 <!-- claude 2026-10-13: created these lines (T2, RC-24, OS-47 part): TuiApp and the examples -->
 <!-- claude 2026-10-13: changed the last sentence (T2, review R1-4): counterkyo is a KyoApp; widgets has no main -->
 <!-- claude 2026-10-19: changed: kill -HUP and 129 -->
+An element with an `overflow` axis that is not `visible` is a viewport
+(`internal.Layout.arrangeKids`, `internal.Scroll`): it clips its content, which
+has its natural size on that axis, and with `scroll` or `auto` it is focusable,
+it scrolls with the keys of the table below and with the follow-focus rule (when
+the focus or its `aria-activedescendant` moves, or after a key or a paste on the
+focused element, each viewport around it scrolls the least distance that shows
+it; D13: kyo-ui's `scrollIntoView` is private), and it shows a scroll indicator
+when its content is taller than a port of 3 rows or more, with the offset in
+`World.scroll` by `Loc`, clamped after each layout and reset at an unmount.
+The text flow (`internal.TextFlow`) honours `whiteSpace`, `textWrap` (CSS
+`overflow-wrap`) and `textOverflow` with `overflow: hidden` ("…" at the cut),
+and a text wraps in a column and in a row of a definite `width`.
+Every measure that places a glyph counts cells (`Layout.textWidth`): the caret
+and the scroll of a text input, the labels of the pickers (`Paint.fit`), the
+wrap of a long word and the ellipsis, so a wide character is never split.
+
+| Key (no modifier) on the focused element or inside the viewport | Scroll |
+| --------------------------------------------------------------- | ------ |
+| ArrowUp, ArrowDown                                              | one row |
+| PageUp, PageDown                                                | one port height |
+| Home, End                                                       | to the top, to the bottom (to the left, to the right when only the horizontal axis scrolls) |
+| ArrowLeft, ArrowRight                                           | one column (only when the viewport scrolls horizontally) |
+
+The innermost viewport of the focus chain that can move scrolls. There is no
+scroll when the focused element uses the key (a text input: the arrows, Home
+and End; a select: ArrowUp and ArrowDown; a focus group: ArrowLeft and
+ArrowRight) or when an element of the chain has kyo-ui's `preventScrollKeys`.
+<!-- claude 2026-10-19: created the three sentences, the key table and its notes above (L1a): scroll, text flow, wide characters -->
 
 ## UI architecture and API design
 
