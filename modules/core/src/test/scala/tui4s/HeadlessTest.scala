@@ -308,9 +308,10 @@ class HeadlessTest extends RunnerSuite:
           // Every character: the event that the input thread gives for the
           // terminal's key.
           val want     = chars.map { c =>
+            // claude 2026-10-19: changed: EventMapping gives a Maybe (P1)
             EventMapping(ScriptedInput.typed(c), 1L) match
-                case Msg.Key(ev, _) => (ev.key, ev.modifiers)
-                case other          =>
+                case Present(Msg.Key(ev, _)) => (ev.key, ev.modifiers)
+                case other                   =>
                   (Keyboard.Unknown(s"not a key: $other"), Modifiers.none)
           }
           val wrong    = chars.zip(want).zip(got).collect {

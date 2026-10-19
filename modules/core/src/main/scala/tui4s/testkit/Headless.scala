@@ -343,9 +343,11 @@ object Headless:
             plain(Keyboard.Unknown(String(Character.toChars(cp))))
         else
             val c = cp.toChar
-            EventMapping.key(EventMapping.typed(c)) match
-                case null              => plain(Keyboard.Char(c)) // scalafix:ok DisableSyntax.null; P1: EventMapping.key gives Maybe
-                case ev: KeyboardEvent => ev
+            // claude 2026-10-19: changed: EventMapping.key gives a Maybe (P1)
+            EventMapping
+              .key(EventMapping.typed(c))
+              .getOrElse(plain(Keyboard.Char(c)))
+        end if
     end keyOf
 
     /** The keys that type `s`: one per code point; `\r\n` is one Enter. */

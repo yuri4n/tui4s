@@ -49,9 +49,10 @@ class SchedulerDefaultsTest extends Test[Any]:
         env: Map[String, String] = Map.empty,
     ): (Seq[String], Map[String, String]) =
         val now = mutable.Map.from(props)
+        // claude 2026-10-19: changed: the lookups give an Option (P1)
         val set = SchedulerDefaults.applyTo(
-          k => now.getOrElse(k, null),
-          k => env.getOrElse(k, null),
+          k => now.get(k),
+          k => env.get(k),
           (k, v) => now(k) = v,
         )
         (set, now.toMap)

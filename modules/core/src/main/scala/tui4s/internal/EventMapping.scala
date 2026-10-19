@@ -27,8 +27,8 @@ import tui.crossterm.{
   *   - BackTab (Shift-Tab) arrives as `Tab` with `shift`.
   *   - crossterm's META is `meta`; SUPER and HYPER are not reported.
   *   - A key release, F13 and above, half of a surrogate pair, the lock, media
-  *     and modifier keys, and the mouse and focus events are dropped (`null`).
-  *     The runner has no mouse and no focus events (D-30).
+  *     and modifier keys, and the mouse and focus events are dropped
+  *     (`Absent`). The runner has no mouse and no focus events (D-30).
   *
   * A character outside the Basic Multilingual Plane (an emoji) cannot be a
   * kyo-ui `Keyboard.Char` (one UTF-16 char), and crossterm's `KeyCode.Char`
@@ -51,32 +51,28 @@ import tui.crossterm.{
 // Msg.Paste, Msg.Resize (it replaces the prototype's Keys.scala and keeps its
 // rules); the mouse and the focus events are dropped (D-30)
 private[tui4s] object EventMapping:
-    /** The runner message for `e`, with the sequence number `seq`; `null` for
+    /** The runner message for `e`, with the sequence number `seq`; `Absent` for
       * an event that the runner ignores.
       */
-    // claude 2026-10-13: changed (T1): Msg with its sequence number; null
-    // checks at the Java records (AGENTS.md, the Java boundary)
-    def apply(e: CEvent, seq: Long): Msg | Null = e match // scalafix:ok DisableSyntax.nullType; P1: apply gives Maybe[Msg]
+    // claude 2026-10-19: changed: Maybe[Msg], not null (purity plan, P1); a
+    // null Java field is Absent on the line that reads it
+    def apply(e: CEvent, seq: Long): Maybe[Msg] = e match
         case k: CEvent.Key         =>
-          val ke = k.keyEvent
-          if ke == null then null // scalafix:ok DisableSyntax.null; P1: apply gives Maybe[Msg]
-          else
-              val ev = key(ke)
-              if ev == null then null else Msg.Key(ev, seq) // scalafix:ok DisableSyntax.null; P1: apply gives Maybe[Msg]
+          Maybe[KeyEvent](k.keyEvent).flatMap(key).map(Msg.Key(_, seq))
         case p: CEvent.Paste       =>
-          val text = p.string
-          if text == null then null else Msg.Paste(text, seq) // scalafix:ok DisableSyntax.null; P1: apply gives Maybe[Msg]
-        case r: CEvent.Resize      => Msg.Resize(Size(r.columns, r.rows), seq)
-        case _: CEvent.Mouse       => null // scalafix:ok DisableSyntax.null; P1: apply gives Maybe[Msg]
-        case _: CEvent.FocusGained => null // scalafix:ok DisableSyntax.null; P1: apply gives Maybe[Msg]
-        case _: CEvent.FocusLost   => null // scalafix:ok DisableSyntax.null; P1: apply gives Maybe[Msg]
+          Maybe[String](p.string).map(Msg.Paste(_, seq))
+        case r: CEvent.Resize      =>
+          Present(Msg.Resize(Size(r.columns, r.rows), seq))
+        case _: CEvent.Mouse       => Absent
+        case _: CEvent.FocusGained => Absent
+        case _: CEvent.FocusLost   => Absent
 
     /** The modifier keys of crossterm's bits (`extraShift`: BackTab). SUPER and
       * HYPER are not reported.
       */
-    // claude 2026-10-13: changed (T1): kyo-ui Modifiers; META is meta
-    def mods(m: KeyModifiers | Null, extraShift: Boolean = false): Modifiers = // scalafix:ok DisableSyntax.nullType; P1: Maybe on the Java field
-        val bits = if m == null then 0 else m.bits // scalafix:ok DisableSyntax.null; P1: Maybe on the Java field
+    // claude 2026-10-19: changed: Maybe on the Java field (purity plan, P1)
+    def mods(m: Maybe[KeyModifiers], extraShift: Boolean = false): Modifiers =
+        val bits = m.fold(0)(_.bits)
         Modifiers(
           ctrl = (bits & KeyModifiers.CONTROL) != 0,
           alt = (bits & KeyModifiers.ALT) != 0,
@@ -85,59 +81,61 @@ private[tui4s] object EventMapping:
         )
     end mods
 
-    /** A key press or repeat as kyo-ui's event; `null` for a release and for
+    /** A key press or repeat as kyo-ui's event; `Absent` for a release and for
       * the keys that the runner does not model.
       */
-    // claude 2026-10-13: changed (T1): kyo-ui Keyboard (the prototype rules)
-    def key(ke: KeyEvent): KeyboardEvent | Null = // scalafix:ok DisableSyntax.nullType; P1: key gives Maybe[KeyboardEvent]
-        def ev(k: Keyboard, m: Modifiers): KeyboardEvent =
-          KeyboardEvent(k, m, Absent)
-        val code                                         = ke.code
-        if ke.kind == KeyEventKind.Release || code == null then null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
+    // claude 2026-10-19: changed: Maybe[KeyboardEvent], not null (purity plan,
+    // P1)
+    def key(ke: KeyEvent): Maybe[KeyboardEvent] =
+        def ev(k: Keyboard, m: Modifiers): Maybe[KeyboardEvent] =
+          Present(KeyboardEvent(k, m, Absent))
+        val code                                                = Maybe[KeyCode](ke.code)
+        if ke.kind == KeyEventKind.Release then Absent
         else
-            val m = mods(ke.modifiers)
-            code match
-                case c: KeyCode.Char        =>
-                  // A terminal applies Shift to the character; a terminal that
-                  // reports the base key (`a` with Shift) gets the same event.
-                  val ch =
-                    if m.ctrl then Character.toLowerCase(c.c)
-                    else if m.shift then Character.toUpperCase(c.c)
-                    else c.c
-                  if Character.isSurrogate(ch) then null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
-                  else if ch == ' ' then ev(Keyboard.Space, m)
-                  else ev(Keyboard.Char(ch), m)
-                case _: KeyCode.BackTab     =>
-                  ev(Keyboard.Tab, mods(ke.modifiers, extraShift = true))
-                case _: KeyCode.Enter       => ev(Keyboard.Enter, m)
-                case _: KeyCode.Esc         => ev(Keyboard.Escape, m)
-                case _: KeyCode.Tab         => ev(Keyboard.Tab, m)
-                case _: KeyCode.Backspace   => ev(Keyboard.Backspace, m)
-                case _: KeyCode.Delete      => ev(Keyboard.Delete, m)
-                case _: KeyCode.Insert      => ev(Keyboard.Insert, m)
-                case _: KeyCode.Up          => ev(Keyboard.ArrowUp, m)
-                case _: KeyCode.Down        => ev(Keyboard.ArrowDown, m)
-                case _: KeyCode.Left        => ev(Keyboard.ArrowLeft, m)
-                case _: KeyCode.Right       => ev(Keyboard.ArrowRight, m)
-                case _: KeyCode.Home        => ev(Keyboard.Home, m)
-                case _: KeyCode.End         => ev(Keyboard.End, m)
-                case _: KeyCode.PageUp      => ev(Keyboard.PageUp, m)
-                case _: KeyCode.PageDown    => ev(Keyboard.PageDown, m)
-                case f: KeyCode.F           =>
-                  EventMapping.function(f.num) match
-                      case Present(k) => ev(k, m)
-                      case Absent     => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
-                case _: KeyCode.Null        => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
-                case _: KeyCode.CapsLock    => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
-                case _: KeyCode.ScrollLock  => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
-                case _: KeyCode.NumLock     => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
-                case _: KeyCode.PrintScreen => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
-                case _: KeyCode.Pause       => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
-                case _: KeyCode.Menu        => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
-                case _: KeyCode.KeypadBegin => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
-                case _: KeyCode.Media       => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
-                case _: KeyCode.Modifier    => null // scalafix:ok DisableSyntax.null; P1: key gives Maybe[KeyboardEvent]
-            end match
+            val mm = Maybe[KeyModifiers](ke.modifiers)
+            val m  = mods(mm)
+            code.flatMap { kc =>
+              kc match
+                  case c: KeyCode.Char        =>
+                    // A terminal applies Shift to the character; a terminal that
+                    // reports the base key (`a` with Shift) gets the same event.
+                    val ch =
+                      if m.ctrl then Character.toLowerCase(c.c)
+                      else if m.shift then Character.toUpperCase(c.c)
+                      else c.c
+                    if Character.isSurrogate(ch) then Absent
+                    else if ch == ' ' then ev(Keyboard.Space, m)
+                    else ev(Keyboard.Char(ch), m)
+                  case _: KeyCode.BackTab     =>
+                    ev(Keyboard.Tab, mods(mm, extraShift = true))
+                  case _: KeyCode.Enter       => ev(Keyboard.Enter, m)
+                  case _: KeyCode.Esc         => ev(Keyboard.Escape, m)
+                  case _: KeyCode.Tab         => ev(Keyboard.Tab, m)
+                  case _: KeyCode.Backspace   => ev(Keyboard.Backspace, m)
+                  case _: KeyCode.Delete      => ev(Keyboard.Delete, m)
+                  case _: KeyCode.Insert      => ev(Keyboard.Insert, m)
+                  case _: KeyCode.Up          => ev(Keyboard.ArrowUp, m)
+                  case _: KeyCode.Down        => ev(Keyboard.ArrowDown, m)
+                  case _: KeyCode.Left        => ev(Keyboard.ArrowLeft, m)
+                  case _: KeyCode.Right       => ev(Keyboard.ArrowRight, m)
+                  case _: KeyCode.Home        => ev(Keyboard.Home, m)
+                  case _: KeyCode.End         => ev(Keyboard.End, m)
+                  case _: KeyCode.PageUp      => ev(Keyboard.PageUp, m)
+                  case _: KeyCode.PageDown    => ev(Keyboard.PageDown, m)
+                  case f: KeyCode.F           =>
+                    EventMapping.function(f.num).flatMap(ev(_, m))
+                  case _: KeyCode.Null        => Absent
+                  case _: KeyCode.CapsLock    => Absent
+                  case _: KeyCode.ScrollLock  => Absent
+                  case _: KeyCode.NumLock     => Absent
+                  case _: KeyCode.PrintScreen => Absent
+                  case _: KeyCode.Pause       => Absent
+                  case _: KeyCode.Menu        => Absent
+                  case _: KeyCode.KeypadBegin => Absent
+                  case _: KeyCode.Media       => Absent
+                  case _: KeyCode.Modifier    => Absent
+              end match
+            }
         end if
     end key
 

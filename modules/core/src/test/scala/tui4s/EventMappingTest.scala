@@ -29,10 +29,11 @@ class EventMappingTest extends Test[Any]:
     import EventMappingTest.*
 
     /** The kyo-ui key that the mapping gives for `e` (`None`: dropped). */
+    // claude 2026-10-19: changed: EventMapping gives a Maybe (P1)
     private def mapped(e: CEvent): Option[KeyboardEvent] =
       EventMapping(e, 1L) match
-          case Msg.Key(ev, _) => Some(ev)
-          case _              => None
+          case Present(Msg.Key(ev, _)) => Some(ev)
+          case _                       => None
 
     private def wrongOf(table: Seq[(CEvent, KeyboardEvent)]): Seq[String] =
       table.collect {
@@ -173,7 +174,8 @@ class EventMappingTest extends Test[Any]:
         key(KeyCode.Media(MediaKeyCode.Play)),
         key(KeyCode.Modifier(ModifierKeyCode.LeftShift)),
       )
-      val kept    = dropped.filter(e => EventMapping(e, 1L) != null)
+      // claude 2026-10-19: changed: EventMapping gives a Maybe (P1)
+      val kept    = dropped.filter(e => EventMapping(e, 1L).nonEmpty)
       assert(kept.isEmpty, kept.mkString("\n"))
     }
 
@@ -194,25 +196,27 @@ class EventMappingTest extends Test[Any]:
         CEvent.FocusGained(),
         CEvent.FocusLost(),
       )
-      val kept   = events.filter(e => EventMapping(e, 1L) != null)
+      // claude 2026-10-19: changed: EventMapping gives a Maybe (P1)
+      val kept   = events.filter(e => EventMapping(e, 1L).nonEmpty)
       assert(kept.isEmpty, kept.mkString("\n"))
     }
 
     // claude 2026-10-13: changed (T1): Msg.Paste and Msg.Resize with the
     // sequence number (the focus events are dropped)
     "a paste is Msg.Paste with its text as it is; a resize is Msg.Resize; both get the sequence number" in {
+      // claude 2026-10-19: changed: EventMapping gives a Maybe (P1)
       assert(
-        EventMapping(CEvent.Paste("a\nb 😀"), 7L) == Msg.Paste("a\nb 😀", 7L),
+        EventMapping(CEvent.Paste("a\nb 😀"), 7L) ==
+          Present(Msg.Paste("a\nb 😀", 7L)),
       )
       assert(
-        EventMapping(CEvent.Resize(120, 40), 8L) == Msg.Resize(
-          Size(120, 40),
-          8L,
+        EventMapping(CEvent.Resize(120, 40), 8L) == Present(
+          Msg.Resize(Size(120, 40), 8L),
         ),
       )
       assert(
         EventMapping(key(KeyCode.Char('a')), 9L) ==
-          Msg.Key(kb(Keyboard.Char('a')), 9L),
+          Present(Msg.Key(kb(Keyboard.Char('a')), 9L)),
       )
     }
 
@@ -223,8 +227,9 @@ class EventMappingTest extends Test[Any]:
       val drop  = key(KeyCode.Up(), kind = Release)
       val fake  = FakeCrossterm(events = Seq(first, drop))
       val input = tui4s.internal.CrosstermInput(fake)
-      val one   = input.poll(10) && input.read() == first
-      val two   = input.poll(10) && input.read() == drop
+      // claude 2026-10-19: changed: read gives a Maybe (P1)
+      val one   = input.poll(10) && input.read() == Present(first)
+      val two   = input.poll(10) && input.read() == Present(drop)
       assert(one && two && !input.poll(10))
     }
 end EventMappingTest

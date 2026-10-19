@@ -163,7 +163,9 @@ object Tui:
     private def inputFailed(session: Session)(using
         Frame,
     ): Unit < (Sync & Abort[TuiError]) =
-      Sync.defer(session.inputFailure).map { f =>
-        if f == null then Kyo.unit else Abort.fail(TuiError.TerminalIO(f)) // scalafix:ok DisableSyntax.null; P1: inputFailure gives a Maybe
+      // claude 2026-10-19: changed: inputFailure gives a Maybe (P1)
+      Sync.defer(session.inputFailure).map {
+        case Present(f) => Abort.fail(TuiError.TerminalIO(f))
+        case Absent     => Kyo.unit
       }
 end Tui

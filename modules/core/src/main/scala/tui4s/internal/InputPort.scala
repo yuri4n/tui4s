@@ -1,5 +1,6 @@
 package tui4s.internal
 
+import kyo.Maybe
 import tui.crossterm.Event as CEvent
 
 /** The input of a run in the terminal: crossterm events (D-21 a), so that the
@@ -14,5 +15,6 @@ private[tui4s] trait InputPort:
     /** Waits at most `timeoutMillis` for an event; true when one is ready. */
     def poll(timeoutMillis: Int): Boolean
 
-    /** The next event; `null` when none is ready. */
-    def read(): CEvent | Null // scalafix:ok DisableSyntax.nullType; P1: Maybe[CEvent]
+    /** The next event; `Absent` when none is ready. */
+    // claude 2026-10-19: changed: Maybe[CEvent], not null (purity plan, P1)
+    def read(): Maybe[CEvent]

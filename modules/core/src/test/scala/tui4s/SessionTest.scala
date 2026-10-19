@@ -111,7 +111,8 @@ class SessionTest extends Test[Any]:
       val broken = new InputPort:
           def poll(timeoutMillis: Int): Boolean =
             throw java.io.IOException("tty gone")
-          def read(): CEvent | Null             = null
+          // claude 2026-10-19: changed: read gives a Maybe (P1)
+          def read(): Maybe[CEvent]             = Absent
       inbox(1).map { box =>
         box
           .put(Msg.Repair)
@@ -258,7 +259,8 @@ class SessionTest extends Test[Any]:
               val _ = polls.incrementAndGet()
               Thread.sleep(timeoutMillis.max(1).toLong)
               false
-          def read(): CEvent | Null             = null
+          // claude 2026-10-19: changed: read gives a Maybe (P1)
+          def read(): Maybe[CEvent]             = Absent
       val control = new tui4s.internal.TerminalControl:
           def enter(opts: TuiOptions): jatatui.core.backend.Backend =
               val _ = steps.add("enter")
@@ -320,7 +322,8 @@ class SessionTest extends Test[Any]:
             throw UnsatisfiedLinkError(
               "'boolean tui.crossterm.CrosstermJni.poll(tui.crossterm.Duration)'",
             )
-          def read(): CEvent | Null             = null
+          // claude 2026-10-19: changed: read gives a Maybe (P1)
+          def read(): Maybe[CEvent]             = Absent
       inbox(16).map { box =>
         Sync
           .defer {
@@ -362,7 +365,8 @@ class SessionTest extends Test[Any]:
               val _ = shortest.accumulateAndGet(timeoutMillis, math.min)
               Thread.sleep(timeoutMillis.max(0).toLong)
               false
-          def read(): CEvent | Null             = null
+          // claude 2026-10-19: changed: read gives a Maybe (P1)
+          def read(): Maybe[CEvent]             = Absent
       val opts                  = TuiOptions(pollInterval = JDuration.ZERO)
       inbox(16).map { box =>
         Session.open(opts, RecordingControl(10, 2), Some(port), box).map {

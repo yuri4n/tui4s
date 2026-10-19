@@ -70,13 +70,14 @@ private[tui4s] final class Session private (
     /** The first error of the release, if any. */
     @volatile var releaseError: Throwable | Null = null
 
-    /** Why the input thread failed (it then asked the run to end); `null` when
-      * it did not fail.
+    /** Why the input thread failed (it then asked the run to end); `Absent`
+      * when it did not fail.
       */
     // claude 2026-10-13: created (T1): the run fails with TerminalIO after it
-    def inputFailure: Throwable | Null =
+    // claude 2026-10-19: changed: a Maybe, not null (purity plan, P1)
+    def inputFailure: Maybe[Throwable] =
         val t = thread
-        if t == null then null else t.failure
+        if t == null then Absent else Maybe(t.failure).map(_.nn)
 
     /** The release: close the canvas (it waits for a draw in progress, and the
       * runner draws nothing after it), stop the input thread and close the
@@ -242,12 +243,12 @@ private[tui4s] final class InputThread(
                     val batch = scala.collection.mutable.ArrayBuffer.empty[Msg]
                     var n     = 0
                     while running && n < 512 && (n == 0 || port.poll(0)) do
-                        val e = port.read()
-                        if e != null then
-                            val m = EventMapping(e, seq)
-                            if m != null then
-                                batch += m
-                                seq += 1
+                        // claude 2026-10-19: changed: Maybe from the port and
+                        // from the mapping (purity plan, P1)
+                        port.read().flatMap(EventMapping(_, seq)).foreach { m =>
+                          batch += m
+                          seq += 1
+                        }
                         n += 1
                     end while
                     if batch.nonEmpty && running then

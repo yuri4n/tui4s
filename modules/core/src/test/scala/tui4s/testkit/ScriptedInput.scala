@@ -1,5 +1,6 @@
 package tui4s.testkit
 
+import kyo.Maybe
 import tui.crossterm.{
   Event as CEvent,
   KeyCode,
@@ -40,11 +41,13 @@ private[tui4s] final class ScriptedInput(events: Seq[CEvent]) extends InputPort:
             true
       }
 
-    /** The next event; `null` when none is queued. */
-    def read(): CEvent | Null =
-        val p = peeked
+    /** The next event; `Absent` when none is queued. */
+    // claude 2026-10-19: changed: Maybe[CEvent] (InputPort, P1)
+    def read(): Maybe[CEvent] =
+        val p                = peeked
         peeked = null
-        if p != null then p else queue.poll()
+        val e: CEvent | Null = if p != null then p else queue.poll()
+        Maybe(e).map(_.nn)
 end ScriptedInput
 
 /** Builds scripted input and crossterm key events. */

@@ -5,6 +5,7 @@ package tui4s.internal
 
 import jatatui.core.backend.Backend
 import jatatui.crossterm.CrosstermBackend
+import kyo.Maybe
 import tui.crossterm.{
   Command,
   CrosstermJni,
@@ -176,4 +177,5 @@ end Tty
 private[tui4s] final class CrosstermInput(crossterm: Crossterm)
     extends InputPort:
     def poll(timeoutMillis: Int): Boolean = crossterm.poll(timeoutMillis)
-    def read(): CEvent | Null             = crossterm.read()
+    // claude 2026-10-19: changed: a null event of the JNI is Absent (P1)
+    def read(): Maybe[CEvent]             = Maybe(crossterm.read()).map(_.nn)

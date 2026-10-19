@@ -45,10 +45,12 @@ object SchedulerDefaults:
       * a system property nor as an environment variable. Does nothing when the
       * system property `tui4s.schedulerDefaults` is `false`. Idempotent.
       */
+    // claude 2026-10-19: changed: Option on the Java lines (purity plan, P1;
+    // Option, not Maybe: no Kyo class may load here)
     def applyIfUnset(): Unit =
         val _ = applyTo(
-          java.lang.System.getProperty, // scalafix:ok DisableSyntax.jvmGlobal; KEEP: it runs before Kyo loads
-          java.lang.System.getenv,      // scalafix:ok DisableSyntax.jvmGlobal; KEEP: it runs before Kyo loads
+          k => Option(java.lang.System.getProperty(k)), // scalafix:ok DisableSyntax.jvmGlobal; KEEP: it runs before Kyo loads
+          k => Option(java.lang.System.getenv(k)),      // scalafix:ok DisableSyntax.jvmGlobal; KEEP: it runs before Kyo loads
           (key, value) =>
               val _ = java.lang.System.setProperty(key, value), // scalafix:ok DisableSyntax.jvmGlobal; KEEP: it runs before Kyo loads
         )
@@ -56,16 +58,17 @@ object SchedulerDefaults:
     /** [[applyIfUnset]] on the given property and environment lookups; returns
       * the keys that it set.
       */
+    // claude 2026-10-19: changed: the lookups give an Option (purity plan, P1)
     private[tui4s] def applyTo(
-        property: String => String | Null, // scalafix:ok DisableSyntax.nullType; P1: Option on the Java line (no Kyo class here)
-        env: String => String | Null,      // scalafix:ok DisableSyntax.nullType; P1: Option on the Java line (no Kyo class here)
+        property: String => Option[String],
+        env: String => Option[String],
         set: (String, String) => Unit,
     ): Seq[String] =
-      if property(OptOut) == "false" then Nil
+      if property(OptOut).contains("false") then Nil
       else
           defaults.collect {
             case (key, value)
-                if property(key) == null && env(envName(key)) == null => // scalafix:ok DisableSyntax.null; P1: Option on the Java line (no Kyo class here)
+                if property(key).isEmpty && env(envName(key)).isEmpty =>
               set(key, value)
               key
           }
