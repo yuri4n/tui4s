@@ -212,4 +212,68 @@ class DashboardSuite extends FunSuite:
           .exists(_.contains("█"))
       assert(thumbOn(before, 30) && !thumbOn(after, 23), after.text)
     }
+
+    // claude 2026-10-19: created the three leaves below (L1b)
+    test(
+      "? opens the help: a centered box over the screen, its Close button has the focus, Tab stays in it, Esc closes it and the focus goes back",
+    ) {
+      val (moved, opened, screen, tab, esc, closed) = run {
+        for
+            h      <- start
+            moved  <- h.key(Keyboard.ArrowRight) // the Memory tab
+            opened <- h.char('?')
+            screen <- h.screen
+            tab    <- h.key(Keyboard.Tab)
+            esc    <- h.key(Keyboard.Escape)
+            closed <- h.screen
+        yield (moved, opened, screen, tab, esc, closed)
+      }
+      assert(
+        screen.contains("Keys") && screen.contains("[ Close ]"),
+        screen.text,
+      )
+      // the box is in the middle: its title row is not at the left edge
+      val (x, y)                                    = screen.find("Keys").getOrElse((0, 0))
+      assert(x > 20 && y > 3, screen.text)
+      assert(opened.focus.contains("help-close"), opened.toString)
+      assert(tab.focus.contains("help-close"), tab.toString)
+      assert(esc.focus == moved.focus && moved.focus.nonEmpty, s"$esc $moved")
+      assert(!closed.contains("Keys"), closed.text)
+    }
+
+    test("p shows a toast at the bottom right; it goes away after its time") {
+      val (shown, gone) = run {
+        for
+            h     <- Headless.start(80, 24)(_ =>
+                       Dashboard.app(50.millis, 50.millis, 300.millis),
+                     )
+            _     <- h.char('p')
+            shown <- h.screen
+            gone  <- h.awaitScreen(!_.contains("sampler paused"), 10.seconds)
+        yield (shown, gone)
+      }
+      val (x, y)        = shown.find("sampler paused").getOrElse((0, 0))
+      assert(x > 50 && y > 18, shown.text)
+      assert(gone, "the toast did not go away")
+    }
+
+    test(
+      "the layout follows the width of the terminal: the log is beside the tabs at 120 columns, under them at 80",
+    ) {
+      def log(s: Screen): (Int, Int) =
+        s.find("Log").getOrElse((-1, -1))
+      val (wide, narrow)             = run {
+        for
+            h      <-
+              Headless.start(120, 30)(_ => Dashboard.app(50.millis, 50.millis))
+            wide   <- h.screen
+            _      <- h.resize(80, 30)
+            narrow <- h.screen
+        yield (wide, narrow)
+      }
+      val (wx, wy)                   = log(wide)
+      val (nx, ny)                   = log(narrow)
+      assert(wx >= 50 && wy <= 2, wide.text)
+      assert(nx == 0 && ny > 5, narrow.text)
+    }
 end DashboardSuite

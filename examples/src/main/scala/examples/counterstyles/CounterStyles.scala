@@ -14,11 +14,13 @@ import tui4s.{Component, Tui, TuiApp}
 // CounterStyles.ui (one main per package)
 object CounterHooks:
 
+    // claude 2026-10-19: changed: the colours of the stylesheet (L1b)
     def counter(label: String): UI < Sync =
       for count <- Signal.initRef(0)
-      yield div.style(_.border(1.px, Style.Color.slate).padding(0.px, 1.px))(
-        span(label).style(_.bold),
-        span("Count: ", count.map(_.toString)),
+      yield div.style(_.border(1.px, CounterStyles.frame).padding(0.px, 1.px))(
+        span(label).style(_.bold.color(CounterStyles.label)),
+        span("Count: ", count.map(_.toString))
+          .style(_.color(CounterStyles.count)),
         div.style(_.row.gap(1.px))(
           button("+").onClick(count.updateAndGet(_ + 1)),
           button("-").onClick(count.updateAndGet(_ - 1)),
@@ -32,10 +34,12 @@ end CounterHooks
 final class CounterBox(label: String) extends Component:
     type State = Int
     def initial: Int                    = 0
+    // claude 2026-10-19: changed: the colours of the stylesheet (L1b)
     def view(count: SignalRef[Int]): UI =
-      div.style(_.border(1.px, Style.Color.slate).padding(0.px, 1.px))(
-        span(label).style(_.bold),
-        span("Count: ", count.map(_.toString)),
+      div.style(_.border(1.px, CounterStyles.frame).padding(0.px, 1.px))(
+        span(label).style(_.bold.color(CounterStyles.label)),
+        span("Count: ", count.map(_.toString))
+          .style(_.color(CounterStyles.count)),
         div.style(_.row.gap(1.px))(
           button("+").onClick(count.updateAndGet(_ + 1)),
           button("-").onClick(count.updateAndGet(_ - 1)),
@@ -48,12 +52,33 @@ end CounterBox
   * their state) and shows them again (they start at 0). On the right, two
   * `Component` counters (`CounterBox`): the runner keeps their state under
   * their position. Tab moves between the eight buttons, Enter and Space press
-  * them, `q` quits.
+  * them, `q` quits. The colours of the counters are custom colours that
+  * [[colors]] declares once.
   */
 // claude 2026-10-13: created (T2, RC-33): one UI for the prototype's three
 // apps (CounterHooks.app, CounterHooks.dynamic, CounterComponents.app), so one
 // main and one PTY run show both styles
 object CounterStyles:
+    // claude 2026-10-19: created the region below (L1b): the README section
+    // "Overlays, terminal size and theme colors" shows it
+    // region: colors
+    /** The custom colours of the app, declared once for the whole tree: a
+      * kyo-ui `Stylesheet.vars` block (CSS custom properties on `:root`). The
+      * run gets it as its stylesheet (`TuiApp.stylesheet`, or the `stylesheet`
+      * of `Headless.start`), and an element names a colour with
+      * `Style.Color.variable`.
+      */
+    val colors: Stylesheet = Stylesheet.vars(
+      "frame" -> "#64748b",
+      "label" -> "#eab308",
+      "count" -> "#22c55e",
+    )
+
+    val frame: Style.Color = Style.Color.variable("frame")
+    val label: Style.Color = Style.Color.variable("label")
+    val count: Style.Color = Style.Color.variable("count")
+    // endregion: colors
+
     def ui: UI < Sync =
       for shown <- Signal.initRef(true)
       yield div.onKeyDown {
@@ -89,4 +114,6 @@ end CounterStyles
   */
 // claude 2026-10-13: created (T2, RC-33)
 object CounterStylesApp extends TuiApp:
-    def ui: UI < (Async & Scope) = CounterStyles.ui
+    def ui: UI < (Async & Scope)        = CounterStyles.ui
+    // claude 2026-10-19: created (L1b): the custom colours
+    override def stylesheet: Stylesheet = CounterStyles.colors

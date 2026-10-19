@@ -314,6 +314,163 @@ The examples do not show `pre`, `preWrap`, `textWrap(_.noWrap)`,
 `scrollbarWidth`, `scrollbarColor` or a horizontal scroll yet; the goldens of
 `GoldenScreenTest` do.
 
+## Overlays, terminal size and theme colors
+
+<!-- claude 2026-10-19: created this section (L1b): the code blocks are the text of the region "overlays" of the Dashboard example and of the region "colors" of the CounterStyles example (ReadmeSuite checks them) -->
+The Dashboard example (`examples/src/main/scala/examples/dashboard/Dashboard.scala`)
+opens a help box over the screen with `?`, shows a toast when `p` pauses
+the sampler, and puts the tabs and the log side by side in a terminal of 120
+columns or more. The boxes are plain kyo-ui styles; the size is a tui4s
+signal:
+
+<!-- from: examples/src/main/scala/examples/dashboard/Dashboard.scala#overlays -->
+```scala
+    /** The terminal width from which the tabs and the log are side by side. */
+    val wideFrom: Int = 120
+
+    /** The tabs and the log side by side in a terminal of `wideFrom` columns or
+      * more, else one above the other. `Tui.size` is the size of the terminal
+      * as a signal (kyo-ui has no such signal on the JVM), and a signal of
+      * styles restyles the box when the size changes.
+      */
+    def body(tabs: UI, log: UI, size: Signal[TerminalSize]): UI =
+      div(div(tabs).style(_.flexGrow(1)), div(log).style(_.flexGrow(1)))
+        .style(
+          size.map(t =>
+            if t.width >= wideFrom then Style.row.gap(2.px) else Style.column,
+          ),
+        )
+
+    /** The help: a box in the middle of the screen, over the rest (a
+      * `position(_.overlay)` layer that centers it). Its `focusTrap` keeps Tab
+      * inside it; its Close button takes the focus when it appears
+      * (`focusAuto`) and gives it back when it goes (`focusRestore`). Esc does
+      * nothing by itself in a focus trap: the `onKeyDown` of the box closes it.
+      */
+    def help(s: State): UI =
+      s.help.map(open =>
+        if !open then div
+        else
+            div.style(_.position(_.overlay).justify(_.center).align(_.center))(
+              div
+                .id("help")
+                .focusTrap(true)
+                .onKeyDown {
+                  case KeyboardEvent(Keyboard.Escape, _, _) => s.help.set(false)
+                  case _                                    => ()
+                }
+                .style(
+                  _.border(1.px, Style.Color.blue)
+                    .bg(Style.Color.black)
+                    .padding(0.px, 1.px),
+                )(
+                  h2("Keys"),
+                  span("←/→  change the tab"),
+                  span("p    pause or resume the sampler"),
+                  span("?    this help (Esc closes it)"),
+                  span("q    quit"),
+                  button("Close")
+                    .id("help-close")
+                    .focusAuto(true)
+                    .focusRestore(true)
+                    .onClick(s.help.set(false))
+                    .style(_.alignSelf(_.center)),
+                ),
+            ),
+      )
+
+    /** The toast: a box at the bottom right (`position(_.fixed)` with `bottom`
+      * and `right`), over the rest, while a message is shown.
+      */
+    def toast(s: State): UI =
+      s.toast.map {
+        case None    => div
+        case Some(t) =>
+          div.style(
+            _.position(_.fixed)
+              .bottom(1.px)
+              .right(2.px)
+              .border(1.px, Style.Color.green)
+              .bg(Style.Color.black)
+              .padding(0.px, 1.px),
+          )(t.text)
+      }
+```
+
+A positioned element is a layer. `position(_.absolute)` takes the element out
+of the flex flow and places it in its containing block: the padding box of
+the nearest positioned ancestor, else the screen. `position(_.fixed)` places
+it in the screen. kyo-ui's `overlay` is a fixed box over the whole screen,
+and its `dropdown` is an absolute box under the right edge of its positioned
+ancestor. `top`, `right`, `bottom` and `left` place the box from an edge; two
+opposite offsets give its size, else `width` and `height` do, else its
+natural size. `position(_.relative)` keeps the element in the flow, moves it
+by its offsets, and makes it a containing block. `sticky` stays in the flow
+and does not stick.
+
+The flow paints first, then the layers by `zIndex` (0 when none), the equal
+ones in document order. Each layer is a stacking context of its own, so its
+positioned descendants paint inside its place in the order. In a layer, a
+background hides what is under it; a layer with no background shows it. A
+layer is clipped only by the viewports of its chain of containing blocks: a
+fixed element escapes every viewport. When a frame changes cells under a
+layer, the runner paints those rows again in paint order, so nothing under a
+layer shows through it.
+
+A layer stays in the Tab order at its place in the document, as in a
+browser. A modal is a layer with kyo-ui's `focusTrap`: Tab stays inside it.
+Its first focusable element with `focusAuto(true)` takes the focus when it
+appears; with `focusRestore(true)` the focus goes back to the element that
+had it when the modal closes. Esc does nothing by itself in a focus trap:
+the `onKeyDown` of the app closes the modal.
+
+`Tui.size` is the size of the terminal in cells, as a `Signal[TerminalSize]`.
+kyo-ui has no signal of the window size on the JVM (its `UIWindow.size` is in
+the Scala.js jar only). The construction of the UI, a hook or class
+component, and a handler can read it. A resize writes it in the frame of the
+resize, so the layout that derives from it comes in the same frame.
+
+`flexWrap(_.wrap)` breaks the items of a row (or of a column of a definite
+height) into lines; each line is as high as its tallest item, and the lines
+stack from the top. kyo-ui has no `alignContent`. `displayNone` removes an
+element from the layout and the paint (its components keep their state).
+
+The CounterStyles example declares its colours once, as kyo-ui custom
+properties, and names them in its counters:
+
+<!-- from: examples/src/main/scala/examples/counterstyles/CounterStyles.scala#colors -->
+```scala
+    /** The custom colours of the app, declared once for the whole tree: a
+      * kyo-ui `Stylesheet.vars` block (CSS custom properties on `:root`). The
+      * run gets it as its stylesheet (`TuiApp.stylesheet`, or the `stylesheet`
+      * of `Headless.start`), and an element names a colour with
+      * `Style.Color.variable`.
+      */
+    val colors: Stylesheet = Stylesheet.vars(
+      "frame" -> "#64748b",
+      "label" -> "#eab308",
+      "count" -> "#22c55e",
+    )
+
+    val frame: Style.Color = Style.Color.variable("frame")
+    val label: Style.Color = Style.Color.variable("label")
+    val count: Style.Color = Style.Color.variable("count")
+```
+
+kyo-ui declares a custom property only in a `Stylesheet` (`vars` for the
+root, `scopedVars` for a class, an id or a data attribute), so the run takes
+the stylesheet: `override def stylesheet` in a `TuiApp`,
+`Tui.run(options, sheet)`, or the `stylesheet` of `Headless.start`. A block
+of a selector declares over the root in the subtree of the element that it
+matches. A value is `#hex`, `rgb()`, `rgba()`, `transparent` or `var(--other,
+fallback)`. A name with no value gives no colour.
+
+A style property that the terminal does not show (`fontSize`, `hover`,
+`shadow`, ...) gives one warning in the log of the run, once for each name:
+"tui4s: the style property FontSizeProp is not supported in the terminal
+(first seen at ...)". The package Scaladoc of `tui4s` lists the honored and
+the ignored properties. In a test, `Headless.awaitLog` gives the lines.
+
 ## Modules
 
 Each module is released on its own, with its own version.

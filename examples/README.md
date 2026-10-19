@@ -1,6 +1,6 @@
 # tui4s examples
 
-<!-- claude 2026-10-19: changed: the rows of Todo and Dashboard name the scroll and the ellipsis (L1a) -->
+<!-- claude 2026-10-19: changed: the rows of Todo and Dashboard name the scroll and the ellipsis (L1a); the rows of Counter styles and Dashboard name the custom colours, the help, the toast and the two columns (L1b) -->
 
 This project has the sample apps of tui4s. They are not published. Each app
 is a main class in its own package, and its start script has the name of the
@@ -11,9 +11,9 @@ package.
 | Counter        | `examples.counter.CounterApp`              | `examples/target/bin/counter`       | The smallest app: a kyo-ui UI with one hook (`useSignal`), key handlers, buttons; a `TuiApp` main (README "Quick start"). |
 | Counter (KyoApp) | `examples.counterkyo.CounterKyoApp`      | `examples/target/bin/counterkyo`    | The same UI with a main of its own: a `KyoApp` that calls `Tui.run` and gives the UI the quit value. |
 | Two counters   | `examples.twocounters.TwoCountersApp`      | `examples/target/bin/twocounters`   | A counter is a function that allocates its own state: two counters count on their own. |
-| Counter styles | `examples.counterstyles.CounterStylesApp`  | `examples/target/bin/counterstyles` | Both component styles side by side: hook counters that the runner mounts (`component`, inside a `when`: `h` hides them and they lose their state) and `Component` counters. |
+| Counter styles | `examples.counterstyles.CounterStylesApp`  | `examples/target/bin/counterstyles` | Both component styles side by side: hook counters that the runner mounts (`component`, inside a `when`: `h` hides them and they lose their state) and `Component` counters. Their colours are custom properties of the stylesheet of the app (`Stylesheet.vars`, `Style.Color.variable`). |
 | Todo           | `examples.todo.TodoApp`                    | `examples/target/bin/todo [file]`   | A list in a file (the argument, or `todos.txt` in the working directory): a text input, Enter adds, Tab to the list, Space toggles, `d` deletes, Ctrl-S saves, a paste is one edit, Esc quits. The list and the input scroll in one viewport, and a long title ends with "…". |
-| Dashboard      | `examples.dashboard.DashboardApp`          | `examples/target/bin/dashboard`     | Tabs, a gauge and a sparkline fed by a sampler (250 ms), a log pane fed by a stream (400 ms); the arrows, or Tab and Space or Enter, change the tab; `p` pauses the sampler; `q` quits. The log pane scrolls (Tab reaches it; the arrows, PageUp, PageDown, Home, End). |
+| Dashboard      | `examples.dashboard.DashboardApp`          | `examples/target/bin/dashboard`     | Tabs, a gauge and a sparkline fed by a sampler (250 ms), a log pane fed by a stream (400 ms); the arrows, or Tab and Space or Enter, change the tab; `p` pauses the sampler and shows a toast; `?` opens the help (a box over the screen; Esc closes it); `q` quits. The log pane scrolls (Tab reaches it; the arrows, PageUp, PageDown, Home, End). In a terminal of 120 columns or more, the tabs and the log are side by side (`Tui.size`). |
 | Printing       | `examples.printing.PrintingApp`            | `examples/target/bin/printing [--log file] [--fail-on-f]` | A `println` while the UI is up does not reach the screen: the lines come after the terminal is restored, or go to the log file. This is also true after a `println` before the run (the app prints one line when it starts). `args` and `options` of a `TuiApp`. The test aid `--fail-on-f` makes `f` fail the UI: exit code 1, and the failure comes after the restore. |
 | Widgets        | none (a library)                           | none                                | Reusable gauge and sparkline helpers, Kyo-only `TabsView`, and the terminal `Tabs` component adapter in `examples.widgets`. |
 

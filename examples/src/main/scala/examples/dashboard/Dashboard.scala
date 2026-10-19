@@ -5,20 +5,21 @@ package examples.dashboard
 import examples.widgets.{Tabs, Widgets}
 import kyo.*
 import kyo.UI.*
-import tui4s.{Tui, TuiApp}
+import tui4s.{TerminalSize, Tui, TuiApp}
 
 /** The Dashboard in plain kyo-ui: one tab per series (CPU, Memory, Network), a
   * gauge and a sparkline fed by a sampler (every 250 ms), a log pane fed by a
   * stream (a line every 400 ms). ArrowLeft and ArrowRight change the tab; the
   * tabs are buttons in one focus group, so Tab moves to the next tab and Enter
-  * or Space selects it; `p` pauses the sampler (the log goes on); `q` quits.
-  * The log pane is a viewport that scrolls, with the newest line first: Tab
-  * after the last tab reaches it, and the arrows, PageUp, PageDown, Home and
-  * End scroll it. The widgets (the gauge, the sparkline, the tabs) are in
-  * `examples.widgets.Widgets`.
+  * or Space selects it; `p` pauses the sampler (the log goes on) and shows a
+  * toast; `?` opens the help; `q` quits. The log pane is a viewport that
+  * scrolls, with the newest line first: Tab after the last tab reaches it, and
+  * the arrows, PageUp, PageDown, Home and End scroll it. In a terminal of 120
+  * columns or more, the tabs and the log are side by side. The widgets (the
+  * gauge, the sparkline, the tabs) are in `examples.widgets.Widgets`.
   */
 // claude 2026-10-19: changed: the Scaladoc names the log pane that scrolls
-// (L1a)
+// (L1a), the help, the toast and the two columns (L1b)
 object Dashboard:
 
     /** The series: one tab for each. The tabs need a first label. */
@@ -40,18 +41,34 @@ object Dashboard:
           Chunk.fill(series.size)(Chunk.empty),
         )
 
+    /** A toast: a short message that goes away at `until`. */
+    // claude 2026-10-19: created (L1b)
+    final case class Toast(text: String, until: Instant) derives CanEqual
+
+    // claude 2026-10-19: changed: the help, the toast and the time of a toast
+    // (L1b)
     final case class State(
         metrics: SignalRef[Metrics],
         paused: SignalRef[Boolean],
         logs: SignalRef[Chunk[(Int, String)]],
+        help: SignalRef[Boolean],
+        toast: SignalRef[Option[Toast]],
+        toastFor: Duration,
     )
 
-    def init(using Frame): State < Sync =
+    // claude 2026-10-19: changed: the help and the toast (L1b)
+    def init(using Frame): State < Sync = init(2.seconds)
+
+    /** The state, with a toast that stays `toastFor`. */
+    // claude 2026-10-19: created (L1b)
+    def init(toastFor: Duration)(using Frame): State < Sync =
       for
           metrics <- Signal.initRef(Metrics.empty)
           paused  <- Signal.initRef(false)
           logs    <- Signal.initRef(Chunk.empty[(Int, String)])
-      yield State(metrics, paused, logs)
+          help    <- Signal.initRef(false)
+          toast   <- Signal.initRef(Option.empty[Toast])
+      yield State(metrics, paused, logs, help, toast, toastFor)
 
     /** One sampler tick with given values (a test or a benchmark can call it
       * directly).
@@ -140,51 +157,166 @@ object Dashboard:
           ),
       )
 
-    def view(s: State): UI =
-      div.onKeyDown {
-        case KeyboardEvent(Keyboard.Char('p'), _, _) =>
-          s.paused.updateAndGet(!_)
-        case KeyboardEvent(Keyboard.Char('q'), _, _) => Tui.quit
-        case _                                       => ()
-      }(
-        new Tabs(firstSeries, otherSeries*)(
-          heading = h1("Dashboard"),
-          panel = overview(s, _),
-        ),
-        logPane(s),
-        span(
-          s.paused.map(p =>
-            if p then "sampler PAUSED (p resumes)"
-            else "sampler running (p pauses)  ←/→ tabs  q quits",
+    // claude 2026-10-19: changed: the help (`?`), the toast of `p`, and the
+    // layout from the size of the terminal (L1b)
+    def view(s: State): UI < Sync =
+      Tui.size.map(size =>
+        div.onKeyDown {
+          case KeyboardEvent(Keyboard.Char('p'), _, _) =>
+            s.paused
+              .updateAndGet(!_)
+              .map(p =>
+                notify(s, if p then "sampler paused" else "sampler resumed"),
+              )
+          case KeyboardEvent(Keyboard.Char('?'), _, _) => s.help.set(true)
+          case KeyboardEvent(Keyboard.Char('q'), _, _) => Tui.quit
+          case _                                       => ()
+        }(
+          body(
+            new Tabs(firstSeries, otherSeries*)(
+              heading = h1("Dashboard"),
+              panel = overview(s, _),
+            ).ui,
+            logPane(s),
+            size,
           ),
-        )
-          .style(_.color(Style.Color.gray)),
+          span(
+            s.paused.map(p =>
+              if p then "sampler PAUSED (p resumes)"
+              else "sampler running (p pauses)  ←/→ tabs  ? help  q quits",
+            ),
+          )
+            .style(_.color(Style.Color.gray)),
+          toast(s),
+          help(s),
+        ),
       )
 
-    /** The app: the state, the sampler and the log, every `sampleEvery` and
-      * `logEvery` (a test passes short periods). The two fibers end when the
-      * `Scope` of the UI closes, at the end of the run.
+    // claude 2026-10-19: created the region below (L1b): the README section
+    // "Overlays, terminal size and theme colors" shows it
+    // region: overlays
+    /** The terminal width from which the tabs and the log are side by side. */
+    val wideFrom: Int = 120
+
+    /** The tabs and the log side by side in a terminal of `wideFrom` columns or
+      * more, else one above the other. `Tui.size` is the size of the terminal
+      * as a signal (kyo-ui has no such signal on the JVM), and a signal of
+      * styles restyles the box when the size changes.
       */
-    // claude 2026-10-13: changed (T2): a def with the two periods (the
-    // prototype's val app with 250 ms and 400 ms)
+    def body(tabs: UI, log: UI, size: Signal[TerminalSize]): UI =
+      div(div(tabs).style(_.flexGrow(1)), div(log).style(_.flexGrow(1)))
+        .style(
+          size.map(t =>
+            if t.width >= wideFrom then Style.row.gap(2.px) else Style.column,
+          ),
+        )
+
+    /** The help: a box in the middle of the screen, over the rest (a
+      * `position(_.overlay)` layer that centers it). Its `focusTrap` keeps Tab
+      * inside it; its Close button takes the focus when it appears
+      * (`focusAuto`) and gives it back when it goes (`focusRestore`). Esc does
+      * nothing by itself in a focus trap: the `onKeyDown` of the box closes it.
+      */
+    def help(s: State): UI =
+      s.help.map(open =>
+        if !open then div
+        else
+            div.style(_.position(_.overlay).justify(_.center).align(_.center))(
+              div
+                .id("help")
+                .focusTrap(true)
+                .onKeyDown {
+                  case KeyboardEvent(Keyboard.Escape, _, _) => s.help.set(false)
+                  case _                                    => ()
+                }
+                .style(
+                  _.border(1.px, Style.Color.blue)
+                    .bg(Style.Color.black)
+                    .padding(0.px, 1.px),
+                )(
+                  h2("Keys"),
+                  span("←/→  change the tab"),
+                  span("p    pause or resume the sampler"),
+                  span("?    this help (Esc closes it)"),
+                  span("q    quit"),
+                  button("Close")
+                    .id("help-close")
+                    .focusAuto(true)
+                    .focusRestore(true)
+                    .onClick(s.help.set(false))
+                    .style(_.alignSelf(_.center)),
+                ),
+            ),
+      )
+
+    /** The toast: a box at the bottom right (`position(_.fixed)` with `bottom`
+      * and `right`), over the rest, while a message is shown.
+      */
+    def toast(s: State): UI =
+      s.toast.map {
+        case None    => div
+        case Some(t) =>
+          div.style(
+            _.position(_.fixed)
+              .bottom(1.px)
+              .right(2.px)
+              .border(1.px, Style.Color.green)
+              .bg(Style.Color.black)
+              .padding(0.px, 1.px),
+          )(t.text)
+      }
+    // endregion: overlays
+
+    /** Shows `text` in the toast for the time of the state. */
+    // claude 2026-10-19: created (L1b)
+    def notify(s: State, text: String)(using Frame): Unit < Sync =
+      Clock.now.map(now => s.toast.set(Some(Toast(text, now + s.toastFor))))
+
+    /** Takes the toast away when its time is over (it looks every `every`). */
+    // claude 2026-10-19: created (L1b)
+    def toastClock(s: State, every: Duration = 100.millis)(using
+        Frame,
+    ): Unit < Async =
+      Loop.forever {
+        Async
+          .sleep(every)
+          .andThen(Clock.now)
+          .map(now =>
+            s.toast.updateAndGet {
+              case Some(t) if now >= t.until => None
+              case other                     => other
+            }.unit,
+          )
+      }
+
+    /** The app: the state, the sampler and the log, every `sampleEvery` and
+      * `logEvery`, and a toast that stays `toastFor` (a test passes short
+      * times). The three fibers (the sampler, the log, the clock of the toast)
+      * end when the `Scope` of the UI closes, at the end of the run.
+      */
+    // claude 2026-10-19: changed: a def with the two periods (T2), the time
+    // of a toast and its clock (L1b)
     def app(
         sampleEvery: Duration = 250.millis,
         logEvery: Duration = 400.millis,
+        toastFor: Duration = 2.seconds,
     ): UI < (Async & Scope) =
       for
-          s <- init
-          _ <- Fiber.init(sampler(s, sampleEvery))
-          _ <- Fiber.init(
-                 logStream(logEvery).foreach(line =>
-                   // claude 2026-10-19: changed: the log keeps `logLines`
-                   // lines, so the pane has some to scroll (L1a)
-                   s.logs.updateAndGet(l =>
-                     (l :+ (l.lastOption.fold(1)(_._1 + 1), line))
-                       .takeRight(logLines),
-                   ),
-                 ),
-               )
-      yield view(s)
+          s  <- init(toastFor)
+          _  <- Fiber.init(sampler(s, sampleEvery))
+          _  <- Fiber.init(toastClock(s))
+          _  <- Fiber.init(
+                  logStream(logEvery).foreach(line =>
+                    // claude 2026-10-19: changed: the log keeps `logLines`
+                    // lines, so the pane has some to scroll (L1a)
+                    s.logs.updateAndGet(l =>
+                      (l :+ (l.lastOption.fold(1)(_._1 + 1), line))
+                        .takeRight(logLines),
+                    ),
+                  ),
+                )
+          ui <- view(s)
+      yield ui
 end Dashboard
 
 /** Runs the Dashboard in the real terminal. Start it with its start script, not

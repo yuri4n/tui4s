@@ -3,7 +3,7 @@ package examples.counterstyles
 import kyo.*
 import kyo.UI.Keyboard
 import munit.FunSuite
-import tui4s.testkit.{Headless, Screen}
+import tui4s.testkit.{CellColor, Headless, Screen}
 
 /** Both counter styles on the headless test kit: the hook counters and the
   * `Component` counters count on their own, and the hook counters inside the
@@ -29,8 +29,11 @@ class CounterStylesSuite extends FunSuite:
         .find(_.nonEmpty)
         .getOrElse(Nil)
 
+    // claude 2026-10-19: changed: the stylesheet of the app (L1b)
     private def start(using Frame): Headless < (Async & Scope) =
-      Headless.start(90, 12)(_ => CounterStylesApp.ui)
+      Headless.start(90, 12, stylesheet = CounterStylesApp.stylesheet)(_ =>
+        CounterStylesApp.ui,
+      )
 
     test("the first screen shows both styles, four counters at 0") {
       val s = run(start.map(_.screen))
@@ -72,5 +75,35 @@ class CounterStylesSuite extends FunSuite:
       val ended =
         run(start.map(h => h.char('q').andThen(h.awaitEnd(10.seconds))))
       assert(ended, "q did not end the run")
+    }
+
+    // claude 2026-10-19: created (L1b)
+    test(
+      "the custom colours: the borders, the labels and the counts have the colours of the stylesheet; without it, a warning and no colour",
+    ) {
+      val (s, plain, log)                                 = run {
+        for
+            h     <- start
+            s     <- h.screen
+            p     <- Headless.start(90, 12)(_ => CounterStylesApp.ui)
+            plain <- p.screen
+            log   <- p.awaitLog
+        yield (s, plain, log)
+      }
+      def fg(sc: Screen, text: String): Option[CellColor] =
+        sc.find(text).flatMap((x, y) => sc.styleAt(x, y).fg)
+      assertEquals(fg(s, "┌"), Some(CellColor.Rgb(0x64, 0x74, 0x8b)), s.text)
+      assertEquals(fg(s, "Left"), Some(CellColor.Rgb(0xea, 0xb3, 0x08)), s.text)
+      assertEquals(
+        fg(s, "Count:"),
+        Some(CellColor.Rgb(0x22, 0xc5, 0x5e)),
+        s.text,
+      )
+      assertEquals(fg(plain, "Count:"), None, plain.text)
+      assertEquals(
+        log.count(_.contains("var(--count) has no value")),
+        1,
+        log.mkString("\n"),
+      )
     }
 end CounterStylesSuite

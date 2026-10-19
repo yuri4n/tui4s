@@ -59,6 +59,44 @@
   *     measure counts cells: a wide character takes two, and a cut never splits
   *     it.
   *
+  * Overlays, flex lines and custom colours are kyo-ui styles too, and the size
+  * of the terminal is one tui4s signal:
+  * {{{
+  * div.style(_.position(_.overlay).justify(_.center).align(_.center))(
+  *   div.focusTrap(true).style(_.border(1.px, _.white).bg(_.black))("Help"))
+  * span("Saved").style(_.position(_.fixed).bottom(0.px).right(0.px))
+  * Tui.size.map(size => div(menu, main).style(size.map(s =>
+  *   if s.width >= 100 then Style.row else Style.column)))
+  * span("ok").style(_.color(Style.Color.variable("accent")))
+  * }}}
+  *   - Layers: an element with `position` absolute or fixed (also kyo-ui's
+  *     `overlay` and `dropdown`) leaves the flex flow. Its offsets (`top`,
+  *     `right`, `bottom`, `left`) place it in its containing block: the padding
+  *     box of the nearest positioned ancestor, else the screen; the screen for
+  *     fixed. `relative` stays in the flow and moves by its offsets; `sticky`
+  *     stays in the flow and does not stick.
+  *   - The paint order: the flow first, then the positioned elements by
+  *     `zIndex` (0 when none), the equal ones in document order; each one is a
+  *     stacking context of its own. In a layer, a background hides what is
+  *     under it. A layer is clipped only by the viewports of its chain of
+  *     containing blocks. When a frame changes cells under a layer, those rows
+  *     are painted again in paint order, so nothing shows through it.
+  *   - The focus: a layer keeps its place in the Tab order. A modal is a layer
+  *     with kyo-ui's `focusTrap`; `focusAuto(true)` gives the focus to an
+  *     element when it appears, and `focusRestore(true)` gives it back when the
+  *     element goes. Esc does nothing by itself: the app's `onKeyDown` closes
+  *     the modal.
+  *   - [[tui4s.Tui.size]]: the size of the terminal as a `Signal[TerminalSize]`
+  *     (kyo-ui has no such signal on the JVM). A resize writes it in the frame
+  *     of the resize.
+  *   - `flexWrap(_.wrap)` breaks the items into lines, each as high as its
+  *     tallest item; `displayNone` removes an element from the layout and the
+  *     paint.
+  *   - `Style.Color.variable(name)`: the colour of the custom property `name`
+  *     of the stylesheet of the run (`TuiApp.stylesheet`,
+  *     `Tui.run(options, sheet)`), from kyo-ui's `Stylesheet.vars` and
+  *     `Stylesheet.scopedVars`. A name with no value gives no colour.
+  *
   * The style properties in the terminal: the 76 cases of kyo-ui's `Style.Prop`
   * (kyo-ui 1.0.0-RC7), by case name. When an element has an ignored property,
   * the runner logs one warning for that name, once in a run, with the first
@@ -93,6 +131,6 @@
   *     `TranslateProp`.
   */
 // claude 2026-10-19: changed: the package Scaladoc names scroll, wrap and
-// ellipsis, with the key table (L1a), and the table of the style properties
-// (L1b)
+// ellipsis, with the key table (L1a); the overlays, the size, the flex lines,
+// the custom colours and the table of the style properties (L1b)
 package object tui4s
