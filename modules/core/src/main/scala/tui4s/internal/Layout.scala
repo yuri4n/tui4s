@@ -136,10 +136,6 @@ private[tui4s] object TextFlow:
     end of
 end TextFlow
 
-/** One laid-out box. `rect` is the border box; margins are outside. `view` is
-  * the scroll state of a viewport (an element with an axis that is not
-  * `overflow: visible`), and none for any other node.
-  */
 /** The paint layer of a positioned element (CSS `position` other than
   * `static`). `z` is its `zIndex` (0 when none; kyo-ui's `dropdown` gives 50).
   * `cb` is the path of its containing block, the node that places it: its owner
@@ -149,7 +145,13 @@ end TextFlow
 // claude 2026-10-19: created (L1b)
 private[tui4s] final case class Layer(pos: Pos, z: Int, cb: Loc)
 
-// claude 2026-10-19: changed: the view of a viewport, and its port (L1a)
+/** One laid-out box. `rect` is the border box; margins are outside. `view` is
+  * the scroll state of a viewport (an element with an axis that is not
+  * `overflow: visible`), and none for any other node. `layer` is the paint
+  * layer of a positioned element, and none for a node in the flow.
+  */
+// claude 2026-10-19: changed: the view of a viewport, and its port (L1a); the
+// layer (L1b)
 private[tui4s] final case class Node(
     path: Loc,
     kind: Kind,
@@ -1043,27 +1045,40 @@ private[tui4s] object Layout:
     /** The rects of the items of a container that wraps: its [[lines]] in its
       * main size, each line arranged as a flex line (grow, shrink, justify,
       * align) in a box of the cross size of its tallest item. The lines stack
-      * from the cross start, the gap between them: kyo-ui has no
-      * `alignContent`, so they do not stretch or spread (CSS `align-content:
-      * flex-start`). The rects come back in the items' own order.
+      * from the cross start, the gap between them. When the box has more cross
+      * space than the lines, each line gets an equal part of the free space;
+      * the first lines get one more cell for the remainder. kyo-ui's DOM sets
+      * no `align-content`, so the browser uses `normal`, which acts as
+      * `stretch` in a flex container that wraps. The rects come back in the
+      * items' own order.
+      *
+      * For example, in `div.style(_.row.flexWrap(_.wrap).height(3.px))(span("a"))`
+      * the one line is 3 rows high, and the span stretches to 3 rows.
       */
-    // claude 2026-10-19: created (L1b)
+    // claude 2026-10-19: created (L1b); the lines stretch (review)
     private def wrapped(
         p: Props,
         box: Rect,
         items: Vector[Measured],
     ): Vector[Rect] =
-        val main = p.dir match
-            case Dir.Row    => box.w
-            case Dir.Column => box.h
-        val line = p.copy(wrap = kyo.Style.FlexWrap.noWrap)
-        lines(p.dir, main, p.gap, items)
-          .foldLeft((Vector.empty[Rect], 0)) { case ((acc, at), ls) =>
-            val cross = lineCross(p.dir, ls)
-            val area  = p.dir match
+        val (main, room) = p.dir match
+            case Dir.Row    => (box.w, box.h)
+            case Dir.Column => (box.h, box.w)
+        val line         = p.copy(wrap = kyo.Style.FlexWrap.noWrap)
+        val ls           = lines(p.dir, main, p.gap, items)
+        val crosses      = ls.map(lineCross(p.dir, _))
+        val n            = ls.size.max(1)
+        val free         =
+          (room - crosses.sum - p.gap * (ls.size - 1).max(0)).max(0)
+        val stretched    = crosses.zipWithIndex.map((c, i) =>
+          c + free / n + (if i < free % n then 1 else 0),
+        )
+        ls.zip(stretched)
+          .foldLeft((Vector.empty[Rect], 0)) { case ((acc, at), (l, cross)) =>
+            val area = p.dir match
                 case Dir.Row    => Rect(box.x, box.y + at, box.w, cross)
                 case Dir.Column => Rect(box.x + at, box.y, cross, box.h)
-            (acc ++ arrange(line, area, ls, Vector.empty), at + cross + p.gap)
+            (acc ++ arrange(line, area, l, Vector.empty), at + cross + p.gap)
           }
           ._1
     end wrapped
@@ -1564,8 +1579,6 @@ private[tui4s] object Layout:
     /** Measures, arranges and places the children of `node` (which is already
       * positioned).
       */
-    // claude 2026-10-19: changed: the kids of `arrangeKids`; the view of a
-    // viewport (L1a)
     // claude 2026-10-19: changed: the layer and the width of each kid (L1b)
     def layoutChildren(node: Node, env: Scene, root: UI, acc: Laid): Laid =
         val a        = arrangeKids(node, env, root, acc.nodes.get)
@@ -1686,8 +1699,6 @@ private[tui4s] object Layout:
                       ),
                     )
                   case _          => node0
-              // claude 2026-10-19: changed: the kids of `arrangeKids`, the
-              // view of a viewport, and its clip of the damage (L1a)
               // claude 2026-10-19: changed: the positioned kids, their layers
               // and their widths; a layer clips the damage of its kids to its
               // box (L1b)

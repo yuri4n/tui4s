@@ -87,6 +87,26 @@ object KyoUiSurface:
             """^\s*// Initial mount""",
           ),
         )
+
+        /** The cases of `kyo.internal.CssStyleRenderer.renderProp` whose CSS
+          * the runner copies or matches: `PositionProp` (the boxes of `overlay`
+          * and `dropdown` in `Props.position`) and `DisplayProp` (the values
+          * of `Warnings`).
+          */
+        // claude 2026-10-19: created (L1b review)
+        val cssCases: List[String] = List("PositionProp", "DisplayProp")
+
+        /** The kyo-ui enums whose cases the runner matches: `Style.Position`,
+          * `Style.Display` and `Style.FlexWrap` (`Props`, `Layout`,
+          * `Warnings`), and `Stylesheet.Entry` (`CssVars`).
+          */
+        // claude 2026-10-19: created (L1b review)
+        val valueEnums: List[String] = List(
+          "kyo.Style.Position",
+          "kyo.Style.Display",
+          "kyo.Style.FlexWrap",
+          "kyo.Stylesheet.Entry",
+        )
     end RuleNames
 
     /** The fields of `UI.Ast.Attrs` that `Dispatch` (and the focus order of
@@ -131,6 +151,9 @@ object KyoUiSurface:
       "kyo.UI.Ast.Select"       -> Set("value", "onChange", "children"),
       "kyo.UI.Ast.Opt"          -> Set("value"),
       "kyo.UI.Ast.Form"         -> Set("onSubmit", "onSubmitEvt"),
+      // claude 2026-10-19: created (L1b review): what CssVars reads
+      "kyo.Stylesheet"          -> Set("entries"),
+      "kyo.Selector"            -> Set("css"),
     )
 
     /** One surface line. The key is `(kind, name)`; `detail` is what may
@@ -363,21 +386,28 @@ object KyoUiSurface:
               }
         end signalMethodItems
 
-        /** The cases of `kyo.Style.Prop`, with the fields of a case class. */
-        def propCaseItems: List[Item] =
-            val prop = ctx.findStaticClass("kyo.Style.Prop")
-            prop.companionClass.toList.flatMap(_.declarations).collect {
+        /** The cases of the enum `owner`, with the fields of a case class. */
+        // claude 2026-10-19: changed (L1b review): any enum, not only
+        // `kyo.Style.Prop`
+        private def enumCaseItems(owner: String): List[Item] =
+            val e = ctx.findStaticClass(owner)
+            e.companionClass.toList.flatMap(_.declarations).collect {
               case t: TermSymbol if t.isEnumCase =>
-                Item("enum.case", s"${full(prop)}.${nm(t.name)}", "-")
+                Item("enum.case", s"${full(e)}.${nm(t.name)}", "-")
               case c: ClassSymbol
                   if c.isCaseClass && c.isEnum && !c.isModuleClass =>
                 Item(
                   "enum.case",
-                  s"${full(prop)}.${nm(c.name)}",
+                  s"${full(e)}.${nm(c.name)}",
                   fields(c).mkString("(", ",", ")"),
                 )
             }
-        end propCaseItems
+        end enumCaseItems
+
+        /** The cases of `kyo.Style.Prop` and of [[RuleNames.valueEnums]]. */
+        // claude 2026-10-19: changed (L1b review): the value enums
+        def propCaseItems: List[Item] =
+          ("kyo.Style.Prop" :: RuleNames.valueEnums).flatMap(enumCaseItems)
 
         /** The fields of `UI.Ast.Attrs` that the runner reads, with their types
           * (the type `Attrs` is `private[kyo]`; its fields are public).
@@ -602,16 +632,57 @@ object KyoUiSurface:
 
         /** "<sha256 prefix> n=<node count>" of the trees of `syms`. */
         private def fingerprint(syms: List[TermSymbol]): String =
+          fingerprintOf(syms.flatMap(_.tree))
+
+        /** "<sha256 prefix> n=<node count>" of `trees`. */
+        // claude 2026-10-19: created (L1b review): from `fingerprint`
+        private def fingerprintOf(trees: List[Tree]): String =
             val sb    = new java.lang.StringBuilder
             val nodes = Array(0)
-            syms.flatMap(_.tree).foreach { t =>
+            trees.foreach { t =>
               nodes(0) = 0
               walk(t, sb, nodes)
               discard(sb.append('\n'))
             }
             if sb.length == 0 then "NO-TREE"
             else s"${sha(sb.toString)} n=${nodes(0)}"
-        end fingerprint
+        end fingerprintOf
+
+        /** The shape hash of each case of [[RuleNames.cssCases]] in the
+          * top-level match of `kyo.internal.CssStyleRenderer.renderProp`: the
+          * CSS of a position and of a display value that the runner copies.
+          */
+        // claude 2026-10-19: created (L1b review)
+        def cssItems: List[Item] =
+            val r                       =
+              ctx.findStaticModuleClass("kyo.internal.CssStyleRenderer")
+            val cases                   = List.newBuilder[CaseDef]
+            def collect(x: Any): Unit   = x match
+                case m: Match                            => discard(cases ++= m.cases)
+                case t: Tree                             => t.productIterator.foreach(collect)
+                case l: List[?]                          => l.foreach(collect)
+                case o: Option[?]                        => o.foreach(collect)
+                case p: Product if !p.isInstanceOf[Name] =>
+                  p.productIterator.foreach(collect)
+                case _                                   => ()
+            r.declarations
+              .collect {
+                case t: TermSymbol if nm(t.name) == "renderProp" => t
+              }
+              .flatMap(_.tree)
+              .foreach(collect)
+            def text(t: Tree): String   =
+                val sb = new java.lang.StringBuilder
+                walk(t, sb, Array(1))
+                sb.toString
+            val all                     = cases.result()
+            RuleNames.cssCases.map { name =>
+              all.filter(c => text(c.pattern).contains(name)) match
+                  case Nil => Item("css", s"${full(r)}.renderProp.$name", "MISSING")
+                  case cs  =>
+                    Item("css", s"${full(r)}.renderProp.$name", fingerprintOf(cs))
+            }
+        end cssItems
 
         /** The shape hash of each rule method of `kyo.internal.ReactiveUI` that
           * the runner copies (the bubbling and activation rules of `Dispatch`,
@@ -683,12 +754,12 @@ object KyoUiSurface:
             }
         end jsItems
 
-        // claude 2026-10-12: changed: the C2 items
-        // claude 2026-10-13: changed: the C3 items
+        // claude 2026-10-19: changed (L1b review): the css items
         def all: List[Item] =
           (astTypeItems ++ propCaseItems ++ astFieldItems ++ boundCaseItems ++
             signalMethodItems ++ attrsFieldItems ++ elementMemberItems ++
-            eventItems ++ keyboardCaseItems ++ pinItems ++ ruleItems ++ jsItems)
+            eventItems ++ keyboardCaseItems ++ pinItems ++ ruleItems ++ jsItems ++
+            cssItems)
             .distinctBy(_.key)
             .sortBy(i => (i.kind, i.name))
     end Reader

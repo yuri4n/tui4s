@@ -71,21 +71,22 @@ sealed.
 <!-- claude 2026-10-13: changed these lines: the two component styles, the state key, `when`, the pending frame (C4) -->
 <!-- claude 2026-10-19: changed: the hooks need Sync & Scope (P1b, A5 e) -->
 <!-- claude 2026-10-19: changed: Signal.initRef, useSignal is deprecated (P1b, A5 f) -->
-An element with `position` absolute or fixed (also kyo-ui's `overlay` and
-`dropdown`) is a layer out of the flex flow, placed in its containing block
-by its offsets; the flow paints first, then the layers by `zIndex`, and the
-rows of a change under a layer are painted again so that nothing shows
-through it (`internal.Layout`, `internal.Paint`). A modal is a layer with
-kyo-ui's `focusTrap`; the runner gives the focus to a new element with
-`focusAuto` and gives it back with `focusRestore`. `tui4s.Tui.size` is the
-size of the terminal as a signal, and a resize writes it in the frame of the
-resize. `flexWrap(_.wrap)` breaks the items into lines, and `displayNone`
+An element with `position` absolute or fixed is a layer out of the flex
+flow. kyo-ui's `overlay` and `dropdown` are layers too. The offsets of a
+layer place it in its containing block. The flow paints first. Then the
+layers paint in the order of their `zIndex`. When a change is under a layer,
+the runner paints its rows again, so nothing shows through the layer
+(`internal.Layout`, `internal.Paint`). A modal is a layer with kyo-ui's
+`focusTrap`. A new element with `focusAuto` gets the focus. With
+`focusRestore`, the focus goes back when that element goes. `tui4s.Tui.size`
+is the size of the terminal as a signal. A resize writes it in the frame of
+the resize. `flexWrap(_.wrap)` breaks the items into lines. `displayNone`
 removes an element from the layout and the paint. `Style.Color.variable`
 takes its colour from the custom properties of the stylesheet of the run
 (`TuiApp.stylesheet`, `internal.CssVars`). A style property that the
 terminal does not show gives one warning per name in the log of the run
-(`internal.Warnings`); the package Scaladoc of `tui4s` lists the honored and
-the ignored properties, and `StyleTableTest` keeps the list correct.
+(`internal.Warnings`). The package Scaladoc of `tui4s` lists the honored and
+the ignored properties. `StyleTableTest` keeps the list correct.
 <!-- claude 2026-10-19: created this paragraph (L1b) -->
 `tui4s.TuiApp` is the main class of an app (`object App extends TuiApp` with
 `def ui`, and `options`, `args`, `onExit`): its constructor sets the tui4s
@@ -466,9 +467,11 @@ tests then allow 1 split frame).
   the public member `Element.attrs` (its type `Attrs` is `private[kyo]`, so
   the runner never names it). Where kyo-ui keeps a rule private (the key
   dispatch, the region walk), the runner copies its semantics (`Dispatch`,
-  `Mount`), and the surface guard (`kyo-ui-surface.txt`) pins what it reads
-  (also `Attrs.focusRestore` and `Attrs.cssClasses`).
-  <!-- claude 2026-10-19: changed: this item of C3 (RR N9), with the attributes of L1b -->
+  `Mount`), and the surface guard (`kyo-ui-surface.txt`) pins what it reads.
+  For L1b it also pins `Attrs.focusRestore`, `Attrs.cssClasses`, the cases
+  of `Position`, `Display`, `FlexWrap` and `Stylesheet.Entry`, and the CSS
+  of `position` and `display` in kyo-ui's `CssStyleRenderer`.
+  <!-- claude 2026-10-19: changed: this item of C3 (RR N9), with the surface of L1b -->
 - The strict flags do not see everything at the Java boundary (spike S6):
   `-Wnonunit-statement` does not see a Java call in statement position;
   `-Wvalue-discard` sees a Java result only in a `Unit` position;

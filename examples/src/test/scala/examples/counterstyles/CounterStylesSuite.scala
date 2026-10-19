@@ -101,7 +101,7 @@ class CounterStylesSuite extends FunSuite:
       )
       assertEquals(fg(plain, "Count:"), None, plain.text)
       assertEquals(
-        log.count(_.contains("var(--count) has no value")),
+        log.count(_.contains("var(--count) has no colour value")),
         1,
         log.mkString("\n"),
       )

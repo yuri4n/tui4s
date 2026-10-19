@@ -228,14 +228,20 @@ private[tui4s] final case class Border(
   *     honored `HiddenProp`: the element has no layout and no paint
   *     (`Layout.flatten` drops it), and the regions in it stay mounted
   *     (`Mount.walk` walks it), so their state stays. Now: `HiddenProp` as
-  *     before; `block`, `flex`, `inline`, `inlineBlock` and `inlineFlex` keep
-  *     the flex layout of kyo-ui's base CSS (an `inline` span stays a row of
-  *     text); `listItem`, `table`, `tableRow` and `tableCell` change nothing
+  *     before; `flex` and `inlineFlex` keep the flex layout of kyo-ui's base
+  *     CSS. `block`, `inline` and `inlineBlock` are accepted and change
+  *     nothing: the element keeps its flex layout (an `inline` span stays a
+  *     row of text), where a browser uses block or inline flow. They give no
+  *     warning. `listItem`, `table`, `tableRow` and `tableCell` change nothing
   *     and warn (see [[Warnings]]).
   *   - `flexWrap` (`FlexWrap`: wrap, noWrap; CSS `flex-wrap`). kyo-ui has no
   *     `wrapReverse` and no `alignContent`. The old runner ignored it. Now:
-  *     `wrap` breaks the items into lines ([[Layout.lines]]); each line is as
+  *     `wrap` breaks the items into lines ([[Layout.lines]]). Each line is as
   *     high as its tallest item, and the lines stack from the cross start.
+  *     kyo-ui's DOM sets no `align-content`, so the browser uses `normal`,
+  *     which acts as `stretch` when the container wraps. The runner does the
+  *     same: when the container has more cross space than its lines, each
+  *     line gets an equal part of the free space.
   *   - `Color.Var(name)` (`Color.variable(name)`; CSS `var(--name)`). The case
   *     has no fallback value. kyo-ui declares a custom property only in a
   *     `Stylesheet`: `Stylesheet.vars(name -> value)` is a `:root` block, and
@@ -438,6 +444,22 @@ private[tui4s] object Props:
               case CssColor.Of(c) => c
               case CssColor.Unset => None
 
+    /** The text colour of `c` for an element whose inherited text is `t`. A
+      * `Color.Var` with no value keeps the inherited colour `t.fg`. CSS does
+      * the same: an unset `var()` on an inherited property inherits.
+      *
+      * For example, in `div.style(_.color(Style.Color.red))(span("x")
+      * .style(_.color(Style.Color.variable("none"))))`, the text `x` is red.
+      */
+    // claude 2026-10-19: created (L1b review): an unset var() inherits
+    private def textColor(c: kyo.Style.Color, t: TextAttrs): Option[JColor] =
+      c match
+          case v: kyo.Style.Color.Var =>
+            t.vars.color(v.name) match
+                case CssColor.Of(x) => x
+                case CssColor.Unset => t.fg
+          case _                      => color(c, t.vars)
+
     private def hex(v: String): Option[JColor] =
         val d                    = v.stripPrefix("#")
         def byte(s: String): Int = Integer.parseInt(s, 16)
@@ -611,7 +633,7 @@ private[tui4s] object Props:
         prop match
             case Prop.BgColor(c)                   => p.copy(bg = color(c, p.text.vars))
             case Prop.TextColor(c)                 =>
-              p.copy(text = p.text.copy(fg = color(c, p.text.vars)))
+              p.copy(text = p.text.copy(fg = textColor(c, p.text)))
             case Prop.Padding(t, r, b, l)          =>
               p.copy(padding = Sides(side(t), side(r), side(b), side(l)))
             case Prop.Margin(t, r, b, l)           =>

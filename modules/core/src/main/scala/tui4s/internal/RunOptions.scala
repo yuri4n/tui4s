@@ -29,8 +29,6 @@ import java.time.Duration
   * @param sheetProblems
   *   the entries and the selectors of that stylesheet that the runner ignores
   */
-// claude 2026-10-19: created: TuiOptions validated once (amendment A10 of the
-// purity plan); it replaces the clamps in Tui, Headless, Session and Runner
 // claude 2026-10-19: changed: the custom properties of the stylesheet, and
 // its problems (L1b)
 private[tui4s] final case class RunOptions(

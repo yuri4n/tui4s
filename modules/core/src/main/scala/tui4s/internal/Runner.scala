@@ -575,9 +575,12 @@ private[tui4s] final class Runner private (
       *      with `focusRestore(true)` gives the focus back to the element that
       *      had it before the seed, when that element can still take it.
       *   2. The seed: the first element in focus order with `focusAuto(true)`
-      *      that `before` did not have takes the focus, once (the next layouts
-      *      have it), and it is a new seed. On the first frame every element is
-      *      new, as the native autofocus of a page. Only the subtrees of
+      *      whose place had no `focusAuto(true)` element in `before` takes the
+      *      focus, once (the next layouts have it), and it is a new seed. This
+      *      is the rule of kyo-ui's client, which compares the paths of the
+      *      `focusAuto` elements. On the first frame every element is new, as
+      *      the native autofocus of a page; the option `autoFocus` does not
+      *      stop the seed. Only the subtrees of
       *      `roots` (the nodes that this layout made) can hold a new element,
       *      so the search looks there, and it finds the focus order only when
       *      it finds one.
@@ -588,20 +591,22 @@ private[tui4s] final class Runner private (
       * focus when it appears, and with `focusRestore(true)` the focus goes back
       * to its trigger when it closes.
       */
-    // claude 2026-10-19: changed: the focusable nodes of the layout (a
-    // viewport stop, L1a review); the seeds of focusAuto and focusRestore
-    // (L1b)
+    // claude 2026-10-19: changed: the seeds of focusAuto and focusRestore
+    // against the focusAuto places of `before` (L1b, review)
     private def fixFocus(
         w: World,
         before: Laid,
         roots: Vector[Loc],
     ): (Option[Loc], List[Seed]) =
-        def has(p: Loc)(f: UI.Ast.Element => Boolean): Boolean =
-          w.laid.nodes.get(p).map(_.kind).exists {
+        def in(l: Laid)(p: Loc)(f: UI.Ast.Element => Boolean): Boolean =
+          l.nodes.get(p).map(_.kind).exists {
             case Kind.El(e) => f(e)
             case _          => false
           }
+        def has(p: Loc)(f: UI.Ast.Element => Boolean): Boolean = in(w.laid)(p)(f)
         def auto(p: Loc): Boolean                              = has(p)(_.attrs.focusAuto.getOrElse(false))
+        def wasAuto(p: Loc): Boolean                           =
+          in(before)(p)(_.attrs.focusAuto.getOrElse(false))
         val gone                                               = w.seeds.takeWhile(s => !w.laid.nodes.contains(s.at))
         val kept                                               = w.seeds.drop(gone.size)
         val now                                                = gone
@@ -613,7 +618,7 @@ private[tui4s] final class Runner private (
           .tops(roots)
           .iterator
           .flatMap(w.laid.under)
-          .filter(p => auto(p) && !before.nodes.contains(p))
+          .filter(p => auto(p) && !wasAuto(p))
           .toSet
         (if fresh.isEmpty then None else order.find(fresh.contains)) match
             case Some(p) =>

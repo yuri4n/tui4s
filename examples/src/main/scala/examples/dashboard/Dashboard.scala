@@ -192,8 +192,9 @@ object Dashboard:
         ),
       )
 
-    // claude 2026-10-19: created the region below (L1b): the README section
-    // "Overlays, terminal size and theme colors" shows it
+    // claude 2026-10-19: created the region below (L1b), with `when` (L1b
+    // review): the README section "Overlays, terminal size and theme colors"
+    // shows it
     // region: overlays
     /** The terminal width from which the tabs and the log are side by side. */
     val wideFrom: Int = 120
@@ -218,35 +219,33 @@ object Dashboard:
       * nothing by itself in a focus trap: the `onKeyDown` of the box closes it.
       */
     def help(s: State): UI =
-      s.help.map(open =>
-        if !open then div
-        else
-            div.style(_.position(_.overlay).justify(_.center).align(_.center))(
-              div
-                .id("help")
-                .focusTrap(true)
-                .onKeyDown {
-                  case KeyboardEvent(Keyboard.Escape, _, _) => s.help.set(false)
-                  case _                                    => ()
-                }
-                .style(
-                  _.border(1.px, Style.Color.blue)
-                    .bg(Style.Color.black)
-                    .padding(0.px, 1.px),
-                )(
-                  h2("Keys"),
-                  span("←/→  change the tab"),
-                  span("p    pause or resume the sampler"),
-                  span("?    this help (Esc closes it)"),
-                  span("q    quit"),
-                  button("Close")
-                    .id("help-close")
-                    .focusAuto(true)
-                    .focusRestore(true)
-                    .onClick(s.help.set(false))
-                    .style(_.alignSelf(_.center)),
-                ),
+      when(s.help)(
+        div.style(_.position(_.overlay).justify(_.center).align(_.center))(
+          div
+            .id("help")
+            .focusTrap(true)
+            .onKeyDown {
+              case KeyboardEvent(Keyboard.Escape, _, _) => s.help.set(false)
+              case _                                    => ()
+            }
+            .style(
+              _.border(1.px, Style.Color.blue)
+                .bg(Style.Color.black)
+                .padding(0.px, 1.px),
+            )(
+              h2("Keys"),
+              span("←/→  change the tab"),
+              span("p    pause or resume the sampler"),
+              span("?    this help (Esc closes it)"),
+              span("q    quit"),
+              button("Close")
+                .id("help-close")
+                .focusAuto(true)
+                .focusRestore(true)
+                .onClick(s.help.set(false))
+                .style(_.alignSelf(_.center)),
             ),
+        ),
       )
 
     /** The toast: a box at the bottom right (`position(_.fixed)` with `bottom`
@@ -254,7 +253,7 @@ object Dashboard:
       */
     def toast(s: State): UI =
       s.toast.map {
-        case None    => div
+        case None    => UI.empty
         case Some(t) =>
           div.style(
             _.position(_.fixed)

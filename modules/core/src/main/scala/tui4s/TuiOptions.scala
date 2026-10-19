@@ -10,7 +10,8 @@ import java.time.Duration
   *
   * @param autoFocus
   *   focus the first focusable element (or the one with `focusAuto(true)`) when
-  *   nothing has the focus
+  *   nothing has the focus. A `focusAuto(true)` element that appears takes the
+  *   focus also when this option is false, as in kyo-ui's client.
   * @param settle
   *   how the runner decides that the consequences of an event are all in before
   *   it flushes a frame (see [[tui4s.spi.Settle]])
@@ -69,24 +70,8 @@ import java.time.Duration
   *   ends the wait at once, and so does a body that fails (the component's
   *   place stays empty).
   */
-// claude 2026-10-12: changed: Kyo-free (java.time.Duration, D-14 a), CanEqual,
-// Scaladoc (RC-3)
-// claude 2026-10-13: changed: ctrlCQuits (C3, D-24 a); paste (C3, RC-14 part)
-// claude 2026-10-13: changed (T1, RC-3 part): pollInterval, inboxCapacity,
-// captureOutput, logFile (the PR 5 option set: pollMillis as a Duration; no
-// fps, mouse, focusEvents, viewport, theme or trace)
-// claude 2026-10-13: changed (T1, review R2-1): pollInterval below 1 ms is 1 ms
-// claude 2026-10-13: changed (C4, the C2 cut back): pendingTimeout (D-14 a: a
-// java.time.Duration; the prototype's default, 2 s); changed (C4, P-6): the
-// bound is in total, and only the frame of the mount waits
-// claude 2026-10-13: changed (C4, review R1-1, R2-1): the Scaladoc of
-// pendingTimeout: the settle after the wait
-// claude 2026-10-13: changed (C4, review R2-2): the Scaladoc of
-// pendingTimeout: a quit ends the wait
-// claude 2026-10-13: changed (C4, review R2-5): the Scaladoc of
-// pendingTimeout: a body that fails ends the wait
-// claude 2026-10-13: changed (T2, review R1-3): the Scaladoc of captureOutput:
-// a TuiApp installs the capture in its constructor
+// claude 2026-10-19: changed: the Scaladoc of autoFocus: a focusAuto element
+// takes the focus also without autoFocus (L1b review)
 final case class TuiOptions(
     autoFocus: Boolean = true,
     settle: Settle = Settle.Quiescent(Duration.ofMillis(100)),

@@ -652,6 +652,28 @@ class GoldenScreenTest extends ScreenSuite:
             |eeeeeeeee""".stripMargin,
         )
       }
+      // claude 2026-10-19: created (L1b review): the lines stretch
+      "flexWrap(wrap) in a higher box: each line gets an equal part of the free rows (CSS align-content: normal)" in {
+        def box(t: String) = div(t).style(_.border(1.px, _.white))
+        val ui             = div.style(_.row.flexWrap(_.wrap).width(4.px).height(9.px))(
+          box("a"),
+          box("b"),
+        )
+        assertScreen(
+          ui,
+          6,
+          9,
+          """┌─┐
+            |│a│
+            |│ │
+            |│ │
+            |└─┘
+            |┌─┐
+            |│b│
+            |│ │
+            |└─┘""".stripMargin,
+        )
+      }
       "displayNone: the element takes no space and paints nothing; display(block) and display(flex) keep the layout" in {
         val ui = div.style(_.row.gap(1.px))(
           span("a"),
@@ -692,6 +714,17 @@ class GoldenScreenTest extends ScreenSuite:
         assert(b.cellAt(0, 4).bg == blue)
         // with no stylesheet, no colour
         assert(Render.buffer(ui, 2, 5).cellAt(0, 0).fg == JColor.RESET)
+      }
+      // claude 2026-10-19: created (L1b review): an unset var() inherits
+      "a text colour with no value keeps the colour of the parent" in {
+        val ui = div.style(_.color(Style.Color.rgb(239, 68, 68)))(
+          span("x").style(_.color(Style.Color.variable("none"))),
+          span("y").style(_.bg(Style.Color.variable("none"))),
+        )
+        val b  = Render.buffer(ui, 2, 2, sheet = sheet)
+        assert(b.cellAt(0, 0).fg == red)
+        assert(b.cellAt(0, 1).fg == red)
+        assert(b.cellAt(0, 1).bg == JColor.RESET)
       }
     }
 end GoldenScreenTest

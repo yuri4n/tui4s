@@ -348,35 +348,33 @@ signal:
       * nothing by itself in a focus trap: the `onKeyDown` of the box closes it.
       */
     def help(s: State): UI =
-      s.help.map(open =>
-        if !open then div
-        else
-            div.style(_.position(_.overlay).justify(_.center).align(_.center))(
-              div
-                .id("help")
-                .focusTrap(true)
-                .onKeyDown {
-                  case KeyboardEvent(Keyboard.Escape, _, _) => s.help.set(false)
-                  case _                                    => ()
-                }
-                .style(
-                  _.border(1.px, Style.Color.blue)
-                    .bg(Style.Color.black)
-                    .padding(0.px, 1.px),
-                )(
-                  h2("Keys"),
-                  span("←/→  change the tab"),
-                  span("p    pause or resume the sampler"),
-                  span("?    this help (Esc closes it)"),
-                  span("q    quit"),
-                  button("Close")
-                    .id("help-close")
-                    .focusAuto(true)
-                    .focusRestore(true)
-                    .onClick(s.help.set(false))
-                    .style(_.alignSelf(_.center)),
-                ),
+      when(s.help)(
+        div.style(_.position(_.overlay).justify(_.center).align(_.center))(
+          div
+            .id("help")
+            .focusTrap(true)
+            .onKeyDown {
+              case KeyboardEvent(Keyboard.Escape, _, _) => s.help.set(false)
+              case _                                    => ()
+            }
+            .style(
+              _.border(1.px, Style.Color.blue)
+                .bg(Style.Color.black)
+                .padding(0.px, 1.px),
+            )(
+              h2("Keys"),
+              span("←/→  change the tab"),
+              span("p    pause or resume the sampler"),
+              span("?    this help (Esc closes it)"),
+              span("q    quit"),
+              button("Close")
+                .id("help-close")
+                .focusAuto(true)
+                .focusRestore(true)
+                .onClick(s.help.set(false))
+                .style(_.alignSelf(_.center)),
             ),
+        ),
       )
 
     /** The toast: a box at the bottom right (`position(_.fixed)` with `bottom`
@@ -384,7 +382,7 @@ signal:
       */
     def toast(s: State): UI =
       s.toast.map {
-        case None    => div
+        case None    => UI.empty
         case Some(t) =>
           div.style(
             _.position(_.fixed)
@@ -431,9 +429,11 @@ component, and a handler can read it. A resize writes it in the frame of the
 resize, so the layout that derives from it comes in the same frame.
 
 `flexWrap(_.wrap)` breaks the items of a row (or of a column of a definite
-height) into lines; each line is as high as its tallest item, and the lines
-stack from the top. kyo-ui has no `alignContent`. `displayNone` removes an
-element from the layout and the paint (its components keep their state).
+height) into lines. Each line is as high as its tallest item, and the lines
+stack from the top. kyo-ui has no `alignContent`, so the lines stretch, as
+in a browser: when the container is higher than its lines, each line gets an
+equal part of the free rows. `displayNone` removes an element from the
+layout and the paint (its components keep their state).
 
 The CounterStyles example declares its colours once, as kyo-ui custom
 properties, and names them in its counters:
@@ -463,7 +463,10 @@ the stylesheet: `override def stylesheet` in a `TuiApp`,
 `Tui.run(options, sheet)`, or the `stylesheet` of `Headless.start`. A block
 of a selector declares over the root in the subtree of the element that it
 matches. A value is `#hex`, `rgb()`, `rgba()`, `transparent` or `var(--other,
-fallback)`. A name with no value gives no colour.
+fallback)`. A `var()` in a value takes its value where the block declares
+it, as in CSS. A name with no value gives no colour: a text keeps the colour
+of its parent, and a background stays empty. The log of the run has one
+warning for that name.
 
 A style property that the terminal does not show (`fontSize`, `hover`,
 `shadow`, ...) gives one warning in the log of the run, once for each name:

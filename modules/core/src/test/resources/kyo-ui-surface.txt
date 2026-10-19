@@ -26,6 +26,11 @@
 # L1b part: attrs.field focusRestore (the focus seeds of focusAuto, Runner.fixFocus) and cssClasses (a class
 #   selector of Stylesheet.scopedVars, CssVars).
 # claude 2026-10-19: changed: the L1b part (two attrs.field lines)
+# L1b review part (the last 28 lines): enum.case lines of Style.Position, Style.Display, Style.FlexWrap and Stylesheet.Entry;
+#   ui.member Stylesheet.entries and Selector.css (CssVars reads them); css: the shape hash of the PositionProp
+#   and DisplayProp cases of kyo.internal.CssStyleRenderer.renderProp (Props.position copies the CSS of overlay
+#   and dropdown; Warnings matches the Display values).
+# claude 2026-10-19: changed: the L1b review part
 ast.type	UI.Ast.Activatable	trait public extends UI,Element
 ast.type	UI.Ast.Anchor	case class public extends UI,Inline,Interactive,Focusable,Activatable,Clickable
 ast.type	UI.Ast.AsHtmlChild	trait public extends 
@@ -281,3 +286,31 @@ ui.member	UI.Ast.TextInput.onChange	public Maybe[Function1[String,<[Any,Async]]]
 ui.member	UI.Ast.TextInput.onInput	public Maybe[Function1[String,<[Any,Async]]]
 ui.member	UI.Ast.TextInput.readOnly	public Maybe[Boolean]
 ui.member	UI.Ast.TextInput.value	public Maybe[Bound[String]]
+css	internal.CssStyleRenderer.renderProp.DisplayProp	d81762ab9ae1b457 n=63
+css	internal.CssStyleRenderer.renderProp.PositionProp	3177e2cf870c6013 n=51
+enum.case	Style.Display.block	-
+enum.case	Style.Display.flex	-
+enum.case	Style.Display.inline	-
+enum.case	Style.Display.inlineBlock	-
+enum.case	Style.Display.inlineFlex	-
+enum.case	Style.Display.listItem	-
+enum.case	Style.Display.table	-
+enum.case	Style.Display.tableCell	-
+enum.case	Style.Display.tableRow	-
+enum.case	Style.FlexWrap.noWrap	-
+enum.case	Style.FlexWrap.wrap	-
+enum.case	Style.Position.absolute	-
+enum.case	Style.Position.dropdown	-
+enum.case	Style.Position.fixed	-
+enum.case	Style.Position.flow	-
+enum.case	Style.Position.overlay	-
+enum.case	Style.Position.relative	-
+enum.case	Style.Position.sticky	-
+enum.case	Stylesheet.Entry.Font	(face:FontFace)
+enum.case	Stylesheet.Entry.Keyframes	(frames:List[Tuple2[Keyframe,Style]],name:String)
+enum.case	Stylesheet.Entry.Media	(nested:Stylesheet,query:MediaQuery)
+enum.case	Stylesheet.Entry.Rule	(selector:Selector,style:Style)
+enum.case	Stylesheet.Entry.ScopedVars	(pairs:List[Tuple2[String,String]],selector:Selector)
+enum.case	Stylesheet.Entry.Vars	(pairs:List[Tuple2[String,String]])
+ui.member	Selector.css	public String
+ui.member	Stylesheet.entries	public Chunk[Entry]

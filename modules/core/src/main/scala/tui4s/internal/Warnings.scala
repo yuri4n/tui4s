@@ -14,7 +14,11 @@ private[tui4s] enum Warn derives CanEqual:
       */
     case Ignored(name: String)
 
-    /** A `Color.Var` with no colour value in the stylesheet of the run. */
+    /** A `Color.Var` with no colour value in the stylesheet of the run: no
+      * block declares it, or its value is not a colour that the runner reads
+      * (for example a named colour such as `blue`).
+      */
+    // claude 2026-10-19: changed (L1b review): a value that is not a colour
     case NoValue(name: String)
 
     /** The log line of the warning; `at` is the first element that has it. */
@@ -22,7 +26,7 @@ private[tui4s] enum Warn derives CanEqual:
         case Ignored(n) =>
           s"tui4s: the style property $n is not supported in the terminal (first seen at ${at.showLoc})"
         case NoValue(n) =>
-          s"tui4s: the colour var(--$n) has no value in the stylesheet of the run (first seen at ${at.showLoc})"
+          s"tui4s: the colour var(--$n) has no colour value in the stylesheet of the run that the terminal can show (first seen at ${at.showLoc})"
 end Warn
 
 /** The warnings of the style properties that the terminal cannot show. A
@@ -49,12 +53,16 @@ private[tui4s] object Warnings:
     def prop(p: Prop, vars: CssVars): Vector[Warn] = p match
         case Prop.FocusProp(s)                           => of(s, vars)
         case Prop.DisabledProp(s)                        => of(s, vars)
+        // claude 2026-10-19: changed (L1b review): every value of Display,
+        // so a new value of kyo-ui fails the build
         case Prop.DisplayProp(v)                         =>
           v match
               case Display.listItem | Display.table | Display.tableRow |
                   Display.tableCell =>
                 Vector(Warn.Ignored(s"DisplayProp($v)"))
-              case _ => Vector.empty
+              case Display.block | Display.inline | Display.inlineBlock |
+                  Display.flex | Display.inlineFlex =>
+                Vector.empty
         case Prop.PositionProp(Position.sticky)          =>
           Vector(Warn.Ignored("PositionProp(sticky)"))
         case Prop.BgColor(c)                             => color(c, vars)

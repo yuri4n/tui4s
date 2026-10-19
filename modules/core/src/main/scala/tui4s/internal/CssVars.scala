@@ -25,7 +25,12 @@ private[tui4s] enum CssColor derives CanEqual:
   * The resolution, as CSS gives it for these cases: custom properties inherit.
   * The values of an element are the values of its parent, with the blocks whose
   * selector matches the element declared over them, in the order of the
-  * stylesheet (a later block wins). The screen has the `:root` blocks. A value
+  * stylesheet (a later block wins). The screen has the `:root` blocks. A
+  * `var()` in a declared value takes its value at the element that declares
+  * it, as CSS computes it: with `Stylesheet.vars("brand" -> "#000000",
+  * "accent" -> "var(--brand)")`, a block for `.x` that declares `brand` again
+  * does not change `accent` on `.x`. A declared value whose `var()` has no
+  * value and no fallback gives no value. A value
   * is read as a colour: `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`,
   * `rgb(r, g, b)`, `rgba(r, g, b, a)` (no colour below an alpha of 0.5, as
   * [[Props.color]] does), `transparent` (no colour), or `var(--other)` and
@@ -55,12 +60,13 @@ private[tui4s] final case class CssVars(
     /** The custom properties in scope for `el`, a child of the element that has
       * these.
       */
+    // claude 2026-10-19: changed (L1b review): a var() takes its value here
     def enter(el: Element): CssVars =
       if scoped.isEmpty then this
       else
           val here = scoped.filter(_.selector.matches(el))
           if here.isEmpty then this
-          else copy(values = here.foldLeft(values)(_ ++ _.pairs))
+          else copy(values = CssVars.declare(values, here.flatMap(_.pairs)))
 
     /** The colour of `var(--name)` here. */
     def color(name: String): CssColor = CssVars.parse(values, name, 8)
@@ -137,8 +143,49 @@ private[tui4s] object CssVars:
           case ((v, ps), Stylesheet.Entry.Keyframes(name, _))          =>
             (v, ps :+ s"the keyframes $name of the stylesheet")
         }
-        (vars, problems.distinct)
+        // claude 2026-10-19: changed (L1b review): the :root values with
+        // their var() resolved at the root
+        (
+          vars.copy(values = declare(Map.empty, vars.values.toVector)),
+          problems.distinct,
+        )
     end of
+
+    /** The values of an element whose parent has `values` and that declares
+      * `pairs` (a later pair wins). A `var()` in a declared value takes its
+      * value here, from the values of the parent and of the element. A
+      * declared value whose `var()` has no value and no fallback gives no
+      * value, and a cycle gives none.
+      */
+    // claude 2026-10-19: created (L1b review)
+    def declare(
+        values: Map[String, String],
+        pairs: Seq[(String, String)],
+    ): Map[String, String] =
+        val here = values ++ pairs
+        pairs.map(_._1).distinct.foldLeft(values) { (acc, k) =>
+          substitute(here, here(k), 8).fold(acc - k)(v => acc + (k -> v))
+        }
+
+    /** The value `v` with a `var()` (the whole value) replaced by its value in
+      * `values`, else by its fallback, at most `depth` steps deep.
+      */
+    // claude 2026-10-19: created (L1b review)
+    private def substitute(
+        values: Map[String, String],
+        v: String,
+        depth: Int,
+    ): Option[String] =
+      v.trim match
+          case _ if depth <= 0   => None
+          case VarR(n, fallback) =>
+            values
+              .get(n.nn)
+              .flatMap(substitute(values, _, depth - 1))
+              .orElse(
+                Option(fallback).flatMap(f => substitute(values, f, depth - 1)),
+              )
+          case other             => Some(other)
 
     private val VarR = """var\(\s*--([^,\s)]+)\s*(?:,\s*(.+?))?\s*\)""".r
     private val RgbR =

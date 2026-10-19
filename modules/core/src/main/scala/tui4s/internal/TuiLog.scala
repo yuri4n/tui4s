@@ -24,8 +24,6 @@ import java.time.format.DateTimeFormatter
   *   a logger that gets each line too (the headless kit keeps the logger of its
   *   caller so)
   */
-// claude 2026-10-13: changed (T1, review R1-3): the Scaladoc names no SPEC
-// section and no source (a term of the old engine)
 // claude 2026-10-19: changed: the second logger `also` (L1b)
 private[tui4s] final class TuiLog(
     sink: LogSink,

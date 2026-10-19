@@ -95,7 +95,8 @@
   *   - `Style.Color.variable(name)`: the colour of the custom property `name`
   *     of the stylesheet of the run (`TuiApp.stylesheet`,
   *     `Tui.run(options, sheet)`), from kyo-ui's `Stylesheet.vars` and
-  *     `Stylesheet.scopedVars`. A name with no value gives no colour.
+  *     `Stylesheet.scopedVars`. A name with no value gives no colour: a text
+  *     keeps the colour of its parent.
   *
   * The style properties in the terminal: the 76 cases of kyo-ui's `Style.Prop`
   * (kyo-ui 1.0.0-RC7), by case name. When an element has an ignored property,
@@ -103,7 +104,10 @@
   * element that has it: "tui4s: the style property <name> is not supported in
   * the terminal (first seen at <position>)". The values `DisplayProp` listItem,
   * table, tableRow and tableCell, `PositionProp` sticky (it does not stick) and
-  * a `Color.Var` with no value warn too. The warnings go to the logger of the
+  * a `Color.Var` with no value warn too. The values `DisplayProp` block, inline
+  * and inlineBlock change nothing and give no warning: the element keeps its
+  * flex layout, where a browser uses block or inline flow. The warnings go to
+  * the logger of the
   * run (`TuiOptions.logFile`, or the lines printed after the restore), never to
   * the screen; `Headless.awaitLog` gives them to a test. `StyleTableTest`
   * compares this list with the surface list of kyo-ui and with the runner, so
@@ -132,5 +136,5 @@
   */
 // claude 2026-10-19: changed: the package Scaladoc names scroll, wrap and
 // ellipsis, with the key table (L1a); the overlays, the size, the flex lines,
-// the custom colours and the table of the style properties (L1b)
+// the custom colours and the table of the style properties (L1b, review)
 package object tui4s
