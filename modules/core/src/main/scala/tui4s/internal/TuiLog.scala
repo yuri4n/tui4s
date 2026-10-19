@@ -20,15 +20,21 @@ import java.time.format.DateTimeFormatter
   *   run starts (Kyo's own: `-Dkyo.Log.defaultLevel`, default warn)
   * @param name
   *   the logger name
+  * @param also
+  *   a logger that gets each line too (the headless kit keeps the logger of its
+  *   caller so)
   */
 // claude 2026-10-13: changed (T1, review R1-3): the Scaladoc names no SPEC
 // section and no source (a term of the old engine)
+// claude 2026-10-19: changed: the second logger `also` (L1b)
 private[tui4s] final class TuiLog(
     sink: LogSink,
     val level: Log.Level,
     val name: String = "tui4s",
+    also: Maybe[Log.Unsafe] = Absent,
 ) extends Log.Unsafe:
-    def withName(name: String): Log.Unsafe = TuiLog(sink, level, name)
+    def withName(name: String): Log.Unsafe =
+      TuiLog(sink, level, name, also.map(_.withName(name)))
 
     private def write(
         at: Log.Level,
@@ -52,34 +58,44 @@ private[tui4s] final class TuiLog(
               text.toString.linesIterator.foreach(sink.line(_, keep))
 
     def trace(msg: => String)(using Frame, AllowUnsafe): Unit =
-      write(Log.Level.trace, msg, null)
+        write(Log.Level.trace, msg, null)
+        also.foreach(_.trace(msg))
 
     def trace(msg: => String, t: => Throwable)(using Frame, AllowUnsafe): Unit =
-      write(Log.Level.trace, msg, t)
+        write(Log.Level.trace, msg, t)
+        also.foreach(_.trace(msg, t))
 
     def debug(msg: => String)(using Frame, AllowUnsafe): Unit =
-      write(Log.Level.debug, msg, null)
+        write(Log.Level.debug, msg, null)
+        also.foreach(_.debug(msg))
 
     def debug(msg: => String, t: => Throwable)(using Frame, AllowUnsafe): Unit =
-      write(Log.Level.debug, msg, t)
+        write(Log.Level.debug, msg, t)
+        also.foreach(_.debug(msg, t))
 
     def info(msg: => String)(using Frame, AllowUnsafe): Unit =
-      write(Log.Level.info, msg, null)
+        write(Log.Level.info, msg, null)
+        also.foreach(_.info(msg))
 
     def info(msg: => String, t: => Throwable)(using Frame, AllowUnsafe): Unit =
-      write(Log.Level.info, msg, t)
+        write(Log.Level.info, msg, t)
+        also.foreach(_.info(msg, t))
 
     def warn(msg: => String)(using Frame, AllowUnsafe): Unit =
-      write(Log.Level.warn, msg, null)
+        write(Log.Level.warn, msg, null)
+        also.foreach(_.warn(msg))
 
     def warn(msg: => String, t: => Throwable)(using Frame, AllowUnsafe): Unit =
-      write(Log.Level.warn, msg, t)
+        write(Log.Level.warn, msg, t)
+        also.foreach(_.warn(msg, t))
 
     def error(msg: => String)(using Frame, AllowUnsafe): Unit =
-      write(Log.Level.error, msg, null)
+        write(Log.Level.error, msg, null)
+        also.foreach(_.error(msg))
 
     def error(msg: => String, t: => Throwable)(using Frame, AllowUnsafe): Unit =
-      write(Log.Level.error, msg, t)
+        write(Log.Level.error, msg, t)
+        also.foreach(_.error(msg, t))
 end TuiLog
 
 private[tui4s] object TuiLog:
@@ -90,6 +106,18 @@ private[tui4s] object TuiLog:
       */
     def let[A, S](sink: LogSink)(v: A < S)(using Frame): A < S =
       Log.use(current => Log.let(Log(TuiLog(sink, current.level)))(v))
+
+    /** Runs `v` with a [[TuiLog]] into `sink` that also gives each line to the
+      * logger that `v` had, at its level (the headless kit: a test that binds
+      * its own logger still gets the lines).
+      */
+    // claude 2026-10-19: created (L1b)
+    def tee[A, S](sink: LogSink)(v: A < S)(using Frame): A < S =
+      Log.use(current =>
+        Log.let(
+          Log(TuiLog(sink, current.level, also = Present(current.unsafe))),
+        )(v),
+      )
 
     /** Waits (at most `max`) until Kyo has written every log line that was sent
       * before: Kyo writes its log on its own fiber.

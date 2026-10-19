@@ -60,8 +60,16 @@
   *     it.
   *
   * The style properties in the terminal: the 76 cases of kyo-ui's `Style.Prop`
-  * (kyo-ui 1.0.0-RC7), by case name. `StyleTableTest` compares this list with
-  * the surface list of kyo-ui and with the runner, so they do not drift.
+  * (kyo-ui 1.0.0-RC7), by case name. When an element has an ignored property,
+  * the runner logs one warning for that name, once in a run, with the first
+  * element that has it: "tui4s: the style property <name> is not supported in
+  * the terminal (first seen at <position>)". The values `DisplayProp` listItem,
+  * table, tableRow and tableCell, `PositionProp` sticky (it does not stick) and
+  * a `Color.Var` with no value warn too. The warnings go to the logger of the
+  * run (`TuiOptions.logFile`, or the lines printed after the restore), never to
+  * the screen; `Headless.awaitLog` gives them to a test. `StyleTableTest`
+  * compares this list with the surface list of kyo-ui and with the runner, so
+  * they do not drift.
   *   - honored: `Align`, `AlignSelf`, `BgColor`, `BorderColorProp`,
   *     `BorderRadiusProp`, `BorderStyleProp`, `BorderWidthProp`, `Bottom`,
   *     `DisabledProp`, `DisplayProp`, `FlexDirectionProp`, `FlexGrowProp`,

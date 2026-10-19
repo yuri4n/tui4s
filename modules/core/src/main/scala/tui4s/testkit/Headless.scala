@@ -51,6 +51,8 @@ final class Headless private (
     runner: Runner,
     // claude 2026-10-13: created (C3): `paste` reads options.paste
     options: TuiOptions,
+    // claude 2026-10-19: created (L1b): the log of the run, in memory
+    sink: LogSink,
 ):
     /** Ends the run. The same action as the quit value that `start` gave the
       * UI.
@@ -62,6 +64,22 @@ final class Headless private (
     /** The fibers of the run that have not ended: the R1 gauge for tests. */
     // claude 2026-10-12: created (RC-8)
     private[tui4s] def liveFibers(using Frame): Int < Sync = runner.liveFibers
+
+    /** Waits until Kyo has written the log lines that were sent before (at most
+      * 1 s: Kyo writes its log on a fiber of its own), then gives the lines of
+      * the Kyo log of the run at warn or above, the oldest first (at most 200:
+      * the newest). The run logs through the logger of the run, as `Tui.run`
+      * does, so a test reads them here: for example the warning of a style
+      * property that the terminal does not show.
+      *
+      * {{{
+      * h.awaitLog.map(lines =>
+      *   assert(lines.count(_.contains("FontSizeProp")) == 1))
+      * }}}
+      */
+    // claude 2026-10-19: created (L1b)
+    def awaitLog(using Frame): Chunk[String] < Async =
+      TuiLog.flush(1.second).andThen(Sync.defer(Chunk.from(sink.kept)))
 
     /** True when the run has ended. */
     def finished(using Frame): Boolean < Sync = run.done
@@ -342,11 +360,18 @@ object Headless:
           // claude 2026-10-19: changed: Runner.init (P2, A7)
           runner  <- Runner.init(inbox, canvas, runOpts, Present(frames), knobs)
           seq     <- AtomicLong.init(1L)
-          run     <- Fiber.init(runner.scoped(ui(runner.quit).map(runner.run)))
+          // claude 2026-10-19: changed: the run logs into a sink in memory, as
+          // Tui.run logs into its sink, and to the logger of the caller (L1b)
+          sink    <- Sync.defer(LogSink.openNow(None))
+          run     <- Fiber.init(
+                       TuiLog.tee(sink)(
+                         runner.scoped(ui(runner.quit).map(runner.run)),
+                       ),
+                     )
           // claude 2026-10-13: created (review R1-8, R2-7): the end mark after
           // the last frame
           _       <- run.onComplete(_ => Abort.run[Closed](frames.offer(endMark)))
-          h        = Headless(inbox, frames, canvas, seq, run, runner, options)
+          h        = Headless(inbox, frames, canvas, seq, run, runner, options, sink)
           // it quits and waits before its scope ends (RC-7)
           _       <- Scope.ensure(h.quit.andThen(h.awaitEnd(5.seconds)))
           _       <- firstFrame(frames, run)

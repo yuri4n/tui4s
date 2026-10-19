@@ -126,6 +126,11 @@ private[tui4s] final class Runner private (
                      World.init(root, canvas.size).copy(vars = runOpts.vars),
                      Map.empty,
                    )
+            // claude 2026-10-19: created (L1b): the entries of the stylesheet
+            // that the runner ignores, one warning each
+            _   <- Kyo.foreach(runOpts.sheetProblems)(p =>
+                     Log.warn(s"tui4s: $p is not supported in the terminal"),
+                   )
             // the initial mount is settled and verified before the Initial
             // frame (D-16, armkey)
             w0s <- settleAndVerify(w0, input = false)
@@ -786,6 +791,7 @@ private[tui4s] final class Runner private (
                       // claude 2026-10-19: changed: a frame with no change
                       // does not scroll the target into view later (L1a)
                       w.copy(reveal = Reveal.OnMove),
+                      Vector.empty[String],
                       // claude 2026-10-12: changed: repaired and settleTimeouts
                       // in the frame stats (K29, D-17 c)
                       FrameStats(
@@ -806,6 +812,9 @@ private[tui4s] final class Runner private (
                   // the plan; the canvas writes it and sends its changed
                   // cells; the plan counts the cells written
                   val plan         = Paint(w1.laid, w1.env, damage)
+                  // claude 2026-10-19: created (L1b): the new warnings of the
+                  // nodes of this frame, logged once in the run
+                  val warns        = Warnings.scan(w1.laid, damage, w1.warned)
                   canvas.write(plan)
                   canvas.flush(plan).map { flushed =>
                     val done = w1.copy(
@@ -813,9 +822,11 @@ private[tui4s] final class Runner private (
                       dirtyNodes = Set.empty,
                       scrolled = Set.empty,
                       full = false,
+                      warned = w1.warned ++ warns.map(_._1),
                     )
                     (
                       done,
+                      warns.map((warn, at) => warn.line(at)),
                       // claude 2026-10-12: changed: repaired and settleTimeouts
                       // in the frame stats (K29, D-17 c)
                       FrameStats(
@@ -833,8 +844,10 @@ private[tui4s] final class Runner private (
                   }
             }
             .map(orFail)
-            .map { (w1, s) =>
-              nanos.map { t1 =>
+            .map { (w1, lines, s) =>
+              // claude 2026-10-19: created (L1b): the warnings go to the
+              // logger of the run (TuiLog), never to stdout
+              Kyo.foreach(lines)(Log.warn(_)).andThen(nanos).map { t1 =>
                 val emit = stats match
                     case Present(_) if idle && cause == FrameCause.Background =>
                       Kyo.unit // nothing happened: no frame

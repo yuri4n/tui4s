@@ -130,6 +130,9 @@ private[tui4s] final case class World(
     // claude 2026-10-19: created (L1b): the custom properties of the
     // stylesheet of the run
     vars: CssVars = CssVars.empty,
+    // claude 2026-10-19: created (L1b): the warnings that the run logged
+    // (Warnings.scan), each one once
+    warned: Set[Warn] = Set.empty,
 ):
     // claude 2026-10-19: changed: the scroll offsets (L1a); the custom
     // properties (L1b)
