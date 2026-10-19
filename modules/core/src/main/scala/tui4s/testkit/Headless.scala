@@ -307,15 +307,16 @@ object Headless:
       for
           // claude 2026-10-12: changed: the knobs (test seams) reach the runner
           knobs   <- Knobs.get
-          // claude 2026-10-13: changed (T1): the capacity of the options, as in
-          // the real terminal
-          inbox   <- Channel.initUnscoped[Msg](options.inboxCapacity.max(1))
+          // claude 2026-10-19: changed: the options are checked once, as in
+          // the real terminal (RunOptions, amendment A10)
+          runOpts  = RunOptions.of(options)
+          inbox   <- Channel.initUnscoped[Msg](runOpts.inboxCapacity)
           frames  <- Channel.initUnscoped[FrameStats](1 << 16)
           backend <- Sync.defer(TestBackend(width, height))
           /* claude 2026-10-12: changed (PR #11 review: Codex,
            * Headless.scala:88): the seam */
           canvas  <- Sync.defer(Canvas(backend, knobs.flushSeam))
-          runner   = Runner(inbox, canvas, options, Present(frames), knobs)
+          runner   = Runner(inbox, canvas, runOpts, Present(frames), knobs)
           seq     <- AtomicLong.init(1L)
           run     <- Fiber.init(runner.scoped(ui(runner.quit).map(runner.run)))
           // claude 2026-10-13: created (review R1-8, R2-7): the end mark after

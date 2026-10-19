@@ -4,7 +4,7 @@ import jatatui.core.backend.TestBackend
 import kyo.*
 import kyo.UI.*
 import tui4s.Hooks.*
-import tui4s.internal.{Canvas, Knobs, Msg, Runner}
+import tui4s.internal.{Canvas, Knobs, Msg, RunOptions, Runner}
 import tui4s.spi.Settle
 import tui4s.testkit.{Headless, Screen}
 
@@ -51,7 +51,8 @@ class ComponentTest extends ComponentSuite:
           ends   <- Sync.defer(AtomicInteger(0))
           inbox  <- Channel.initUnscoped[Msg](1024)
           canvas <- Sync.defer(Canvas(TestBackend(60, 12)))
-          runner  = Runner(inbox, canvas, TuiOptions(), Absent)
+          // claude 2026-10-19: changed: Runner takes RunOptions (A10)
+          runner  = Runner(inbox, canvas, RunOptions.of(TuiOptions()), Absent)
           ui      = div(
                       span("effects"),
                       component(hookBody(ticks, ends)),
@@ -147,7 +148,8 @@ class ComponentTest extends ComponentSuite:
           a      <- Signal.initRef(0)
           inbox  <- Channel.initUnscoped[Msg](1024)
           canvas <- Sync.defer(Canvas(TestBackend(60, 12)))
-          runner  = Runner(inbox, canvas, options, Absent)
+          // claude 2026-10-19: changed: Runner takes RunOptions (A10)
+          runner  = Runner(inbox, canvas, RunOptions.of(options), Absent)
           ui      = div(
                       a.render(n =>
                         if n == 2 then component(hookBody(ticks, ends))

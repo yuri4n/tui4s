@@ -4,7 +4,7 @@ import kyo.*
 import kyo.UI.{Keyboard, KeyboardEvent, Modifiers}
 import kyo.test.*
 import tui.crossterm.{Event as CEvent, KeyCode}
-import tui4s.internal.{InputPort, InputThread, Msg, Session, Size}
+import tui4s.internal.{InputPort, InputThread, Msg, RunOptions, Session, Size}
 import tui4s.testkit.*
 
 import java.util.concurrent.atomic.AtomicBoolean
@@ -18,6 +18,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 class SessionTest extends Test[Any]:
     override def config: RunConfig = super.config.sequential
 
+    /** The checked default options. */
+    // claude 2026-10-19: created: Session.open takes RunOptions (A10)
+    private val defaults: RunOptions = RunOptions.of(TuiOptions())
+
     private def inbox(capacity: Int)(using Frame): Channel[Msg] < Sync =
       Channel.initUnscoped[Msg](capacity)
 
@@ -26,7 +30,7 @@ class SessionTest extends Test[Any]:
       val control = RecordingControl(10, 2)
       inbox(16).map { box =>
         Session
-          .open(TuiOptions(), control, Some(ScriptedInput.never), box)
+          .open(defaults, control, Some(ScriptedInput.never), box)
           .map {
             case Left(e)        => assert(false, s"open failed: $e")
             case Right(session) =>
@@ -156,7 +160,7 @@ class SessionTest extends Test[Any]:
               val _ = steps.add("leave")
       inbox(16).map { box =>
         Session
-          .open(TuiOptions(), control, Some(ScriptedInput.never), box)
+          .open(defaults, control, Some(ScriptedInput.never), box)
           .map { r =>
             val all = scala.jdk.CollectionConverters
               .IteratorHasAsScala(steps.iterator())
@@ -209,7 +213,7 @@ class SessionTest extends Test[Any]:
       val screen               = tui4s.internal.Rect(0, 0, 10, 2)
       val style                = jatatui.core.style.Style.empty()
       inbox(16).map { box =>
-        Session.open(TuiOptions(), control, None, box).map {
+        Session.open(defaults, control, None, box).map {
           case Left(e)        => assert(false, s"open failed: $e")
           case Right(session) =>
             Sync
@@ -272,7 +276,7 @@ class SessionTest extends Test[Any]:
           def leave(opts: TuiOptions): Unit                         =
               val _ = steps.add("leave")
       inbox(16).map { box =>
-        Session.open(TuiOptions(), control, Some(port), box).map { r =>
+        Session.open(defaults, control, Some(port), box).map { r =>
           Sync
             .defer {
               Thread.sleep(200)
@@ -354,8 +358,9 @@ class SessionTest extends Test[Any]:
     "a poll interval below 1 ms polls with 1 ms: the input thread does not spin"
       .timeout(30.seconds) in {
       import java.time.Duration as JDuration
+      // claude 2026-10-19: changed: RunOptions checks the interval (A10)
       def ms(d: JDuration): Int =
-        Session.pollMillis(TuiOptions(pollInterval = d))
+        RunOptions.of(TuiOptions(pollInterval = d)).pollMillis
       val polls                 = java.util.concurrent.atomic.AtomicInteger(0)
       val shortest              =
         java.util.concurrent.atomic.AtomicInteger(Int.MaxValue)
@@ -367,7 +372,9 @@ class SessionTest extends Test[Any]:
               false
           // claude 2026-10-19: changed: read gives a Maybe (P1)
           def read(): Maybe[CEvent]             = Absent
-      val opts                  = TuiOptions(pollInterval = JDuration.ZERO)
+      // claude 2026-10-19: changed: Session.open takes RunOptions (A10)
+      val opts                  =
+        RunOptions.of(TuiOptions(pollInterval = JDuration.ZERO))
       inbox(16).map { box =>
         Session.open(opts, RecordingControl(10, 2), Some(port), box).map {
           case Left(e)        => assert(false, s"open failed: $e")

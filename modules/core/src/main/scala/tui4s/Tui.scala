@@ -8,6 +8,7 @@ import tui4s.internal.{
   Msg,
   NativeCrossterm,
   OutputCapture,
+  RunOptions,
   Runner,
   Session,
   TerminalIO,
@@ -113,8 +114,10 @@ object Tui:
           Abort
             .run[TuiError](
               TuiLog.let(sink)(
+                // claude 2026-10-19: changed: the options are checked once,
+                // here (RunOptions, amendment A10)
                 onTerminal(
-                  options,
+                  RunOptions.of(options),
                   TerminalIO(crossterm, sink, hooks, err, restored),
                 )(ui),
               ),
@@ -140,10 +143,11 @@ object Tui:
       * builds it.
       */
     // claude 2026-10-13: created (T1, RC-2 part)
-    private def onTerminal(options: TuiOptions, control: TerminalIO)(
+    // claude 2026-10-19: changed: the checked options (RunOptions, A10)
+    private def onTerminal(options: RunOptions, control: TerminalIO)(
         ui: (Unit < Sync) => UI < (Async & Scope),
     )(using Frame): Unit < (Async & Abort[TuiError]) =
-      Channel.initUnscoped[Msg](options.inboxCapacity.max(1)).map { inbox =>
+      Channel.initUnscoped[Msg](options.inboxCapacity).map { inbox =>
         Sync.acquireReleaseWith(Session.open(options, control, None, inbox))(
           opened => Sync.Unsafe.defer(opened.foreach(_.close())), // scalafix:ok DisableSyntax.unsafe; P3: the release stack (A1)
         ) { opened =>

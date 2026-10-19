@@ -5,7 +5,7 @@ package tui4s.internal
 import kyo.*
 import kyo.UI.Keyboard
 import tui4s.spi.Settle
-import tui4s.{FrameCause, FrameStats, TuiOptions}
+import tui4s.{FrameCause, FrameStats}
 
 /** The runner: one fiber that owns the world and the canvas.
   *
@@ -19,13 +19,15 @@ import tui4s.{FrameCause, FrameStats, TuiOptions}
   * event's consequences in it.
   */
 // claude 2026-10-13: changed: the Scaladoc names the dispatcher (C3)
+// claude 2026-10-19: changed: the checked options (RunOptions, amendment A10)
 private[tui4s] final class Runner(
     inbox: Channel[Msg],
     canvas: Canvas,
-    options: TuiOptions,
+    runOpts: RunOptions,
     stats: Maybe[Channel[FrameStats]],
     knobs: Knobs = Knobs.default,
 ):
+    private val options = runOpts.options
 
     // claude 2026-10-12: changed: the mount gets the test seams
     private val mount = Mount(inbox, knobs)
@@ -460,7 +462,8 @@ private[tui4s] final class Runner(
                 // (`pendingNanos` and `waited` are not negative)
                 val waited = now - frameStart
                 val left   =
-                  if waited <= 0L then pendingNanos else pendingNanos - waited
+                  if waited <= 0L then runOpts.pendingNanos
+                  else runOpts.pendingNanos - waited
                 // claude 2026-10-13: changed (C4, review R2-2): a run that
                 // ends does not wait for the component
                 ending(w).map { end =>
@@ -513,10 +516,12 @@ private[tui4s] final class Runner(
                         // `quiet` counts quiescent observations in a row
                         // (each followed by an empty drain); the settle ends
                         // after `confirm` of them, one hop apart.
-                        case Settle.Quiescent(max, confirm) =>
+                        // claude 2026-10-19: changed: the checked `max`
+                        // (RunOptions.settleNanos, A10)
+                        case Settle.Quiescent(_, confirm) =>
                           if idleBefore && quiet + 1 >= confirm then
                               Loop.done(w)
-                          else if now - start > max.toNanos then
+                          else if now - start > runOpts.settleNanos then
                               // claude 2026-10-12: changed (D-17 c, RR O6):
                               // the frame counts the timeout; no print to
                               // stderr
@@ -532,9 +537,11 @@ private[tui4s] final class Runner(
                                   last,
                                 ),
                               )
-                        case Settle.Hops(hops, window)      =>
-                          if quiet >= hops && now - last >= window.toNanos then
-                              Loop.done(w)
+                        // claude 2026-10-19: changed: the checked `window`
+                        // (RunOptions.settleNanos, A10)
+                        case Settle.Hops(hops, _)         =>
+                          if quiet >= hops && now - last >= runOpts.settleNanos
+                          then Loop.done(w)
                           else
                               hop.andThen(
                                 Loop.continue(w, quiet + 1, start, last),
@@ -561,19 +568,6 @@ private[tui4s] final class Runner(
             case _              => false
           }),
       )
-
-    /** `TuiOptions.pendingTimeout` in nanoseconds: a negative one is zero, and
-      * one too long for a count of nanoseconds is `Long.MaxValue`.
-      */
-    // claude 2026-10-13: created (C4, D-14 a: the option is a
-    // java.time.Duration)
-    // claude 2026-10-13: changed (C4, P-6): nanoseconds, for the total bound
-    private val pendingNanos: Long =
-        val d = options.pendingTimeout
-        if d.isNegative then 0L
-        else if d.compareTo(java.time.Duration.ofNanos(Long.MaxValue)) >= 0 then
-            Long.MaxValue
-        else d.toNanos
 
     // ---- layout, paint, flush ----
 

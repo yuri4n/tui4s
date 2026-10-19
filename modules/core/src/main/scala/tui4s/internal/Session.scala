@@ -58,7 +58,7 @@ end TerminalControl
 private[tui4s] final class Session private (
     val canvas: Canvas,
     control: TerminalControl,
-    opts: TuiOptions,
+    runOpts: RunOptions,
     inbox: Channel[Msg],
     thread: InputThread | Null,
 ):
@@ -102,11 +102,11 @@ private[tui4s] final class Session private (
           if thread != null then
               safely(control.step("input-stopped"))
               safely {
-                if join(thread, 2L * Session.pollMillis(opts) + 50) then
+                if join(thread, 2L * runOpts.pollMillis + 50) then
                     control.step("input-joined")
                 else control.step("input-hung")
               }
-          safely(control.leave(opts))
+          safely(control.leave(runOpts.options))
           if interrupted then Thread.currentThread().interrupt()
     }
 
@@ -144,8 +144,9 @@ private[tui4s] object Session:
       */
     // claude 2026-10-13: changed (T1, RC-21): the Canvas on the backend, the
     // runner's inbox; no jatatui Terminal and no inline viewport (D-22)
+    // claude 2026-10-19: changed: the checked options (RunOptions, A10)
     def open(
-        opts: TuiOptions,
+        runOpts: RunOptions,
         control: TerminalControl,
         input: Option[InputPort],
         inbox: Channel[Msg],
@@ -153,6 +154,7 @@ private[tui4s] object Session:
       Sync.Unsafe
         .defer {
           try
+              val opts                    = runOpts.options
               val backend                 = control.enter(opts)
               var session: Session | Null = null
               try
@@ -164,9 +166,9 @@ private[tui4s] object Session:
                   // thread (it leaked before)
                   val thread = input
                     .orElse(control.input())
-                    .map(port => InputThread(port, inbox, pollMillis(opts)))
+                    .map(port => InputThread(port, inbox, runOpts.pollMillis))
                   val s      =
-                    Session(canvas, control, opts, inbox, thread.orNull)
+                    Session(canvas, control, runOpts, inbox, thread.orNull)
                   session = s
                   thread.foreach { t =>
                     t.start()
@@ -187,20 +189,6 @@ private[tui4s] object Session:
               case e: TuiError => Left(e)
               case NonFatal(e) => Left(TuiError.TerminalIO(e))
         }
-
-    /** The poll interval of `opts` in milliseconds, from 1 to `Int.MaxValue`:
-      * an interval below 1 ms (also zero or a negative one) is 1 ms, so the
-      * input thread never spins on a poll that returns at once.
-      */
-    // claude 2026-10-13: created (T1): TuiOptions.pollInterval is a Duration
-    // claude 2026-10-13: changed (T1, review R2-1): at least 1 ms (zero spun);
-    // a very long interval does not overflow
-    def pollMillis(opts: TuiOptions): Int =
-        val d = opts.pollInterval
-        if d.compareTo(java.time.Duration.ofMillis(1)) < 0 then 1
-        else if d.compareTo(java.time.Duration.ofMillis(Int.MaxValue)) >= 0
-        then Int.MaxValue
-        else d.toMillis.toInt
 
     /** Closes the inbox; the messages that were still in it are dropped. */
     // claude 2026-10-13: changed (T1): the runner's inbox has no probes

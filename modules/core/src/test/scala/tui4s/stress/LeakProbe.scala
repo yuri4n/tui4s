@@ -48,8 +48,15 @@ class LeakProbe extends StressSuite:
                                inbox  <- Channel.initUnscoped[Msg](1024)
                                canvas <-
                                  Sync.defer(Canvas(TestBackend(100, 30)))
+                               // claude 2026-10-19: changed: Runner takes
+                               // RunOptions (A10)
                                runner  =
-                                 Runner(inbox, canvas, TuiOptions(), Absent)
+                                 Runner(
+                                   inbox,
+                                   canvas,
+                                   RunOptions.of(TuiOptions()),
+                                   Absent,
+                                 )
                                fiber  <- Fiber.initUnscoped(runner.run(ui(ref)))
                                _      <- ref.set(1).andThen(Async.sleep(10.millis))
                                _      <- fiber.interrupt
