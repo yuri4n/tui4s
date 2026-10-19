@@ -57,7 +57,17 @@
   1-cell text input) -> fix in L1c with a negative control and the full-screen step property; PTY check.py class-load
   INFO line classifies jars by the old paths (cosmetic) -> L1c; relative layers in big lists repaint whole rows (perf,
   L5 bench); L4 may want a Kyo-free theme option that renders to the stylesheet channel (D8).
-- NEXT: L1 in three workflows (cheap cadence: implementer + API/examples reviewer + fixer, Opus): L1a viewport scroll
+- L1c DONE, pushed 03045e5 (38 files, +3273/-293; AreaText multi-line textarea with D7 newline keys (Alt-Enter, Ctrl-J,
+  Shift-Enter; plain Enter submits in a form, breaks a line outside); password mask, number grammar + steps, range keys,
+  dropdown keys; readOnly/disabled/maxLength (tui4s.maxLength extension: kyo-ui has none); the hardware cursor at the
+  caret (Plan.cursor); Warn.UnsupportedElement for date/time/color/file; the damage-clip bug fixed (a kid clear that
+  overflows its owner; StepPropertyTest incremental == full frame); examples/forms + README 'Forms and inputs' + PTY
+  row; check.py class-load line fixed; 384 core leaves, 68 examples, PTY 148/148, glitch 0/500 x2). Review: 9 should,
+  7 nits, applied. Open: cursor not hidden under a non-trapping overlay; Shift-Enter needs a terminal that reports Shift
+  (no keyboard-enhancement flags pushed); inputFilter/inputMask ignored; one-line inputs run onChange only on Enter.
+- L1 DONE 2026-10-19 (L1a, L1b, L1c). 47/76 style properties honored; branch vs main now about +17k/-10k.
+- NEXT: PF-b (1 agent: F5, F6, F4 cache, F9b, the L1 perf notes), then L2 (tui4s-widgets, tui4s-use; sbt-scalajs).
+- (history) L1 ran in three workflows (cheap cadence: implementer + API/examples reviewer + fixer, Opus): L1a viewport scroll
   and clip, wrap and ellipsis, wide characters; L1b overlay and z-order, terminal-size Signal, Color.Var, FlexWrap and
   Display, one warning per ignored property; L1c native inputs and the multi-line textarea (Alt-Enter, Ctrl-J,
   Shift-Enter where reported). PF-b (F5, F6) rides L1a's layout work.
