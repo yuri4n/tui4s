@@ -80,7 +80,7 @@ class TerminalIOTest extends Test[Any]:
               // goes last; the flush comes before raw mode ends
               assert(
                 fake.calls == Seq(
-                  "hook-added tui4s-restore",
+                  "hook-added tui4s-stop",
                   "load",
                   "raw-mode-on",
                   enterDefault,
@@ -88,7 +88,7 @@ class TerminalIOTest extends Test[Any]:
                   leaveDefault,
                   "flush",
                   "raw-mode-off",
-                  "hook-removed tui4s-restore",
+                  "hook-removed tui4s-stop",
                 ),
                 fake.calls.mkString("\n"),
               )
@@ -312,7 +312,7 @@ class TerminalIOTest extends Test[Any]:
                 leaveDefault,
                 "flush",
                 "raw-mode-off",
-                "hook-removed tui4s-restore",
+                "hook-removed tui4s-stop",
               ),
             ),
             calls.mkString("\n"),
@@ -341,7 +341,7 @@ class TerminalIOTest extends Test[Any]:
                 leaveDefault,
                 "flush",
                 "raw-mode-off",
-                "hook-removed tui4s-restore",
+                "hook-removed tui4s-stop",
               ),
             ),
             calls.mkString("\n"),
@@ -504,11 +504,12 @@ class TerminalIOTest extends Test[Any]:
       }
     }
 
-    // claude 2026-10-13: changed (T1): Tui.runWith; the release closes the
-    // inbox, and the run ends as a quit does (it ended as an interrupt)
-    "the shutdown hook restores the terminal while the app runs".timeout(
-      30.seconds,
-    ) in {
+    // claude 2026-10-19: changed (P3, A2): the one hook of the run interrupts
+    // the run fiber and restores the terminal
+    "the shutdown hook interrupts the run and restores the terminal while the app runs"
+      .timeout(
+        30.seconds,
+      ) in {
       val fake  = FakeCrossterm()
       val hooks = FakeHooks(fake.log)
       val err   = FakeErr(fake.log)
@@ -535,9 +536,14 @@ class TerminalIOTest extends Test[Any]:
                 calls.mkString("\n"),
               )
               assert(hooks.removed.isEmpty, "a running hook is not removed")
-              // The release closed the inbox under the runner: its next take
-              // ends the run, as a quit does.
-              assert(r == Result.succeed(()), r.toString)
+              assert(hooks.shuttingDown, "the hook did not record the stop")
+              assert(
+                r match
+                    case Result.Panic(_: Interrupted) => true
+                    case _                            => false
+                ,
+                r.toString,
+              )
             }
         }
     }

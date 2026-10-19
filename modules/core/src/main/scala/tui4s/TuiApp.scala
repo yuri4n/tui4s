@@ -1,17 +1,10 @@
 package tui4s
 
 import kyo.*
-import tui4s.internal.{
-  Crossterm,
-  Hooks,
-  NativeCrossterm,
-  OutputCapture,
-  discard,
-}
+import tui4s.internal.{Crossterm, Hooks, NativeCrossterm, OutputCapture}
 import tui4s.spi.SchedulerDefaults
 
 import java.io.PrintStream
-import java.util.concurrent.{CountDownLatch, TimeUnit} // scalafix:ok DisableSyntax.jvmSync; P3: one stop hook and no latch (A2)
 
 /** The main class of a tui4s app: `object CounterApp extends TuiApp`. Its
   * `main` runs [[ui]] in the real terminal with [[Tui.run]] and [[options]],
@@ -46,17 +39,16 @@ import java.util.concurrent.{CountDownLatch, TimeUnit} // scalafix:ok DisableSyn
   *     before the terminal changes), "interrupted" for an interrupt, the stack
   *     trace of any other error.
   *   - 143 (`kill -TERM`), 130 (`kill -INT`), or the code of a `System.exit`
-  *     while the UI is up: the JVM stops the app. A shutdown hook interrupts
-  *     the run and waits at most 2 s until the terminal is restored; then the
-  *     JVM exits with its own code (128 + the signal). `main` prints nothing
-  *     then, and `onExit` does not run.
+  *     while the UI is up: the JVM stops the app. The shutdown hook of the run
+  *     interrupts the run, restores the terminal and waits at most 2 s until
+  *     the restore is complete; then the JVM exits with its own code (128 + the
+  *     signal). `main` prints nothing then, and `onExit` does not run.
   *
   * Start the JVM with `--enable-native-access=ALL-UNNAMED` (the terminal
   * library crossterm is native).
   */
-// claude 2026-10-13: changed (T2, RC-24): a main class for a kyo-ui app (PR 5
-// had `TuiApp[S] extends App[S]` of the old model): `ui`, `options`, `args`,
-// `onExit` without a state, the run through `Tui.runWith`; the Scaladoc
+// claude 2026-10-19: changed (P3, A2): the Scaladoc names the one hook of the
+// run
 abstract class TuiApp:
     SchedulerDefaults.applyIfUnset()
     OutputCapture.install()
@@ -98,9 +90,8 @@ abstract class TuiApp:
       * the app; the JVM then exits with its own code). The test seam: the
       * terminal of `crossterm`, the shutdown hooks `hooks`, the stderr `err`.
       */
-    // claude 2026-10-13: changed (T2, RC-24): the run through Tui.runWith (its
-    // `restored` seam counts the latch down); no onExit and no print when the
-    // JVM shuts down (a restore hook that ran first ends the run as a quit)
+    // claude 2026-10-19: changed (P3, A2): the one hook of the run (in
+    // Tui.runWith) sets `hooks.shuttingDown`; no latch and no hook here
     private[tui4s] final def runMain(
         args: Array[String],
         crossterm: Crossterm,
@@ -109,18 +100,11 @@ abstract class TuiApp:
     ): Int =
         SchedulerDefaults.applyIfUnset()
         arguments = Chunk.from(args)
-        val restored = CountDownLatch(1)
-        val run      = Tui
-          .runWith(
-            options,
-            crossterm,
-            hooks,
-            () => err,
-            () => restored.countDown(),
-          )(_ => ui)
+        val run    = Tui
+          .runWith(options, crossterm, hooks, () => err)(_ => ui)
           .andThen(Sync.defer(hooks.shuttingDown))
           .map(stopping => if stopping then Kyo.unit else onExit)
-        val result   = TuiApp.block(run, hooks, restored)
+        val result = TuiApp.block(run)
         if hooks.shuttingDown then 1 else TuiApp.report(result, err)
     end runMain
 
@@ -147,45 +131,16 @@ abstract class TuiApp:
     protected def onExit: Unit < (Async & Abort[Throwable]) = ()
 end TuiApp
 
-// claude 2026-10-13: changed (T2, review R1-10): `block` takes a type
-// parameter `A` (PR 5: the state `S`); its Scaladoc no longer says that
-// `onExit` runs after the restore (`runMain` runs it)
 private[tui4s] object TuiApp:
-    /** Runs `program` on a fiber and blocks until it ends. While it runs, a
-      * shutdown hook (SIGTERM, `kill -INT`, `System.exit`) interrupts the
-      * fiber, whose release restores the terminal, and waits at most 2 s for
-      * `restored`: the release counts it down, and so does the end of the
-      * fiber. It does not wait for the fiber: a fiber whose thread is blocked
-      * in `System.exit` never ends.
+    /** Runs `program` and blocks the calling thread (`main`) until it ends. The
+      * shutdown hook of the run is in `Tui.runWith` (one hook per run).
       */
-    def block[A](
-        program: A < (Async & Abort[Throwable]),
-        hooks: Hooks,
-        restored: CountDownLatch,
-    )(using Frame): Result[Throwable, A] =
-        import AllowUnsafe.embrace.danger // scalafix:ok DisableSyntax.unsafe; P3: one stop hook (A2)
-        KyoApp.Unsafe.runAndBlock(Duration.Infinity)(
-          Fiber.initUnscoped(program).map { fiber =>
-            Sync.Unsafe // scalafix:ok DisableSyntax.unsafe; P3: one stop hook (A2)
-              .defer {
-                fiber.unsafe.onComplete(_ => restored.countDown()) // scalafix:ok DisableSyntax.unsafe; P3: one stop hook (A2)
-                val hook = Thread(() => stop(fiber, restored), "tui4s-stop") // scalafix:ok DisableSyntax.jvmSync; P3: one stop hook (A2)
-                hooks.add(hook)
-                hook
-              }
-              .map(hook =>
-                Sync.ensure(Sync.defer(hooks.remove(hook)))(fiber.get),
-              )
-          },
-        )
-    end block
-
-    private def stop[A](
-        fiber: Fiber[A, Abort[Throwable]],
-        restored: CountDownLatch,
-    )(using Frame, AllowUnsafe): Unit = // scalafix:ok DisableSyntax.unsafe; P3: one stop hook (A2)
-        discard(fiber.unsafe.interrupt()) // scalafix:ok DisableSyntax.unsafe; P3: one stop hook (A2)
-        discard(restored.await(2, TimeUnit.SECONDS))
+    // claude 2026-10-19: changed (P3, A2): no hook and no latch of its own
+    def block[A](program: A < (Async & Abort[Throwable]))(using
+        Frame,
+    ): Result[Throwable, A] =
+        import AllowUnsafe.embrace.danger // scalafix:ok DisableSyntax.unsafe; KEEP: main blocks its thread until the run ends
+        KyoApp.Unsafe.runAndBlock(Duration.Infinity)(program)
 
     /** Prints a failed run to `err` and gives the exit code. The prints run
       * after the terminal is restored, by design: a 'tui4s: allowed' marker at

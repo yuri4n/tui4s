@@ -11,6 +11,7 @@ import java.io.{ByteArrayOutputStream, PrintStream}
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.{
   ConcurrentLinkedQueue,
+  CountDownLatch,
   LinkedBlockingQueue,
   TimeUnit,
 }
@@ -27,6 +28,9 @@ import scala.jdk.CollectionConverters.*
   *   fails) or "" for none
   * @param stdinTty
   *   what [[stdinIsTerminal]] says
+  * @param leaveGate
+  *   the leave commands (the second `execute`) wait until it opens (at most 10
+  *   s; an interrupt does not stop the wait)
   */
 final class FakeCrossterm(
     width: Int = 40,
@@ -35,6 +39,8 @@ final class FakeCrossterm(
     events: Seq[CEvent] = Nil,
     stdinTty: Boolean = true,
     val log: ConcurrentLinkedQueue[String] = ConcurrentLinkedQueue[String](),
+    // claude 2026-10-19: created (P3, A2): a release that is in progress
+    leaveGate: CountDownLatch = CountDownLatch(0),
 ) extends Crossterm:
     val backendT: TestBackend = TestBackend(width, height)
 
@@ -98,7 +104,22 @@ final class FakeCrossterm(
         // a LinkageError of the native call at the leave commands
         if failAt == "leave-link" && executes == 2 then
             throw UnsatisfiedLinkError("no crossterm at leave")
+        if executes == 2 then awaitGate()
     end execute
+
+    /** Waits at most 10 s for [[leaveGate]], as a native write does: an
+      * interrupt does not stop the wait, and the interrupt flag stays set.
+      */
+    // claude 2026-10-19: created (P3, A2)
+    private def awaitGate(): Unit =
+        val until       = java.lang.System.nanoTime() + 10_000_000_000L
+        var interrupted = false
+        while leaveGate.getCount > 0 && java.lang.System.nanoTime() < until do
+            try
+                val _ = leaveGate.await(10, TimeUnit.MILLISECONDS)
+            catch case _: InterruptedException => interrupted = true
+        if interrupted then Thread.currentThread().interrupt()
+    end awaitGate
 
     def flush(): Unit = record("flush")
 
@@ -171,9 +192,11 @@ final class FakeHooks(log: ConcurrentLinkedQueue[String]) extends Hooks:
         val _ = log.add("hook-removed " + hook.getName)
         val _ = removed.add(hook)
 
-    /** Set by a test before it runs the hooks, as the JVM shuts down. */
-    // claude 2026-10-13: created (T2, RC-24)
+    /** Set by the stop hook of a run when it runs, as the JVM shuts down. */
+    // claude 2026-10-19: changed (P3, A2): the stop hook sets it
     @volatile var shuttingDown: Boolean = false
+
+    def stopping(): Unit = shuttingDown = true
 end FakeHooks
 
 /** A stderr for tests: each line it gets is recorded as "err: <line>" in `log`,

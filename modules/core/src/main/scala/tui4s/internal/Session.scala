@@ -94,6 +94,8 @@ private[tui4s] object Session:
                   .orElse(control.input())
                   .map(port => InputThread(port, inbox, runOpts.pollMillis)),
               )
+              // Pushed before the start: on a closed stack the stop runs at
+              // once, and a thread that starts after its stop ends at once.
               stack.add("input")(() =>
                 stopInput(control, inbox, thread, runOpts.pollMillis),
               )

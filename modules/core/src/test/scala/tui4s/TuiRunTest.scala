@@ -40,13 +40,13 @@ class TuiRunTest extends Test[Any]:
         val c     = fake.calls
         val enter = c.indexWhere(_.startsWith("execute EnterAlternateScreen"))
         val leave = c.indexWhere(_.startsWith("execute DisableBracketedPaste"))
-        val added = c.indexOf("hook-added tui4s-restore")
+        val added = c.indexOf("hook-added tui4s-stop")
         enter >= 0 && leave > enter &&
         c.indexOf("raw-mode-on") < enter &&
         c.lastIndexOf("raw-mode-off") > leave &&
         c.count(_ == "raw-mode-off") == 1 &&
         added >= 0 && added < c.indexOf("load") &&
-        c.indexOf("hook-removed tui4s-restore") > c.lastIndexOf("raw-mode-off")
+        c.indexOf("hook-removed tui4s-stop") > c.lastIndexOf("raw-mode-off")
     end enteredAndLeft
 
     "a run starts, a scripted key quits it: the terminal is entered, then left"

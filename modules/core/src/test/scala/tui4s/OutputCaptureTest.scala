@@ -214,7 +214,6 @@ class OutputCaptureTest extends Test[Any]:
         val io    = TerminalIO(
           fake,
           sink,
-          FakeHooks(fake.log),
           () => err.stream,
           consoleCaptured = () => false,
         )
@@ -246,7 +245,6 @@ class OutputCaptureTest extends Test[Any]:
         val io    = TerminalIO(
           fake,
           LogSink(None),
-          FakeHooks(fake.log),
           () => err.stream,
           consoleCaptured = captured,
         )

@@ -182,15 +182,11 @@ class TuiAppTest extends Test[Any]:
         assert(MainCounter.exited.get == -1, "onExit ran after a failure")
         // The terminal never changed.
         assert(!fake.calls.exists(_.startsWith("execute")), fake.calls.toString)
-        // claude 2026-10-19: changed (P3, A1): the terminal hook is added
-        // before the terminal changes; both hooks are removed again
-        val hookCalls = fake.calls.filter(_.startsWith("hook"))
+        // claude 2026-10-19: changed (P3, A2): the one hook of the run is
+        // added and removed
         assert(
-          hookCalls.take(2).toSet == Set(
+          fake.calls.filter(_.startsWith("hook")) == Seq(
             "hook-added tui4s-stop",
-            "hook-added tui4s-restore",
-          ) && hookCalls.drop(2) == Seq(
-            "hook-removed tui4s-restore",
             "hook-removed tui4s-stop",
           ),
           fake.calls.toString,
@@ -215,24 +211,22 @@ class TuiAppTest extends Test[Any]:
         assert(code == 0, err.lines.toString)
         assert(MainCounter.exited.get == 2)
         assert(printed(err).isEmpty, err.lines.toString)
-        val calls     = fake.calls
+        val calls = fake.calls
         assert(
           calls.indexOf("onExit") > calls.lastIndexOf("raw-mode-off") &&
             calls.indexOf("onExit") > calls.lastIndexOf("flush"),
           calls.mkString("\n"),
         )
-        // The two hooks are added in either order (the run starts on its
-        // own fiber); the terminal's hook goes first.
-        val hookCalls = calls.filter(_.startsWith("hook"))
+        // claude 2026-10-19: changed (P3, A2): one hook per run; it is
+        // removed before onExit runs
         assert(
-          hookCalls.take(2).toSet == Set(
+          calls.filter(_.startsWith("hook")) == Seq(
             "hook-added tui4s-stop",
-            "hook-added tui4s-restore",
-          ) && hookCalls.drop(2) == Seq(
-            "hook-removed tui4s-restore",
+            "hook-removed tui4s-stop",
+          ) && calls.indexOf("onExit") > calls.indexOf(
             "hook-removed tui4s-stop",
           ),
-          hookCalls.toString,
+          calls.mkString("\n"),
         )
       }
     }
@@ -414,10 +408,9 @@ class TuiAppTest extends Test[Any]:
         took.asScala.toMap
     end runHooks
 
-    // claude 2026-10-13: changed (T2): the JVM shuts down (its hooks run), so
-    // the run prints nothing and onExit does not run; the stop hook returns
-    // within its 2 s
-    "SIGTERM: both hooks at once interrupt the run and restore the terminal"
+    // claude 2026-10-19: changed (P3, A2): one hook per run; it records that
+    // the JVM stops, so the run prints nothing and onExit does not run
+    "SIGTERM: the one hook of the run restores the terminal once; nothing printed, no onExit"
       .timeout(30.seconds) in {
       val fake  = FakeCrossterm()
       val hooks = FakeHooks(fake.log)
@@ -425,14 +418,13 @@ class TuiAppTest extends Test[Any]:
       val took  = AtomicLong(-1)
       MainCounter.reset(fake.log)
       main(fake, hooks, err) {
-        waitFor(hooks.added.size == 2 && fake.screen.contains("Count"))
-        // What the JVM does on SIGTERM: it takes no new hook and runs every
-        // hook at once.
-        hooks.shuttingDown = true
+        waitFor(hooks.added.size == 1 && fake.screen.contains("Count"))
+        // What the JVM does on SIGTERM: it runs every hook at once.
         val times = runHooks(hooks.added.asScala.toSeq)
         took.set(times.getOrElse("tui4s-stop", -1L))
       }.map { code =>
         assert(code == 1)
+        assert(hooks.shuttingDown, "the hook did not record the stop")
         assert(printed(err).isEmpty, err.lines.toString)
         assert(MainCounter.exited.get == -1, "onExit ran while the JVM stops")
         assert(
@@ -440,39 +432,59 @@ class TuiAppTest extends Test[Any]:
           s"the stop hook took ${took.get} ms (-1: it did not run)",
         )
         assert(
-          fake.calls.containsSlice(Seq("flush", "raw-mode-off")),
+          fake.calls.count(_ == "raw-mode-off") == 1 &&
+            fake.calls.containsSlice(Seq("flush", "raw-mode-off")),
+          fake.calls.mkString("\n"),
+        )
+        // A running hook does not remove itself.
+        assert(hooks.removed.isEmpty, fake.calls.mkString("\n"))
+      }
+    }
+
+    // claude 2026-10-19: created (P3, A1, A2): the run restores the terminal
+    // and the hook comes while it does: the second runAll does nothing, and
+    // the hook waits until the other release is complete
+    "the hook while the run restores the terminal: one restore, the hook waits for it, no onExit"
+      .timeout(30.seconds) in {
+      val gate  = CountDownLatch(1)
+      val fake  = FakeCrossterm(leaveGate = gate)
+      val hooks = FakeHooks(fake.log)
+      val err   = FakeErr(fake.log)
+      val took  = AtomicLong(-1)
+      MainCounter.reset(fake.log)
+      main(fake, hooks, err) {
+        pushWhen(fake, "Count")('q')
+        // The release of the run is in the leave commands; they wait.
+        waitFor(
+          fake.calls.exists(_.startsWith("execute DisableBracketedPaste")),
+        )
+        val hook = Thread { () =>
+          val times = runHooks(hooks.added.asScala.toSeq)
+          took.set(times.getOrElse("tui4s-stop", -1L))
+        }
+        hook.start()
+        Thread.sleep(300)
+        gate.countDown()
+        hook.join(10_000)
+      }.map { code =>
+        assert(code == 1, err.lines.toString)
+        assert(printed(err).isEmpty, err.lines.toString)
+        assert(MainCounter.exited.get == -1, "onExit ran while the JVM stops")
+        assert(
+          took.get >= 250 && took.get < 1500,
+          s"the stop hook took ${took.get} ms: it must wait for the release",
+        )
+        assert(
+          fake.calls.count(_ == "raw-mode-off") == 1 &&
+            fake.calls.count(
+              _.startsWith("execute DisableBracketedPaste"),
+            ) == 1,
           fake.calls.mkString("\n"),
         )
       }
     }
 
-    // claude 2026-10-13: changed (T2): the release of the restore hook ends
-    // the run (a closed inbox is a quit), and still nothing is printed and
-    // onExit does not run
-    "the restore hook first, then the stop hook: nothing printed, no onExit"
-      .timeout(30.seconds) in {
-      val fake                          = FakeCrossterm()
-      val hooks                         = FakeHooks(fake.log)
-      val err                           = FakeErr(fake.log)
-      val took                          = AtomicLong(-1)
-      def named(n: String): Seq[Thread] =
-        hooks.added.asScala.toSeq.filter(_.getName == n)
-      MainCounter.reset(fake.log)
-      main(fake, hooks, err) {
-        waitFor(hooks.added.size == 2 && fake.screen.contains("Count"))
-        hooks.shuttingDown = true
-        // The restore hook closes the inbox under the running loop.
-        val _     = runHooks(named("tui4s-restore"))
-        val times = runHooks(named("tui4s-stop"))
-        took.set(times.getOrElse("tui4s-stop", -1L))
-      }.map { code =>
-        assert(code == 1)
-        assert(printed(err).isEmpty, err.lines.toString)
-        assert(MainCounter.exited.get == -1, "onExit ran while the JVM stops")
-        assert(took.get >= 0 && took.get < 1500, s"${took.get} ms")
-      }
-    }
-
+    // claude 2026-10-19: changed (P3, A2): one hook per run
     "System.exit in a handler: the stop hook waits for the restore, not 2 s"
       .timeout(30.seconds) in {
       val fake  = FakeCrossterm()
@@ -483,12 +495,11 @@ class TuiAppTest extends Test[Any]:
       MainCounter.blocked.set(false)
       MainCounter.gate = CountDownLatch(1)
       main(fake, hooks, err) {
-        waitFor(hooks.added.size == 2 && fake.screen.contains("Count"))
+        waitFor(hooks.added.size == 1 && fake.screen.contains("Count"))
         // The handler blocks its thread, as System.exit does while the JVM
         // runs the shutdown hooks.
         fake.push(char('w'))
         waitFor(MainCounter.blocked.get)
-        hooks.shuttingDown = true
         val times = runHooks(hooks.added.asScala.toSeq)
         took.set(times.getOrElse("tui4s-stop", -1L))
         MainCounter.gate.countDown()

@@ -1,5 +1,5 @@
 // scalafix:off DisableSyntax
-// EDGE: the crossterm terminal modes and JVM shutdown hooks (Runtime)
+// EDGE: the crossterm terminal modes
 // claude 2026-10-17: created this header (purity plan, phase P0)
 package tui4s.internal
 
@@ -10,97 +10,40 @@ import tui4s.*
 import java.io.PrintStream
 import scala.util.control.NonFatal
 
-/** JVM shutdown hooks, so that tests can see them. */
-private[tui4s] trait Hooks:
-    def add(hook: Thread): Unit
-
-    /** Removes `hook`; does nothing while the JVM shuts down. */
-    def remove(hook: Thread): Unit
-
-    /** True when the JVM shuts down: it runs its shutdown hooks (SIGTERM,
-      * SIGINT, `System.exit`) and takes no new hook.
-      */
-    // claude 2026-10-13: created (T2, RC-24): TuiApp prints nothing and skips
-    // onExit when the JVM stops the app
-    def shuttingDown: Boolean
-end Hooks
-
-private[tui4s] object Hooks:
-    /** The JVM's own hooks. */
-    val runtime: Hooks = new Hooks:
-        def add(hook: Thread): Unit    =
-          java.lang.Runtime.getRuntime.nn.addShutdownHook(hook)
-        def remove(hook: Thread): Unit =
-          try discard(java.lang.Runtime.getRuntime.nn.removeShutdownHook(hook))
-          catch
-              case _: IllegalStateException => () // shutdown in progress
-        // claude 2026-10-13: created (T2, RC-24): the JVM refuses a new hook
-        // once it runs its hooks; the probe is a thread that does nothing
-        def shuttingDown: Boolean      =
-            val probe = Thread(() => (), "tui4s-probe")
-            try
-                java.lang.Runtime.getRuntime.nn.addShutdownHook(probe)
-                discard(
-                  java.lang.Runtime.getRuntime.nn.removeShutdownHook(probe),
-                )
-                false
-            catch case _: IllegalStateException => true
-        end shuttingDown
-end Hooks
-
 /** The real terminal: a [[TerminalControl]] over [[Crossterm]].
   *
   * `enter` does the first steps of the acquire, and pushes the release of each
-  * step to the stack of the run in the same step: (1) register the restore hook
-  * (release: remove it), (2) load the native library, (3) start the output
-  * capture (release: stop it and print the R3 warning), (4) raw mode
-  * (`NotATerminal` when stdin is not a terminal or raw mode fails; release:
-  * leave raw mode, then flush), (5) the alternate screen, clear it, hide the
-  * cursor, and the bracketed paste mode when the options ask for it (release:
-  * leave the modes and show the cursor). The [[Session]] then starts the input
-  * thread on [[input]] and makes the canvas. The stack runs the releases in
-  * reverse: the modes, the flush, raw mode, the capture, the hook.
+  * step to the stack of the run in the same step: (1) load the native library,
+  * (2) start the output capture (release: stop it and print the R3 warning),
+  * (3) raw mode (`NotATerminal` when stdin is not a terminal or raw mode fails;
+  * release: leave raw mode, then flush), (4) the alternate screen, clear it,
+  * hide the cursor, and the bracketed paste mode when the options ask for it
+  * (release: leave the modes and show the cursor). The [[Session]] then starts
+  * the input thread on [[input]] and makes the canvas. The stack runs the
+  * releases in reverse: the modes, the flush, raw mode, the capture.
   *
   * @param crossterm
   *   the native calls
   * @param sink
   *   where the captured output goes
-  * @param hooks
-  *   the JVM shutdown hooks
   * @param realErr
   *   the real stderr, for what is printed after the restore
-  * @param restored
-  *   called when the terminal is restored
   * @param consoleCaptured
   *   true when a capture also takes `scala.Console` (Scala's `println`); see
   *   [[OutputCapture.capturesConsole]]
   */
-// claude 2026-10-19: changed (P3, A1): one release step per acquire step on
-// the stack of the run; no undo list, no `leave`
+// claude 2026-10-19: changed (P3, A1, A2): one release step per acquire step
+// on the stack of the run; no undo list, no `leave`, no hook of its own
 private[tui4s] final class TerminalIO(
     crossterm: Crossterm,
     sink: LogSink,
-    hooks: Hooks = Hooks.runtime,
     realErr: () => PrintStream = () => OutputCapture.realErr,
-    restored: () => Unit = () => (),
     consoleCaptured: () => Boolean = () => OutputCapture.capturesConsole,
 ) extends TerminalControl:
-    @volatile private var inHook = false
-
     private def err: PrintStream = realErr()
 
     // claude 2026-10-19: changed (P3, A1): each step pushes its release
     def enter(opts: TuiOptions, stack: ReleaseStack): Backend =
-        stack.add("restored")(restored)
-        val hook = Thread(
-          () =>
-              inHook = true
-              stack.runAll()
-          ,
-          "tui4s-restore",
-        )
-        hooks.add(hook)
-        stack.add("shutdown hook")(() => if !inHook then hooks.remove(hook))
         crossterm.load()
         if opts.captureOutput then
             val c    = OutputCapture.start(sink)
@@ -127,12 +70,24 @@ private[tui4s] final class TerminalIO(
         catch case NonFatal(e) => throw TuiError.NotATerminal(e)
         stack.add("raw mode")(() => crossterm.disableRawMode())
         stack.add("flush")(() => crossterm.flush())
-        // A failing command list can be half done: leave all its modes.
+        // The push comes after the commands, also after a failure: a failing
+        // command list can be half done, so its release leaves all the modes.
+        // (A push before the commands would leave them before they are entered
+        // when the stack is already closed.)
+        val failed: Option[Throwable] =
+          try
+              crossterm.execute(TerminalIO.enterCommands(opts))
+              None
+          catch
+              case e: VirtualMachineError => throw e
+              case e: Throwable           => Some(e)
         stack.add("terminal modes")(() =>
           crossterm.execute(TerminalIO.leaveCommands(opts)),
         )
-        try crossterm.execute(TerminalIO.enterCommands(opts))
-        catch case NonFatal(e) => throw TuiError.TerminalIO(e)
+        failed.foreach {
+          case e if NonFatal(e) => throw TuiError.TerminalIO(e)
+          case e                => throw e
+        }
         crossterm.backend()
     end enter
 
@@ -147,7 +102,7 @@ private[tui4s] object TerminalIO:
         "output was not captured during the run and could write over the " +
         "screen. Start the run before the first use of scala.Console."
 
-    /** Step 5 of the acquire: the alternate screen (cleared: not every terminal
+    /** Step 4 of the acquire: the alternate screen (cleared: not every terminal
       * clears it), the hidden cursor, and the bracketed paste mode for
       * `TuiOptions.paste`. No mouse and no focus events (D-30), no inline
       * viewport (D-22).
@@ -162,7 +117,7 @@ private[tui4s] object TerminalIO:
         if opts.paste then b += Command.EnableBracketedPaste()
         b.result()
 
-    /** The release of step 5: the modes of [[enterCommands]] in reverse. */
+    /** The release of step 4: the modes of [[enterCommands]] in reverse. */
     // claude 2026-10-13: changed (T1): the full screen only; no mouse and no
     // focus modes
     def leaveCommands(opts: TuiOptions): Seq[Command] =

@@ -35,7 +35,9 @@ object Tui:
     ): Unit < (Async & Abort[TuiError]) =
       run(TuiOptions())(ui)
 
-    /** Runs `ui` in the real terminal until it quits, on the calling fiber.
+    /** Runs `ui` in the real terminal until it quits, on a fiber of its own
+      * (the run fiber). The calling fiber waits for it; an interrupt of the
+      * calling fiber interrupts the run.
       *
       * `ui` gets the quit value: running it ends the run (the same as [[quit]],
       * which works inside the construction of the UI, inside a handler, and
@@ -46,11 +48,12 @@ object Tui:
       * The run puts the terminal in raw mode, enters the alternate screen,
       * hides the cursor and turns on the bracketed paste mode (with
       * `TuiOptions.paste`). The terminal is restored before this computation
-      * completes, also when the UI fails and when the fiber is interrupted, and
-      * a JVM shutdown hook restores it when the JVM exits during the run. While
-      * the UI is up, the Kyo log goes to `TuiOptions.logFile` or to memory, and
-      * (with `TuiOptions.captureOutput`) so do `System.out` and `System.err`;
-      * what was kept in memory is printed to stderr after the restore.
+      * completes, also when the UI fails and when the fiber is interrupted.
+      * When the JVM exits during the run, its shutdown hook interrupts the run
+      * fiber and restores the terminal (it waits at most 2 s). While the UI is
+      * up, the Kyo log goes to `TuiOptions.logFile` or to memory, and (with
+      * `TuiOptions.captureOutput`) so do `System.out` and `System.err`; what
+      * was kept in memory is printed to stderr after the restore.
       *
       * The JVM needs `--enable-native-access=ALL-UNNAMED` (the terminal library
       * crossterm is native) and a terminal on stdin. Give it the tui4s
@@ -76,12 +79,8 @@ object Tui:
       * or written. A failure of the UI itself comes out as it is, after the
       * restore.
       */
-    // claude 2026-10-13: created (T1, RC-2): the shape of Headless.start (the
-    // quit value, D-15; Tui.quit as the second way)
-    // claude 2026-10-13: changed (T1, reviews R1-2, R2-2, R2-3): the Scaladoc
-    // names NativeLoadFailed and the order of the scope close and the restore
-    // claude 2026-10-19: changed (C2): the Scaladoc names
-    // blockingMonitorMinIntervalNs
+    // claude 2026-10-19: changed (P3, A2): the Scaladoc names the run fiber
+    // and the shutdown hook
     def run(options: TuiOptions)(ui: (Unit < Sync) => UI < (Async & Scope))(
         using Frame,
     ): Unit < (Async & Abort[TuiError]) =
@@ -97,25 +96,24 @@ object Tui:
 
     /** The run seam of the tests: `ui` on the terminal of `crossterm` (the real
       * one or a fake), with the shutdown hooks `hooks` and the stderr `err` for
-      * what is printed after the restore; `restored` runs when the release has
-      * restored the terminal. A run has one [[internal.ReleaseStack]] for its
-      * releases and one [[internal.LogSink]] for its Kyo log
-      * ([[internal.TuiLog]], bound with `Log.let`) and its captured output.
+      * what is printed after the restore; `trace` gets the name of each release
+      * step before it runs. A run has one [[internal.ReleaseStack]] with one
+      * shutdown hook ([[internal.ReleaseStack.run]]: the hook is its first
+      * step) and one [[internal.LogSink]] for its Kyo log ([[internal.TuiLog]],
+      * bound with `Log.let`) and its captured output.
       */
-    // claude 2026-10-19: changed (P3, A1): the release stack of the run; the
-    // sink pushes its finish to it
+    // claude 2026-10-19: changed (P3, A1, A2): the release stack of the run
+    // and its one hook; the sink pushes its finish to the stack
     private[tui4s] def runWith(
         options: TuiOptions,
         crossterm: Crossterm,
         hooks: Hooks = Hooks.runtime,
         err: () => PrintStream = () => OutputCapture.realErr,
-        restored: () => Unit = () => (),
+        trace: String => Unit = _ => (),
     )(ui: (Unit < Sync) => UI < (Async & Scope))(using
         Frame,
     ): Unit < (Async & Abort[TuiError]) =
-      Sync.acquireReleaseWith(
-        Sync.defer(ReleaseStack(ReleaseStack.printFailure(err))),
-      )(stack => Sync.defer(stack.runAll())) { stack =>
+      ReleaseStack.run(hooks, ReleaseStack.printFailure(err), trace) { stack =>
         // The stack finishes the sink; this also covers a run that failed
         // before it had a terminal.
         Sync
@@ -130,7 +128,7 @@ object Tui:
                 TuiLog.let(sink)(
                   onTerminal(
                     RunOptions.of(options),
-                    TerminalIO(crossterm, sink, hooks, err, restored),
+                    TerminalIO(crossterm, sink, err),
                     stack,
                   )(ui),
                 ),
@@ -152,8 +150,8 @@ object Tui:
     /** `ui` on the terminal of `control`: the session (terminal modes, canvas,
       * input thread) is the acquire of a bracket, and the release runs the
       * stack of the run: it restores the terminal when the run ends in any way
-      * (a quit, a failure, an interrupt). The runner runs on the calling fiber,
-      * as `Headless.start` builds it.
+      * (a quit, a failure, an interrupt). The runner runs on the run fiber, as
+      * `Headless.start` builds it.
       */
     // claude 2026-10-19: changed (P3, A1): the release is the stack
     private def onTerminal(
