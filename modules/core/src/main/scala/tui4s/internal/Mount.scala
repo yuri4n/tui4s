@@ -144,13 +144,14 @@ private[tui4s] final class Mount(
       * with the same signal (or ref) is kept as is with its watcher and its
       * content.
       */
+    // claude 2026-10-19: changed: the steps of Loc (P2, A6)
     def walk(ui: UI, path: Loc, w: World, reclaim: Map[Loc, RegionState])(using
         Frame,
     ): World < Sync =
       ui match
           case f: Fragment[?]    =>
             Kyo.foldLeft(f.children.toSeq.zipWithIndex)(w) {
-              case (acc, (c, i)) => walk(c, path :+ i.toString, acc, reclaim)
+              case (acc, (c, i)) => walk(c, path.child(i), acc, reclaim)
             }
           // claude 2026-10-13: changed (C4, the C2 cut back): a `Reactive`
           // whose signal is in the component registry is a component node
@@ -171,7 +172,7 @@ private[tui4s] final class Mount(
                           ) if sig eq r.signal =>
                         walk(
                           c,
-                          path :+ "~",
+                          path.content,
                           w.copy(regions = w.regions.updated(path, old)),
                           reclaim,
                         )
@@ -190,7 +191,7 @@ private[tui4s] final class Mount(
                                        )
                             w2      <- walk(
                                          cur,
-                                         path :+ "~",
+                                         path.content,
                                          w1.copy(
                                            regions =
                                              w1.regions.updated(path, region),
@@ -212,7 +213,7 @@ private[tui4s] final class Mount(
                   Kyo.foldLeft(items)(
                     w.copy(regions = w.regions.updated(path, old)),
                   ) { (acc, it) =>
-                    walk(it.ui, path :+ s"#${it.key}", acc, reclaim)
+                    walk(it.ui, path.item(it.key), acc, reclaim)
                   }
                 case _ =>
                   val (gen, w1) = w.gen
@@ -235,7 +236,7 @@ private[tui4s] final class Mount(
                             youngNow = w1.youngNow + path,
                           ),
                         ) { (acc, it) =>
-                          walk(it.ui, path :+ s"#${it.key}", acc, reclaim)
+                          walk(it.ui, path.item(it.key), acc, reclaim)
                         }
                   yield w2
                   end for
@@ -275,7 +276,7 @@ private[tui4s] final class Mount(
                   case _                       =>
                     Kyo.foldLeft(el.children.toSeq.zipWithIndex)(w2) {
                       case (acc, (c, i)) =>
-                        walk(c, path :+ i.toString, acc, reclaim)
+                        walk(c, path.child(i), acc, reclaim)
                     }
             }
           case _                 => w
@@ -310,6 +311,7 @@ private[tui4s] final class Mount(
     // claude 2026-10-13: changed (C4, review R2-4): `w.comps` is keyed by the
     // path and the state key
     // claude 2026-10-13: changed (C4, review R1-5): no PR name in the Scaladoc
+    // claude 2026-10-19: changed: the steps of Loc (P2, A6)
     private def mountComponent(
         spec: ComponentSpec,
         path: Loc,
@@ -371,7 +373,7 @@ private[tui4s] final class Mount(
                            )
                 w2      <- walk(
                              content,
-                             path :+ "~",
+                             path.content,
                              w1.copy(
                                regions = w1.regions.updated(path, region),
                                // claude 2026-10-19: changed: no cast (P1)
@@ -401,7 +403,7 @@ private[tui4s] final class Mount(
                   // of its frames wait again)
                   content match
                       case Content.Single(c) =>
-                        walk(c, path :+ "~", w1, reclaim)
+                        walk(c, path.content, w1, reclaim)
                       case _                 => w1
                 case _ =>
                   val (gen, w1) = w.gen
@@ -479,15 +481,16 @@ private[tui4s] final class Mount(
       * mounting the regions in its new content and unmounting the old ones it
       * no longer has.
       */
+    // claude 2026-10-19: changed: the steps of Loc (P2, A6)
     def remount(w: World, path: Loc)(using Frame): World < Sync =
         val old                  = w.regions.filter((p, _) => p.isUnder(path))
         val w0                   = w.copy(regions = w.regions -- old.keys)
         val walked: World < Sync = w0.regions.get(path) match
             case Some(RegionState(_, _, _, Content.Single(c), _, _))  =>
-              walk(c, path :+ "~", w0, old)
+              walk(c, path.content, w0, old)
             case Some(RegionState(_, Source.Many(_), _, _, items, _)) =>
               Kyo.foldLeft(items)(w0)((acc, it) =>
-                walk(it.ui, path :+ s"#${it.key}", acc, old),
+                walk(it.ui, path.item(it.key), acc, old),
               )
             case _                                                    => w0
         walked.map { w1 =>

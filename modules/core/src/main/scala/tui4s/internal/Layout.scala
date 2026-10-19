@@ -211,6 +211,7 @@ private[tui4s] object Layout:
     private val htmlTag: java.util.regex.Pattern =
       java.util.regex.Pattern.compile("<[^>]*>")
 
+    // claude 2026-10-19: changed: the steps of Loc (P2, A6)
     def flatten(ui: UI, path: Loc, regions: List[Loc], env: Scene): Flat =
       ui match
           case t: Text          => Flat(Vector(Item(path, t, regions)), Vector.empty)
@@ -233,20 +234,20 @@ private[tui4s] object Layout:
           case f: Fragment[?]   =>
             f.children.toVector.zipWithIndex.foldLeft(Flat.empty) {
               case (acc, (c, i)) =>
-                acc ++ flatten(c, path :+ i.toString, regions, env)
+                acc ++ flatten(c, path.child(i), regions, env)
             }
           case _: Reactive[?]   =>
             val here = Flat(Vector.empty, Vector(path))
             env.content(path) match
                 case Some(Content.Single(c)) =>
-                  here ++ flatten(c, path :+ "~", path :: regions, env)
+                  here ++ flatten(c, path.content, path :: regions, env)
                 case _                       => here
           case _: Foreach[?, ?] =>
             val here = Flat(Vector.empty, Vector(path))
             env.content(path) match
                 case Some(Content.Many(items)) =>
                   items.foldLeft(here) { case (acc, (key, c)) =>
-                    acc ++ flatten(c, path :+ s"#$key", path :: regions, env)
+                    acc ++ flatten(c, path.item(key), path :: regions, env)
                   }
                 case _                         => here
           case _                => Flat.empty
@@ -254,6 +255,7 @@ private[tui4s] object Layout:
     /** The flex items of an element's children. A table's rows are its `tr`
       * children, also inside `tbody`.
       */
+    // claude 2026-10-19: changed: the steps of Loc (P2, A6)
     def itemsOf(el: Element, path: Loc, env: Scene): Flat =
       el match
           case _: Select | _: Dropdown => Flat.empty /* painted as a picker,
@@ -261,7 +263,7 @@ private[tui4s] object Layout:
           case _                       =>
             el.children.toVector.zipWithIndex.foldLeft(Flat.empty) {
               case (acc, (c, i)) =>
-                acc ++ flatten(c, path :+ i.toString, Nil, env)
+                acc ++ flatten(c, path.child(i), Nil, env)
             }
 
     // ---- intrinsic sizes of the void and picker elements ----

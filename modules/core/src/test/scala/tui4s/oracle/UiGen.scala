@@ -138,7 +138,7 @@ object UiGen:
           case Spec.Txt(t)              => Built(UI.Ast.Text(t), Map.empty, Map.empty)
           case Spec.Box(tag, style, ks) =>
             val built =
-              ks.zipWithIndex.map((k, i) => build(k, path :+ i.toString))
+              ks.zipWithIndex.map((k, i) => build(k, path.child(i)))
             Built(
               withKids(styled(tag, style), Chunk.from(built.map(_.ui))),
               built.foldLeft(Map.empty[Loc, Content])(_ ++ _.a),
@@ -146,23 +146,23 @@ object UiGen:
             )
           case Spec.Frag(ks)            =>
             val built =
-              ks.zipWithIndex.map((k, i) => build(k, path :+ i.toString))
+              ks.zipWithIndex.map((k, i) => build(k, path.child(i)))
             Built(
               Fragment[UI](Chunk.from(built.map(_.ui))),
               built.foldLeft(Map.empty[Loc, Content])(_ ++ _.a),
               built.foldLeft(Map.empty[Loc, Content])(_ ++ _.b),
             )
           case Spec.Reac(a, b)          =>
-            val ia = build(a, path :+ "~")
-            val ib = build(b, path :+ "~")
+            val ia = build(a, path.content)
+            val ib = build(b, path.content)
             Built(
               Reactive[UI](Signal.initConst[UI](UI.Ast.Text(""))),
               ia.a.updated(path, Content.Single(ia.ui)),
               ib.b.updated(path, Content.Single(ib.ui)),
             )
           case Spec.Each(as, bs)        =>
-            val ia = as.map((k, s) => (k, build(s, path :+ s"#$k")))
-            val ib = bs.map((k, s) => (k, build(s, path :+ s"#$k")))
+            val ia = as.map((k, s) => (k, build(s, path.item(k))))
+            val ib = bs.map((k, s) => (k, build(s, path.item(k))))
             Built(
               Foreach[String, UI](
                 Signal.initConst(Chunk.empty[String]),

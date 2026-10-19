@@ -21,11 +21,17 @@ class TopsPropertyTest extends PropertyTest[Any]:
 end TopsPropertyTest
 
 object TopsPropertyTest:
-    private val step: Gen[String] = Gen.oneOf("0", "1", "~", "#a")
+    // claude 2026-10-19: changed: the steps are the constructors of the
+    // opaque Loc (P2, A6); the same paths as the strings "0", "1", "~", "#a"
+    private val step: Gen[Loc => Loc] =
+      Gen.oneOf(_.child(0), _.child(1), _.content, _.item("a"))
 
     /** A path of depth 0 to 6. */
     val path: Gen[Loc] =
-      UiGen.between(0, 6).flatMap(n => Gen.listOfN(n, step)).map(_.toVector)
+      UiGen
+        .between(0, 6)
+        .flatMap(n => Gen.listOfN(n, step))
+        .map(_.foldLeft(Loc.screen)((p, s) => s(p)))
 
     /** 0 to 16 paths. */
     val paths: Gen[Vector[Loc]] =

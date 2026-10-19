@@ -2,7 +2,7 @@ package tui4s
 
 import kyo.*
 import kyo.UI.*
-import tui4s.internal.{Knobs, Loc, showLoc}
+import tui4s.internal.{Knobs, Loc}
 import tui4s.testkit.Headless
 
 import java.util.concurrent.ConcurrentLinkedQueue
