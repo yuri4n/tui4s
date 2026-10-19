@@ -60,7 +60,7 @@ class CounterSuite extends FunSuite:
             _    <- q.char('q')
             endQ <- q.awaitEnd(10.seconds)
             c    <- Headless.start(50, 8)(Counter.ui)
-            _    <- c.key(Keyboard.Char('c'), ctrl = true)
+            _    <- c.key(Keyboard.Char('c'), UI.Modifiers(ctrl = true))
             endC <- c.awaitEnd(10.seconds)
         yield (endQ, endC)
       }

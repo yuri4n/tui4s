@@ -1,7 +1,7 @@
 package examples.todo
 
 import kyo.*
-import kyo.UI.Keyboard
+import kyo.UI.{Keyboard, Modifiers}
 import munit.FunSuite
 import tui4s.testkit.{Headless, Screen}
 
@@ -114,7 +114,7 @@ class TodoSuite extends FunSuite:
             _ <- h.key(Keyboard.Enter)
             _ <- h.key(Keyboard.Tab)
             _ <- h.key(Keyboard.Space)
-            _ <- h.key(Keyboard.Char('s'), ctrl = true)
+            _ <- h.key(Keyboard.Char('s'), Modifiers(ctrl = true))
             s <- h.screen
         yield s
       }

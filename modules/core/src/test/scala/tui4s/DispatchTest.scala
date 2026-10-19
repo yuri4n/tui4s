@@ -18,7 +18,7 @@ class DispatchTest extends RunnerSuite:
     "Ctrl-C ends the run (TuiOptions.ctrlCQuits); with ctrlCQuits = false it is a key for the handlers" in {
       for
           h    <- Headless.start(20, 3)(_ => div("x"))
-          f    <- h.key(Keyboard.Char('c'), ctrl = true)
+          f    <- h.key(Keyboard.Char('c'), Modifiers(ctrl = true))
           fin  <- h.awaitEnd(10.seconds)
           _     = assert(fin && f.cause == FrameCause.Input, s"$f")
           seen <- AtomicInt.init(0)
@@ -29,7 +29,7 @@ class DispatchTest extends RunnerSuite:
                       case _                                                 => ()
                     }("x"),
                   )
-          _    <- h2.key(Keyboard.Char('c'), ctrl = true)
+          _    <- h2.key(Keyboard.Char('c'), Modifiers(ctrl = true))
           n    <- seen.get
           fin2 <- h2.finished
       yield assert(n == 1 && !fin2, s"handler runs: $n, run ended: $fin2")
@@ -48,7 +48,7 @@ class DispatchTest extends RunnerSuite:
                   ),
                 )
           fs <- Kyo.foreach(1 to 4)(_ => h.key(Keyboard.Tab))
-          bs <- Kyo.foreach(1 to 2)(_ => h.key(Keyboard.Tab, shift = true))
+          bs <- Kyo.foreach(1 to 2)(_ => h.key(Keyboard.Tab, Modifiers(shift = true)))
       yield
           val order = (fs ++ bs).map(focusOf)
           assert(order == Seq("a", "b", "c", "a", "c", "b"), s"$order")
@@ -88,7 +88,7 @@ class DispatchTest extends RunnerSuite:
                   ),
                 )
           fs <- Kyo.foreach(1 to 4)(_ => h.key(Keyboard.Tab))
-          b  <- h.key(Keyboard.Tab, shift = true)
+          b  <- h.key(Keyboard.Tab, Modifiers(shift = true))
       yield
           val order = (fs :+ b).map(focusOf)
           assert(order == Seq("in1", "in2", "in1", "in2", "in1"), s"$order")

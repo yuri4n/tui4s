@@ -209,10 +209,10 @@ class TextEditTest extends RunnerSuite:
     "Ctrl-A and Ctrl-E move to the start and the end" in {
       field("hello") { (h, ref) =>
         for
-            _ <- h.key(Keyboard.Char('a'), ctrl = true)
+            _ <- h.key(Keyboard.Char('a'), Modifiers(ctrl = true))
             a <- state(h, ref)
             _  = assert(a == ("hello", 0), s"$a")
-            _ <- h.key(Keyboard.Char('e'), ctrl = true)
+            _ <- h.key(Keyboard.Char('e'), Modifiers(ctrl = true))
             b <- state(h, ref)
         yield assert(b == ("hello", 5), s"$b")
       }
@@ -223,14 +223,14 @@ class TextEditTest extends RunnerSuite:
           u <- field("hello world") { (h, ref) =>
                  h.key(Keyboard.ArrowLeft)
                    .andThen(h.key(Keyboard.ArrowLeft))
-                   .andThen(h.key(Keyboard.Char('u'), ctrl = true))
+                   .andThen(h.key(Keyboard.Char('u'), Modifiers(ctrl = true)))
                    .andThen(state(h, ref))
                }
           _  = assert(u == ("ld", 0), s"$u")
           k <- field("hello world") { (h, ref) =>
                  h.key(Keyboard.ArrowLeft)
                    .andThen(h.key(Keyboard.ArrowLeft))
-                   .andThen(h.key(Keyboard.Char('k'), ctrl = true))
+                   .andThen(h.key(Keyboard.Char('k'), Modifiers(ctrl = true)))
                    .andThen(state(h, ref))
                }
       yield assert(k == ("hello wor", 9), s"$k")
@@ -238,7 +238,7 @@ class TextEditTest extends RunnerSuite:
 
     "Ctrl-W deletes the word before the cursor" in {
       def ctrlW(h: Headless): FrameStats < Async =
-        h.key(Keyboard.Char('w'), ctrl = true)
+        h.key(Keyboard.Char('w'), Modifiers(ctrl = true))
       for
           w      <- field("hello big world") { (h, ref) =>
                       ctrlW(h)
@@ -337,7 +337,7 @@ class TextEditTest extends RunnerSuite:
         for
             _ <- h.typeText("x ")
             _ <- h.key(Keyboard.Backspace)
-            _ <- h.key(Keyboard.Char('u'), ctrl = true)
+            _ <- h.key(Keyboard.Char('u'), Modifiers(ctrl = true))
             _ <- h.paste("pasted")
             a <- state(h, ref)
             _  = assert(a == ("abc", 3), s"$a")

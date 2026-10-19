@@ -136,21 +136,28 @@ final class Headless private (
     def press(ev: KeyboardEvent)(using Frame): FrameStats < Async =
       send(n => Msg.Key(ev, n))
 
-    /** Sends the key `k` with the given modifiers and waits for its frame. */
-    // claude 2026-10-13: created (C3; the prototype's key, with alt)
-    def key(
-        k: Keyboard,
-        ctrl: Boolean = false,
-        shift: Boolean = false,
-        alt: Boolean = false,
-    )(using Frame): FrameStats < Async =
-      press(
-        KeyboardEvent(
-          k,
-          Modifiers(ctrl = ctrl, alt = alt, shift = shift),
-          Absent,
-        ),
-      )
+    /** Sends the key `k` with the modifiers `mods` (kyo-ui's chord of ctrl,
+      * alt, shift and meta) and waits for its frame.
+      *
+      * {{{
+      * h.key(Keyboard.Tab, Modifiers(shift = true))     // Shift-Tab
+      * h.key(Keyboard.Char('c'), Modifiers(ctrl = true)) // Ctrl-C
+      * }}}
+      */
+    // claude 2026-10-19: changed: one Modifiers value, not three Boolean
+    // flags (P1b, A5 b)
+    def key(k: Keyboard, mods: Modifiers)(using Frame): FrameStats < Async =
+      press(KeyboardEvent(k, mods, Absent))
+
+    /** Sends the key `k` with no modifier and waits for its frame.
+      *
+      * {{{
+      * h.key(Keyboard.Enter)
+      * }}}
+      */
+    // claude 2026-10-19: created (P1b, A5 b): the key without modifiers
+    def key(k: Keyboard)(using Frame): FrameStats < Async =
+      key(k, Modifiers.none)
 
     /** Types the character `c` as one key and waits for its frame: a space is
       * `Keyboard.Space`, a line break (`\n` or `\r`) is `Keyboard.Enter`, a tab

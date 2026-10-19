@@ -53,7 +53,7 @@ class AppsTest extends RunnerSuite:
           _     <- h.key(Keyboard.Enter)                            // Left +
           _     <- h.key(Keyboard.Tab).andThen(h.key(Keyboard.Tab)) // Right +
           _     <- h.key(Keyboard.Enter).andThen(h.key(Keyboard.Enter))
-          _     <- h.key(Keyboard.Tab, shift = true)                // back to Left -
+          _     <- h.key(Keyboard.Tab, Modifiers(shift = true))                // back to Left -
           _     <- h.key(Keyboard.Enter)
           lines <- h.lines
           row    = lines.find(_.contains("Count:")).getOrElse("")
@@ -105,7 +105,7 @@ class AppsTest extends RunnerSuite:
                    !s4.contains("walk dog") && s4.contains("3 open / 3"),
                    s4.text,
                  )
-          _   <- h.key(Keyboard.Char('s'), ctrl = true)
+          _   <- h.key(Keyboard.Char('s'), Modifiers(ctrl = true))
           s5  <- h.screen
           _    = assert(s5.contains("saved 3 items"), s5.text)
           _    = assert(
