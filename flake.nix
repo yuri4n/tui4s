@@ -27,6 +27,9 @@
               pkgs.expect
               pkgs.python3
               pkgs.coreutils
+              # claude 2026-10-19: created: Node.js runs the Scala.js tests of
+              # tui4s-use and tui4s-widgets (sbt check) (L2a)
+              pkgs.nodejs
             ];
 
             JAVA_HOME = "${jdk.home}";

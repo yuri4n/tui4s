@@ -171,11 +171,17 @@ nothing.
   signal supplied by its parent and calls a typed change callback; the parent
   can accept or reject the request. Keep that supplied signal authoritative.
   Prefer typed props and function parameters for slots.
-- Keep reusable widgets in `examples.widgets`. `TabsView` uses public Kyo
+- Put reusable composables in `tui4s.use` (`modules/use`) and reusable
+  widgets in `tui4s.widgets` (`modules/widgets`). These modules are plain
+  kyo-ui code for the JVM and Scala.js, with no dependency on tui4s-core. A
+  composable takes its lifetime from the `Scope` of its caller, never from a
+  hidden global. The widgets of `examples.widgets` move to `tui4s.widgets`
+  in L2b. `TabsView` uses public Kyo
   APIs only; `Tabs` adapts it to tui4s component mounting. There is no separate
   UI core repository. tui4s owns terminal rendering, input, and its retained
   mount identity. Ordinary Kyo UI construction and terminal mounting have
   different state lifetimes; document the difference.
+  <!-- claude 2026-10-19: changed: composables and widgets go in the modules use and widgets (L2a) -->
 - Use only Kyo's public APIs. Do not use a package name or reflection to reach
   private Kyo implementation members.
 - An ordinary Scala class can group signals, derived values, and actions.
@@ -243,12 +249,15 @@ nothing.
 | `bash scripts/edge-check.sh`         | Checks the edge headers and the suppressions (CI runs it).    |
 | `sbt versions`                       | Shows the version of each module (released or snapshot).      |
 | `sbt core/test`                      | Runs the tests of one module. The core tests use kyo-test.    |
-| `nix develop`                       | Enters the development shell with JDK 25, sbt, and terminal test tools. |
+| `sbt use/test`                       | Runs the tests of a cross-built module (`use`, `widgets`) on the JVM and on Scala.js (Node.js runs the JS tests). |
+| `sbt useJVM/test useJS/compile`      | Runs the JVM tests of tui4s-use and compiles its Scala.js side. |
+| `nix develop`                       | Enters the development shell with JDK 25, sbt, Node.js, and terminal test tools. |
 | `sbt examples/Universal/stage`       | Stages native-packager launchers and runtime JARs in `examples/target/universal/stage`. |
 | `sbt examples/Universal/packageBin`  | Creates the examples ZIP distribution under `examples/target/universal`. |
 | `sbt examples/launchers`             | Stages the distribution and writes compatible `examples/target/bin/<package>` launchers plus the PTY classpath. |
 | `examples/target/bin/<app>`          | Runs an example in the real terminal (its own JVM): `counter`, `counterkyo`, `twocounters`, `counterstyles`, `todo`, `dashboard`, `printing`, `forms`. |
 | `examples/ptycheck/run.sh`           | Runs the real-terminal checklist in a pseudo-terminal (CI job `terminal`). |
+<!-- claude 2026-10-19: created the rows of use/test and useJS/compile; changed: Node.js in the shell (L2a) -->
 
 <!-- claude 2026-10-13: changed (T1): the launchers and the PTY kit replace `sbt "examples/runMain <main>"` -->
 

@@ -4,6 +4,7 @@ import kyo.*
 import kyo.UI.*
 // claude 2026-10-13: changed (T2, adapt): tui4s.Tui (the prototype had
 // tui4s.kyoui.Tui)
+import tui4s.use.{Binding, Chord, Keymap, useHistory, useKeymap}
 import tui4s.{Tui, TuiApp}
 
 import java.nio.charset.StandardCharsets
@@ -12,10 +13,11 @@ import java.nio.file.{Files, Paths}
 /** The Todo app in plain kyo-ui. Components are plain functions of signals and
   * actions. Keys: type a text and press Enter to add it; Tab moves between the
   * input and the list; in the list, the arrows (or `k` and `j`) move, Space
-  * toggles, `d` deletes; Ctrl-S writes the list to the file; Esc quits
-  * (`Tui.quit`). In the input, `d` and `q` are text. A paste (the bracketed
-  * paste of the terminal) is one edit of the input, and a line break in it is a
-  * space: a paste never adds an item.
+  * toggles, `d` deletes; Ctrl-Z undoes a change of the list and Ctrl-Y redoes
+  * it (`useHistory` of tui4s-use); Ctrl-S writes the list to the file; Esc
+  * quits (`Tui.quit`). In the input, `d` and `q` are text. A paste (the
+  * bracketed paste of the terminal) is one edit of the input, and a line break
+  * in it is a space: a paste never adds an item.
   *
   * The list and the input under it are in one viewport that scrolls (`body`): a
   * list longer than the screen keeps the focused input in view, so each new
@@ -23,7 +25,7 @@ import java.nio.file.{Files, Paths}
   * names it with `aria-activedescendant`). A long title ends with "…".
   */
 // claude 2026-10-19: changed: the Scaladoc names the scroll and the ellipsis
-// (L1a)
+// (L1a), undo and redo (L2a)
 object Todo:
 
     final case class Item(id: Int, text: String, done: Boolean) derives CanEqual
@@ -175,22 +177,31 @@ object Todo:
     def rowId(items: Chunk[Item], cursor: Int): String =
       items.lift(cursor).fold("")(t => s"item-${t.id}")
 
-    def footer(status: Signal[String]): UI =
+    /** The status and two help lines: the keys of the list, then the keys of
+      * the app (from its keymap: "Ctrl-Z: undo Ctrl-Y: redo ...").
+      */
+    // claude 2026-10-19: changed: the keys of the app come from its keymap
+    // (L2a)
+    def footer(status: Signal[String], keys: Keymap): UI =
       div(
         span(status).id("status").style(_.color(Style.Color.green)),
-        span(
-          "Tab: input/list  ↑↓: move  Space: toggle  d: delete  Ctrl-S: save  Esc: quit",
-        ).style(_.color(Style.Color.gray)),
+        span("Tab: input/list  ↑↓: move  Space: toggle  d: delete")
+          .style(_.color(Style.Color.gray)),
+        span(keys.help.map((k, h) => s"$k: $h").mkString("  "))
+          .style(_.color(Style.Color.gray)),
       )
 
     // ---- the app ----
 
+    // claude 2026-10-19: changed: the writes of the list go through its
+    // history (undo, redo), and the keys of the app are a keymap (L2a)
     def app(file: String): UI < (Async & Scope) =
       for
           // claude 2026-10-13: changed (T2): the status of a failed load
           result   <- load(file)
           loaded    = result.getOrElse(Chunk.empty)
           items    <- Signal.initRef(loaded)
+          history  <- useHistory(items, 100)
           draft    <- Signal.initRef("")
           cursor   <- Signal.initRef(0)
           // claude 2026-10-19: created (L1a review): the id of the selected
@@ -203,30 +214,31 @@ object Todo:
               .combineLatest(cursor)
               .map((ts, c) => ts.zipWithIndex.map((t, i) => Row(t, i == c)))
           count     = items.map(ts => s"${ts.count(!_.done)} open / ${ts.size}")
-          select    =
-            items.get.map(ts => cursor.get.map(c => selected.set(rowId(ts, c))))
-          add       = draft.get.map { text =>
-                        if text.trim.isEmpty then ()
-                        else
-                            nextId.getAndIncrement
-                              .map(id =>
-                                items.updateAndGet(_ :+ Item(id, text.trim, false)),
-                              )
-                              .andThen(draft.set(""))
-                              .andThen(select)
-                      }
+          // The cursor stays in the list, and the selected row follows it.
+          select    = items.get.map(ts =>
+                        cursor
+                          .updateAndGet(c => c.min(ts.size - 1).max(0))
+                          .map(c => selected.set(rowId(ts, c))),
+                      )
+          add       =
+            draft.get.map { text =>
+              if text.trim.isEmpty then ()
+              else
+                  nextId.getAndIncrement
+                    .map(id => history.update(_ :+ Item(id, text.trim, false)))
+                    .andThen(draft.set(""))
+                    .andThen(select)
+            }
           atCursor  = (f: (Chunk[Item], Int) => Chunk[Item]) =>
                         cursor.get.map(c =>
-                          items.updateAndGet(ts =>
+                          history.update(ts =>
                             if c >= 0 && c < ts.size then f(ts, c) else ts,
                           ),
                         )
           toggle    =
             atCursor((ts, c) => ts.updated(c, ts(c).copy(done = !ts(c).done)))
           delete    =
-            atCursor((ts, c) => ts.take(c) ++ ts.drop(c + 1))
-              .map(ts => cursor.updateAndGet(c => c.min(ts.size - 1).max(0)))
-              .andThen(select)
+            atCursor((ts, c) => ts.take(c) ++ ts.drop(c + 1)).andThen(select)
           move      = (d: Int) =>
                         items.get
                           .map(ts =>
@@ -257,19 +269,24 @@ object Todo:
                           case other             => status.set(s"save failed: $other")
                         },
                       )
+          keys      = useKeymap(
+                        Binding.of("undo", Chord.ctrl('z'))(
+                          history.undo.andThen(select),
+                        ),
+                        Binding.of("redo", Chord.ctrl('y'))(
+                          history.redo.andThen(select),
+                        ),
+                        Binding.of("save", Chord.ctrl('s'))(saveAll),
+                        Binding.of("quit", Chord(Keyboard.Escape))(Tui.quit),
+                      )
       // claude 2026-10-19: changed: the screen height, and the body that
       // scrolls (L1a)
       yield main
-        .onKeyDown {
-          case KeyboardEvent(Keyboard.Char('s'), mods, _) if mods.ctrl =>
-            saveAll
-          case KeyboardEvent(Keyboard.Escape, _, _)                    => Tui.quit
-          case _                                                       => ()
-        }
+        .onKeyDown(keys.handler)
         .style(_.height(100.pct))(
           header(count),
           body(list(selected, rows, listKeys), inputBar(draft, add)),
-          footer(status),
+          footer(status, keys),
         )
 end Todo
 

@@ -276,4 +276,33 @@ class DashboardSuite extends FunSuite:
       assert(wx >= 50 && wy <= 2, wide.text)
       assert(nx == 0 && ny > 5, narrow.text)
     }
+    // claude 2026-10-19: created (L2a): the stamp (useNow, useTimeAgo) and
+    // the help from the keymap
+    test(
+      "the status line says how long ago the last sample came; the help lists the keys of the keymap",
+    ) {
+      val (fresh, old, help) = run {
+        for
+            box   <- AtomicRef.init(Option.empty[Dashboard.State])
+            h     <- Headless.start(80, 24)(_ =>
+                       Dashboard
+                         .init(2.seconds)
+                         .map(s => box.set(Some(s)).andThen(Dashboard.view(s))),
+                     )
+            fresh <- h.awaitScreen(_.contains("updated just now"), 20.seconds)
+            s     <- box.get.map(_.get)
+            t     <- Clock.now
+            _     <- s.updated.set(t - 2.minutes)
+            old   <-
+              h.awaitScreen(_.contains("updated 2 minutes ago"), 20.seconds)
+            _     <- h.char('?')
+            help  <- h.screen
+        yield (fresh, old, help)
+      }
+      assert(fresh, "the stamp never said 'updated just now'")
+      assert(old, "the stamp never said 'updated 2 minutes ago'")
+      assert(help.contains("p    pause or resume the sampler"), help.text)
+      assert(help.contains("?    this help (Esc closes it)"), help.text)
+      assert(help.contains("q    quit"), help.text)
+    }
 end DashboardSuite

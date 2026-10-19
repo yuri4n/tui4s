@@ -41,12 +41,14 @@ sbt check examples/Universal/stage
 examples/target/universal/stage/bin/counter
 ```
 
-The development shell supplies JDK 25, sbt, and the tools for the terminal
-checklist. Run the last command in a real terminal; `q` exits. For an existing
+<!-- claude 2026-10-19: changed: Node.js (L2a) -->
+The development shell supplies JDK 25, sbt, Node.js (for the Scala.js tests),
+and the tools for the terminal checklist. Run the last command in a real
+terminal; `q` exits. For an existing
 checkout, run `git submodule update --init --recursive` before building.
 The flake defines shells for Linux on x86_64 or aarch64 and Apple Silicon
-macOS. On Intel macOS, or without Nix, install JDK 25 and sbt, then use the
-same sbt commands. These shell targets do not imply terminal runtime testing
+macOS. On Intel macOS, or without Nix, install JDK 25, sbt and Node.js, then
+use the same sbt commands. These shell targets do not imply terminal runtime testing
 on every platform.
 
 For automatic activation, install direnv and nix-direnv and enable direnv's
@@ -323,6 +325,7 @@ the sampler, and puts the tabs and the log side by side in a terminal of 120
 columns or more. The boxes are plain kyo-ui styles; the size is a tui4s
 signal:
 
+<!-- claude 2026-10-19: changed: the help box lists the keys of a keymap (L2a) -->
 <!-- from: examples/src/main/scala/examples/dashboard/Dashboard.scala#overlays -->
 ```scala
     /** The terminal width from which the tabs and the log are side by side. */
@@ -342,12 +345,13 @@ signal:
         )
 
     /** The help: a box in the middle of the screen, over the rest (a
-      * `position(_.overlay)` layer that centers it). Its `focusTrap` keeps Tab
-      * inside it; its Close button takes the focus when it appears
-      * (`focusAuto`) and gives it back when it goes (`focusRestore`). Esc does
-      * nothing by itself in a focus trap: the `onKeyDown` of the box closes it.
+      * `position(_.overlay)` layer that centers it), with a row for each key of
+      * `keys`. Its `focusTrap` keeps Tab inside it; its Close button takes the
+      * focus when it appears (`focusAuto`) and gives it back when it goes
+      * (`focusRestore`). Esc does nothing by itself in a focus trap: the
+      * `onKeyDown` of the box closes it.
       */
-    def help(s: State): UI =
+    def help(s: State, keys: Keymap): UI =
       when(s.help)(
         div.style(_.position(_.overlay).justify(_.center).align(_.center))(
           div
@@ -364,9 +368,7 @@ signal:
             )(
               h2("Keys"),
               span("←/→  change the tab"),
-              span("p    pause or resume the sampler"),
-              span("?    this help (Esc closes it)"),
-              span("q    quit"),
+              UI.fragment(keys.help.map((k, h) => span(f"$k%-4s $h"))*),
               button("Close")
                 .id("help-close")
                 .focusAuto(true)
@@ -647,6 +649,124 @@ The date, time, colour and file inputs show an empty box; the log of the run
 has one warning for each of them. A character outside the Basic Multilingual
 Plane (an emoji) that is typed arrives wrong (jatatui 0.31.0 cuts it to 16
 bits); a paste keeps it.
+
+## Composables (tui4s-use)
+
+<!-- claude 2026-10-19: created this section (L2a): the code blocks are the text of the region "native" of the Native recipes and of the region "composables" of the Dashboard example (ReadmeSuite checks them) -->
+`io.github.yuri4n::tui4s-use` has composables: plain functions over Kyo's
+`Signal`, `SignalRef` and `Scope`. The module does not depend on tui4s-core.
+It builds for the JVM and for Scala.js, so a composable works in the terminal
+and on the web. Add it next to tui4s-core:
+
+```scala
+libraryDependencies += "io.github.yuri4n" %% "tui4s-use" % "<version>"
+```
+
+### You may not need a composable
+
+Kyo does most of the work in one or two lines. A `SignalRef` holds state,
+and `Signal.map` derives a value. `Signal.observe` runs a setup for each value
+in a new `Scope`: when the value changes, the work for the old value stops.
+These five need no library:
+
+<!-- from: examples/src/main/scala/examples/composables/Native.scala#native -->
+```scala
+    /** A toggle: `updateAndGet` on a `SignalRef`. */
+    def toggle(on: SignalRef[Boolean])(using Frame): Unit < Sync =
+      on.updateAndGet(!_).unit
+
+    /** A counter that stops at `max`. */
+    def increment(count: SignalRef[Int], max: Int)(using Frame): Unit < Sync =
+      count.updateAndGet(n => (n + 1).min(max)).unit
+
+    /** An interval: a fiber that the caller's `Scope` ends. */
+    def every(period: Duration)(action: => Any < Async)(using
+        Frame,
+    ): Unit < (Sync & Scope) =
+      Fiber.init(Loop.forever(Async.sleep(period).andThen(action))).unit
+
+    /** A timer that pauses: `Signal.observe` starts the ticks while `paused` is
+      * false, and interrupts them when it changes.
+      */
+    def timer(paused: Signal[Boolean], ticks: SignalRef[Int], period: Duration)(
+        using Frame,
+    ): Unit < (Sync & Scope) =
+      Fiber
+        .init(
+          paused.observe(p =>
+            if p then Kyo.unit
+            else every(period)(ticks.updateAndGet(_ + 1)),
+          ),
+        )
+        .unit
+
+    /** A derived value: `Signal.map`. */
+    def label(count: Signal[Int])(using Frame): Signal[String] =
+      count.map(n => s"$n items")
+```
+
+### The composables
+
+| Composable | What it gives | Type |
+| --- | --- | --- |
+| `useNow(every)` | The time of Kyo's `Clock` as a signal. It ticks on each multiple of `every`. | `Signal[Instant] < (Sync & Scope)` |
+| `useTimeAgo(at, now, format)` | "5 minutes ago": the `TimeAgo` ADT and an English formatter that you can replace. | `Signal[String]` |
+| `debounced(s, quiet)`, `throttled(s, every)` | A signal after a quiet time, or at most once per window. The last value always shows. | `Signal[A] < (Sync & Scope)` |
+| `useDebouncedFn(quiet)(f)` | A function that runs `f` after a quiet time. The newest call wins. | `(A => Unit < Sync) < (Sync & Scope)` |
+| `useAsync(input)(f)` | The `AsyncState` (`Idle`, `Loading`, `Done`, `Failed`) of the work for the current input. A new input interrupts the old work. | `Signal[AsyncState[E, A]] < (Sync & Scope)` |
+| `useStreamFold(s, zero)(f)`, `useStreamText(s)` | A stream folded into a signal, or a text stream joined (the tokens of a chat answer). | `Signal[B] < (Sync & Scope)` |
+| `useKeymap(bindings*)` | A key map as data: a handler for `onKeyDown` and the key hints. | `Keymap` |
+| `useSelection(items, key, edge, page)` | The selected item by its key, with the moves. It follows its item when the list changes. | `Selection[A, K] < Sync` |
+| `useScrollWindow(items, size, selected)` | The visible slice of a long list (a virtual list). The window moves the least distance. | `Signal[Window[A]] < (Sync & Scope)` |
+| `useDialog[Q, A]` | A modal: `open` waits for the answer, `close` gives it, `launch` starts a flow from a key handler. | `Dialog[Q, A] < (Sync & Scope)` |
+| `useHistory(ref, limit)` | Undo and redo over a `SignalRef`. | `History[A] < Sync` |
+| `usePersisted(key, initial, storage)` | A `SignalRef` kept in a `Storage`: files on the JVM, `localStorage` in a browser. | `SignalRef[A] < (Sync & Scope)` |
+| `useProcess(cmd)` | A program that runs (JVM): its output lines as a stream and its exit code as a signal. The end of the `Scope` kills it. Scala.js gives `ProcessError.Unsupported`. | `RunningProcess < (Sync & Scope & Abort[ProcessError])` |
+
+A composable that starts a fiber or registers a finalizer needs the `Scope`
+of its caller. The caller owns it: there is no hidden registry. Call a
+composable once, where its state lives: at the start of the app, or in the
+body of a component (`Hooks.component`, which tui4s mounts with a `Scope` of
+its own). Do not call it in a `render`, `when` or `foreach` closure. Such a
+closure runs again on each change, and each run starts a new composable.
+
+A key handler of tui4s runs on the runner, one at a time. A handler that
+waits for the answer of a dialog stops all input, so it starts the flow with
+`Dialog.launch`. `debounced`, `throttled`, `useAsync`, `useScrollWindow` and
+`usePersisted` watch a signal with `Signal.observe`. A write that lands while
+the watch arms is seen at Kyo's next repair, at most 1 s later.
+
+### Three composables in the Dashboard
+
+The Dashboard keeps its keys in a keymap (the help box lists them). Its
+status line says how long ago the last sample came:
+
+<!-- from: examples/src/main/scala/examples/dashboard/Dashboard.scala#composables -->
+```scala
+    /** The keys of the Dashboard as data: the root handler runs them, and the
+      * help box lists them.
+      */
+    def keys(s: State)(using Frame): Keymap =
+      useKeymap(
+        Binding.of("pause or resume the sampler", Chord.char('p'))(pause(s)),
+        Binding.of("this help (Esc closes it)", Chord.char('?'))(
+          s.help.set(true),
+        ),
+        Binding.of("quit", Chord.char('q'))(Tui.quit),
+      )
+
+    /** How long ago the last sample came ("updated 5 seconds ago"), from a
+      * clock that ticks each second; the clock stops with the `Scope` of the
+      * app.
+      */
+    def stamp(s: State)(using Frame): UI < (Sync & Scope) =
+      for now <- useNow(1.second)
+      yield span(useTimeAgo(s.updated, now).map(t => s"updated $t"))
+        .style(_.color(Style.Color.gray))
+```
+
+The Todo example writes its list through `useHistory`: Ctrl-Z undoes a change
+of the list, and Ctrl-Y redoes it.
 
 ## Modules
 

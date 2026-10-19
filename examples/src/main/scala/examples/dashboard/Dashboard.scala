@@ -5,6 +5,7 @@ package examples.dashboard
 import examples.widgets.{Tabs, Widgets}
 import kyo.*
 import kyo.UI.*
+import tui4s.use.{Binding, Chord, Keymap, useKeymap, useNow, useTimeAgo}
 import tui4s.{TerminalSize, Tui, TuiApp}
 
 /** The Dashboard in plain kyo-ui: one tab per series (CPU, Memory, Network), a
@@ -16,10 +17,14 @@ import tui4s.{TerminalSize, Tui, TuiApp}
   * scrolls, with the newest line first: Tab after the last tab reaches it, and
   * the arrows, PageUp, PageDown, Home and End scroll it. In a terminal of 120
   * columns or more, the tabs and the log are side by side. The widgets (the
-  * gauge, the sparkline, the tabs) are in `examples.widgets.Widgets`.
+  * gauge, the sparkline, the tabs) are in `examples.widgets.Widgets`. The keys
+  * `p`, `?` and `q` are a keymap of tui4s-use (the help box lists them), and
+  * the status line says how long ago the last sample came (`useNow`,
+  * `useTimeAgo`).
   */
 // claude 2026-10-19: changed: the Scaladoc names the log pane that scrolls
-// (L1a), the help, the toast and the two columns (L1b)
+// (L1a), the help, the toast and the two columns (L1b), the keymap and the
+// stamp (L2a)
 object Dashboard:
 
     /** The series: one tab for each. The tabs need a first label. */
@@ -46,7 +51,7 @@ object Dashboard:
     final case class Toast(text: String, until: Instant) derives CanEqual
 
     // claude 2026-10-19: changed: the help, the toast and the time of a toast
-    // (L1b)
+    // (L1b); the time of the last sample (L2a)
     final case class State(
         metrics: SignalRef[Metrics],
         paused: SignalRef[Boolean],
@@ -54,13 +59,15 @@ object Dashboard:
         help: SignalRef[Boolean],
         toast: SignalRef[Option[Toast]],
         toastFor: Duration,
+        updated: SignalRef[Instant],
     )
 
     // claude 2026-10-19: changed: the help and the toast (L1b)
     def init(using Frame): State < Sync = init(2.seconds)
 
     /** The state, with a toast that stays `toastFor`. */
-    // claude 2026-10-19: created (L1b)
+    // claude 2026-10-19: created (L1b); changed: the time of the last sample
+    // (L2a)
     def init(toastFor: Duration)(using Frame): State < Sync =
       for
           metrics <- Signal.initRef(Metrics.empty)
@@ -68,12 +75,14 @@ object Dashboard:
           logs    <- Signal.initRef(Chunk.empty[(Int, String)])
           help    <- Signal.initRef(false)
           toast   <- Signal.initRef(Option.empty[Toast])
-      yield State(metrics, paused, logs, help, toast, toastFor)
+          updated <- Clock.now.map(Signal.initRef(_))
+      yield State(metrics, paused, logs, help, toast, toastFor, updated)
 
     /** One sampler tick with given values (a test or a benchmark can call it
-      * directly).
+      * directly); it also keeps the time of the sample.
       */
     // claude 2026-10-13: changed (T2, review R1-6): there is no bench yet
+    // claude 2026-10-19: changed: the time of the sample (L2a)
     def tick(s: State, values: Chunk[Double])(using Frame): Unit < Sync =
       s.metrics
         .updateAndGet(m =>
@@ -82,7 +91,7 @@ object Dashboard:
             m.history.zip(values).map((h, v) => (h :+ v).takeRight(40)),
           ),
         )
-        .unit
+        .andThen(Clock.now.map(s.updated.set))
 
     /** The sampler: a random walk every `every`, skipped while paused. */
     // claude 2026-10-13: changed (T2): the period is a parameter
@@ -157,21 +166,47 @@ object Dashboard:
           ),
       )
 
+    /** `p`: pauses or resumes the sampler, and says so in a toast. */
+    // claude 2026-10-19: created (L2a): the action of the key, for the keymap
+    def pause(s: State)(using Frame): Unit < Sync =
+      s.paused
+        .updateAndGet(!_)
+        .map(p => notify(s, if p then "sampler paused" else "sampler resumed"))
+
+    // claude 2026-10-19: created the region below (L2a): the README section
+    // "Composables (tui4s-use)" shows it
+    // region: composables
+    /** The keys of the Dashboard as data: the root handler runs them, and the
+      * help box lists them.
+      */
+    def keys(s: State)(using Frame): Keymap =
+      useKeymap(
+        Binding.of("pause or resume the sampler", Chord.char('p'))(pause(s)),
+        Binding.of("this help (Esc closes it)", Chord.char('?'))(
+          s.help.set(true),
+        ),
+        Binding.of("quit", Chord.char('q'))(Tui.quit),
+      )
+
+    /** How long ago the last sample came ("updated 5 seconds ago"), from a
+      * clock that ticks each second; the clock stops with the `Scope` of the
+      * app.
+      */
+    def stamp(s: State)(using Frame): UI < (Sync & Scope) =
+      for now <- useNow(1.second)
+      yield span(useTimeAgo(s.updated, now).map(t => s"updated $t"))
+        .style(_.color(Style.Color.gray))
+    // endregion: composables
+
     // claude 2026-10-19: changed: the help (`?`), the toast of `p`, and the
-    // layout from the size of the terminal (L1b)
-    def view(s: State): UI < Sync =
-      Tui.size.map(size =>
-        div.onKeyDown {
-          case KeyboardEvent(Keyboard.Char('p'), _, _) =>
-            s.paused
-              .updateAndGet(!_)
-              .map(p =>
-                notify(s, if p then "sampler paused" else "sampler resumed"),
-              )
-          case KeyboardEvent(Keyboard.Char('?'), _, _) => s.help.set(true)
-          case KeyboardEvent(Keyboard.Char('q'), _, _) => Tui.quit
-          case _                                       => ()
-        }(
+    // layout from the size of the terminal (L1b); the keymap and the stamp
+    // (L2a)
+    def view(s: State)(using Frame): UI < (Sync & Scope) =
+        val keymap = keys(s)
+        for
+            size    <- Tui.size
+            updated <- stamp(s)
+        yield div.onKeyDown(keymap.handler)(
           body(
             new Tabs(firstSeries, otherSeries*)(
               heading = h1("Dashboard"),
@@ -180,17 +215,21 @@ object Dashboard:
             logPane(s),
             size,
           ),
-          span(
-            s.paused.map(p =>
-              if p then "sampler PAUSED (p resumes)"
-              else "sampler running (p pauses)  ←/→ tabs  ? help  q quits",
-            ),
-          )
-            .style(_.color(Style.Color.gray)),
+          div.style(_.row.gap(2.px))(
+            span(
+              s.paused.map(p =>
+                if p then "sampler PAUSED (p resumes)"
+                else "sampler running (p pauses)  ←/→ tabs  ? help  q quits",
+              ),
+            )
+              .style(_.color(Style.Color.gray)),
+            updated,
+          ),
           toast(s),
-          help(s),
-        ),
-      )
+          help(s, keymap),
+        )
+        end for
+    end view
 
     // claude 2026-10-19: created the region below (L1b), with `when` (L1b
     // review): the README section "Overlays, terminal size and theme colors"
@@ -213,12 +252,13 @@ object Dashboard:
         )
 
     /** The help: a box in the middle of the screen, over the rest (a
-      * `position(_.overlay)` layer that centers it). Its `focusTrap` keeps Tab
-      * inside it; its Close button takes the focus when it appears
-      * (`focusAuto`) and gives it back when it goes (`focusRestore`). Esc does
-      * nothing by itself in a focus trap: the `onKeyDown` of the box closes it.
+      * `position(_.overlay)` layer that centers it), with a row for each key of
+      * `keys`. Its `focusTrap` keeps Tab inside it; its Close button takes the
+      * focus when it appears (`focusAuto`) and gives it back when it goes
+      * (`focusRestore`). Esc does nothing by itself in a focus trap: the
+      * `onKeyDown` of the box closes it.
       */
-    def help(s: State): UI =
+    def help(s: State, keys: Keymap): UI =
       when(s.help)(
         div.style(_.position(_.overlay).justify(_.center).align(_.center))(
           div
@@ -235,9 +275,7 @@ object Dashboard:
             )(
               h2("Keys"),
               span("←/→  change the tab"),
-              span("p    pause or resume the sampler"),
-              span("?    this help (Esc closes it)"),
-              span("q    quit"),
+              UI.fragment(keys.help.map((k, h) => span(f"$k%-4s $h"))*),
               button("Close")
                 .id("help-close")
                 .focusAuto(true)

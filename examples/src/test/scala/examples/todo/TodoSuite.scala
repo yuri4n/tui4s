@@ -171,7 +171,9 @@ class TodoSuite extends FunSuite:
     ) {
       val (added, top, bottom, long) = run {
         for
-            h      <- Headless.start(50, 12)(_ => Todo.app(file().toString))
+            // claude 2026-10-19: changed: 13 rows, for the second help line
+            // of the footer (L2a)
+            h      <- Headless.start(50, 13)(_ => Todo.app(file().toString))
             _      <- Kyo.foreach(1 to 12)(i =>
                         h.typeText(s"item $i").andThen(h.key(Keyboard.Enter)),
                       )
@@ -204,5 +206,47 @@ class TodoSuite extends FunSuite:
         title.exists(l => l.contains("…") && !l.contains("screen")),
         long.text,
       )
+    }
+
+    // claude 2026-10-19: created (L2a): undo and redo with useHistory
+    test(
+      "Ctrl-Z undoes the last change of the list and Ctrl-Y redoes it; the help line names the keys",
+    ) {
+      val ctrl                                           = Modifiers(ctrl = true)
+      val (two, undone, redone, toggled, untoggled, end) = run {
+        for
+            h         <- start(file())
+            _         <- h.typeText("one").andThen(h.key(Keyboard.Enter))
+            _         <- h.typeText("two").andThen(h.key(Keyboard.Enter))
+            two       <- h.screen
+            _         <- h.key(Keyboard.Char('z'), ctrl)
+            undone    <- h.screen
+            _         <- h.key(Keyboard.Char('y'), ctrl)
+            redone    <- h.screen
+            _         <- h.key(Keyboard.Tab)
+            _         <- h.key(Keyboard.Space)
+            toggled   <- h.screen
+            _         <- h.key(Keyboard.Char('z'), ctrl)
+            untoggled <- h.screen
+            _         <- h.key(Keyboard.Char('z'), ctrl)
+            _         <- h.key(Keyboard.Char('z'), ctrl)
+            _         <- h.key(Keyboard.Char('z'), ctrl)
+            end       <- h.screen
+        yield (two, undone, redone, toggled, untoggled, end)
+      }
+      assert(two.contains("[ ] two") && two.contains("2 open / 2"), two.text)
+      assert(two.contains("Ctrl-Z: undo  Ctrl-Y: redo"), two.text)
+      assert(
+        !undone.contains("two") && undone.contains("1 open / 1"),
+        undone.text,
+      )
+      assert(
+        redone.contains("[ ] two") && redone.contains("2 open / 2"),
+        redone.text,
+      )
+      assert(toggled.contains("1 open / 2"), toggled.text)
+      assert(untoggled.contains("2 open / 2"), untoggled.text)
+      // Three more undos: back to the empty list, and no further.
+      assert(end.contains("0 open / 0"), end.text)
     }
 end TodoSuite
