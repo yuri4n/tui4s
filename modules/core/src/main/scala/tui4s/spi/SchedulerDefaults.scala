@@ -11,10 +11,31 @@ package tui4s.spi
   * as JVM flags.
   *
   * This object touches no Kyo class, so a call never starts the scheduler.
+  *
+  * `kyo.scheduler.blockingMonitorMinIntervalNs` is the minimum time between two
+  * scans of Kyo's blocking monitor. When it is not set, Kyo measures the
+  * resolution of the CPU-time counter of the threads when its scheduler starts.
+  * This measurement is a loop of sleeps, and the start of the app waits for it:
+  * about 90 ms (on Linux it gives 12.8 ms). tui4s sets 20 ms, so there is no
+  * measurement (measured: the first frame comes about 70 to 100 ms sooner). The
+  * reasons for 20 ms:
+  *   - It is the scan interval of tui4s (`blockingMonitorIntervalNs`), so the
+  *     periodic scans do not change.
+  *   - It is more than the known counter resolutions (10 ms on Linux, 15.6 ms
+  *     on Windows). A value below the resolution can make a running worker look
+  *     blocked, because two scans that are too near see the same CPU time.
+  *   - A value above the scan interval makes all scans less frequent, so the
+  *     monitor finds a blocked worker later.
+  *
+  * The cost: when the monitor is woken (a fiber on a blocked worker is
+  * interrupted), the next scan comes at least 20 ms after the last one, not
+  * 12.8 ms.
   */
 // claude 2026-10-13: changed (T2, review R1-5): the Scaladoc only (no SPEC
 // section; TuiApp, not the facades' classes, which do not exist yet); the code
 // is carried unchanged (RC-25)
+// claude 2026-10-19: changed: the Scaladoc of blockingMonitorMinIntervalNs
+// (C2)
 object SchedulerDefaults:
     /** The property that turns the defaults off:
       * `-Dtui4s.schedulerDefaults=false`.
@@ -27,6 +48,9 @@ object SchedulerDefaults:
       "kyo.scheduler.cycleIntervalNs"                        -> "10000000",
       // 2 ms -> 20 ms
       "kyo.scheduler.blockingMonitorIntervalNs"              -> "20000000",
+      // claude 2026-10-19: created (C2): a measurement at start (about 90 ms)
+      // -> 20 ms
+      "kyo.scheduler.blockingMonitorMinIntervalNs"           -> "20000000",
       // 10 ms -> 100 ms
       "kyo.scheduler.regulator.concurrencyCollectIntervalMs" -> "100",
     )

@@ -58,18 +58,21 @@ class SchedulerDefaultsTest extends Test[Any]:
         (set, now.toMap)
     end applyOn
 
-    "with nothing set, all three keys get their defaults" in {
+    // claude 2026-10-19: changed: four keys (C2)
+    "with nothing set, all four keys get their defaults" in {
       val (set, props) = applyOn(Map.empty)
       assert(set == keys)
       assert(props == SchedulerDefaults.defaults.toMap)
       assert(props("kyo.scheduler.cycleIntervalNs") == "10000000")
+      assert(props("kyo.scheduler.blockingMonitorMinIntervalNs") == "20000000")
     }
 
     "a system property of the user is kept" in {
       val (set, props) = applyOn(Map("kyo.scheduler.cycleIntervalNs" -> "5"))
       assert(!set.contains("kyo.scheduler.cycleIntervalNs"))
       assert(props("kyo.scheduler.cycleIntervalNs") == "5")
-      assert(set.size == 2)
+      // claude 2026-10-19: changed: the 3 other keys (C2)
+      assert(set.size == 3)
     }
 
     "an environment variable of the user is respected" in {
@@ -77,7 +80,8 @@ class SchedulerDefaultsTest extends Test[Any]:
       val (set, props) = applyOn(Map.empty, env)
       assert(!set.contains("kyo.scheduler.blockingMonitorIntervalNs"))
       assert(!props.contains("kyo.scheduler.blockingMonitorIntervalNs"))
-      assert(set.size == 2)
+      // claude 2026-10-19: changed: the 3 other keys (C2)
+      assert(set.size == 3)
     }
 
     "-Dtui4s.schedulerDefaults=false turns it off" in {
@@ -91,6 +95,8 @@ class SchedulerDefaultsTest extends Test[Any]:
         keys.map(SchedulerDefaults.envName) == Seq(
           "KYO_SCHEDULER_CYCLEINTERVALNS",
           "KYO_SCHEDULER_BLOCKINGMONITORINTERVALNS",
+          // claude 2026-10-19: created (C2)
+          "KYO_SCHEDULER_BLOCKINGMONITORMININTERVALNS",
           "KYO_SCHEDULER_REGULATOR_CONCURRENCYCOLLECTINTERVALMS",
         ),
       )
@@ -113,7 +119,7 @@ class SchedulerDefaultsTest extends Test[Any]:
     }
 
     // claude 2026-10-13: changed (T2, review R1-9): without the properties of
-    // the test JVM (its javaOptions set all three), so that the leaf fails
+    // the test JVM (its javaOptions set all of them), so that the leaf fails
     // when applyIfUnset sets nothing; a key that the environment sets stays
     // unset
     "applyIfUnset sets the JVM properties (idempotent)" in {

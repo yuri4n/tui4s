@@ -330,16 +330,20 @@ tests then allow 1 split frame).
   <!-- claude 2026-10-13: changed (C4): the component mounts go on -->
 - The test JVM sets the tui4s scheduler values (`modules/core/build.sbt`,
   `Test / javaOptions`): `kyo.scheduler.cycleIntervalNs=10000000`,
-  `kyo.scheduler.blockingMonitorIntervalNs=20000000` and
+  `kyo.scheduler.blockingMonitorIntervalNs=20000000`,
+  `kyo.scheduler.blockingMonitorMinIntervalNs=20000000` and
   `kyo.scheduler.regulator.concurrencyCollectIntervalMs=100`. Without them the
-  runner gives more split frames under load (spike S1). The start scripts of
-  the examples give a real app the same values as JVM flags
-  (`examples / run / javaOptions` in `build.sbt`); `TuiApp` sets them in code
-  (`tui4s.spi.SchedulerDefaults.applyIfUnset`, first in its constructor: Kyo
-  reads them once, when its scheduler starts). An app with a main of its own
-  gives them as JVM flags.
+  runner gives more split frames under load (spike S1). Without
+  `blockingMonitorMinIntervalNs`, Kyo measures its CPU-time counter for about
+  90 ms when its scheduler starts (the reason for 20 ms is in the Scaladoc of
+  `SchedulerDefaults`). The start scripts of the examples give a real app the
+  same values as JVM flags (`examples / run / javaOptions` in `build.sbt`);
+  `TuiApp` sets them in code (`tui4s.spi.SchedulerDefaults.applyIfUnset`,
+  first in its constructor: Kyo reads them once, when its scheduler starts).
+  An app with a main of its own gives them as JVM flags.
   <!-- claude 2026-10-13: changed (T1, D-17 c): the start scripts -->
   <!-- claude 2026-10-13: changed (T2, RC-25): TuiApp sets them in code -->
+  <!-- claude 2026-10-19: changed (C2): blockingMonitorMinIntervalNs -->
   The settle canary (SettleTest) needs a
   second Kyo worker: on a 2-CPU JVM under load the scheduler keeps one, so
   the canary cancels itself there (the report says `cancelled`, not passed).

@@ -55,8 +55,10 @@ object Tui:
       * crossterm is native) and a terminal on stdin. Give it the tui4s
       * scheduler values too: `-Dkyo.scheduler.cycleIntervalNs=10000000
       * -Dkyo.scheduler.blockingMonitorIntervalNs=20000000
+      * -Dkyo.scheduler.blockingMonitorMinIntervalNs=20000000
       * -Dkyo.scheduler.regulator.concurrencyCollectIntervalMs=100` (fewer split
-      * frames under load, less CPU when idle).
+      * frames under load, less CPU when idle, a faster start; see
+      * [[tui4s.spi.SchedulerDefaults]]).
       *
       * After a quit, the run first closes the `Scope` of the UI: it interrupts
       * the fibers that the UI started with `Fiber.init` and waits for them to
@@ -77,6 +79,8 @@ object Tui:
     // quit value, D-15; Tui.quit as the second way)
     // claude 2026-10-13: changed (T1, reviews R1-2, R2-2, R2-3): the Scaladoc
     // names NativeLoadFailed and the order of the scope close and the restore
+    // claude 2026-10-19: changed (C2): the Scaladoc names
+    // blockingMonitorMinIntervalNs
     def run(options: TuiOptions)(ui: (Unit < Sync) => UI < (Async & Scope))(
         using Frame,
     ): Unit < (Async & Abort[TuiError]) =

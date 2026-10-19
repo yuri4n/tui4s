@@ -138,9 +138,12 @@ lazy val examples = project
     // A `TuiApp` also sets them in code (`tui4s.spi.SchedulerDefaults`); an
     // app with its own `main` (examples.counterkyo) needs them as here.
     // claude 2026-10-13: changed (T2): TuiApp is here
+    // claude 2026-10-19: changed (C2): blockingMonitorMinIntervalNs (no
+    // measurement of about 90 ms when the scheduler starts)
     run / javaOptions ++= Seq(
       "-Dkyo.scheduler.cycleIntervalNs=10000000",
       "-Dkyo.scheduler.blockingMonitorIntervalNs=20000000",
+      "-Dkyo.scheduler.blockingMonitorMinIntervalNs=20000000",
       "-Dkyo.scheduler.regulator.concurrencyCollectIntervalMs=100",
     ),
   )
@@ -156,6 +159,8 @@ lazy val examples = project
       "--enable-native-access=ALL-UNNAMED",
       "-Dkyo.scheduler.cycleIntervalNs=10000000",
       "-Dkyo.scheduler.blockingMonitorIntervalNs=20000000",
+      // claude 2026-10-19: created (C2)
+      "-Dkyo.scheduler.blockingMonitorMinIntervalNs=20000000",
       "-Dkyo.scheduler.regulator.concurrencyCollectIntervalMs=100",
     ),
   )

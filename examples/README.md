@@ -363,10 +363,13 @@ Both launch paths start an app in its own JVM, using `$JAVA_HOME/bin/java` or
   `sun.misc.Unsafe`.
 - `-Xss16m`: Kyo's deep stacks.
 - `-Dkyo.scheduler.cycleIntervalNs=10000000`,
-  `-Dkyo.scheduler.blockingMonitorIntervalNs=20000000` and
+  `-Dkyo.scheduler.blockingMonitorIntervalNs=20000000`,
+  `-Dkyo.scheduler.blockingMonitorMinIntervalNs=20000000` and
   `-Dkyo.scheduler.regulator.concurrencyCollectIntervalMs=100`: the tui4s
   scheduler values. With them the runner gives fewer split frames under load
-  and uses less CPU when the app is idle. A `TuiApp` also sets them in code
+  and uses less CPU when the app is idle, and the app starts faster (Kyo does
+  not measure its CPU-time counter for about 90 ms).
+  <!-- claude 2026-10-19: changed (C2): blockingMonitorMinIntervalNs --> A `TuiApp` also sets them in code
   (`tui4s.spi.SchedulerDefaults`, before the app's own code), each one that
   no flag and no environment variable sets;
   `-Dtui4s.schedulerDefaults=false` turns this off. An app with a main of its

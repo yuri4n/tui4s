@@ -45,13 +45,17 @@ Test / javaOptions ++= Seq(
 // 100 us; with 10 ms it finds and drains a stalled worker less often, which
 // costs less CPU when the app is idle and gives fewer split frames under
 // load (spike S1: 0 splits with no load, at most 0.75 per 10 000 under load).
+// The minimum interval of the blocking monitor removes a measurement of about
+// 90 ms when the scheduler starts (see `SchedulerDefaults`).
 // The test JVM always sets them. `TuiApp` sets the same values for a real app
 // (`tui4s.spi.SchedulerDefaults`, in its constructor).
 // claude 2026-10-12: created
 // claude 2026-10-13: changed (T2): TuiApp is here
+// claude 2026-10-19: changed (C2): blockingMonitorMinIntervalNs
 Test / javaOptions ++= Seq(
   "-Dkyo.scheduler.cycleIntervalNs=10000000",
   "-Dkyo.scheduler.blockingMonitorIntervalNs=20000000",
+  "-Dkyo.scheduler.blockingMonitorMinIntervalNs=20000000",
   "-Dkyo.scheduler.regulator.concurrencyCollectIntervalMs=100",
 )
 
