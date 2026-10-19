@@ -76,14 +76,15 @@ sealed.
 scheduler values (`tui4s.spi.SchedulerDefaults`) and installs the output
 capture before the app's own code, and its `main` runs `ui` with `Tui.run`.
 The exit code is 0 after a quit (also the key Ctrl-C) and 1 after a failure
-(printed after the restore); on `kill -TERM`, `kill -INT` or a `System.exit`,
-a shutdown hook interrupts the run and waits at most 2 s for the restore, and
-the JVM exits with its own code (143, 130). The examples (`examples/`) have
-one main per package. All are `TuiApp`s except `counterkyo`, a `KyoApp` main
-of its own; `widgets` is a library with no main. Each UI has a munit suite on
-`Headless`.
+(printed after the restore); on `kill -TERM`, `kill -INT`, `kill -HUP` or a
+`System.exit`, a shutdown hook interrupts the run and waits at most 2 s for
+the restore, and the JVM exits with its own code (143, 130, 129). The
+examples (`examples/`) have one main per package. All are `TuiApp`s except
+`counterkyo`, a `KyoApp` main of its own; `widgets` is a library with no main.
+Each UI has a munit suite on `Headless`.
 <!-- claude 2026-10-13: created these lines (T2, RC-24, OS-47 part): TuiApp and the examples -->
 <!-- claude 2026-10-13: changed the last sentence (T2, review R1-4): counterkyo is a KyoApp; widgets has no main -->
+<!-- claude 2026-10-19: changed: kill -HUP and 129 -->
 
 ## UI architecture and API design
 
@@ -288,8 +289,11 @@ tests then allow 1 split frame).
   one bracket, so an interrupt cannot land between them. A test checks the
   gauge after an interrupted run and after a quit (`ComponentTest`). The
   unmount of a component interrupts its fiber, so its `Scope` closes and its
-  effects stop.
+  effects stop. A failure of the body of a hook component or of `onMount` is
+  logged once through the run's Kyo logger (one line at error with the
+  position: `Mount.logFailure`), and the run goes on.
   <!-- claude 2026-10-13: created this item (C4, RC-8) -->
+  <!-- claude 2026-10-19: changed: the failure of a hook body or of onMount is logged -->
   <!-- claude 2026-10-19: changed (P2, A7): FiberGauge, the one bracket -->
 - jatatui 0.31.0's JNI cuts a typed character outside the Basic Multilingual
   Plane (an emoji) to 16 bits: such a key arrives wrong. A bracketed paste
@@ -374,10 +378,10 @@ tests then allow 1 split frame).
   step of the stack (it runs last). `Tui.run` runs the UI on a fiber of its own
   (the run fiber); the caller waits on a copy of its result, not on the run
   fiber, so an interrupt of the caller restores the terminal at once. When the
-  JVM stops (SIGTERM, SIGINT, `System.exit`), the hook records the stop
-  (`internal.Hooks.stopping`), interrupts the run fiber with no wait, runs the
-  stack, and then waits at most 2 s until the release is complete or the run
-  fiber ended. When the end of the run and the hook race, both run the stack:
+  JVM stops (SIGTERM, SIGINT, SIGHUP, `System.exit`), the hook records the
+  stop (`internal.Hooks.stopping`), interrupts the run fiber with no wait,
+  runs the stack, and then waits at most 2 s until the release is complete or
+  the run fiber ended. When the end of the run and the hook race, both run the stack:
   the second call does nothing, and the wait of the hook covers the release by
   the other side. A closed inbox is a quit. A `TuiApp` then prints nothing in
   `main` and does not run `onExit` (`internal.Hooks.shuttingDown`), so no output
@@ -387,6 +391,7 @@ tests then allow 1 split frame).
   checks the real signals.
   <!-- claude 2026-10-13: created this item (T2, RC-24, D-24 a) -->
   <!-- claude 2026-10-19: changed (P3, A2): one hook per run, the hook steps -->
+  <!-- claude 2026-10-19: changed: SIGHUP (the PTY row hup) -->
 - Never join the run fiber from an interruptible wait. A join makes the
   caller's interrupt wait for the run, and a run that waits for the caller is
   a deadlock. Poll `done` with a bounded wait instead (`Headless.awaitEnd`).
@@ -431,11 +436,13 @@ tests then allow 1 split frame).
   kernels are the only loops over cells: `Canvas.write` (the ops of a plan
   into the kept cells) and `Canvas.diff` (the damaged cells that differ from
   the shown cells). Each Scaladoc states its law, and `CanvasPropertyTest`
-  checks it. `Canvas.diff`, `flush`, `resize`, `read` and `close` take the
-  backend's monitor; `write` does not. Do not add a third kernel: put a new
-  write into a new `Op`. The old painter is the permanent oracle in the test
-  sources (`oracle/PaintOracle.scala`); do not change it.
+  checks it. `Canvas.diff`, `flush`, `resize`, `read`, `cells` and `close`
+  take the backend's monitor; `write` does not. `Headless` reads the screen
+  only through `Canvas.read` and `Canvas.cells`. Do not add a third kernel:
+  put a new write into a new `Op`. The old painter is the permanent oracle in
+  the test sources (`oracle/PaintOracle.scala`); do not change it.
   <!-- claude 2026-10-19: changed (P5): the kernels are in the edge file Canvas.scala; the plan, the monitor rule, the oracle -->
+  <!-- claude 2026-10-19: changed (P4): Canvas.cells and the reads of Headless -->
 - An edge file wraps a foreign API. Its line 1 is
   `// scalafix:off DisableSyntax` and its line 2 is
   `// EDGE: <the foreign API>`. `scripts/edge-check.sh` has the list of the
@@ -453,8 +460,12 @@ tests then allow 1 split frame).
   outside an edge file. `bash scripts/edge-check.sh` checks these rules.
   scalafmt does not wrap a trailing comment (`.scalafmt.conf`), so the
   comment stays on its line.
-- The phase key (the purity plan of 2026-10-17; a tag such as `(A1)` in a
-  reason names an amendment of the plan):
+- The phases P1 to P6 landed on 2026-10-19: only `KEEP` sites remain, and
+  `grep -rn 'scalafix:ok DisableSyntax' modules examples --include=*.scala | grep -v '; KEEP:'`
+  prints nothing. A new impure site outside an edge file is a `KEEP` site
+  with its reason. The phase key stays as the history of the comments (the
+  purity plan of 2026-10-17; a tag such as `(A1)` in a reason names an
+  amendment of the plan):
   - `P1`: delete dead code, change `null` to `Maybe` (to `Option` where no
     Kyo class can load), and change casts to matches.
   - `P1b`: a non-null `TuiError` cause (A4) and the final shapes of the
@@ -468,6 +479,7 @@ tests then allow 1 split frame).
   - `P5`: a pure painter and one `Canvas` seam, with the two kernels.
   - `P6`: the output sinks (`OutputCapture`, `LogSink`).
   - `KEEP`: the site stays.
+  <!-- claude 2026-10-19: changed: P1 to P6 landed; only KEEP sites remain (L0) -->
 - Use an ADT (an enum), not a Boolean, when a Boolean selects runtime
   behavior. A Boolean is correct for an option toggle and for a predicate.
 - Property tests use kyo-test-prop (`PropertyTest[S]`, `Gen`, `Shrink`) under
