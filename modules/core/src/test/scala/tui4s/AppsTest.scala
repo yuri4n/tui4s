@@ -4,7 +4,7 @@ import kyo.*
 import kyo.UI.*
 import tui4s.fixtures as apps
 import tui4s.internal.Knobs
-import tui4s.testkit.Headless
+import tui4s.testkit.{CellColor, Headless}
 
 /** The app tests (RC-19): the fixtures on the headless kit, driven by writes to
   * their `SignalRef`s and by keys. The screen is 100 x 30.
@@ -96,7 +96,7 @@ class AppsTest extends RunnerSuite:
                  )
           y    = s3.rows.indexWhere(_.contains("walk dog"))
           _    = assert(
-                   s3.styleAt(2, y).bg == Some("#6366f1"),
+                   s3.styleAt(2, y).bg.contains(CellColor.Rgb(0x63, 0x66, 0xf1)),
                    "the selected row has the indigo background",
                  )
           _   <- h.char('d')
@@ -268,7 +268,7 @@ class AppsTest extends RunnerSuite:
                      scr =>
                        scr.rows.indexWhere(_.contains("walk dog")) >= 0 && {
                          val y = scr.rows.indexWhere(_.contains("walk dog"))
-                         scr.styleAt(2, y).bg == Some("#6366f1") // indigo
+                         scr.styleAt(2, y).bg.contains(CellColor.Rgb(0x63, 0x66, 0xf1)) // indigo
                        },
                      2.seconds,
                    )

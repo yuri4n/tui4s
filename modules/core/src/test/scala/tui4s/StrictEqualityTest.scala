@@ -2,7 +2,7 @@ package tui4s
 
 import kyo.test.*
 import tui4s.spi.Settle
-import tui4s.testkit.{CellStyle, Screen}
+import tui4s.testkit.{CellColor, CellStyle, Screen}
 
 import java.time.Duration as JDuration
 import scala.language.strictEquality
@@ -26,5 +26,8 @@ class StrictEqualityTest extends Test[Any]:
       val s = Screen(Vector("a"), Vector(Vector(CellStyle.plain)), None)
       assert(s == s.copy() && s != s.copy(cursor = Some((0, 0))))
       assert(CellStyle(bold = true) != CellStyle.plain)
+      // claude 2026-10-19: created (P1b, A5 d): CellColor compares with ==
+      assert(CellColor.Rgb(1, 2, 3) == CellColor.Rgb(1, 2, 3))
+      assert(CellColor.Red != CellColor.LightRed)
     }
 end StrictEqualityTest

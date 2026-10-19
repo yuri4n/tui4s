@@ -6,18 +6,66 @@ import jatatui.core.style.{Color as JColor, Modifier, Style as JStyle}
 import jatatui.core.text.Span as JSpan
 import tui4s.internal.TextEdit
 
+/** The colour of a screen cell, in plain Scala types (no jatatui type): an RGB
+  * colour, an index of the 256-colour palette, or one of the 16 named ANSI
+  * colours. The names are the names of the terminal colours: `LightBlue` is
+  * "light blue".
+  *
+  * {{{
+  * val s = screen.styleAt(2, 0)
+  * assert(s.bg.contains(CellColor.Rgb(0x63, 0x66, 0xf1)))
+  * assert(s.fg.contains(CellColor.LightBlue))
+  * }}}
+  */
+// claude 2026-10-19: created (P1b, A5 d): the colour as an enum, not a string
+enum CellColor derives CanEqual:
+    /** An RGB colour. Each part is 0 to 255. */
+    case Rgb(r: Int, g: Int, b: Int)
+
+    /** A colour of the 256-colour palette, 0 to 255. */
+    case Indexed(index: Int)
+
+    case Black, Red, Green, Yellow, Blue, Magenta, Cyan, Gray, DarkGray,
+      LightRed, LightGreen, LightYellow, LightBlue, LightMagenta, LightCyan,
+      White
+end CellColor
+
+object CellColor:
+    /** The colour of a jatatui cell. Reset (no colour set) is `None`. */
+    private[tui4s] def of(c: JColor): Option[CellColor] = c match
+        case rgb: JColor.Rgb     => Some(Rgb(rgb.r, rgb.g, rgb.b))
+        case idx: JColor.Indexed => Some(Indexed(idx.i))
+        case _: JColor.Black        => Some(Black)
+        case _: JColor.Red          => Some(Red)
+        case _: JColor.Green        => Some(Green)
+        case _: JColor.Yellow       => Some(Yellow)
+        case _: JColor.Blue         => Some(Blue)
+        case _: JColor.Magenta      => Some(Magenta)
+        case _: JColor.Cyan         => Some(Cyan)
+        case _: JColor.Gray         => Some(Gray)
+        case _: JColor.DarkGray     => Some(DarkGray)
+        case _: JColor.LightRed     => Some(LightRed)
+        case _: JColor.LightGreen   => Some(LightGreen)
+        case _: JColor.LightYellow  => Some(LightYellow)
+        case _: JColor.LightBlue    => Some(LightBlue)
+        case _: JColor.LightMagenta => Some(LightMagenta)
+        case _: JColor.LightCyan    => Some(LightCyan)
+        case _: JColor.White        => Some(White)
+        case _                      => None
+end CellColor
+
 /** The style of one screen cell, in plain Scala types (no jatatui type).
   *
-  * A colour is `#rrggbb` (lower case) for an RGB colour, a lower-case name
-  * (`red`, `light-blue`, `dark-gray`, ...) for a named ANSI colour, or
-  * `indexed:<n>` for a 256-colour index. A colour that nobody set is `None`, so
+  * A colour is a [[CellColor]]. A colour that nobody set is `None`, so
   * `styleAt(x, y) == CellStyle(bold = true)` holds for a bold cell with no
   * colour.
   */
 // claude 2026-10-12: created (D-13, RC-28)
+// claude 2026-10-19: changed: the colours are CellColor values, not strings
+// (P1b, A5 d)
 final case class CellStyle(
-    fg: Option[String] = None,
-    bg: Option[String] = None,
+    fg: Option[CellColor] = None,
+    bg: Option[CellColor] = None,
     bold: Boolean = false,
     dim: Boolean = false,
     italic: Boolean = false,
@@ -33,11 +81,11 @@ object CellStyle:
     /** The style of a jatatui cell. Reset colours read as unset: a cell reports
       * Reset for the colours that nobody set.
       */
+    // claude 2026-10-19: changed: CellColor.of (P1b, A5 d)
     private[tui4s] def of(st: JStyle): CellStyle =
-        def colour(c: java.util.Optional[JColor]): Option[String] =
-          if c.isPresent && c.get != JColor.RESET then Some(name(c.get))
-          else None
-        val m                                                     = st.addModifier()
+        def colour(c: java.util.Optional[JColor]): Option[CellColor] =
+          if c.isPresent then CellColor.of(c.get) else None
+        val m                                                        = st.addModifier()
         CellStyle(
           fg = colour(st.fg()),
           bg = colour(st.bg()),
@@ -49,17 +97,6 @@ object CellStyle:
           crossedOut = m.contains(Modifier.CROSSED_OUT),
         )
     end of
-
-    /** The text of a jatatui colour: `#rrggbb`, `indexed:<n>`, or the ANSI name
-      * in kebab case (`LightBlue` is `light-blue`).
-      */
-    private def name(c: JColor): String = c match
-        case rgb: JColor.Rgb     => f"#${rgb.r}%02x${rgb.g}%02x${rgb.b}%02x"
-        case idx: JColor.Indexed => s"indexed:${idx.i}"
-        case other               =>
-          other.getClass.getSimpleName
-            .replaceAll("([a-z])([A-Z])", "$1-$2")
-            .toLowerCase
 end CellStyle
 
 /** One frame as text plus styles: an immutable copy of the screen.
