@@ -628,9 +628,9 @@ private[tui4s] final class Runner(
           )
       else
           val env           = w.env
-          val regions       = w.dirtyRegions.filterNot(r =>
-            w.dirtyRegions.exists(o => o != r && r.isUnder(o)),
-          )
+          // claude 2026-10-19: changed: Loc.tops, not a compare of each pair
+          // (PF-a, F2)
+          val regions       = Loc.tops(w.dirtyRegions)
           val (laid1, dmg1) = regions.foldLeft((w.laid, Vector.empty[Damage])) {
             case ((l, d), r) =>
               l.regionOwner.get(r) match

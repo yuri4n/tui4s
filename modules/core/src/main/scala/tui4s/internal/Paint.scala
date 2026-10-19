@@ -253,8 +253,9 @@ private[tui4s] object Paint:
         val clears = damage.collect { case c: Damage.Clear => c }.distinct
         val roots  = damage.collect { case Damage.Paint(p) => p }.distinct
         // a root under another root is painted by it
-        val top    =
-          roots.filterNot(p => roots.exists(q => q != p && p.isUnder(q)))
+        // claude 2026-10-19: changed: Loc.tops, not a compare of each pair
+        // (PF-a, F2)
+        val top    = Loc.tops(roots)
         clears.foreach(c => canvas.clear(c.rect, c.bg))
         top.foreach(p => paintNode(canvas, laid, env, p, clipOf(laid, p)))
         (

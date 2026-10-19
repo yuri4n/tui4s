@@ -186,8 +186,7 @@ object UiGen:
     def steppedLaid(b: Built, size: Size): (Laid, Laid) =
         val laidA   = Layout.layoutAll(b.ui, b.sceneA(size))
         val dirty   = changed(b)
-        val regions =
-          dirty.filterNot(r => dirty.exists(o => o != r && r.isUnder(o)))
+        val regions = TopsOracle.runner(dirty)
         val laidB   = regions.foldLeft(laidA) { (l, r) =>
           l.regionOwner.get(r) match
               case Some(owner) =>
