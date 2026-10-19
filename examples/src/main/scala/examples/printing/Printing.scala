@@ -38,10 +38,11 @@ object Printing:
         p("+ prints a line, q quits").style(_.color(Style.Color.gray)),
       )
 
-    /** The options for the command-line arguments: `--log <file>` sends the
-      * captured lines to that file.
+    /** The options for the command-line arguments (`TuiApp.args`, a Chunk):
+      * `--log <file>` sends the captured lines to that file.
       */
-    def options(args: Seq[String]): TuiOptions = args match
+    // claude 2026-10-19: changed: the Chunk of TuiApp.args (P1b, A5 a)
+    def options(args: Chunk[String]): TuiOptions = args.toSeq match
         case Seq("--log", file, _*) =>
           TuiOptions(logFile = Some(Paths.get(file)))
         case _                      => TuiOptions()

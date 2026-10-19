@@ -48,10 +48,10 @@ class PrintingSuite extends FunSuite:
 
     test("--log <file> sends the captured lines to the file") {
       assertEquals(
-        Printing.options(Seq("--log", "out.log")),
+        Printing.options(Chunk("--log", "out.log")),
         TuiOptions(logFile = Some(Paths.get("out.log"))),
       )
-      assertEquals(Printing.options(Nil), TuiOptions())
+      assertEquals(Printing.options(Chunk.empty), TuiOptions())
     }
 
     private def discard(b: Boolean): Unit =
