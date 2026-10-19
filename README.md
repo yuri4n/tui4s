@@ -1262,6 +1262,261 @@ The charts (`Sparkline`, `Gauge`, `ProgressBar`, `BarChart`, `Spinner`), `ListVi
       )
 ```
 
+## A real app: the assistant
+
+<!-- claude 2026-10-19: created this section (L3): the code blocks are regions of the assistant module, of its main and of its suite (ReadmeSuite checks them) -->
+The assistant is the flagship example: a chat with a language model
+(Anthropic, OpenAI, or a scripted fake provider) in the terminal. It is
+also the example of the shape of a real app. Its code is in two places:
+
+- `modules/assistant` (sbt `assistantJVM` and `assistantJS`): the domain,
+  the services, the store and the UI. The shared part is plain kyo-ui with
+  tui4s-use and tui4s-widgets. It does not use tui4s-core, so a web target
+  can use it. The `jvm` part has the interpreters of the JVM.
+- `examples/src/main/scala/examples/assistant/Assistant.scala`: the main.
+  It only wires.
+
+Start it with `examples/target/bin/assistant` (a real provider when a key
+is set) or with `examples/target/bin/assistant --fake` (no network, no
+key). [examples/README.md](examples/README.md) tells how to give a key.
+
+### The domain is pure
+
+The types are values: `Conversation`, `Message` (with its status
+`Streaming`, `Done` or `Failed`), `ChatEvent`, `ChatError` and `Settings`.
+The fold of a streamed reply is a pure state machine with laws: the deltas
+give the text, a stop ends the message, and an error marks it failed and
+keeps its text. `DomainPropertyTest` checks the laws, the title rule and the
+text form of a conversation, on the JVM and on Node.js.
+
+<!-- from: modules/assistant/shared/src/main/scala/examples/assistant/Transcript.scala#transcript -->
+```scala
+    /** The message after `event`. */
+    def apply(message: Message, event: ChatEvent): Message =
+      message.status match
+          case MessageStatus.Streaming =>
+            event match
+                case ChatEvent.TextDelta(t) =>
+                  message.copy(content = message.content + t)
+                case ChatEvent.Stop(_, u)   =>
+                  message.copy(status = MessageStatus.Done, usage = u)
+                case ChatEvent.Error(e)     =>
+                  message.copy(status = MessageStatus.Failed(e))
+          case _                       => message
+```
+
+### The services are traits, and the interpreters are in `make`
+
+A service is a trait: a capability. Its errors are values
+(`Abort[ChatError]`):
+
+<!-- from: modules/assistant/shared/src/main/scala/examples/assistant/Services.scala#provider -->
+```scala
+/** A chat provider: the capability to stream the reply to a request. The stream
+  * gives the pieces of the text, then one [[ChatEvent.Stop]] or one
+  * [[ChatEvent.Error]]; or it fails with a [[ChatError]] (an HTTP status, no
+  * connection). An interrupt of the fiber that runs it stops it, and its
+  * connection closes with it.
+  *
+  * The interpreters: [[FakeProvider]] (shared, scripted), and on the JVM the
+  * Anthropic and OpenAI providers ([[SseProvider]] over the HTTP client of
+  * kyo-http).
+  */
+// claude 2026-10-19: created (L3)
+trait ChatProvider:
+    /** The events of the reply to `request`. */
+    def stream(request: ChatRequest)(using
+        Frame,
+    ): Stream[ChatEvent, Async & Abort[ChatError]]
+```
+
+An interpreter is in the `make` of the companion. The log keeps its lines
+as a signal (the log pane shows them) and gives each line to the Kyo log of
+the run:
+
+<!-- from: modules/assistant/shared/src/main/scala/examples/assistant/Services.scala#applog -->
+```scala
+    /** A log that keeps the last `limit` lines; each line starts with its time
+      * (UTC, `HH:MM:SS`) and its level.
+      */
+    def make(limit: Int = 500)(using Frame): AppLog < Sync =
+      Signal
+        .initRef(Chunk.empty[String])
+        .map(ref =>
+          new AppLog:
+              val lines: Signal[Chunk[String]] = ref
+
+              private def add(level: String, message: String): Unit < Sync =
+                Clock.now.map(now =>
+                  ref
+                    .updateAndGet(ls =>
+                      (ls :+ s"${now.show.slice(11, 19)} $level $message")
+                        .takeRight(limit.max(1)),
+                    )
+                    .unit,
+                )
+
+              def info(message: String)(using Frame): Unit < Sync =
+                add("info", message).andThen(Log.info(message))
+
+              def warn(message: String)(using Frame): Unit < Sync =
+                add("warn", message).andThen(Log.warn(message)),
+        )
+```
+
+Each platform has its interpreters. On the JVM: `SseProvider` with the
+wire of Anthropic or of OpenAI over the HTTP client of kyo-http
+(`KyoHttp`), the keys (`SecretsJvm`), and the files (`FileStorage` of
+tui4s-use). The tests have interpreters in memory: `FakeProvider`,
+`Secrets.inMemory` and `Storage.inMemory`.
+
+### One store
+
+`Assistant` is the one store of the app. It groups the state, the derived
+values and the actions. A reply runs on a fiber of its own. The run state
+names the fiber before the fiber can end:
+
+<!-- from: modules/assistant/shared/src/main/scala/examples/assistant/Assistant.scala#start -->
+```scala
+    /** Starts the fiber of the reply to `request`. The fiber waits for a gate,
+      * so the run state names it before it can end.
+      */
+    private def start(
+        id: ConversationId,
+        request: ChatRequest,
+        s: Settings,
+    ): Unit < Sync =
+      providers.get(s.provider) match
+          case Absent            =>
+            fold(id, ChatEvent.Error(ChatError.Auth))
+              .andThen(save(id))
+              .andThen(log.warn(s"${s.provider.label} has no key"))
+          case Present(provider) =>
+            for
+                gate  <- Latch.init(1)
+                gen   <- generation.incrementAndGet
+                fiber <- Fiber.initUnscoped(
+                           gate.await.andThen(reply(id, gen, request, provider)),
+                         )
+                _     <- run.set(Run.Busy(id, gen, fiber))
+                _     <- streamingRef.set(Streaming.Running(id))
+                _     <- log.info(s"${s.provider.label}: a request to ${s.model}")
+                _     <- gate.release
+            yield ()
+```
+
+A cancel interrupts that fiber. The stream and its HTTP connection stop
+with it (one resource, one scope):
+
+<!-- from: modules/assistant/shared/src/main/scala/examples/assistant/Assistant.scala#cancel -->
+```scala
+    /** Stops the reply that streams: its fiber ends, the message is marked
+      * stopped (its text stays), and the conversation is saved.
+      */
+    def cancel: Unit < Async =
+      run.getAndSet(Run.Idle).map {
+        case Run.Idle               => Kyo.unit
+        case Run.Busy(id, _, fiber) =>
+          for
+              _ <- fiber.interrupt
+              _ <- fold(id, ChatEvent.Error(ChatError.Cancelled))
+              _ <- streamingRef.set(Streaming.Idle)
+              _ <- save(id)
+              _ <- log.info("the reply was stopped")
+          yield ()
+      }
+```
+
+### The wiring is Kyo layers
+
+The shared part gives the layers that build on the services of a platform:
+
+<!-- from: modules/assistant/shared/src/main/scala/examples/assistant/Assistant.scala#wiring -->
+```scala
+    /** The providers: with [[StartMode.Detect]], each provider whose key
+      * `Secrets` finds (`live` makes it); always the fake `fake`.
+      */
+    def providers(
+        live: (ProviderChoice, ApiKey) => ChatProvider,
+        fake: ChatProvider,
+        mode: StartMode,
+    )(using Frame): Layer[Providers, Env[Secrets & AppLog] & Sync] =
+      Layer.from[Secrets, AppLog, Providers, Sync]((s, log) =>
+        mode match
+            case StartMode.Detect   => Providers.make(s, live, fake, log)
+            case StartMode.FakeOnly =>
+              Providers.fakeOnly(fake): Providers < Sync,
+      )
+```
+
+The main gives the layers of the JVM and runs the UI:
+
+<!-- from: examples/src/main/scala/examples/assistant/Assistant.scala#main -->
+```scala
+    def ui: UI < (Async & Scope) =
+        val mode =
+          if args.contains("--fake") then StartMode.FakeOnly
+          else StartMode.Detect
+        Tui.size.map(size =>
+          Memo.run(
+            Env.runLayer(
+              AssistantJvm.storage,
+              AssistantJvm.secrets,
+              Wiring.conversations,
+              Wiring.log,
+              Wiring.providers(AssistantJvm.live, FakeProvider.make(), mode),
+            )(
+              AssistantUi.run(
+                mode,
+                Tui.quit,
+                size.map(t => ScreenSize(t.width, t.height)),
+              ),
+            ),
+          ),
+        )
+    end ui
+```
+
+### A test wires the interpreters in memory
+
+The headless suite wires the same app with the storage and the keys in
+memory and the fake provider:
+
+<!-- from: examples/src/test/scala/examples/assistant/AssistantSuite.scala#test -->
+```scala
+    /** The app on a `width` x `height` screen: the storage and the keys in
+      * memory, the scripted provider `fake` (also as the real providers).
+      */
+    private def start(
+        fake: ChatProvider = FakeProvider.make(delay = 5.millis),
+        keys: Map[ProviderChoice, String] = Map.empty,
+        width: Int = 100,
+        height: Int = 30,
+    )(using Frame): Headless < (Async & Scope) =
+      Storage.inMemory.map { storage =>
+        val (files, secrets) = Wiring.inMemory(storage, keys)
+        Headless.start(width, height, stylesheet = Colors.defaults)(quit =>
+          Tui.size.map(size =>
+            Memo.run(
+              Env.runLayer(
+                files,
+                secrets,
+                Wiring.conversations,
+                Wiring.log,
+                Wiring.providers((_, _) => fake, fake, StartMode.Detect),
+              )(
+                AssistantUi.run(
+                  StartMode.Detect,
+                  quit,
+                  size.map(t => ScreenSize(t.width, t.height)),
+                ),
+              ),
+            ),
+          ),
+        )
+      }
+```
+
 ## Modules
 
 Each module is released on its own, with its own version.

@@ -350,6 +350,17 @@ check("gallery: ArrowDown on the family list shows the data family (the list and
       all(t in screen("gallery-down") for t in ("› Data", "ListView (", "42%")), screen("gallery-down"))
 restored("gallery-q", "gallery ctrl-q")
 
+# claude 2026-10-19: created (L3): the assistant with the scripted provider
+asst = screen("assistant-start")
+check("assistant: first screen has the chats, the hint, the composer, the fake provider and the hints",
+      all(t in asst for t in ("Chats", "› New chat", "Type a message below.", "Message · Enter sends", "Fake · fake-1", "Ctrl-Q quit")),
+      asst)
+ahi = screen("assistant-hi")
+check("assistant: hi, Enter: the message, the streamed reply, its title and its tokens show",
+      all(t in ahi for t in ("You", "Assistant", 'You said: "hi".', "› hi", "ready")) and re.search(r"\d+ in, [1-9]\d* out", ahi) is not None,
+      ahi)
+restored("assistant-q", "assistant ctrl-q")
+
 # INFO: the classes that the start script of the Counter loads (-Xlog:class+load), no PASS or FAIL
 classload = os.path.join(os.path.dirname(os.path.abspath(session)), "classload.log")
 if os.path.exists(classload):

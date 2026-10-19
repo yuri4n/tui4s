@@ -32,6 +32,7 @@ object ChatRequest:
       )
 end ChatRequest
 
+// region: provider
 /** A chat provider: the capability to stream the reply to a request. The stream
   * gives the pieces of the text, then one [[ChatEvent.Stop]] or one
   * [[ChatEvent.Error]]; or it fails with a [[ChatError]] (an HTTP status, no
@@ -48,6 +49,7 @@ trait ChatProvider:
     def stream(request: ChatRequest)(using
         Frame,
     ): Stream[ChatEvent, Async & Abort[ChatError]]
+// endregion: provider
 
 /** Where a key came from: the app shows the source, never the key. */
 // claude 2026-10-19: created (L3)
@@ -245,6 +247,7 @@ end AppLog
 /** The interpreter of [[AppLog]]. */
 // claude 2026-10-19: created (L3)
 object AppLog:
+    // region: applog
     /** A log that keeps the last `limit` lines; each line starts with its time
       * (UTC, `HH:MM:SS`) and its level.
       */
@@ -271,6 +274,7 @@ object AppLog:
               def warn(message: String)(using Frame): Unit < Sync =
                 add("warn", message).andThen(Log.warn(message)),
         )
+    // endregion: applog
 end AppLog
 
 /** The providers that the app can use: the fake always, and each real provider

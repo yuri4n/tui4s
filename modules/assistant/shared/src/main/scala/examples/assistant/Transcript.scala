@@ -24,6 +24,7 @@ object Transcript:
     def start(at: Instant): Message =
       Message(Role.Assistant, "", at, MessageStatus.Streaming)
 
+    // region: transcript
     /** The message after `event`. */
     def apply(message: Message, event: ChatEvent): Message =
       message.status match
@@ -36,6 +37,7 @@ object Transcript:
                 case ChatEvent.Error(e)     =>
                   message.copy(status = MessageStatus.Failed(e))
           case _                       => message
+    // endregion: transcript
 
     /** The conversation after `event`: the fold of its last message, when that
       * message is a streaming reply; else the conversation as it is.

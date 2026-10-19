@@ -160,7 +160,7 @@ end ConversationCodec
   * {{{
   * tui4s-assistant-settings 1
   * provider anthropic
-  * model claude-opus-5-5
+  * model a-model-id
   * temperature -
   * system You are a helpful assistant.
   * }}}

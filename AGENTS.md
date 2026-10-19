@@ -28,10 +28,12 @@ issue #17). All the artifacts use the same packages (`tui4s`,
 | `modules/cats`  | `cats`     | `io.github.yuri4n::tui4s-cats`   | a Cats Effect DSL over kyo-ui (planned) | `cats-v<semver>` | yes       |
 | `modules/use`   | `use` (`useJVM`, `useJS`) | `io.github.yuri4n::tui4s-use` (JVM and Scala.js) | kyo-ui (composables) | `use-v<semver>` | yes |
 | `modules/widgets` | `widgets` (`widgetsJVM`, `widgetsJS`) | `io.github.yuri4n::tui4s-widgets` (JVM and Scala.js) | kyo-ui (widgets, on tui4s-use) | `widgets-v<semver>` | yes |
+| `modules/assistant` | `assistant` (`assistantJVM`, `assistantJS`) | none | kyo-ui (the flagship example app: its domain, services, store and UI in `shared`, the interpreters of the JVM in `jvm`) | none | no |
 | `examples`      | `examples` | none                             | -                                       | none             | no        |
 | `docs`          | none       | none (Nuxt Docus site)           | -                                       | none             | no        |
 <!-- claude 2026-10-19: created the rows of use and widgets (L2a); changed: the widgets row (L2b) -->
 <!-- claude 2026-10-19: changed: the rows runner, app, testkit and the composite core (D25) -->
+<!-- claude 2026-10-19: created the row of the assistant (L3) -->
 
 <!-- claude 2026-10-19: changed: the runner, not the core; zio and cats depend on the runner (D25) -->
 The runner uses Kyo and kyo-ui (both at `Versions.kyo`). The `zio` and `cats`
@@ -120,6 +122,11 @@ the restore, and the JVM exits with its own code (143, 130, 129). The
 examples (`examples/`) have one main per package. All are `TuiApp`s except
 `counterkyo`, a `KyoApp` main of its own; `widgets` is a library with no main.
 Each UI has a munit suite on `Headless`.
+The flagship app `assistant` (`examples.assistant.AssistantApp`) only wires.
+Its domain, services, store and UI are in the module `modules/assistant`: the
+shared part uses only kyo-ui, tui4s-use and tui4s-widgets, and the `jvm` part
+has the interpreters of the JVM (kyo-http, the keys, the files).
+<!-- claude 2026-10-19: created this paragraph (L3) -->
 <!-- claude 2026-10-13: created these lines (T2, RC-24, OS-47 part): TuiApp and the examples -->
 <!-- claude 2026-10-13: changed the last sentence (T2, review R1-4): counterkyo is a KyoApp; widgets has no main -->
 <!-- claude 2026-10-19: changed: kill -HUP and 129 -->
@@ -216,6 +223,12 @@ nothing.
   effects where useful. Review shared instance identity and the lifetime of
   the whole group. Compare native `Scope`, `Var`, and signal composition
   before choosing a store API; do not add a second effect runtime.
+- The assistant (`modules/assistant`) is the blueprint of a real app: a pure
+  domain with laws, services as traits with their interpreters in a `make`
+  (one for each platform, and one in memory for the tests), one store for the
+  app, the wiring with Kyo layers in the main, and errors as values (`Abort`
+  with a sealed error type). Follow it for a new app.
+  <!-- claude 2026-10-19: created this item (L3) -->
 - A shared store belongs to one app or provider. The same definition must
   return the same whole instance within that owner and run setup once.
   Component unmount must not destroy it; owner shutdown must clean up its
@@ -279,10 +292,11 @@ nothing.
 | `sbt examples/Universal/stage`       | Stages native-packager launchers and runtime JARs in `examples/target/universal/stage`. |
 | `sbt examples/Universal/packageBin`  | Creates the examples ZIP distribution under `examples/target/universal`. |
 | `sbt examples/launchers`             | Stages the distribution and writes compatible `examples/target/bin/<package>` launchers plus the PTY classpath. |
-| `examples/target/bin/<app>`          | Runs an example in the real terminal (its own JVM): `counter`, `counterkyo`, `twocounters`, `counterstyles`, `todo`, `dashboard`, `printing`, `forms`, `gallery`. |
+| `examples/target/bin/<app>`          | Runs an example in the real terminal (its own JVM): `counter`, `counterkyo`, `twocounters`, `counterstyles`, `todo`, `dashboard`, `printing`, `forms`, `gallery`, `assistant` (`--fake`: no network). |
 | `examples/ptycheck/run.sh`           | Runs the real-terminal checklist in a pseudo-terminal (CI job `terminal`). |
 <!-- claude 2026-10-19: created the rows of use/test and useJS/compile; changed: Node.js in the shell (L2a); gallery in the app list (L2b) -->
 <!-- claude 2026-10-19: changed: the rows runner/test and core/test (D25) -->
+<!-- claude 2026-10-19: changed: assistant in the app list (L3) -->
 
 A test suite lives in the lowest module whose main classpath it needs: a
 suite that needs only the runner is in `modules/runner/src/test`; a suite

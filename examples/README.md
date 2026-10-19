@@ -17,6 +17,7 @@ package.
 | Printing       | `examples.printing.PrintingApp`            | `examples/target/bin/printing [--log file] [--fail-on-f]` | A `println` while the UI is up does not reach the screen: the lines come after the terminal is restored, or go to the log file. This is also true after a `println` before the run (the app prints one line when it starts). `args` and `options` of a `TuiApp`. The test aid `--fail-on-f` makes `f` fail the UI: exit code 1, and the failure comes after the restore. |
 | Forms          | `examples.forms.FormsApp`                  | `examples/target/bin/forms`         | The native inputs in one form: a text input with `maxLength`, a password, a number with `min`, `max` and `step`, a range, two checkboxes, two radios of one group, a select, a dropdown, a textarea of 3 rows, a read-only and a disabled field, Submit and Reset. Enter submits the form (in the textarea too: Alt-Enter or Ctrl-J gives a new line), and the result shows under the form; Esc quits (README "Forms and inputs"). |
 | Gallery        | `examples.gallery.GalleryApp`              | `examples/target/bin/gallery`       | Every widget of tui4s-widgets with live state: the family list at the left (the arrows, or F1 to F5: containers, data, input, feedback, navigation), the widgets of the family at the right (Tab goes from widget to widget; the keys of each widget are in its label), the hints of the keymap of the app at the bottom (`KeyHints`); Ctrl-P opens the command palette over that keymap, Ctrl-T shows a toast, Ctrl-Q quits. The colours are `Colors.defaults` (README "Widgets (tui4s-widgets)"). |
+| Assistant      | `examples.assistant.AssistantApp`          | `examples/target/bin/assistant [--fake]` | The flagship app: a chat with a language model (Anthropic, OpenAI, or a scripted fake provider). The list of the chats at the left, the transcript at the right (the reply streams in place and the view follows the end), the composer (Enter sends; Alt-Enter or Ctrl-J gives a new line), the status bar, the key hints, the command palette (Ctrl-P), the settings (Ctrl-S), the log pane (Ctrl-L), the help (F1); Esc stops a reply, Ctrl-Q quits. Its domain, services, store and UI are in the module `modules/assistant`; this main only wires (README "A real app: the assistant"). See "The keys of the assistant" below. |
 | Widgets        | none (a library)                           | none                                | The terminal `Tabs` component adapter of `tui4s.widgets.Tabs` in `examples.widgets`. |
 | Native recipes | none (a library)                           | none                                | Five things that need no composable, each in one or two lines of native Kyo: a toggle, a counter, an interval, a timer that pauses (`Signal.observe`), a derived value (README "You may not need a composable"). |
 | Recipes        | none (a library)                           | none                                | One small UI for each other composable of tui4s-use: a search (`debounced`, `useAsync`), a progress (`throttled`), an autosave (`useDebouncedFn`), a streamed answer (`useStreamText`), a long list (`useSelection`, `useScrollWindow`), a delete that asks (`useDialog`), a setting that stays (`usePersisted`), the output of a program (`useProcess`). README "More composables, one recipe each". |
@@ -25,6 +26,43 @@ package.
 <!-- claude 2026-10-19: created the Forms row (L1c) -->
 <!-- claude 2026-10-19: changed the rows of Todo and Dashboard: the composables of tui4s-use; created the rows of the Native recipes and of the Recipes (L2a, L2a review) -->
 <!-- claude 2026-10-19: changed: the Widgets row and the Tabs examples of the section below; Tabs is in tui4s-widgets and takes a Model (L2b); created the Gallery row (L2b) -->
+<!-- claude 2026-10-19: created the Assistant row and the section "The keys of the assistant" (L3) -->
+
+## The keys of the assistant
+
+The assistant uses a real provider only when it finds a key. It looks in
+this order, for each provider:
+
+1. The environment variable: `ANTHROPIC_API_KEY` for Anthropic,
+   `OPENAI_API_KEY` for OpenAI.
+2. The key file of the app: `keys` in `tui4s/assistant` of the config
+   directory of the platform (`$XDG_CONFIG_HOME/tui4s/assistant/keys`, or
+   `~/.config/tui4s/assistant/keys` on Linux; `~/Library/Application
+   Support/tui4s/assistant/keys` on macOS). A line is `NAME=key`, with the
+   name of the environment variable. The app reads the file only when it is
+   a regular file for its owner only:
+
+   ```sh
+   mkdir -p ~/.config/tui4s/assistant
+   printf 'ANTHROPIC_API_KEY=%s\n' "$KEY" > ~/.config/tui4s/assistant/keys
+   chmod 600 ~/.config/tui4s/assistant/keys
+   ```
+
+   When others can read the file (for example mode 0644), the app does not
+   read it: the log (Ctrl-L) says why and gives the `chmod` that fixes it.
+
+The app reads no other file. It never reads the credentials of another
+tool (for example `~/.claude/.credentials.json` or `~/.codex/auth.json`),
+and it never uses the login of a web account. It never shows, logs or prints
+a key: the settings (Ctrl-S) show only where each key comes from.
+
+With no key, the app takes the fake provider. With `--fake`, it reads no key
+and takes the fake provider (no network): send `/fail` to see an error, and
+press Esc while it writes to stop it. The provider of the last run stays the
+provider when it still has a key. The conversations, the settings and the log
+of a run are files in the data directory of the app
+(`~/.local/share/tui4s/assistant` on Linux); the directory and the files
+of the conversations and of the settings are for their owner only.
 
 ## State and events with Kyo
 

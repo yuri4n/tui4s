@@ -400,8 +400,8 @@ object AssistantUi:
     end keymap
 
     /** The transcript: the window of the lines of the active conversation. The
-      * window follows the end ([[Pager.Follow.Tail]]) until a key scrolls it
-      * up; `f` and End follow again, and so does a send.
+      * window follows the end (`Pager.Follow.Tail`) until a key scrolls it up;
+      * `f` and End follow again, and so does a send.
       */
     def transcript(
         store: Assistant,

@@ -3,7 +3,9 @@ package examples.assistant
 import kyo.*
 import tui4s.use.{FileStorage, Storage}
 
-import java.nio.file.Path as JPath
+import java.nio.file.attribute.PosixFilePermissions
+import java.nio.file.{FileSystems, Files, Path as JPath}
+import scala.util.Try
 
 /** The interpreters of the JVM: the storage of the app (files in its data
   * directory), the keys ([[SecretsJvm]]) and the real providers on the HTTP
@@ -18,6 +20,27 @@ object AssistantJvm:
       * are for their owner only.
       */
     def dataDir: JPath = FileStorage.appDir("tui4s").resolve("assistant").nn
+
+    /** The log file of a run: `assistant.log` in [[dataDir]]. The call makes
+      * the directory when it is missing (for its owner only, on a POSIX file
+      * system); None when it cannot (the log of the run then stays in memory,
+      * and its warnings come on stderr after the run).
+      */
+    def logFile: Option[JPath] =
+      Try {
+        val posix = FileSystems.getDefault.nn.supportedFileAttributeViews.nn
+          .contains("posix")
+        if posix then
+            Files.createDirectories(
+              dataDir,
+              PosixFilePermissions.asFileAttribute(
+                PosixFilePermissions.fromString("rwx------"),
+              ),
+            )
+        else Files.createDirectories(dataDir)
+        end if
+        dataDir.resolve("assistant.log").nn
+      }.toOption
 
     /** The storage of the app: [[dataDir]]. */
     def storage(using Frame): Layer[Storage, Sync] =

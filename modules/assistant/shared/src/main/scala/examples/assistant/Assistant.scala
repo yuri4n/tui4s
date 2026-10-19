@@ -61,6 +61,7 @@ object Wiring:
     /** The log of the app. */
     def log(using Frame): Layer[AppLog, Sync] = Layer(AppLog.make())
 
+    // region: wiring
     /** The providers: with [[StartMode.Detect]], each provider whose key
       * `Secrets` finds (`live` makes it); always the fake `fake`.
       */
@@ -75,6 +76,7 @@ object Wiring:
             case StartMode.FakeOnly =>
               Providers.fakeOnly(fake): Providers < Sync,
       )
+    // endregion: wiring
 
     /** The storage and the keys in memory (tests): `storage` holds the files,
       * `keys` the keys of the environment.
@@ -180,6 +182,7 @@ final class Assistant private (
           _   <- c.fold(Kyo.unit)(c => start(id, ChatRequest.of(c, s), s))
       yield ()
 
+    // region: cancel
     /** Stops the reply that streams: its fiber ends, the message is marked
       * stopped (its text stays), and the conversation is saved.
       */
@@ -195,6 +198,7 @@ final class Assistant private (
               _ <- log.info("the reply was stopped")
           yield ()
       }
+    // endregion: cancel
 
     /** Starts a conversation, or selects the active one when it is still empty. */
     def newChat: Unit < Sync =
@@ -305,6 +309,7 @@ final class Assistant private (
           case Some(c) => store.save(c)
           case None    => Kyo.unit)
 
+    // region: start
     /** Starts the fiber of the reply to `request`. The fiber waits for a gate,
       * so the run state names it before it can end.
       */
@@ -330,6 +335,7 @@ final class Assistant private (
                 _     <- log.info(s"${s.provider.label}: a request to ${s.model}")
                 _     <- gate.release
             yield ()
+    // endregion: start
 
     /** The body of the fiber of a reply: the events into the conversation, then
       * the end (an error when the stream failed), then the save.
