@@ -125,39 +125,72 @@ private[tui4s] object Layout:
 
     def textWidth(s: String): Int = Span.raw(s).width()
 
+    /** The open line of a wrap: its words and its width in cells. */
+    private final case class Line(words: Vector[String], w: Int):
+        def add(word: String, ww: Int): Line = Line(words :+ word, w + 1 + ww)
+        def text: String                     = words.mkString(" ")
+
+    /** The state of a wrap: the closed lines and the open line. */
+    private final case class Wrap(done: Vector[String], open: Option[Line]):
+        def close: Wrap = Wrap(done ++ open.map(_.text), None)
+
+    /** The lines of `text` in `width` cells (at least 1). Greedy: a word goes
+      * on the open line if it fits, else it opens a new line; a word wider
+      * than the width is split by [[chunksByWidth]]. One fold carries the
+      * width of the open line. The width of `a + " " + b` is `textWidth(a) + 1
+      * + textWidth(b)` (jatatui adds the widths of the code points), so each
+      * word is measured once.
+      */
+    // claude 2026-10-19: changed: one fold that carries the width of the open
+    // line (PF-a, F4)
     def wrap(text: String, width: Int): Vector[String] =
         val w = width.max(1)
         text.split("\n", -1).toVector.flatMap { para =>
-          val words = para.split(" ", -1).toVector
-          val lines = words.foldLeft(Vector.empty[String]) { (acc, word) =>
-            acc.lastOption match
-                case Some(last) if textWidth(last) + 1 + textWidth(word) <= w =>
-                  acc.init :+ s"$last $word"
-                case _ if acc.isEmpty && textWidth(word) <= w                 => Vector(word)
-                case _ if textWidth(word) <= w                                => acc :+ word
-                case _                                                        => acc ++ chunksByWidth(word, w)
-          }
+          val words = para.split(" ", -1)
+          val lines = words
+            .foldLeft(Wrap(Vector.empty, None)) { (acc, word) =>
+              val ww = textWidth(word)
+              acc.open match
+                  case Some(open) if open.w + 1 + ww <= w =>
+                    acc.copy(open = Some(open.add(word, ww)))
+                  case _ if ww <= w                       =>
+                    acc.close.copy(open = Some(Line(Vector(word), ww)))
+                  case _                                  =>
+                    val (chunks, lastW) = chunksByWidth(word, w)
+                    Wrap(
+                      acc.close.done ++ chunks.dropRight(1),
+                      chunks.lastOption.map(c => Line(Vector(c), lastW)),
+                    )
+            }
+            .close
+            .done
           if lines.isEmpty then Vector("") else lines
         }
     end wrap
 
-    /** Splits a word into pieces of at most `w` cells. The split is at a code
-      * point border: a wide character or a surrogate pair does not split.
+    /** Splits a word into pieces of at most `w` cells, and gives the width of
+      * the last piece. The split is at a code point border: a wide character
+      * or a surrogate pair does not split, and a code point wider than `w` is
+      * a piece alone. One walk over the code points carries the start and the
+      * width of the open piece.
       */
     // claude 2026-10-12: created (PR #10 review: Codex, Layout.scala:114)
-    private def chunksByWidth(word: String, w: Int): Vector[String] =
-        val glyphs = Vector.unfold(0) { i =>
-          if i >= word.length then None
+    // claude 2026-10-19: changed: one walk that carries the width of the open
+    // piece (PF-a, F4)
+    private def chunksByWidth(word: String, w: Int): (Vector[String], Int) =
+        @annotation.tailrec
+        def go(i: Int, start: Int, cw: Int, done: Vector[String]): (Vector[String], Int) =
+          if i >= word.length then
+              if i > start then (done :+ word.substring(start, i), cw)
+              else (done, 0)
           else
               val cp = word.codePointAt(i)
-              Some((String(Character.toChars(cp)), i + Character.charCount(cp)))
-        }
-        glyphs.foldLeft(Vector.empty[String]) { (acc, g) =>
-          acc.lastOption match
-              case Some(last) if textWidth(last) + textWidth(g) <= w =>
-                acc.init :+ (last + g)
-              case _                                                 => acc :+ g
-        }
+              val n  = Character.charCount(cp)
+              val gw = textWidth(String(Character.toChars(cp)))
+              if i == start then go(i + n, start, gw, done)
+              else if cw + gw <= w then go(i + n, start, cw + gw, done)
+              else go(i + n, i, gw, done :+ word.substring(start, i))
+        go(0, 0, 0, Vector.empty)
     end chunksByWidth
 
     def textLines(text: String, width: Int, wrapped: Boolean): Vector[String] =
@@ -165,13 +198,20 @@ private[tui4s] object Layout:
 
     // ---- flattening: what are the flex items of a container ----
 
+    /** A tag of a `RawHtml` value; the runner shows the text without tags. */
+    // claude 2026-10-19: created (PF-a, F4): compiled once, not per flatten
+    private val htmlTag: java.util.regex.Pattern =
+      java.util.regex.Pattern.compile("<[^>]*>")
+
     def flatten(ui: UI, path: Loc, regions: List[Loc], env: Scene): Flat =
       ui match
           case t: Text          => Flat(Vector(Item(path, t, regions)), Vector.empty)
+          // claude 2026-10-19: changed: the tag pattern is compiled once
+          // (PF-a, F4)
           case r: RawHtml       =>
             Flat(
               Vector(
-                Item(path, Text(r.value.replaceAll("<[^>]*>", "")), regions),
+                Item(path, Text(htmlTag.matcher(r.value).replaceAll("")), regions),
               ),
               Vector.empty,
             )
