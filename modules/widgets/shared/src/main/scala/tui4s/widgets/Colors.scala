@@ -84,6 +84,12 @@ private[widgets] object Looks:
     val oneLine: Style =
       Style.whiteSpace(_.noWrap).overflow(_.hidden).textOverflow(_.ellipsis)
 
+    /** One line that keeps its spaces, and ends with "…" when it is wider than
+      * its box.
+      */
+    val preLine: Style =
+      Style.whiteSpace(_.pre).overflow(_.hidden).textOverflow(_.ellipsis)
+
     /** A fresh id with `prefix`, from Kyo's `Random`: the ids of the rows of
       * two widgets do not collide, and there is no global counter.
       */

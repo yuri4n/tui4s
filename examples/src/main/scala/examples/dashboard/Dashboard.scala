@@ -1,11 +1,12 @@
 package examples.dashboard
 
-// claude 2026-10-13: changed (T2, adapt): the widgets are in their own
-// package; tui4s.Tui (the prototype had tui4s.kyoui.Tui)
-import examples.widgets.{Tabs, Widgets}
+// claude 2026-10-19: changed: the gauge and the sparkline of tui4s-widgets
+// (L2b); tui4s.Tui (the prototype had tui4s.kyoui.Tui)
+import examples.widgets.Tabs
 import kyo.*
 import kyo.UI.*
 import tui4s.use.{Binding, Chord, Keymap, timeAgo, useNow}
+import tui4s.widgets.{Gauge, Sparkline}
 import tui4s.{TerminalSize, Tui, TuiApp}
 
 /** The Dashboard in plain kyo-ui: one tab per series (CPU, Memory, Network), a
@@ -17,14 +18,13 @@ import tui4s.{TerminalSize, Tui, TuiApp}
   * scrolls, with the newest line first: Tab after the last tab reaches it, and
   * the arrows, PageUp, PageDown, Home and End scroll it. In a terminal of 120
   * columns or more, the tabs and the log are side by side. The widgets (the
-  * gauge, the sparkline, the tabs) are in `examples.widgets.Widgets`. The keys
-  * `p`, `?` and `q` are a keymap of tui4s-use (the help box lists them), and
-  * the status line says how long ago the last sample came (`useNow`,
-  * `timeAgo`).
+  * gauge, the sparkline, the tabs) are in tui4s-widgets. The keys `p`, `?` and
+  * `q` are a keymap of tui4s-use (the help box lists them), and the status line
+  * says how long ago the last sample came (`useNow`, `timeAgo`).
   */
 // claude 2026-10-19: changed: the Scaladoc names the log pane that scrolls
 // (L1a), the help, the toast and the two columns (L1b), the keymap and the
-// stamp (L2a)
+// stamp (L2a), the widgets of tui4s-widgets (L2b)
 object Dashboard:
 
     /** The series: one tab for each. The tabs need a first label. */
@@ -130,11 +130,12 @@ object Dashboard:
         }
       }
 
+    // claude 2026-10-19: changed: Gauge and Sparkline of tui4s-widgets (L2b)
     def overview(s: State, t: Int): UI =
       div.style(_.border(1.px, Style.Color.slate).padding(0.px, 1.px))(
         h2(s"${series(t)} usage"),
-        Widgets.gauge(s.metrics.map(_.now(t)), 30, Style.Color.green),
-        Widgets.sparkline(s.metrics.map(_.history(t)), Style.Color.blue),
+        Gauge(s.metrics.map(_.now(t)), 30, Style.Color.green),
+        Sparkline(s.metrics.map(_.history(t)), color = Style.Color.blue),
       )
 
     /** The lines that the log keeps. */

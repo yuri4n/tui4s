@@ -224,6 +224,27 @@ class TabsSuite extends FunSuite:
       assert(screen.contains("[panel=2]"), screen.text)
     }
 
+    // claude 2026-10-19: changed: moved from WidgetsSuite; a bound Model,
+    // not Widgets.tabs (L2b)
+    test("tabs: Enter on a tab selects it; the selected tab is bold") {
+      val (first, second) = run {
+        for
+            selected <- Signal.initRef(0)
+            h        <- Headless.start(40, 3)(_ =>
+                          new Tabs("One", "Two", "Three")(
+                            selected = Model.Bound(selected),
+                          ).ui,
+                        )
+            first    <- h.screen
+            _        <- h.key(Keyboard.ArrowRight) // the focus group
+            _        <- h.key(Keyboard.Enter)
+            second   <- h.screen
+        yield (first, second)
+      }
+      assert(bold(first, "One") && !bold(first, "Two"), first.text)
+      assert(bold(second, "Two") && !bold(second, "One"), second.text)
+    }
+
     // claude 2026-10-19: changed: tabs without a label do not compile (the
     // labels are `first, rest*`), not a failure at construction (P1b, A5 g)
     test("tabs without a label do not compile") {
