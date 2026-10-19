@@ -311,3 +311,15 @@ The user answered the five launch questions (chat, 2026-10-19):
   in the ReleaseStack edge file) only as a second guard; no test needs it.
   Option: drop the copy, use `fiber.get`, and reword OS-34. Harmless as is.
 <!-- claude 2026-10-19: created D24 -->
+- D25 (2026-10-19, user, TO DISCUSS LATER; tracked as a GitHub issue): split
+  the artifacts in this repo into `tui4s-runner` (renderer + embedder +
+  component model, `Tui.run`, `TuiOptions`, `Tui.size`, `spi`), `tui4s-app`
+  (`TuiApp`), `tui4s-testkit` (`Headless`, `Screen`), and a composite
+  `tui4s-core` (a POM-only artifact that depends on the three: "the tui4s
+  experience"). A kyo-ui user who wants only the runner takes
+  `tui4s-runner`. In-repo, not a separate repository. Not `kyo-ui-*`: that is
+  upstream's namespace. Timing: before L3 and 0.1 (free now, breaking later).
+  Open points: the test kit in the compile scope of the composite; zio and
+  cats depend on the runner; release order (runner, app, testkit before
+  core); PublicApiTest and MiMa across jars.
+<!-- claude 2026-10-19: created D25 -->
