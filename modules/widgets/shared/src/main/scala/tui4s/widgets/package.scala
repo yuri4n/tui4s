@@ -79,7 +79,8 @@ package tui4s
   * |            | `Wizard`         | Steps with Back and Next.                                             |
   *
   * The colour variables (kyo-ui `Style.Color.variable`; [[Colors.defaults]] has
-  * these values):
+  * these values, the colours of [[Theme.terminal]]; a [[Theme]] gives others,
+  * and the look of the web):
   *
   * | Variable            | Default   | Used for                                    |
   * |:--------------------|:----------|:--------------------------------------------|
@@ -128,5 +129,6 @@ package tui4s
   */
 // claude 2026-10-19: created (L2a): the empty package of tui4s-widgets;
 // changed: the conventions, the widgets, the colour variables and the plan
-// (L2b); the shapes, the field lists and the sizes (L2b review)
+// (L2b); the shapes, the field lists and the sizes (L2b review); the themes
+// (L4)
 package object widgets

@@ -7,7 +7,8 @@ import kyo.*
   * widgets, in the terminal and on the web. [[Colors.defaults]] has a value for
   * each one: give it to the run (`TuiApp.stylesheet`, `Tui.run(options,
   * sheet)`, `UI.PageHead.css` on the web), or give your own `Stylesheet.vars`
-  * with the same names.
+  * with the same names. A [[Theme]] gives a value for each one, and the look of
+  * the web ([[Theme.palette]], [[Theme.stylesheet]]).
   *
   * kyo-ui's `Color.Var` has no fallback value. Without a value, a text keeps
   * the colour of its parent and a background is transparent, so the widgets
@@ -21,7 +22,8 @@ import kyo.*
   *   def ui = ListView(items, identity)(span(_))
   * }}}
   */
-// claude 2026-10-19: created (L2b): the colour variables (D8)
+// claude 2026-10-19: created (L2b): the colour variables (D8); changed: the
+// themes (L4)
 object Colors:
     /** `--tui4s-accent`: the selection, the active tab, a filled bar. */
     val accent: Style.Color = Style.Color.variable("tui4s-accent")
@@ -47,17 +49,26 @@ object Colors:
     /** `--tui4s-danger`: an error message, an error toast. */
     val danger: Style.Color = Style.Color.variable("tui4s-danger")
 
-    /** The default value of each variable, as a `:root` block. */
-    val defaults: Stylesheet = Stylesheet.vars(
-      "tui4s-accent"    -> "#eab308",
-      "tui4s-muted"     -> "#6b7280",
-      "tui4s-border"    -> "#64748b",
-      "tui4s-surface"   -> "#111827",
-      "tui4s-selection" -> "#1e3a5f",
-      "tui4s-success"   -> "#22c55e",
-      "tui4s-warning"   -> "#f59e0b",
-      "tui4s-danger"    -> "#ef4444",
+    /** The names of the variables (with no `--`), in the order of this object:
+      * accent, muted, border, surface, selection, success, warning, danger.
+      */
+    // claude 2026-10-19: created (L4): the variable list of the themes
+    val names: Chunk[String] = Chunk(
+      "tui4s-accent",
+      "tui4s-muted",
+      "tui4s-border",
+      "tui4s-surface",
+      "tui4s-selection",
+      "tui4s-success",
+      "tui4s-warning",
+      "tui4s-danger",
     )
+
+    /** The default value of each variable, as a `:root` block: the colours of
+      * the terminal look ([[Theme.terminal]]), as [[Theme.palette]] gives them.
+      */
+    // claude 2026-10-19: changed: an alias of the palette of Theme.terminal (L4)
+    val defaults: Stylesheet = Theme.palette(Theme.terminal)
 end Colors
 
 /** The styles that several widgets share. */

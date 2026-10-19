@@ -101,6 +101,8 @@ final class Assistant private (
     val composer: SignalRef[String],
     streamingRef: SignalRef[Streaming],
     settingsRef: SignalRef[Settings],
+    // claude 2026-10-19: created (L4)
+    lookRef: SignalRef[Look],
     /** The layer over the app. */
     val overlay: SignalRef[Overlay],
     /** Whether the log pane shows. */
@@ -123,6 +125,10 @@ final class Assistant private (
 
     /** The settings. */
     val settings: Signal[Settings] = settingsRef
+
+    /** The look of the app. */
+    // claude 2026-10-19: created (L4)
+    val look: Signal[Look] = lookRef
 
     /** The active conversation: the selected one. */
     val active: Signal[Maybe[Conversation]] =
@@ -286,6 +292,14 @@ final class Assistant private (
             .andThen(log.info(s"settings: ${p.label}, model ${kept.model}")),
       )
 
+    /** Takes the look `l`. */
+    // claude 2026-10-19: created (L4)
+    def setLook(l: Look): Unit < Sync =
+      lookRef.get.map(before =>
+        if before == l then Kyo.unit
+        else lookRef.set(l).andThen(log.info(s"look: ${l.label}")),
+      )
+
     /** Shows or hides the log pane. */
     def toggleLog: Unit < Sync =
       logPane.updateAndGet {
@@ -417,10 +431,13 @@ object Assistant:
       * stopped; a text that is not a conversation is a warning), and the
       * settings (`Settings.pick`: `mode` [[StartMode.FakeOnly]] forces the fake
       * provider). The settings persist in [[StartMode.Detect]] only: a run with
-      * `--fake` does not change the stored settings.
+      * `--fake` does not change the stored settings. The look is the stored
+      * one, else `look` (the look of the platform); it persists as the settings
+      * do.
       */
-    // claude 2026-10-19: changed: --fake does not store the settings (L3 review)
-    def make(mode: StartMode)(using
+    // claude 2026-10-19: changed: --fake does not store the settings (L3
+    // review); the look (L4)
+    def make(mode: StartMode, look: Look = Look.Terminal)(using
         Frame,
     ): Assistant < (Env[Wiring.Services] & Async & Scope) =
         import SettingsCodec.codec
@@ -456,6 +473,17 @@ object Assistant:
                                usePersisted("settings", picked, storage)
                                  .map(ref => ref.set(picked).andThen(ref))
                          ): SignalRef[Settings] < (Sync & Scope)
+            looks     <- (mode match
+                             case StartMode.FakeOnly =>
+                               storage
+                                 .get("look")
+                                 .map(t =>
+                                   Signal
+                                     .initRef(t.flatMap(Look.parse).getOrElse(look)),
+                                 )
+                             case StartMode.Detect   =>
+                               usePersisted("look", look, storage)
+                         ): SignalRef[Look] < (Sync & Scope)
             composer  <- Signal.initRef("")
             streaming <- Signal.initRef[Streaming](Streaming.Idle)
             overlay   <- Signal.initRef[Overlay](Overlay.Closed)
@@ -468,6 +496,7 @@ object Assistant:
                            composer,
                            streaming,
                            settings,
+                           looks,
                            overlay,
                            pane,
                            log,

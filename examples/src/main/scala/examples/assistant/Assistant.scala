@@ -1,7 +1,6 @@
 package examples.assistant
 
 import kyo.*
-import tui4s.widgets.Colors
 import tui4s.{Tui, TuiApp, TuiOptions}
 
 /** The assistant in the real terminal: a chat with a language model. This file
@@ -23,8 +22,9 @@ import tui4s.{Tui, TuiApp, TuiOptions}
   */
 // claude 2026-10-19: created (L3)
 object AssistantApp extends TuiApp:
-    /** The colours of tui4s-widgets. */
-    override def stylesheet: Stylesheet = Colors.defaults
+    /** The colours of the looks of the app (the settings switch them). */
+    // claude 2026-10-19: changed: the looks (L4)
+    override def stylesheet: Stylesheet = Look.palette
 
     /** The log of the run goes to `assistant.log` in the data directory of the
       * app, so no warning comes on the terminal after the run.

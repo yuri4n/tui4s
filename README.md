@@ -1496,7 +1496,7 @@ memory and the fake provider:
     )(using Frame): Headless < (Async & Scope) =
       Storage.inMemory.map { storage =>
         val (files, secrets) = Memory.wiring(storage, keys)
-        Headless.start(width, height, stylesheet = Colors.defaults)(quit =>
+        Headless.start(width, height, stylesheet = Look.palette)(quit =>
           Tui.size.map(size =>
             Memo.run(
               Env.runLayer(

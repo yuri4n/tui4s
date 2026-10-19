@@ -259,6 +259,31 @@ class AssistantTest extends Test[Any]:
         },
       )
     }
+
+    // claude 2026-10-19: created (L4)
+    "the look: a change persists and a second start loads it; with --fake it is not stored" in {
+      val fake = FakeProvider.make(delay = Duration.Zero)
+      for
+          storage <- Storage.inMemory
+          first   <- Scope.run(
+                       withStoreOn(storage, fake)(a =>
+                         a.setLook(Look.Web).andThen(a.look.current),
+                       ),
+                     )
+          second  <- Scope.run(withStoreOn(storage, fake)(_.look.current))
+          other   <- Storage.inMemory
+          forced  <- Scope.run(
+                       withStoreOn(other, fake, mode = StartMode.FakeOnly)(a =>
+                         a.setLook(Look.Web).andThen(a.look.current),
+                       ),
+                     )
+          stored  <- other.get("look")
+      yield assert(
+        first == Look.Web && second == Look.Web && forced == Look.Web &&
+          stored == Absent,
+      )
+      end for
+    }
 end AssistantTest
 
 /** The wiring of a store in memory, and the wait of the tests. */

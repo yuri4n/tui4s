@@ -1,6 +1,8 @@
 package examples.assistant
 
 import kyo.*
+import tui4s.use.TextCodec
+import tui4s.widgets.Theme
 
 /** The providers that the app can use. */
 // claude 2026-10-19: created (L3)
@@ -118,3 +120,54 @@ object Settings:
                   Left(s"the temperature is a number from 0 to 2, not '$t'")
     end temperature
 end Settings
+
+/** The look of the app: one of the built-in themes of tui4s-widgets (D8). In
+  * the terminal a look changes the colours; on the web it changes the whole
+  * look (the font, the colours, the corners).
+  */
+// claude 2026-10-19: created (L4)
+enum Look derives CanEqual:
+    /** The terminal look ([[Theme.terminal]]). */
+    case Terminal
+
+    /** The native web look ([[Theme.web]]). */
+    case Web
+
+    /** The theme of the look. */
+    def theme: Theme = this match
+        case Terminal => Theme.terminal
+        case Web      => Theme.web
+
+    /** The name of the look for the person. */
+    def label: String = this match
+        case Terminal => "terminal look"
+        case Web      => "native web"
+end Look
+
+/** The text form of a look, and the stylesheets of all the looks. */
+// claude 2026-10-19: created (L4)
+object Look:
+    /** The look whose theme has the name `name`. */
+    def parse(name: String): Maybe[Look] =
+      Maybe.fromOption(values.find(_.theme.name == name))
+
+    /** The text of a look is the name of its theme. */
+    given codec: TextCodec[Look] = TextCodec.instance(
+      _.theme.name,
+      t =>
+        parse(t).fold(Result.fail[String, Look](s"not a look: $t"))(
+          Result.succeed,
+        ),
+    )
+
+    /** The colours of all the looks for a terminal (`TuiApp.stylesheet`): the
+      * root of the app selects one with its `data-theme`.
+      */
+    val palette: Stylesheet = Theme.palette(Terminal.theme, Web.theme)
+
+    /** All of all the looks for the web (`UI.runStylesheet`); `first` is the
+      * look of the page outside the app.
+      */
+    def stylesheet(first: Look): Stylesheet =
+      Theme.stylesheet(first.theme, values.filterNot(_ == first).map(_.theme)*)
+end Look

@@ -201,8 +201,10 @@ end Line
   *     never show, only where each one comes from), the help (F1), and the
   *     questions of delete (Ctrl-D) and rename (Ctrl-R).
   *
-  * The colours are the variables of tui4s-widgets (`Colors`): the run gives
-  * `Colors.defaults` as its stylesheet.
+  * The colours are the variables of tui4s-widgets (`Colors`). The root carries
+  * the `data-theme` of the look ([[Look]]): the run gives the stylesheet of all
+  * the looks (`Look.palette` in the terminal, `Look.stylesheet` on the web),
+  * and the settings switch the look.
   */
 // claude 2026-10-19: created (L3)
 object AssistantUi:
@@ -245,6 +247,11 @@ object AssistantUi:
                          store.providers.available.head,
                          store.providers.available.drop(1)*,
                        )(value = Model.Bound(drafts.provider), label = _.label)
+            // claude 2026-10-19: created (L4): the switch of the look
+            looks   <- RadioGroup(Look.Terminal, Look.Web)(
+                         value = Model.Bound(drafts.look),
+                         label = _.label,
+                       )
             tail     = follow.set(Pager.Follow.Tail)
             palette <- CommandPalette(
                          keymap(
@@ -285,60 +292,67 @@ object AssistantUi:
                 .map((s, p) =>
                   Metrics.of(s, p, Metrics.hintRows(hints.help, s.width)),
                 )
-        yield div
-          .onKeyDown(keys.handler)
-          .style(_.height(100.pct))(
-            div(
-              Panel(
-                "Chats",
-                style = Style.width(Metrics.listCells.em).flexShrink(0),
-              )(
-                div.style(_.flexGrow(1).minHeight(0.px).overflowY(_.auto))(list),
-              ),
-              Panel.reactive(
-                store.active.map(_.fold("")(_.title)),
-                style = Style.flexGrow(1).minWidth(0.px),
-              )(
-                transcript(store, metrics, follow, offset),
-              ),
-            ).style(
-              metrics
-                .map(m => Style.row.height((m.textRows + 2).em).flexShrink(0)),
-            ),
-            when(store.logPane.map(_ == Pane.Shown))(
-              Panel("Log", style = Style.flexShrink(0))(logView),
-            ),
-            Panel(
-              "Message · Enter sends · Alt-Enter new line",
-              style = Style.flexShrink(0),
-            )(
-              form.onSubmit(tail.andThen(store.send))(
-                textarea
-                  .value(store.composer)
-                  .placeholder("Type a message")
-                  .focusAuto(true)
-                  .style(_.height(Metrics.composerRows.em)),
-              ),
-            ),
-            StatusBar(
-              store.settings
-                .combineLatest(store.tokens)
-                .map((s, t) =>
-                  s"${s.provider.label} · ${s.model} · ${t.input} in, ${t.output} out",
+        // claude 2026-10-19: changed: the root carries the theme of the look
+        // (L4)
+        yield store.look.render(l =>
+          div
+            .data("theme", l.theme.name)
+            .onKeyDown(keys.handler)
+            .style(_.height(100.pct))(
+              div(
+                Panel(
+                  "Chats",
+                  style = Style.width(Metrics.listCells.em).flexShrink(0),
+                )(
+                  div.style(_.flexGrow(1).minHeight(0.px).overflowY(_.auto))(
+                    list,
+                  ),
                 ),
-              right = store.streaming.render {
-                case Streaming.Running(_) => spinner
-                case Streaming.Idle       =>
-                  span("ready").style(_.color(Colors.muted))
-              },
+                Panel.reactive(
+                  store.active.map(_.fold("")(_.title)),
+                  style = Style.flexGrow(1).minWidth(0.px),
+                )(
+                  transcript(store, metrics, follow, offset),
+                ),
+              ).style(
+                metrics
+                  .map(m => Style.row.height((m.textRows + 2).em).flexShrink(0)),
+              ),
+              when(store.logPane.map(_ == Pane.Shown))(
+                Panel("Log", style = Style.flexShrink(0))(logView),
+              ),
+              Panel(
+                "Message · Enter sends · Alt-Enter new line",
+                style = Style.flexShrink(0),
+              )(
+                form.onSubmit(tail.andThen(store.send))(
+                  textarea
+                    .value(store.composer)
+                    .placeholder("Type a message")
+                    .focusAuto(true)
+                    .style(_.height(Metrics.composerRows.em)),
+                ),
+              ),
+              StatusBar(
+                store.settings
+                  .combineLatest(store.tokens)
+                  .map((s, t) =>
+                    s"${s.provider.label} · ${s.model} · ${t.input} in, ${t.output} out",
+                  ),
+                right = store.streaming.render {
+                  case Streaming.Running(_) => spinner
+                  case Streaming.Idle       =>
+                    span("ready").style(_.color(Colors.muted))
+                },
+              ),
+              KeyHints(hints),
+              settingsLayer(store, drafts, radio, looks),
+              helpLayer(store, keys),
+              palette.view,
+              confirm.view,
+              prompt.view,
             ),
-            KeyHints(hints),
-            settingsLayer(store, drafts, radio),
-            helpLayer(store, keys),
-            palette.view,
-            confirm.view,
-            prompt.view,
-          )
+        )
         end for
     end app
 
@@ -463,9 +477,10 @@ object AssistantUi:
       * temperature and the system prompt. Enter saves (a form); Esc or Cancel
       * closes. The keys never show: the layer says where each one comes from.
       */
-    // claude 2026-10-19: changed: Modal.layer of tui4s-widgets (L3 review)
-    def settingsLayer(store: Assistant, drafts: Drafts, radio: UI)(using
-        Frame,
+    // claude 2026-10-19: changed: Modal.layer of tui4s-widgets (L3 review);
+    // the look (L4)
+    def settingsLayer(store: Assistant, drafts: Drafts, radio: UI, looks: UI)(
+        using Frame,
     ): UI =
         val keys = Chunk(ProviderChoice.Anthropic, ProviderChoice.OpenAI)
           .map(p =>
@@ -507,6 +522,7 @@ object AssistantUi:
                   .style(pre.color(Colors.muted)),
               ),
             ),
+            field("Look", looks),
             field(
               "System prompt",
               textarea.value(drafts.system).style(_.height(3.em).flexGrow(1)),
@@ -574,10 +590,14 @@ final class Drafts private (
     val temperature: SignalRef[String],
     /** The system prompt of the draft. */
     val system: SignalRef[String],
+    /** The look of the draft. */
+    // claude 2026-10-19: created (L4)
+    val look: SignalRef[Look],
     /** The error of the last save; empty when there is none. */
     val error: SignalRef[String],
 )(using Frame):
     /** Copies the settings into the drafts and opens the layer. */
+    // claude 2026-10-19: changed: the look (L4)
     def open: Unit < Sync =
       store.settings.current.map(s =>
         provider
@@ -585,6 +605,7 @@ final class Drafts private (
           .andThen(model.set(s.model))
           .andThen(temperature.set(s.temperature.fold("")(_.toString)))
           .andThen(system.set(s.systemPrompt))
+          .andThen(store.look.current.map(look.set))
           .andThen(error.set(""))
           .andThen(store.overlay.set(Overlay.Settings)),
       )
@@ -593,6 +614,7 @@ final class Drafts private (
       * shows why they are not valid. A new provider takes its default model
       * when the model was not changed.
       */
+    // claude 2026-10-19: changed: the look (L4)
     def save: Unit < Sync =
       for
           before <- store.settings.current
@@ -600,6 +622,7 @@ final class Drafts private (
           m      <- model.get
           t      <- temperature.get
           sys    <- system.get
+          l      <- look.get
           _      <- Settings.temperature(t) match
                         case Left(why)   => error.set(why)
                         case Right(temp) =>
@@ -609,6 +632,7 @@ final class Drafts private (
                             else m
                           store
                             .updateSettings(Settings(p, keep, temp, sys))
+                            .andThen(store.setLook(l))
                             .andThen(store.overlay.set(Overlay.Closed))
       yield ()
 end Drafts
@@ -624,6 +648,7 @@ object Drafts:
           m <- Signal.initRef(s.model)
           t <- Signal.initRef("")
           y <- Signal.initRef(s.systemPrompt)
+          l <- store.look.current.map(Signal.initRef(_))
           e <- Signal.initRef("")
-      yield Drafts(store, p, m, t, y, e)
+      yield Drafts(store, p, m, t, y, l, e)
 end Drafts

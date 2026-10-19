@@ -6,7 +6,6 @@ import munit.FunSuite
 import tui4s.Tui
 import tui4s.testkit.{Headless, Screen}
 import tui4s.use.Storage
-import tui4s.widgets.Colors
 
 /** The assistant on the headless test kit, wired as the main wires it, with the
   * interpreters in memory (the storage, the keys) and the scripted provider (a
@@ -24,6 +23,7 @@ class AssistantSuite extends FunSuite:
         import AllowUnsafe.embrace.danger
         KyoApp.Unsafe.runAndBlock(60.seconds)(v).getOrThrow
 
+    // claude 2026-10-19: changed: start: the looks, as the main gives them (L4)
     // region: test
     /** The app on a `width` x `height` screen: the storage and the keys in
       * memory, the scripted provider `fake` (also as the real providers).
@@ -36,7 +36,7 @@ class AssistantSuite extends FunSuite:
     )(using Frame): Headless < (Async & Scope) =
       Storage.inMemory.map { storage =>
         val (files, secrets) = Memory.wiring(storage, keys)
-        Headless.start(width, height, stylesheet = Colors.defaults)(quit =>
+        Headless.start(width, height, stylesheet = Look.palette)(quit =>
           Tui.size.map(size =>
             Memo.run(
               Env.runLayer(
@@ -283,6 +283,34 @@ class AssistantSuite extends FunSuite:
           "System prompt",
         ),
         saved.text,
+      )
+    }
+
+    // claude 2026-10-19: created (L4)
+    test(
+      "the settings switch the look: the colours change; the text does not",
+    ) {
+      val (before, after)   = run {
+        start().map(h =>
+          for
+              before <- h.screen
+              _      <- h.key(Keyboard.Char('s'), ctrl)
+              _      <- wait(h)(_.contains("(•) terminal look"))
+              _      <- h.key(Keyboard.Tab)
+              _      <- h.key(Keyboard.Tab)
+              _      <- h.key(Keyboard.ArrowDown)
+              _      <- wait(h)(_.contains("(•) native web"))
+              _      <- h.key(Keyboard.Enter)
+              after  <- wait(h)(!_.contains("System prompt"))
+          yield (before, after),
+        )
+      }
+      def accent(s: Screen) =
+        s.find("Chats").map((x, y) => s.styleAt(x, y).fg)
+      assert(before.text == after.text, after.text)
+      assert(
+        accent(before).isDefined && accent(before) != accent(after),
+        s"${accent(before)} ${accent(after)}",
       )
     }
 
