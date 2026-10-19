@@ -3,7 +3,7 @@
 // claude 2026-10-17: created this header (purity plan, phase P0)
 package tui4s.internal
 
-import java.io.{ByteArrayOutputStream, OutputStream, PrintStream}
+import java.io.{OutputStream, PrintStream}
 import java.nio.charset.Charset
 
 /** Captures `System.out` and `System.err` while the UI is up
@@ -19,6 +19,11 @@ import java.nio.charset.Charset
   * `scala.Console` gets `println` always captured (`TuiApp` does this in its
   * constructor); with `Tui.run` alone it is captured when nothing used
   * `scala.Console` before the first run.
+  *
+  * The state is one value ([[OutputCapture.State]]), the only `var` of the
+  * object, under its monitor. Each forwarder keeps the line that it has so far
+  * as a [[LineSplit]] value (the buffer of the capture), under the same
+  * monitor. The release step 'output capture' of a run stops the capture.
   */
 // claude 2026-10-13: changed (T1): a 'tui4s: allowed' marker at each use of
 // System.out and System.err: the forwarders replace and restore them, by
@@ -27,69 +32,82 @@ import java.nio.charset.Charset
 // claude 2026-10-13: changed (T1, review R1-3): the Scaladoc names install,
 // not TuiApp (it comes later), and no SPEC section
 // claude 2026-10-13: changed (T2): TuiApp calls install
+// claude 2026-10-19: changed (P6): one state value; the splitter is a value
 private[tui4s] object OutputCapture:
-    private var originalOut: PrintStream | Null = null
-    private var originalErr: PrintStream | Null = null
-    // Every forwarder made so far (an older one can still be in use, for
-    // example by scala.Console), newest first.
-    private var forwards: List[Forward]         = Nil
-    private var out: PrintStream | Null         = null
-    private var err: PrintStream | Null         = null
-    // claude 2026-10-13: created (T1, RC-10 part): every forwarding stream
-    // made so far (scala.Console can hold an older one)
-    private var streams: List[PrintStream]      = Nil
-    private var pinned                          = false
-    private var active: Capture | Null          = null
+    /** One forwarding stream: `stream` (installed as `System.out` or
+      * `System.err`) writes through `forward` to `original`, the stream that
+      * the program had before.
+      */
+    private final case class Fwd(
+        stream: PrintStream,
+        original: PrintStream,
+        forward: Forward,
+    )
+
+    /** The forwarders of `System.out` and `System.err` now; every forwarder
+      * made so far, newest first (an older one can still be in use, for
+      * example by `scala.Console`); true when [[install]] installed them for
+      * good; the running capture.
+      */
+    private final case class State(
+        out: Option[Fwd],
+        err: Option[Fwd],
+        all: List[Fwd],
+        pinned: Boolean,
+        active: Option[Capture],
+    )
+
+    // The only mutable part of the object; read and written under its
+    // monitor.
+    private var state = State(None, None, Nil, pinned = false, active = None)
 
     /** The real stderr: `System.err` as it was before tui4s replaced it. */
     def realErr: PrintStream = synchronized {
-      val e = originalErr
-      if e != null then e else java.lang.System.err.nn // tui4s: allowed
+      state.err.fold(java.lang.System.err.nn)(_.original) // tui4s: allowed
     }
 
     /** The real stdout: `System.out` as it was before tui4s replaced it. */
     def realOut: PrintStream = synchronized {
-      val o = originalOut
-      if o != null then o else java.lang.System.out.nn // tui4s: allowed
+      state.out.fold(java.lang.System.out.nn)(_.original) // tui4s: allowed
     }
 
     /** Installs the forwarding streams for good (transparent while no capture
       * runs), so that `scala.Console` binds to them. Idempotent.
       */
     def install(): Unit = synchronized {
-      pinned = true
+      state = state.copy(pinned = true)
       installStreams()
     }
 
-    /** Installs the forwarders of the current `System.out` and `System.err`. A
-      * forwarder is made again only when the program has set its own stream
-      * since: the new forwarder writes to that stream, and a stop restores it.
-      * A forwarder never changes its stream, so forwarders cannot write to each
-      * other in a loop.
+    /** Installs the forwarders of the current `System.out` and `System.err`
+      * ([[forwarder]]).
       */
     private def installStreams(): Unit =
-        val sysOut = java.lang.System.out.nn // tui4s: allowed
-        val sysErr = java.lang.System.err.nn // tui4s: allowed
-        if out == null || ((sysOut ne out) && (sysOut ne originalOut)) then
-            val f = Forward(sysOut, sysOut.charset.nn)
-            forwards = f :: forwards
-            val p = PrintStream(f, true, sysOut.charset.nn)
-            out = p
-            streams = p :: streams
-            originalOut = sysOut
-        if err == null || ((sysErr ne err) && (sysErr ne originalErr)) then
-            val f = Forward(sysErr, sysErr.charset.nn)
-            forwards = f :: forwards
-            val p = PrintStream(f, true, sysErr.charset.nn)
-            err = p
-            streams = p :: streams
-            originalErr = sysErr
-        java.lang.System.setOut(out)
-        java.lang.System.setErr(err)
+        val out  = forwarder(java.lang.System.out.nn, state.out) // tui4s: allowed
+        val err  = forwarder(java.lang.System.err.nn, state.err) // tui4s: allowed
+        val made = List(err, out).filterNot(f => state.all.exists(_ eq f))
+        state = state.copy(out = Some(out), err = Some(err), all = made ++ state.all)
+        java.lang.System.setOut(out.stream)
+        java.lang.System.setErr(err.stream)
         // Loads scala.Console now, bound to the forwarders, if nothing used it
         // before.
         discard(scala.Console.out)
     end installStreams
+
+    /** The forwarder for the system stream `sys`: the current one, or a new
+      * one when there is none or the program has set its own stream since.
+      * The new forwarder writes to that stream, and a stop restores it. A
+      * forwarder never changes its stream, so forwarders cannot write to each
+      * other in a loop.
+      */
+    private def forwarder(sys: PrintStream, current: Option[Fwd]): Fwd =
+      current
+        .filter(f => (sys eq f.stream) || (sys eq f.original))
+        .getOrElse {
+          val charset = sys.charset.nn
+          val forward = Forward(sys, charset)
+          Fwd(PrintStream(forward, true, charset), sys, forward)
+        }
 
     /** True when `scala.Console.out` and `scala.Console.err` (of the calling
       * thread) are forwarders of tui4s, so that a capture also takes Scala's
@@ -101,27 +119,27 @@ private[tui4s] object OutputCapture:
     def capturesConsole: Boolean = synchronized {
       val o = scala.Console.out
       val e = scala.Console.err
-      streams.exists(_ eq o) && streams.exists(_ eq e)
+      state.all.exists(_.stream eq o) && state.all.exists(_.stream eq e)
     }
 
     /** Starts capturing into `sink`; the result stops it. A second capture
       * while one runs captures nothing (its stop does nothing).
       */
     def start(sink: LogSink): Capture = synchronized {
-      if active != null then Capture(null)
-      else
+      val c = Capture(sink)
+      if state.active.isEmpty then
           installStreams()
-          val c = Capture(sink)
-          active = c
-          c
+          state = state.copy(active = Some(c))
+      c
     }
 
     /** One capture. [[stop]] is idempotent. */
     final class Capture private[OutputCapture] (
-        private[OutputCapture] val sink: LogSink | Null,
+        private[OutputCapture] val sink: LogSink,
     ):
         /** True while this capture takes the output. */
-        def capturing: Boolean = OutputCapture.synchronized(active eq this)
+        def capturing: Boolean =
+          OutputCapture.synchronized(state.active.exists(_ eq this))
 
         /** Stops capturing: the forwarders write to the original streams again
           * and, unless [[install]] installed them for good, `System.out` and
@@ -129,80 +147,63 @@ private[tui4s] object OutputCapture:
           * capture. A last line without its line break goes to the sink.
           */
         def stop(): Unit = OutputCapture.synchronized {
-          val s = sink
-          if s != null && (active eq this) then
-              forwards.foreach(_.drain(s))
-              active = null
-              if !pinned then
-                  if java.lang.System.out eq out then // tui4s: allowed
-                      java.lang.System.setOut(originalOut)
-                  if java.lang.System.err eq err then // tui4s: allowed
-                      java.lang.System.setErr(originalErr)
+          if state.active.exists(_ eq this) then
+              state.all.foreach(_.forward.drain(sink))
+              state = state.copy(active = None)
+              if !state.pinned then
+                  state.out.foreach { f =>
+                    if java.lang.System.out eq f.stream then // tui4s: allowed
+                        java.lang.System.setOut(f.original)
+                  }
+                  state.err.foreach { f =>
+                    if java.lang.System.err eq f.stream then // tui4s: allowed
+                        java.lang.System.setErr(f.original)
+                  }
+              end if
           end if
         }
     end Capture
 
-    /** The sink of the running capture; `null` when none runs. */
-    private def sinkNow: LogSink | Null =
-        val c = active
-        if c == null then null else c.sink
+    /** The sink of the running capture. */
+    private def sinkNow: Option[LogSink] = state.active.map(_.sink)
 
     /** The longest line the capture keeps, in bytes; a longer one is cut. */
-    val MaxLine: Int = 8192
+    val MaxLine: Int = LineSplit.MaxLine
 
-    /** Writes to `original`, or line by line to the sink of the running
-      * capture. A '\r' that is not followed by '\n' starts the line again (a
-      * progress bar writes its updates this way), and a line is cut at
-      * [[MaxLine]] bytes, so a long-running capture keeps little in memory.
+    /** Writes to `original`, or line by line ([[LineSplit]]) to the sink of
+      * the running capture.
       */
     private final class Forward(original: PrintStream, charset: Charset)
         extends OutputStream:
-        private val partial  = ByteArrayOutputStream()
-        // The last byte was a '\r'.
-        private var carriage = false
+        // The line so far (the buffer of the capture), under the monitor of
+        // OutputCapture.
+        private var split = LineSplit.empty
 
         override def write(b: Int): Unit = OutputCapture.synchronized {
-          val s = sinkNow
-          if s == null then original.write(b)
-          else put(s, b & 0xff)
+          sinkNow.fold(original.write(b))(s => feed(s, Array(b.toByte), 0, 1))
         }
 
         override def write(b: Array[Byte], off: Int, len: Int): Unit =
           OutputCapture.synchronized {
-            val s = sinkNow
-            if s == null then original.write(b, off, len)
-            else
-                var i = off
-                while i < off + len do
-                    put(s, b(i) & 0xff)
-                    i += 1
+            sinkNow.fold(original.write(b, off, len))(s => feed(s, b, off, len))
           }
 
         override def flush(): Unit = OutputCapture.synchronized {
-          if sinkNow == null then original.flush()
+          if sinkNow.isEmpty then original.flush()
         }
 
-        private def put(s: LogSink, b: Int): Unit =
-          if b == '\n' then emit(s)
-          else
-              if carriage then
-                  partial.reset()
-                  carriage = false
-              if b == '\r' then carriage = true
-              else
-                  // Cut only before the first byte of a character.
-                  if partial.size >= MaxLine && (b & 0xc0) != 0x80 then emit(s)
-                  partial.write(b)
+        private def feed(s: LogSink, b: Array[Byte], off: Int, len: Int): Unit =
+            val (next, lines) = split.feed(b, off, len)
+            split = next
+            lines.foreach(emit(s, _))
 
-        private def emit(s: LogSink): Unit =
-            val text = partial.toString(charset)
-            partial.reset()
-            carriage = false
-            s.line(text, important = true)
+        private def emit(s: LogSink, line: Vector[Byte]): Unit =
+          s.line(String(line.toArray, charset), LogSink.Keep.UntilRestore)
 
         /** Sends a line without its line break to `s`. */
         def drain(s: LogSink): Unit =
-            if partial.size > 0 then emit(s)
-            carriage = false
+            val (next, last) = split.drain
+            split = next
+            last.foreach(emit(s, _))
     end Forward
 end OutputCapture

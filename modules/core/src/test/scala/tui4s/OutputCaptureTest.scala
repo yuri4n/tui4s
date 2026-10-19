@@ -20,9 +20,9 @@ class OutputCaptureTest extends Test[Any]:
         (bytes, PrintStream(bytes, true, StandardCharsets.UTF_8))
 
     "the ring keeps the newest important lines and counts the rest" in {
-      val sink        = LogSink(None, capacity = 3)
-      (1 to 5).foreach(i => sink.line(s"line $i", important = true))
-      sink.line("debug detail", important = false)
+      val sink        = LogSink.openNow(None, capacity = 3)
+      (1 to 5).foreach(i => sink.line(s"line $i", LogSink.Keep.UntilRestore))
+      sink.line("debug detail", LogSink.Keep.FileOnly)
       val (bytes, ps) = stream()
       sink.finish(ps)
       val text        = bytes.toString(StandardCharsets.UTF_8).linesIterator.toVector
@@ -38,20 +38,20 @@ class OutputCaptureTest extends Test[Any]:
     }
 
     "after finish, an important line is printed at once; finish is idempotent" in {
-      val sink        = LogSink(None)
+      val sink        = LogSink.openNow(None)
       val (bytes, ps) = stream()
       sink.finish(ps)
-      sink.line("late warning", important = true)
-      sink.line("late detail", important = false)
+      sink.line("late warning", LogSink.Keep.UntilRestore)
+      sink.line("late detail", LogSink.Keep.FileOnly)
       sink.finish(ps)
       assert(bytes.toString(StandardCharsets.UTF_8) == "late warning\n")
     }
 
     "with a file, every line goes to the file and nothing is printed" in {
       Sync.defer(Files.createTempFile("tui4s-sink", ".log")).map { file =>
-        val sink        = LogSink(Some(file))
-        sink.line("one", important = true)
-        sink.line("two", important = false)
+        val sink        = LogSink.openNow(Some(file))
+        sink.line("one", LogSink.Keep.UntilRestore)
+        sink.line("two", LogSink.Keep.FileOnly)
         val (bytes, ps) = stream()
         sink.finish(ps)
         val text        = Files.readString(file, StandardCharsets.UTF_8)
@@ -63,12 +63,12 @@ class OutputCaptureTest extends Test[Any]:
     "with a file, a line after finish is still appended to the file" in {
       // Kyo writes its log on its own fiber: a line can come after the release.
       Sync.defer(Files.createTempFile("tui4s-sink", ".log")).map { file =>
-        val sink        = LogSink(Some(file))
-        sink.line("before", important = false)
+        val sink        = LogSink.openNow(Some(file))
+        sink.line("before", LogSink.Keep.FileOnly)
         val (bytes, ps) = stream()
         sink.finish(ps)
-        sink.line("late detail", important = false)
-        sink.line("late warning", important = true)
+        sink.line("late detail", LogSink.Keep.FileOnly)
+        sink.line("late warning", LogSink.Keep.UntilRestore)
         val text        = Files.readString(file, StandardCharsets.UTF_8)
         assert(text == "before\nlate detail\nlate warning\n", text)
         assert(bytes.size == 0, bytes.toString(StandardCharsets.UTF_8))
@@ -77,8 +77,8 @@ class OutputCaptureTest extends Test[Any]:
 
     "a log file that cannot be opened: the ring, and a note after the restore" in {
       val sink        =
-        LogSink(Some(java.nio.file.Path.of("/nonexistent-tui4s/x.log")))
-      sink.line("kept", important = true)
+        LogSink.openNow(Some(java.nio.file.Path.of("/nonexistent-tui4s/x.log")))
+      sink.line("kept", LogSink.Keep.UntilRestore)
       val (bytes, ps) = stream()
       sink.finish(ps)
       val text        = bytes.toString(StandardCharsets.UTF_8)
@@ -86,7 +86,7 @@ class OutputCaptureTest extends Test[Any]:
     }
 
     "System.out and System.err go to the sink while a capture runs" in {
-      val sink    = LogSink(None)
+      val sink    = LogSink.openNow(None)
       val capture = OutputCapture.start(sink)
       java.lang.System.out.println("to out")
       java.lang.System.err.print("partial")
@@ -102,7 +102,7 @@ class OutputCaptureTest extends Test[Any]:
     }
 
     "a progress line ('\\r') keeps only its last update" in {
-      val sink    = LogSink(None)
+      val sink    = LogSink.openNow(None)
       val capture = OutputCapture.start(sink)
       java.lang.System.out.print("progress 1\rprogress 2\rprogress 3\n")
       java.lang.System.out.print("windows line\r\n")
@@ -115,7 +115,7 @@ class OutputCaptureTest extends Test[Any]:
     }
 
     "a line is cut at MaxLine bytes, never inside a character" in {
-      val sink    = LogSink(None)
+      val sink    = LogSink.openNow(None)
       val capture = OutputCapture.start(sink)
       java.lang.System.out.print("a" * 20_000)
       java.lang.System.out.print("\u00e9" * 5_000 + "\n")
@@ -130,10 +130,10 @@ class OutputCaptureTest extends Test[Any]:
     "a capture restores the streams of its own start" in {
       // The program sets its own System.out between two runs.
       val real          = OutputCapture.realOut
-      OutputCapture.start(LogSink(None)).stop()
+      OutputCapture.start(LogSink.openNow(None)).stop()
       val (bytes, mine) = stream()
       java.lang.System.setOut(mine)
-      val sink          = LogSink(None)
+      val sink          = LogSink.openNow(None)
       val capture       = OutputCapture.start(sink)
       java.lang.System.out.println("captured")
       capture.stop()
@@ -141,7 +141,7 @@ class OutputCaptureTest extends Test[Any]:
       val text          = bytes.toString(StandardCharsets.UTF_8)
       // Forward to the real stdout again, for the other tests.
       java.lang.System.setOut(real)
-      OutputCapture.start(LogSink(None)).stop()
+      OutputCapture.start(LogSink.openNow(None)).stop()
       assert(sink.kept == Seq("captured"), sink.kept.toString)
       assert(text == "after the run\n", text)
     }
@@ -152,24 +152,24 @@ class OutputCaptureTest extends Test[Any]:
       OutputCapture.install()
       val (bytes, mine) = stream()
       java.lang.System.setOut(mine)
-      OutputCapture.start(LogSink(None)).stop()
+      OutputCapture.start(LogSink.openNow(None)).stop()
       // A library wraps System.out (now the forwarder) in a stream of its own.
       java.lang.System.setOut(PrintStream(java.lang.System.out.nn, true))
-      val sink          = LogSink(None)
+      val sink          = LogSink.openNow(None)
       val capture       = OutputCapture.start(sink)
       java.lang.System.out.println("captured")
       capture.stop()
       java.lang.System.out.println("after the run")
       val text          = bytes.toString(StandardCharsets.UTF_8)
       java.lang.System.setOut(real)
-      OutputCapture.start(LogSink(None)).stop()
+      OutputCapture.start(LogSink.openNow(None)).stop()
       assert(sink.kept == Seq("captured"), sink.kept.toString)
       assert(text == "after the run\n", text)
     }
 
     "only one capture at a time; stop is idempotent" in {
-      val first  = OutputCapture.start(LogSink(None))
-      val second = OutputCapture.start(LogSink(None))
+      val first  = OutputCapture.start(LogSink.openNow(None))
+      val second = OutputCapture.start(LogSink.openNow(None))
       val both   = (first.capturing, second.capturing)
       second.stop()
       val still  = first.capturing
@@ -180,7 +180,7 @@ class OutputCaptureTest extends Test[Any]:
 
     // claude 2026-10-13: created (T1, RC-10 part, IR R3)
     "capturesConsole: true when scala.Console has the forwarders, false when it has another stream" in {
-      val sink       = LogSink(None)
+      val sink       = LogSink.openNow(None)
       val capture    = OutputCapture.start(sink)
       // During a capture System.out and System.err are the forwarders.
       val ours       = scala.Console.withOut(java.lang.System.out.nn)(
@@ -210,7 +210,7 @@ class OutputCaptureTest extends Test[Any]:
         val opts  = TuiOptions(logFile = Some(file))
         val fake  = FakeCrossterm()
         val err   = FakeErr(fake.log)
-        val sink  = LogSink(Some(file))
+        val sink  = LogSink.openNow(Some(file))
         val io    = TerminalIO(
           fake,
           sink,
@@ -244,7 +244,7 @@ class OutputCaptureTest extends Test[Any]:
         val err   = FakeErr(fake.log)
         val io    = TerminalIO(
           fake,
-          LogSink(None),
+          LogSink.openNow(None),
           () => err.stream,
           consoleCaptured = captured,
         )
@@ -258,7 +258,7 @@ class OutputCaptureTest extends Test[Any]:
     }
 
     "after a capture, System.out writes to the real stdout again" in {
-      val sink = LogSink(None)
+      val sink = LogSink.openNow(None)
       OutputCapture.start(sink).stop()
       java.lang.System.out.println("tui4s test: not in the sink")
       assert(sink.kept.isEmpty)

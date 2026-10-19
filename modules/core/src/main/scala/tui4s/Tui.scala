@@ -116,12 +116,10 @@ object Tui:
       ReleaseStack.run(hooks, ReleaseStack.printFailure(err), trace) { stack =>
         // The stack finishes the sink; this also covers a run that failed
         // before it had a terminal.
-        Sync
-          .defer {
-            val sink = LogSink(options.logFile)
-            stack.add("log sink")(() => sink.finish(err()))
-            sink
-          }
+        // claude 2026-10-19: changed (P6): the open of the sink is an effect
+        // that pushes its finish
+        LogSink
+          .open(options.logFile, stack, err)
           .map { sink =>
             Abort
               .run[TuiError](

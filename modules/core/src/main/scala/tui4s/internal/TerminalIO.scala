@@ -57,8 +57,9 @@ private[tui4s] final class TerminalIO(
                   err.println(TerminalIO.ConsoleNotCaptured) // tui4s: allowed
                   err.flush()
             }
+            // claude 2026-10-19: changed (P6): LogSink.Keep, not a Boolean
             if warn then
-                sink.line(TerminalIO.ConsoleNotCaptured, important = false)
+                sink.line(TerminalIO.ConsoleNotCaptured, LogSink.Keep.FileOnly)
         end if
         // crossterm takes /dev/tty when stdin is not a terminal, so raw mode
         // alone does not see a piped or redirected stdin.

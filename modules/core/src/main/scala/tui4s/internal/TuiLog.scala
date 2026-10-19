@@ -37,16 +37,19 @@ private[tui4s] final class TuiLog(
     )(using frame: Frame): Unit =
       if at.enabled(level) then
           // `a.enabled(b)`: `a` is at or above `b`.
-          val important = at.enabled(Log.Level.warn)
-          val time      = LocalTime.now().nn.format(TuiLog.Time)
+          // claude 2026-10-19: changed (P6): LogSink.Keep, not a Boolean
+          val keep =
+            if at.enabled(Log.Level.warn) then LogSink.Keep.UntilRestore
+            else LogSink.Keep.FileOnly
+          val time = LocalTime.now().nn.format(TuiLog.Time)
           sink.line(
             s"$time ${at.toString.toUpperCase} $name [${frame.position.show}] $msg",
-            important,
+            keep,
           )
           if t != null then
               val text = java.io.StringWriter()
               t.printStackTrace(java.io.PrintWriter(text))
-              text.toString.linesIterator.foreach(sink.line(_, important))
+              text.toString.linesIterator.foreach(sink.line(_, keep))
 
     def trace(msg: => String)(using Frame, AllowUnsafe): Unit =
       write(Log.Level.trace, msg, null)

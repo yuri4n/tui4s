@@ -166,7 +166,7 @@ class TerminalIOTest extends Test[Any]:
           )
           assert(hooks.added.size == 1 && hooks.removed.size == 1)
           // The capture was stopped: a new one takes the output.
-          val sink  = LogSink(None)
+          val sink  = LogSink.openNow(None)
           val c     = OutputCapture.start(sink)
           val taken = c.capturing
           c.stop()
@@ -231,7 +231,7 @@ class TerminalIOTest extends Test[Any]:
             r.toString,
           )
           assert(err.lines.contains("before the failure"), err.lines.toString)
-          val sink  = LogSink(None)
+          val sink  = LogSink.openNow(None)
           val c     = OutputCapture.start(sink)
           val taken = c.capturing
           c.stop()
