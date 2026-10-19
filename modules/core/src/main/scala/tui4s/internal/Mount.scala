@@ -327,7 +327,7 @@ private[tui4s] final class Mount(
                                  // the effects of the region that was at this
                                  // path (another key) stop; onMount runs for
                                  // the new mount
-                                 startEffects(c, state, reclaim.get(path))
+                                 startEffects(c, state, path, reclaim.get(path))
                 region   = RegionState(
                              path,
                              Source.Comp(spec, key),
@@ -373,10 +373,11 @@ private[tui4s] final class Mount(
                 case _ =>
                   val (gen, w1) = w.gen
                   // A body that fails posts an empty UI, so the frame does not
-                  // wait for content that cannot come (the failure is not
-                  // logged yet).
+                  // wait for content that cannot come, and the run's logger
+                  // gets one line.
                   // claude 2026-10-19: changed: the gauge starts the fiber and
                   // adds it in one bracket (P2, A7)
+                  // claude 2026-10-19: changed: the failure is logged
                   gauge
                     .fork(
                       Abort
@@ -389,7 +390,14 @@ private[tui4s] final class Mount(
                         )
                         .map {
                           case Result.Success(_) => Kyo.unit
-                          case _                 => post(path, gen, UI.empty)
+                          case failed            =>
+                            Mount
+                              .logFailure(
+                                s"the body of the hook component $identity",
+                                path,
+                                failed,
+                              )
+                              .andThen(post(path, gen, UI.empty))
                         },
                     )
                     .map { fiber =>
@@ -421,6 +429,7 @@ private[tui4s] final class Mount(
     private def startEffects(
         c: Component,
         state: SignalRef[c.State],
+        path: Loc,
         old: Option[RegionState],
     )(using Frame): Fiber[Any, Nothing] < Sync =
       old
@@ -431,12 +440,19 @@ private[tui4s] final class Mount(
           // the mount ends (an interrupt), as for a hook component: it closed
           // when onMount returned, so an interval or a resource that onMount
           // started ended at once
+          // claude 2026-10-19: changed: a failure of onMount is logged
           gauge.fork(
             Abort
               .run[Throwable](
                 Scope.run(c.onMount(state).andThen(Async.never[Unit])),
               )
-              .unit,
+              .map(
+                Mount.logFailure(
+                  s"the onMount of ${c.getClass.getName}",
+                  path,
+                  _,
+                ),
+              ),
           ),
         )
 
@@ -575,6 +591,24 @@ private[tui4s] object Mount:
       * component with that state key writes it there, and one state key has one
       * `State` type (the contract of `Component.stateKey`).
       */
+    /** Logs the end of a component effect (`what`, mounted at `path`) when it
+      * failed: one line at error through the run's Kyo logger, with the
+      * position and the failure. A success and an interrupt (the unmount, the
+      * end of the run) log nothing. The run goes on.
+      */
+    // claude 2026-10-19: created: the failure of a hook body or of onMount is
+    // logged
+    def logFailure(what: String, path: Loc, result: Result[Throwable, Any])(
+        using Frame,
+    ): Unit < Sync =
+      result match
+          case Result.Success(_)            => Kyo.unit
+          case Result.Panic(_: Interrupted) => Kyo.unit
+          case Result.Failure(e)            =>
+            Log.error(s"tui4s: $what at ${path.showLoc} failed: $e")
+          case Result.Panic(e)              =>
+            Log.error(s"tui4s: $what at ${path.showLoc} panicked: $e")
+
     // claude 2026-10-19: created: the one cast of the component state (P1)
     def stateRef[S](ref: SignalRef[?]): SignalRef[S] =
       ref.asInstanceOf[SignalRef[S]] // scalafix:ok DisableSyntax.asInstanceOf; KEEP: the contract of Component.stateKey (one key at one position has one State type)

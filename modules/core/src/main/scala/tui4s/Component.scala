@@ -48,11 +48,12 @@ abstract class Component:
 
     /** Effects for the time of the mount (by default none). It runs once per
       * mount, in its own fiber, with a `Scope` that closes when the mount ends
-      * or the run ends.
+      * or the run ends. When it fails, the run's Kyo logger gets one line at
+      * error (the position and the failure), and the mount goes on.
       */
     // claude 2026-10-13: changed (strict-flag fix, as S6 25aab29): @unused on
     // the parameter of the default
-    // claude 2026-10-13: changed (C4): the Scaladoc of the members
+    // claude 2026-10-19: changed: the Scaladoc: a failure is logged
     def onMount(@unused state: SignalRef[State]): Any < (Async & Scope) = ()
 
     /** The key of this component's state at its position. The runner keeps the
