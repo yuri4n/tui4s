@@ -44,9 +44,6 @@ class UnarmedTest extends Test[Any]:
 
     "gcComps drops the entries of a region that is gone or that has a new generation" in {
       val w = world(Map(a -> 1L, b -> 9L, Loc.root.child(2) -> 3L))
-      for
-          inbox <- Channel.initUnscoped[Msg](1)
-          gauge <- FiberGauge.init
-      yield assert(Mount(inbox, gauge).gcComps(w).unarmed == Map(a -> 1L))
+      assert(Mount.gcComps(w).unarmed == Map(a -> 1L))
     }
 end UnarmedTest

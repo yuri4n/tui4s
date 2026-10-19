@@ -205,7 +205,9 @@ class ComponentTest extends ComponentSuite:
       end for
     }
 
-    // claude 2026-10-19: created (P2, A7): adds that race with the close
+    // claude 2026-10-19: created (P2, A7): adds that race with the close.
+    // The bracket of `fork` (no interrupt between the spawn and the add) is
+    // Kyo's Bracket contract and is not under test here.
     "gauge: a close during adds leaves no live fiber (50 rounds of 20 forks and one close behind a latch)" in {
       def round(using Frame): (Long, Int) < Async =
         for

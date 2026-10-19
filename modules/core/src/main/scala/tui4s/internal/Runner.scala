@@ -35,9 +35,14 @@ private[tui4s] final class Runner private (
     // claude 2026-10-19: changed: the mount gets the gauge (P2, A7)
     private val mount = Mount(inbox, gauge, knobs)
 
-    // claude 2026-10-19: changed: the Kyo Clock (P2, A11)
+    /** The monotonic time in nanoseconds. Its value can be negative: the
+      * runner uses only differences. The Kyo `Clock` is not used here, because
+      * it gives 0 for a negative `System.nanoTime`.
+      */
+    // claude 2026-10-19: changed: one source of time for the runner, inside
+    // the effect (P2, skeptic: not the Kyo Clock, R1-3, R2-3)
     private def nanos(using Frame): Long < Sync =
-      Clock.nowMonotonic.map(_.toNanos)
+      Sync.defer(java.lang.System.nanoTime()) // scalafix:ok DisableSyntax.jvmGlobal; KEEP: Kyo's Clock maps a negative nanoTime to 0 (R1-3, R2-3)
 
     /** The fibers of this run that have not ended: a gauge for tests (R1). */
     // claude 2026-10-19: changed: the FiberGauge (P2, A7)
@@ -403,10 +408,8 @@ private[tui4s] final class Runner private (
       * `combineLatest`). See [[tui4s.spi.Settle]] for the two strategies. While
       * a component that this frame mounts waits for its first content
       * (`World.pending`), the settle takes messages until `pendingTimeout`
-      * after `frameStart` (the monotonic time of the Kyo `Clock`, in
-      * nanoseconds), and then goes on without it.
+      * after `frameStart` (`System.nanoTime`), and then goes on without it.
       */
-    // claude 2026-10-19: changed: the Scaladoc names the Kyo Clock (P2, A11)
     // claude 2026-10-13: changed (C4, the C2 cut back): the bounded wait for
     // a mounting component (the `pending` branch)
     // claude 2026-10-13: changed (C4, P-6): the deadline of the frame
@@ -649,8 +652,8 @@ private[tui4s] final class Runner private (
         settleNs: Long = 0,
     )(using Frame): World < Async =
         val idle = !w.full && w.dirtyRegions.isEmpty && w.dirtyNodes.isEmpty
-        // claude 2026-10-19: changed: the start of the render from the Kyo
-        // Clock, inside the effect (P2, A11)
+        // claude 2026-10-19: changed: the start of the render is read inside
+        // the effect (P2)
         nanos.map { tr =>
           Sync
             .defer {

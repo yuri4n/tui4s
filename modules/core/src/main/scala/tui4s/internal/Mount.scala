@@ -465,10 +465,13 @@ private[tui4s] final class Mount(
             .foreachDiscard(stale.toSeq)(r =>
               r.watcher.fold(Kyo.unit)(_.interrupt.unit),
             )
-            .andThen(gcComps(w1))
+            .andThen(Mount.gcComps(w1))
         }
     end remount
 
+end Mount
+
+private[tui4s] object Mount:
     /** Drops the state of components that are no longer mounted, and the wait
       * for the first content of a hook component that is no longer mounted (its
       * path leaves `pending`: the settle does not wait for it). A path stays in
@@ -478,7 +481,8 @@ private[tui4s] final class Mount(
       * of a region that is gone or that has a new generation (its watcher was
       * interrupted before its arm).
       */
-    // claude 2026-10-19: changed: also the unarmed entries (P2)
+    // claude 2026-10-19: changed: also the unarmed entries; a pure function in
+    // the companion (P2)
     def gcComps(w: World): World =
         val live = w.regions.values.collect {
           case RegionState(
@@ -500,7 +504,7 @@ private[tui4s] final class Mount(
     end gcComps
 
     /** True when `r` is a hook component that waits for its first content. */
-    // claude 2026-10-13: created (C4, review R1-2)
+    // claude 2026-10-19: changed: in the companion, with gcComps (P2)
     private def waits(r: RegionState): Boolean =
       r match
           case RegionState(
@@ -514,9 +518,6 @@ private[tui4s] final class Mount(
             true
           case _ => false
 
-end Mount
-
-private[tui4s] object Mount:
     /** Unique keys for a `Foreach`: kyo-ui does not reject duplicates, but two
       * items on one path would collide here.
       */
