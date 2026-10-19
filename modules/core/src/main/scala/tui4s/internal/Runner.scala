@@ -35,9 +35,9 @@ private[tui4s] final class Runner private (
     // claude 2026-10-19: changed: the mount gets the gauge (P2, A7)
     private val mount = Mount(inbox, gauge, knobs)
 
-    /** The monotonic time in nanoseconds. Its value can be negative: the
-      * runner uses only differences. The Kyo `Clock` is not used here, because
-      * it gives 0 for a negative `System.nanoTime`.
+    /** The monotonic time in nanoseconds. Its value can be negative: the runner
+      * uses only differences. The Kyo `Clock` is not used here, because it
+      * gives 0 for a negative `System.nanoTime`.
       */
     // claude 2026-10-19: changed: one source of time for the runner, inside
     // the effect (P2, skeptic: not the Kyo Clock, R1-3, R2-3)
