@@ -73,8 +73,19 @@
   (use -Dtui4s.stress=100). 389 core leaves, 68 examples, PTY 148/148). Skipped (do not pay): F1 owns index, F2 Set,
   F8 eq fast path. Open: list scroll still O(rows) (a pure translate of a clean viewport would fix it); log append
   re-places the forced subtree.
-- NEXT: L2 in two workflows: L2a build (sbt-scalajs + crossproject, modules/use) + tui4s-use (13 composables);
-  L2b tui4s-widgets (the 28-widget catalog of realapp-web.json PART B) + a gallery example.
+- L2a DONE, pushed 70c2e2e (48 files, +4244/-108; sbt-scalajs 1.22.0 + crossproject 1.4.0; crossModule(use, widgets)
+  CrossType.Full, artifacts tui4s-use/tui4s-widgets (+_sjs1), tags use-v*/widgets-v* in release.sh and release.yml;
+  kyo-test runs on Node.js for JS; 13 composables over SignalRef/Signal/Scope with laws as properties (Pacing,
+  Selection, History, ScrollWindow, TimeAgo ADT, Keymap/Chord/Binding, AsyncState, Dialog with a flow queue, Storage
+  (FileStorage JVM atomic + LocalStorage JS), useProcess on kyo-system Command); README 'Composables' with 'You may
+  not need a composable' first; examples.composables.{Native,Recipes} + RecipesSuite (8 leaves); Todo undo/redo;
+  Dashboard stamp + keymap; flake.nix adds nodejs; 389 core, 92 use (JVM+JS), 81 examples, PTY green). Review: 1
+  blocking (D17 coverage: fixed with Recipes), 9 should, 7 nits, applied. Open (human): the GitHub environment
+  maven-central must accept the tags use-v* and widgets-v*. Open: Kyo Signal.observe can miss a write and repairs
+  within 1 s (documented); useProcess's blocking stdout read holds a scheduler thread; LocalStorage (JS) untested on
+  Node (no window); Lines.split ends lines only at LF.
+- NEXT: L2b tui4s-widgets (the catalog of realapp-web.json PART B; widgets may depend on use) + a gallery example;
+  examples.widgets (TabsView) moves into the module.
 - (history) L1 ran in three workflows (cheap cadence: implementer + API/examples reviewer + fixer, Opus): L1a viewport scroll
   and clip, wrap and ellipsis, wide characters; L1b overlay and z-order, terminal-size Signal, Color.Var, FlexWrap and
   Display, one warning per ignored property; L1c native inputs and the multi-line textarea (Alt-Enter, Ctrl-J,
