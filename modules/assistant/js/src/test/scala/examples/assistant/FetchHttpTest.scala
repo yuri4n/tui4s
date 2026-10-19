@@ -132,7 +132,10 @@ class FetchHttpTest extends Test[Any]:
           r       <- events(
                        Anthropic,
                        FetchHttp.seam(
-                         recording(seen, (_, _) => new sjs.Promise[dom.Response]((_, _) => ())),
+                         recording(
+                           seen,
+                           (_, _) => new sjs.Promise[dom.Response]((_, _) => ()),
+                         ),
                          timeout = 50.millis,
                        ),
                      )

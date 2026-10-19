@@ -91,13 +91,13 @@ enum ChatCommand derives CanEqual:
         case Palette      => Chunk(Chord.ctrl('p'))
         case Quit         => Chunk(Chord.ctrl('q'))
 
-    /** The chords of the web on `os`: an Alt chord, then on macOS the chord
-      * of the terminal.
+    /** The chords of the web on `os`: an Alt chord, then on macOS the chord of
+      * the terminal.
       */
     // claude 2026-10-19: created (L4); changed: the chords of the terminal
     // only on macOS (L4 review)
     private def browser(os: Surface.Os): Chunk[Chord] =
-        def alt(c: Char) = Chord(Keyboard.Char(c), Modifiers(alt = true))
+        def alt(c: Char)                = Chord(Keyboard.Char(c), Modifiers(alt = true))
         def mac(c: Chord): Chunk[Chord] = os match
             case Surface.Os.Mac   => Chunk(c)
             case Surface.Os.Other => Chunk.empty

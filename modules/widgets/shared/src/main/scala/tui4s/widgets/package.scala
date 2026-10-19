@@ -46,7 +46,7 @@ package tui4s
   *     `50.em` is 50 font sizes, and the window of a list or a pager (its
   *     height in `em`) clips about one line in five unless the line height is
   *     1. An app for both platforms gives its own sizes in units of its
-  *     platform (the assistant: its `Surface`).
+  *        platform (the assistant: its `Surface`).
   *
   * The widgets:
   *

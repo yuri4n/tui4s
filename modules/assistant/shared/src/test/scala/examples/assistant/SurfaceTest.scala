@@ -42,38 +42,41 @@ class SurfaceTest extends Test[Any]:
     // claude 2026-10-19: changed: no Ctrl chord and no F1 off macOS; the
     // chords of the terminal on macOS; Ctrl-J only on macOS (L4 review)
     "the chords of the web: off macOS no Ctrl chord and no F1; on macOS also the chords of the terminal but not its tab keys; no quit; an Alt chord for each letter command" in {
-      val tabs = Chunk(
+      val tabs    = Chunk(
         Chord(Keyboard.PageUp, Modifiers(ctrl = true)),
         Chord(Keyboard.PageDown, Modifiers(ctrl = true)),
         Chord.ctrl('q'),
       )
-      val all  = Chunk.from(ChatCommand.values)
-      assert(
-        all.forall(c =>
-          c.chords(web).forall(k => !k.mods.ctrl && k.key != Keyboard.F1),
-        ) &&
-          all.forall(c => !c.chords(mac).exists(tabs.contains)) &&
-          ChatCommand.Quit.chords(web).isEmpty &&
-          ChatCommand.Quit.chords(mac).isEmpty &&
-          ChatCommand.Palette.chords(mac) == Chunk(
+      val all     = Chunk.from(ChatCommand.values)
+      val letters =
+        all.filterNot(c => c == ChatCommand.Quit || c == ChatCommand.Cancel)
+      val noCtrl  = all.forall(c =>
+        c.chords(web).forall(k => !k.mods.ctrl && k.key != Keyboard.F1),
+      )
+      val noTabs  = all.forall(c => !c.chords(mac).exists(tabs.contains))
+      val noQuit  =
+        ChatCommand.Quit.chords(web).isEmpty &&
+          ChatCommand.Quit.chords(mac).isEmpty
+      val onMac   =
+        ChatCommand.Palette.chords(mac) ==
+          Chunk(
             Chord(Keyboard.Char('p'), Modifiers(alt = true)),
             Chord.ctrl('p'),
           ) &&
-          ChatCommand.Help.chords(mac).contains(Chord(Keyboard.F1)) &&
-          !web.composerHelp.exists(_._1.contains("Ctrl-J")) &&
-          mac.composerHelp.exists(_._1.contains("Ctrl-J")) &&
-          all
-            .filterNot(c => c == ChatCommand.Quit || c == ChatCommand.Cancel)
-            .forall(c =>
-              c.chords(web).exists(_.mods.alt) &&
-                c.chords(mac).exists(_.mods.alt),
-            ) &&
-          ChatCommand.Palette.chords(Surface.Terminal) == Chunk(
-            Chord.ctrl('p'),
-          ) &&
-          ChatCommand.NextChat.chords(Surface.Terminal) ==
-          Chunk(Chord(Keyboard.PageDown, Modifiers(ctrl = true))),
+          ChatCommand.Help.chords(mac).contains(Chord(Keyboard.F1))
+      val ctrlJ   =
+        !web.composerHelp.exists(_._1.contains("Ctrl-J")) &&
+          mac.composerHelp.exists(_._1.contains("Ctrl-J"))
+      val alts    = letters.forall(c =>
+        c.chords(web).exists(_.mods.alt) && c.chords(mac).exists(_.mods.alt),
       )
+      val term    =
+        ChatCommand.Palette.chords(Surface.Terminal) == Chunk(
+          Chord.ctrl('p'),
+        ) &&
+          ChatCommand.NextChat.chords(Surface.Terminal) ==
+          Chunk(Chord(Keyboard.PageDown, Modifiers(ctrl = true)))
+      assert(noCtrl && noTabs && noQuit && onMac && ctrlJ && alts && term)
     }
 
     // claude 2026-10-19: created (L4 review)

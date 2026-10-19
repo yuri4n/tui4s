@@ -493,14 +493,14 @@ lazy val assistantWeb = project
   .enablePlugins(ScalaJSPlugin)
   .dependsOn(assistantJS)
   .settings(
-    name                                        := "tui4s-assistant-web",
-    publish / skip                              := true,
-    scalaJSUseMainModuleInitializer             := true,
+    name                                                := "tui4s-assistant-web",
+    publish / skip                                      := true,
+    scalaJSUseMainModuleInitializer                     := true,
     excludeDependencies += ExclusionRule(
       "io.github.cquiroz",
       "locales-full-currencies-db_sjs1_3",
     ),
-    libraryDependencies += "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.5.4",
+    libraryDependencies += "io.github.cquiroz"         %%% "locales-minimal-en_us-db" % "1.5.4",
     // The script of the page has no source map (the map holds the paths of
     // the build machine), and it goes to a path with no Scala version, for
     // scripts/web-build.sh.

@@ -333,72 +333,81 @@ object AssistantUi:
             // so the repair tick finds the region equal and does nothing.
             // claude 2026-10-19: changed: the body is made once (L4 review)
             inner    = div.style(_.height(100.pct))(
-              div(
-                Panel(
-                  "Chats",
-                  style = Style
-                    .width(surface.cols(Metrics.listCells))
-                    .flexShrink(0) ++ surface.panel,
-                )(
-                  div.style(_.flexGrow(1).minHeight(0.px).overflowY(_.auto))(
-                    list,
-                  ),
-                ),
-                Panel.reactive(
-                  store.active.map(_.fold("")(_.title)),
-                  style = Style.flexGrow(1).minWidth(0.px) ++ surface.panel,
-                )(
-                  transcript(store, surface, metrics, follow, offset),
-                ),
-              ).style(
-                metrics
-                  .map(m =>
-                    Style.row.height(surface.rows(m.textRows + 2)).flexShrink(0),
-                  ),
-              ),
-              when(store.logPane.map(_ == Pane.Shown))(
-                Panel(
-                  "Log",
-                  style = Style.flexShrink(0) ++ surface.lines ++ surface.panel,
-                )(
-                  logView,
-                ),
-              ),
-              Panel(
-                surface.composerTitle,
-                style = Style.flexShrink(0) ++ surface.panel,
-              )(
-                composer(
-                  surface,
-                  textarea
-                    .value(store.composer)
-                    .placeholder("Type a message")
-                    .focusAuto(true)
-                    .style(_.height(surface.rows(Metrics.composerRows))),
-                  store.composer,
-                  tail.andThen(store.send),
-                  echo,
-                ),
-              ),
-              StatusBar(
-                store.settings
-                  .combineLatest(store.tokens)
-                  .map((s, t) =>
-                    s"${s.provider.label} · ${s.model} · ${t.input} in, ${t.output} out",
-                  ),
-                right = store.streaming.render {
-                  case Streaming.Running(_) => spinner
-                  case Streaming.Idle       =>
-                    span("ready").style(_.color(Colors.muted))
-                },
-              ),
-              KeyHints(hints),
-              settingsLayer(store, surface, drafts, radio, looks),
-              helpLayer(store, surface, keys),
-              palette.view,
-              confirm.view,
-              prompt.view,
-            )
+                         div(
+                           Panel(
+                             "Chats",
+                             style = Style
+                               .width(surface.cols(Metrics.listCells))
+                               .flexShrink(0) ++ surface.panel,
+                           )(
+                             div.style(
+                               _.flexGrow(1).minHeight(0.px).overflowY(_.auto),
+                             )(
+                               list,
+                             ),
+                           ),
+                           Panel.reactive(
+                             store.active.map(_.fold("")(_.title)),
+                             style =
+                               Style.flexGrow(1).minWidth(0.px) ++ surface.panel,
+                           )(
+                             transcript(store, surface, metrics, follow, offset),
+                           ),
+                         ).style(
+                           metrics
+                             .map(m =>
+                               Style.row
+                                 .height(surface.rows(m.textRows + 2))
+                                 .flexShrink(0),
+                             ),
+                         ),
+                         when(store.logPane.map(_ == Pane.Shown))(
+                           Panel(
+                             "Log",
+                             style = Style.flexShrink(
+                               0,
+                             ) ++ surface.lines ++ surface.panel,
+                           )(
+                             logView,
+                           ),
+                         ),
+                         Panel(
+                           surface.composerTitle,
+                           style = Style.flexShrink(0) ++ surface.panel,
+                         )(
+                           composer(
+                             surface,
+                             textarea
+                               .value(store.composer)
+                               .placeholder("Type a message")
+                               .focusAuto(true)
+                               .style(
+                                 _.height(surface.rows(Metrics.composerRows)),
+                               ),
+                             store.composer,
+                             tail.andThen(store.send),
+                             echo,
+                           ),
+                         ),
+                         StatusBar(
+                           store.settings
+                             .combineLatest(store.tokens)
+                             .map((s, t) =>
+                               s"${s.provider.label} · ${s.model} · ${t.input} in, ${t.output} out",
+                             ),
+                           right = store.streaming.render {
+                             case Streaming.Running(_) => spinner
+                             case Streaming.Idle       =>
+                               span("ready").style(_.color(Colors.muted))
+                           },
+                         ),
+                         KeyHints(hints),
+                         settingsLayer(store, surface, drafts, radio, looks),
+                         helpLayer(store, surface, keys),
+                         palette.view,
+                         confirm.view,
+                         prompt.view,
+                       )
         // claude 2026-10-19: changed: the root carries the theme of the look
         // (L4); only the root is in the region of the look (L4 review)
         yield store.look.render(l =>
@@ -430,26 +439,26 @@ object AssistantUi:
         echo: AtomicRef[Surface.Echo],
     )(using Frame): UI =
       surface match
-          case Surface.Terminal   => form.onSubmit(send)(area)
+          case Surface.Terminal       => form.onSubmit(send)(area)
           // claude 2026-10-19: changed: Ctrl-J only on macOS (L4 review)
           case Surface.Browser(_, os) =>
             def plain(m: Modifiers) = !m.ctrl && !m.alt && !m.shift && !m.meta
             area
               .onKeyDown(e =>
                 e.key match
-                    case Keyboard.Enter if plain(e.modifiers)   =>
+                    case Keyboard.Enter if plain(e.modifiers) =>
                       for
                           before <- text.get
                           _      <- send
                           after  <- text.get
                           _      <- echo.set(Surface.Echo.Sent(before, after))
                       yield ()
-                    case Keyboard.Enter if e.modifiers.alt      =>
+                    case Keyboard.Enter if e.modifiers.alt    =>
                       text.updateAndGet(_ + "\n").unit
                     case Keyboard.Char('j')
                         if e.modifiers.ctrl && os == Surface.Os.Mac =>
                       text.updateAndGet(_ + "\n").unit
-                    case _                                      => Kyo.unit,
+                    case _                                    => Kyo.unit,
               )
               .onInput(t =>
                 echo
@@ -654,7 +663,7 @@ object AssistantUi:
                 .style(_.height(surface.rows(3)).flexGrow(1)),
             ),
             surface match
-                case Surface.Terminal   =>
+                case Surface.Terminal      =>
                   f(
                     "Keys",
                     div(keys.map(k => span(k).style(pre.color(Colors.muted)))*),
@@ -670,7 +679,7 @@ object AssistantUi:
             ),
           ),
           surface match
-              case Surface.Terminal       => UI.empty
+              case Surface.Terminal          => UI.empty
               case Surface.Browser(vault, _) =>
                 keyFields(store, surface, drafts, vault),
         )

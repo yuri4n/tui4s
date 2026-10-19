@@ -12,8 +12,8 @@ import scala.scalajs.js.typedarray.{Int8Array, Uint8Array, int8Array2ByteArray}
   * [[HttpFailure.Status]] (with its `retry-after` header and at most
   * [[maxErrorBody]] characters of its body); a rejected `fetch` or read fails
   * with [[HttpFailure.Transport]]. The wait for the headers (and for the body
-  * of an error status) is at most `timeout`, as on the JVM ([[KyoHttp]]);
-  * after the headers, a body that gives no bytes for `idle` fails with
+  * of an error status) is at most `timeout`, as on the JVM ([[KyoHttp]]); after
+  * the headers, a body that gives no bytes for `idle` fails with
   * [[HttpFailure.Transport]].
   *
   * Each call has its own `AbortController` in a `Scope`: the end of the reader
