@@ -283,6 +283,20 @@ private[tui4s] object Paint:
           )
     end clipOf
 
+    /** The rows of a text at `rect` that lie inside `clip`, as line indexes
+      * from 0 to `rect.h`. Paint writes only these rows.
+      */
+    // claude 2026-10-19: created (PF-a, F3): the rows of the paint cull
+    def visibleRows(rect: Rect, clip: Rect): Range =
+      (clip.y - rect.y).max(0) until (clip.bottom - rect.y).min(rect.h)
+
+    /** Paints the node at `p` and its subtree inside `clip`. Every write of a
+      * subtree lies inside `n.rect` and `clip` (law I4: fill, border,
+      * decoration and text take that area, and the kids take the content box
+      * inside it). So a node whose rect does not meet the clip is skipped with
+      * its subtree, and a text paints only its visible rows (the paint cull).
+      */
+    // claude 2026-10-19: changed: the paint cull (PF-a, F3)
     def paintNode(
         canvas: Canvas,
         laid: Laid,
@@ -292,23 +306,25 @@ private[tui4s] object Paint:
     ): Unit =
       laid.nodes.get(p).foreach { n =>
         n.kind match
-            case Kind.Screen             =>
+            case Kind.Screen                          =>
               n.kids.foreach(k => paintNode(canvas, laid, env, k, n.rect))
-            case Kind.Txt(text, wrapped) =>
-              val lines =
-                Layout.textLines(n.props.text(text), n.rect.w, wrapped)
+            case _ if n.rect.intersect(clip).isEmpty => ()
+            case Kind.Txt(text, wrapped)              =>
+              val lines = Layout.textLines(n.props.text(text), n.rect.w, wrapped)
               val style = n.props.text.style
               val area  = n.rect.intersect(clip)
-              lines.take(n.rect.h).zipWithIndex.foreach { (line, i) =>
-                val w = Layout.textWidth(line)
-                val x = n.props.text.align match
-                    case TextAlign.center =>
-                      n.rect.x + (n.rect.w - w).max(0) / 2
-                    case TextAlign.right  => n.rect.x + (n.rect.w - w).max(0)
-                    case _                => n.rect.x
-                discard(canvas.text(x, n.rect.y + i, line, style, area))
+              visibleRows(n.rect, area).foreach { i =>
+                lines.lift(i).foreach { line =>
+                  val w = Layout.textWidth(line)
+                  val x = n.props.text.align match
+                      case TextAlign.center =>
+                        n.rect.x + (n.rect.w - w).max(0) / 2
+                      case TextAlign.right  => n.rect.x + (n.rect.w - w).max(0)
+                      case _                => n.rect.x
+                  discard(canvas.text(x, n.rect.y + i, line, style, area))
+                }
               }
-            case Kind.El(e)              =>
+            case Kind.El(e)                           =>
               val area  = n.rect.intersect(clip)
               n.props.bg.foreach(bg => canvas.fillBg(n.rect, bg, clip))
               n.props.border

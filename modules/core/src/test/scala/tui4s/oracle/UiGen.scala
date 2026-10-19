@@ -59,33 +59,43 @@ object UiGen:
     )
 
     /** A text of 0 to 6 words, one space between them. */
-    val text: Gen[String] =
-      between(0, 6).flatMap(n => Gen.listOfN(n, word)).map(_.mkString(" "))
+    val text: Gen[String] = textOf(word)
+
+    /** A text of ASCII words only: one cell for each char. */
+    val asciiText: Gen[String] =
+      textOf(Gen.oneOf("a", "bb", "hello", "", "a-long-token-without-spaces"))
+
+    private def textOf(w: Gen[String]): Gen[String] =
+      between(0, 6).flatMap(n => Gen.listOfN(n, w)).map(_.mkString(" "))
 
     private val keys: Gen[String] = Gen.oneOf("a", "b", "c", "d", "e", "f")
 
-    private def kids(depth: Int): Gen[List[Spec]] =
-      between(0, 4).flatMap(n => Gen.listOfN(n, spec(depth - 1))).map(_.toList)
-
-    private def items(depth: Int): Gen[List[(String, Spec)]] =
+    private def kids(depth: Int, txt: Gen[String]): Gen[List[Spec]] =
       between(0, 4)
-        .flatMap(n => Gen.listOfN(n, Gen.zip(keys, spec(depth - 1))))
+        .flatMap(n => Gen.listOfN(n, spec(depth - 1, txt)))
+        .map(_.toList)
+
+    private def items(depth: Int, txt: Gen[String]): Gen[List[(String, Spec)]] =
+      between(0, 4)
+        .flatMap(n => Gen.listOfN(n, Gen.zip(keys, spec(depth - 1, txt))))
         .map(_.toList.distinctBy(_._1))
 
-    /** A tree at most `depth` levels deep. */
-    def spec(depth: Int): Gen[Spec] =
-      if depth <= 0 then text.map(Spec.Txt(_))
+    /** A tree at most `depth` levels deep, with texts from `txt`. */
+    def spec(depth: Int, txt: Gen[String]): Gen[Spec] =
+      if depth <= 0 then txt.map(Spec.Txt(_))
       else
           Gen.frequency(
-            2 -> text.map(Spec.Txt(_)),
+            2 -> txt.map(Spec.Txt(_)),
             6 -> Gen
-              .zip3(between(0, 4), between(0, 5), kids(depth))
+              .zip3(between(0, 4), between(0, 5), kids(depth, txt))
               .map(Spec.Box(_, _, _)),
-            1 -> kids(depth).map(Spec.Frag(_)),
+            1 -> kids(depth, txt).map(Spec.Frag(_)),
             2 -> Gen
-              .zip(spec(depth - 1), spec(depth - 1))
+              .zip(spec(depth - 1, txt), spec(depth - 1, txt))
               .map(Spec.Reac(_, _)),
-            2 -> Gen.zip(items(depth), items(depth)).map(Spec.Each(_, _)),
+            2 -> Gen
+              .zip(items(depth, txt), items(depth, txt))
+              .map(Spec.Each(_, _)),
           )
 
     /** A screen size: 1 to 40 columns, 1 to 20 rows. */
@@ -166,11 +176,11 @@ object UiGen:
             )
 
     /** A root element (at `Loc.root`) of at most `depth` levels, with its
-      * regions.
+      * regions, and texts from `txt`.
       */
-    def built(depth: Int)(using Frame): Gen[Built] =
+    def built(depth: Int, txt: Gen[String] = text)(using Frame): Gen[Built] =
       Gen
-        .zip3(between(0, 4), between(0, 5), kids(depth))
+        .zip3(between(0, 4), between(0, 5), kids(depth, txt))
         .map((tag, style, ks) => build(Spec.Box(tag, style, ks), Loc.root))
 
     /** The paths whose content differs between scene A and scene B. */
