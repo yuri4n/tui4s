@@ -331,10 +331,17 @@ lazy val launchers =
 // The zio and cats modules are empty in this version.
 // claude 2026-10-19: changed: core, the composables and the widgets; no
 // `run / connectInput`; the JVM flags of a real run; munit tests; the
-// launchers task (T1, L2a); the assistant (L3)
+// launchers task (T1, L2a); the assistant (L3); the test sources of the
+// assistant: its interpreters in memory and its gate (L3 review)
 lazy val examples = project
   .in(file("examples"))
-  .dependsOn(core, useJVM, widgetsJVM, assistantJVM, pini4s)
+  .dependsOn(
+    core,
+    useJVM,
+    widgetsJVM,
+    assistantJVM % "compile->compile;test->test",
+    pini4s,
+  )
   .enablePlugins(JavaAppPackaging)
   .settings(
     name           := "tui4s-examples",

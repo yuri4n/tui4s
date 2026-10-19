@@ -6,10 +6,11 @@ import tui4s.use.Storage
 
 /** The store of the app on the interpreters in memory, wired with Kyo layers as
   * the main wires the real ones: send and the reply that streams, a failure, a
-  * cancel, new, switch, rename, delete, the settings, and the conversations
-  * that a second start loads. On the JVM and on Node.js.
+  * cancel, new, switch, rename, delete, the settings (also after a run with
+  * `--fake`), a save that fails, and the conversations that a second start
+  * loads. On the JVM and on Node.js.
   */
-// claude 2026-10-19: created (L3)
+// claude 2026-10-19: created (L3); changed: the tests of the review (L3 review)
 class AssistantTest extends Test[Any]:
     import AssistantTest.*
 
@@ -38,7 +39,7 @@ class AssistantTest extends Test[Any]:
           assert(
             composer == "" && c.get.title == "hi there" &&
               ms.map(_.role) == Chunk(Role.User, Role.Assistant) &&
-              ms(1).status == MessageStatus.Done &&
+              ms(1).status == MessageStatus.Done(StopReason.EndTurn) &&
               ms(1).content.startsWith("You said: \"hi there\".") &&
               tokens.output > 0 && ids == Chunk(c.get.id),
           )
@@ -61,28 +62,38 @@ class AssistantTest extends Test[Any]:
       })
     }
 
+    // claude 2026-10-19: changed: a gate, not the clock (L3 review)
     "cancel stops the stream: the reply keeps its text and is marked stopped" in {
-      Scope.run(withStore(FakeProvider.make(delay = 20.millis)) { a =>
-        for
-            _ <- a.composer.set("hi")
-            _ <- a.send
-            _ <-
-              until(
-                a.active.current.map(_.exists(_.messages.last.content.nonEmpty)),
+      PieceGate.init.map(gate =>
+        Scope.run(withStore(gate.provider(PieceGate.lines(5))) { a =>
+          for
+              _ <- a.composer.set("hi")
+              _ <- a.send
+              _ <- gate.release(3)
+              _ <- Memory.await(a.chats)(
+                     _.exists(
+                       _.messages.lastOption.exists(
+                         _.content == "line 1\nline 2\nline 3\n",
+                       ),
+                     ),
+                   )
+              _ <- a.cancel
+              c <- a.active.current
+              s <- a.streaming.current
+              // the negative check: the pieces that come free after the
+              // cancel reach no conversation (the fiber of the reply ended)
+              _ <- gate.release(2)
+              _ <- Async.sleep(100.millis)
+              d <- a.active.current
+          yield
+              val m = c.get.messages.last
+              assert(
+                m.status == MessageStatus.Failed(ChatError.Cancelled) &&
+                  m.content == "line 1\nline 2\nline 3\n" &&
+                  s == Streaming.Idle && d == c,
               )
-            _ <- a.cancel
-            c <- a.active.current
-            s <- a.streaming.current
-            _ <- Async.sleep(100.millis)
-            d <- a.active.current
-        yield
-            val m = c.get.messages.last
-            assert(
-              m.status == MessageStatus.Failed(ChatError.Cancelled) &&
-                m.content.nonEmpty && !m.content.endsWith("stop me.") &&
-                s == Streaming.Idle && d == c,
-            )
-      })
+        }),
+      )
     }
 
     "new, switch, rename and delete" in {
@@ -161,6 +172,77 @@ class AssistantTest extends Test[Any]:
           )
     }
 
+    // claude 2026-10-19: created (L3 review)
+    "a run with --fake keeps the stored settings: the next start takes them again" in {
+      val anthropic = Map(ProviderChoice.Anthropic -> "sk-a")
+      for
+          storage <- Storage.inMemory
+          fake     = FakeProvider.make(delay = Duration.Zero)
+          _       <- Scope.run(withStoreOn(storage, fake, anthropic) { a =>
+                       a.updateSettings(
+                         Settings(
+                           ProviderChoice.Anthropic,
+                           "my-model",
+                           Present(0.5),
+                           "Be brief.",
+                         ),
+                       )
+                     })
+          forced  <- Scope.run(
+                       withStoreOn(storage, fake, anthropic, StartMode.FakeOnly)(
+                         _.settings.current,
+                       ),
+                     )
+          next    <- Scope.run(
+                       withStoreOn(storage, fake, anthropic)(_.settings.current),
+                     )
+      yield assert(
+        forced.provider == ProviderChoice.Fake &&
+          forced.systemPrompt == "Be brief." &&
+          next == Settings(
+            ProviderChoice.Anthropic,
+            "my-model",
+            Present(0.5),
+            "Be brief.",
+          ),
+        s"$forced $next",
+      )
+      end for
+    }
+
+    // claude 2026-10-19: created (L3 review)
+    "a save that fails is a warning in the log; the reply still ends" in {
+      for
+          storage <- Storage.inMemory
+          seen    <- Scope.run(
+                       withStoreOn(
+                         Memory.unwritable(storage),
+                         FakeProvider.make(delay = Duration.Zero),
+                       ) { a =>
+                         for
+                             _     <- a.composer.set("hi")
+                             _     <- a.send
+                             _     <- idle(a)
+                             c     <- a.active.current
+                             lines <- a.log.lines.current
+                         yield (c, lines)
+                       },
+                     )
+      yield
+          val (c, lines) = seen
+          assert(
+            c.exists(
+              _.messages.last.status == MessageStatus.Done(
+                StopReason.EndTurn,
+              ),
+            ) && lines.exists(l =>
+              l.contains("was not saved") && l.contains("the disk is full"),
+            ),
+            lines.toString,
+          )
+      end for
+    }
+
     "--fake forces the fake provider, also with a key" in {
       Scope.run(
         withStore(
@@ -179,19 +261,24 @@ class AssistantTest extends Test[Any]:
     }
 end AssistantTest
 
-/** The wiring of a store in memory, and the waits of the tests. */
-// claude 2026-10-19: created (L3)
+/** The wiring of a store in memory, and the wait of the tests. */
+// claude 2026-10-19: created (L3); changed: Memory.wiring, the wait (L3 review)
 object AssistantTest:
+    /** The effects of a test of the store: a wait can time out. */
+    // claude 2026-10-19: created (L3 review)
+    type Effects = Async & Scope & Abort[Timeout]
+
     /** `f` with a store on `storage`, the provider `fake`, and `keys`; the
       * layers as the main wires them, with the interpreters in memory.
       */
+    // claude 2026-10-19: changed: a wait can time out (L3 review)
     def withStoreOn[A](
         storage: Storage,
         fake: ChatProvider,
         keys: Map[ProviderChoice, String] = Map.empty,
         mode: StartMode = StartMode.Detect,
-    )(f: Assistant => A < (Async & Scope))(using Frame): A < (Async & Scope) =
-        val (files, secrets) = Wiring.inMemory(storage, keys)
+    )(f: Assistant => A < Effects)(using Frame): A < Effects =
+        val (files, secrets) = Memory.wiring(storage, keys)
         Memo.run(
           Env.runLayer(
             files,
@@ -204,23 +291,16 @@ object AssistantTest:
     end withStoreOn
 
     /** `f` with a store on a new storage in memory. */
+    // claude 2026-10-19: changed: a wait can time out (L3 review)
     def withStore[A](
         fake: ChatProvider,
         keys: Map[ProviderChoice, String] = Map.empty,
         mode: StartMode = StartMode.Detect,
-    )(f: Assistant => A < (Async & Scope))(using Frame): A < (Async & Scope) =
+    )(f: Assistant => A < Effects)(using Frame): A < Effects =
       Storage.inMemory.map(withStoreOn(_, fake, keys, mode)(f))
 
-    /** Waits until `cond` holds: a read every 5 ms, at most 5 s. */
-    def until(cond: => Boolean < Sync)(using Frame): Unit < Async =
-      Loop(0)(i =>
-        cond.map(ok =>
-          if ok || i > 1000 then Loop.done(())
-          else Async.sleep(5.millis).andThen(Loop.continue(i + 1)),
-        ),
-      )
-
-    /** Waits until no reply streams. */
-    def idle(a: Assistant)(using Frame): Unit < Async =
-      until(a.streaming.current.map(_ == Streaming.Idle))
+    /** Waits until no reply streams; fails after 5 s. */
+    // claude 2026-10-19: changed: a wait on the signal that fails (L3 review)
+    def idle(a: Assistant)(using Frame): Unit < (Async & Abort[Timeout]) =
+      Memory.await(a.streaming)(_ == Streaming.Idle).unit
 end AssistantTest

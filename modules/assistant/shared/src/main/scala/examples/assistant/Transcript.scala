@@ -9,8 +9,8 @@ import tui4s.widgets.Cells
   *   - Before a stop, the text is the deltas joined in order, and the status
   *     stays [[MessageStatus.Streaming]].
   *   - [[ChatEvent.Stop]] ends the message: the status is
-  *     [[MessageStatus.Done]], the usage is the usage of the stop, and a later
-  *     event changes nothing.
+  *     [[MessageStatus.Done]] with the reason of the stop, the usage is the
+  *     usage of the stop, and a later event changes nothing.
   *   - [[ChatEvent.Error]] ends the message as [[MessageStatus.Failed]] and
   *     keeps the text before it; a later event changes nothing.
   *
@@ -24,6 +24,7 @@ object Transcript:
     def start(at: Instant): Message =
       Message(Role.Assistant, "", at, MessageStatus.Streaming)
 
+    // claude 2026-10-19: changed: Done keeps the stop reason (L3 review)
     // region: transcript
     /** The message after `event`. */
     def apply(message: Message, event: ChatEvent): Message =
@@ -32,8 +33,8 @@ object Transcript:
             event match
                 case ChatEvent.TextDelta(t) =>
                   message.copy(content = message.content + t)
-                case ChatEvent.Stop(_, u)   =>
-                  message.copy(status = MessageStatus.Done, usage = u)
+                case ChatEvent.Stop(r, u)   =>
+                  message.copy(status = MessageStatus.Done(r), usage = u)
                 case ChatEvent.Error(e)     =>
                   message.copy(status = MessageStatus.Failed(e))
           case _                       => message

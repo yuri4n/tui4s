@@ -47,9 +47,9 @@ enum Pane derives CanEqual:
 
 /** The services of the app as Kyo layers: the main of a platform gives the
   * storage and the keys of its platform, and these build the rest. A test gives
-  * the interpreters in memory ([[Wiring.inMemory]]).
+  * the interpreters in memory (`Memory.wiring`, in the test sources).
   */
-// claude 2026-10-19: created (L3)
+// claude 2026-10-19: created (L3); changed: the layers in memory went to the tests (L3 review)
 object Wiring:
     /** The services that the app reads from its environment. */
     type Services = ConversationStore & Storage & Providers & AppLog
@@ -77,15 +77,6 @@ object Wiring:
               Providers.fakeOnly(fake): Providers < Sync,
       )
     // endregion: wiring
-
-    /** The storage and the keys in memory (tests): `storage` holds the files,
-      * `keys` the keys of the environment.
-      */
-    def inMemory(
-        storage: Storage,
-        keys: Map[ProviderChoice, String] = Map.empty,
-    )(using Frame): (Layer[Storage, Any], Layer[Secrets, Any]) =
-      (Layer(storage), Layer(Secrets.inMemory(keys)))
 end Wiring
 
 /** The store of the app: one typed feature that groups its state (the
@@ -173,7 +164,12 @@ final class Assistant private (
                      title =
                        if c.title == Title.empty then Title.of(text) else c.title,
                      messages = c.messages :+
-                       Message(Role.User, text, now, MessageStatus.Done) :+
+                       Message(
+                         Role.User,
+                         text,
+                         now,
+                         MessageStatus.Done(StopReason.EndTurn),
+                       ) :+
                        Transcript.start(now),
                    ),
                  )
@@ -223,8 +219,10 @@ final class Assistant private (
     def switchTo(id: ConversationId): Unit < Sync = selection.select(id)
 
     /** Deletes the conversation `id` (a reply of it that streams stops first).
-      * When the list becomes empty, a new conversation takes its place.
+      * When the list becomes empty, a new conversation takes its place. A
+      * failed write is a warning in the log.
       */
+    // claude 2026-10-19: changed: a failed write is a warning (L3 review)
     def delete(id: ConversationId): Unit < Async =
       for
           r    <- run.get
@@ -232,7 +230,7 @@ final class Assistant private (
                       case Run.Busy(on, _, _) if on == id => cancel
                       case _                              => Kyo.unit
           left <- chatsRef.updateAndGet(_.filterNot(_.id == id))
-          _    <- store.delete(id)
+          _    <- warnOn(store.delete(id))
           _    <- if left.isEmpty then newChat else Kyo.unit
           _    <- log.info("a conversation was deleted")
       yield ()
@@ -273,19 +271,19 @@ final class Assistant private (
     /** Takes the settings `s` of the settings layer; a provider with no key
       * stays the one before.
       */
+    // claude 2026-10-19: changed: the log names the kept model (L3 review)
     def updateSettings(s: Settings): Unit < Sync =
       settingsRef.get.map(before =>
-          val p = if providers.get(s.provider).nonEmpty then s.provider
+          val p    = if providers.get(s.provider).nonEmpty then s.provider
           else before.provider
+          val kept = s.copy(
+            provider = p,
+            model =
+              if s.model.trim.isEmpty then p.defaultModel else s.model.trim,
+          )
           settingsRef
-            .set(
-              s.copy(
-                provider = p,
-                model =
-                  if s.model.trim.isEmpty then p.defaultModel else s.model.trim,
-              ),
-            )
-            .andThen(log.info(s"settings: ${p.label}, model ${s.model.trim}")),
+            .set(kept)
+            .andThen(log.info(s"settings: ${p.label}, model ${kept.model}")),
       )
 
     /** Shows or hides the log pane. */
@@ -303,11 +301,22 @@ final class Assistant private (
     private def fold(id: ConversationId, e: ChatEvent): Unit < Sync =
       update(id)(Transcript.reply(_, e))
 
-    /** Saves the conversation `id`, when it has a message. */
+    /** Saves the conversation `id`, when it has a message; a failed write is a
+      * warning in the log.
+      */
+    // claude 2026-10-19: changed: a failed write is a warning (L3 review)
     private def save(id: ConversationId): Unit < Sync =
       chatsRef.get.map(_.find(c => c.id == id && c.messages.nonEmpty) match
-          case Some(c) => store.save(c)
+          case Some(c) => warnOn(store.save(c))
           case None    => Kyo.unit)
+
+    /** Runs the write `v` of the store; its [[StoreError]] goes to the log. */
+    // claude 2026-10-19: created (L3 review)
+    private def warnOn(v: Unit < (Sync & Abort[StoreError])): Unit < Sync =
+      Abort.run[StoreError](v).map {
+        case Result.Failure(e) => log.warn(e.describe)
+        case _                 => Kyo.unit
+      }
 
     // region: start
     /** Starts the fiber of the reply to `request`. The fiber waits for a gate,
@@ -338,8 +347,11 @@ final class Assistant private (
     // endregion: start
 
     /** The body of the fiber of a reply: the events into the conversation, then
-      * the end (an error when the stream failed), then the save.
+      * the end (an error when the stream failed), then the save. The fiber sets
+      * the stream state to Idle while its run is still Busy, then frees the
+      * run: so a send that the free run starts is never marked Idle.
       */
+    // claude 2026-10-19: changed: Idle before the free run (L3 review)
     private def reply(
         id: ConversationId,
         gen: Long,
@@ -355,18 +367,22 @@ final class Assistant private (
           case Result.Panic(t)   => ChatEvent.Error(ChatError.Network(t.toString))
         }
         .map(end => fold(id, end))
-        .andThen(run.getAndUpdate {
-          case Run.Busy(_, g, _) if g == gen => Run.Idle
-          case other                         => other
-        })
+        .andThen(run.get)
         .map {
           // only the fiber that ends its own run finishes it: a cancel
           // finished it already
           case Run.Busy(_, g, _) if g == gen =>
             streamingRef
               .set(Streaming.Idle)
-              .andThen(save(id))
-              .andThen(ended(id))
+              .andThen(run.getAndUpdate {
+                case Run.Busy(_, g, _) if g == gen => Run.Idle
+                case other                         => other
+              })
+              .map {
+                case Run.Busy(_, g, _) if g == gen =>
+                  save(id).andThen(ended(id))
+                case _                             => Kyo.unit
+              }
           case _                             => Kyo.unit
         }
 
@@ -400,8 +416,10 @@ object Assistant:
       * stored conversations (a reply that streamed when the app ended is marked
       * stopped; a text that is not a conversation is a warning), and the
       * settings (`Settings.pick`: `mode` [[StartMode.FakeOnly]] forces the fake
-      * provider).
+      * provider). The settings persist in [[StartMode.Detect]] only: a run with
+      * `--fake` does not change the stored settings.
       */
+    // claude 2026-10-19: changed: --fake does not store the settings (L3 review)
     def make(mode: StartMode)(using
         Frame,
     ): Assistant < (Env[Wiring.Services] & Async & Scope) =
@@ -432,8 +450,12 @@ object Assistant:
                              case StartMode.FakeOnly => Present(ProviderChoice.Fake)
                              case StartMode.Detect   => Absent
             picked     = Settings.pick(stored, providers.available, forced)
-            settings  <- usePersisted("settings", picked, storage)
-            _         <- settings.set(picked)
+            settings  <- (mode match
+                             case StartMode.FakeOnly => Signal.initRef(picked)
+                             case StartMode.Detect   =>
+                               usePersisted("settings", picked, storage)
+                                 .map(ref => ref.set(picked).andThen(ref))
+                         ): SignalRef[Settings] < (Sync & Scope)
             composer  <- Signal.initRef("")
             streaming <- Signal.initRef[Streaming](Streaming.Idle)
             overlay   <- Signal.initRef[Overlay](Overlay.Closed)

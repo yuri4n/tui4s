@@ -133,6 +133,7 @@ class SecretsTest extends Test[Any]:
           case other                                                         => fail(other.toString)
     }
 
+    // claude 2026-10-19: changed: the read follows no link (L3 review)
     "a link is not followed; no file and no variable is no key" in {
       for
           dir       <- tempDir
@@ -150,12 +151,19 @@ class SecretsTest extends Test[Any]:
                            .make(vars, dir.resolve("none").nn)
                            .apiKey(ProviderChoice.Anthropic),
                        )
+          // the read itself: a link that takes the place of the file after
+          // the check of its permissions is not followed
+          readLink  <- Abort.run[SecretsError](KeyFile.real.read(link))
       yield assert(
         (viaLink match
             case Result.Failure(SecretsError.Unreadable(_, _)) => true
             case _                                             => false
         ) &&
+          (readLink match
+              case Result.Failure(SecretsError.Unreadable(_, _)) => true
+              case _                                             => false) &&
           none == Result.succeed(Absent),
+        readLink.toString,
       )
     }
 
@@ -171,7 +179,7 @@ class SecretsTest extends Test[Any]:
                          Role.User,
                          "hi\nthere",
                          Instant.Epoch,
-                         MessageStatus.Done,
+                         MessageStatus.Done(StopReason.EndTurn),
                        ),
                      ),
                      Instant.Epoch,

@@ -7,8 +7,9 @@ import java.nio.charset.StandardCharsets.UTF_8
 
 /** The HTTP seam of the JVM ([[KyoHttp]]) against a kyo-http server on the
   * loopback interface (no other network): the lines of a 200 body and the
-  * headers that the seam sends, a 429 with `retry-after` and its body, and a
-  * refused connection.
+  * headers that the seam sends, a 429 with `retry-after` and its body, a
+  * refused connection, a redirect that the seam does not follow, and a body
+  * that stalls.
   */
 // claude 2026-10-19: created (L3)
 class KyoHttpTest extends Test[Any]:
@@ -18,6 +19,12 @@ class KyoHttpTest extends Test[Any]:
 
     private val limited =
       HttpRoute.postRaw("limited").request(_.bodyText).response(_.bodyText)
+
+    private val moved =
+      HttpRoute.postRaw("moved").request(_.bodyText).response(_.bodyText)
+
+    private val stalled =
+      HttpRoute.postRaw("stalled").request(_.bodyText).response(_.bodyStream)
 
     private def bytes(s: String): Span[Byte] = Span.from(s.getBytes(UTF_8))
 
@@ -50,6 +57,76 @@ class KyoHttpTest extends Test[Any]:
 
     private def call(url: String) =
       HttpCall(url, Chunk("x-api-key" -> HeaderValue.Secret("", key)), "{}")
+
+    // claude 2026-10-19: created (L3 review)
+    "a redirect to another host is a status: the key never goes there" in {
+      for
+          seen  <- AtomicRef.init(Maybe.empty[String])
+          other <-
+            HttpServer.init(0, "127.0.0.1")(
+              HttpHandler.init(stream)(req =>
+                seen
+                  .set(Present(req.headers.get("x-api-key").getOrElse("")))
+                  .andThen(
+                    HttpResponse(HttpStatus.OK)
+                      .addField("body", Stream.init(Chunk(bytes("x\n")))),
+                  ),
+              ),
+            )
+          first <-
+            HttpServer.init(0, "127.0.0.1")(
+              HttpHandler.init(moved)(_ =>
+                HttpResponse(HttpStatus.TemporaryRedirect)
+                  .addHeader("location", s"http://127.0.0.1:${other.port}/ok")
+                  .addField("body", ""),
+              ),
+            )
+          got   <- Abort.run[HttpFailure](
+                     KyoHttp
+                       .seam(5.seconds)
+                       .lines(call(s"http://127.0.0.1:${first.port}/moved"))
+                       .run,
+                   )
+          there <- seen.get
+      yield assert(
+        (got match
+            case Result.Failure(HttpFailure.Status(307, _, _)) => true
+            case _                                             => false
+        ) &&
+          there == Absent,
+        s"$got $there",
+      )
+    }
+
+    // claude 2026-10-19: created (L3 review)
+    "a body that gives no data for the idle limit is a transport failure" in {
+      for
+          s   <- HttpServer.init(0, "127.0.0.1")(
+                   HttpHandler.init(stalled)(_ =>
+                     HttpResponse(HttpStatus.OK).addField(
+                       "body",
+                       Stream[Span[Byte], Async](
+                         Emit.valueWith(Chunk(bytes("data: a\n")))(
+                           Async.sleep(1.hour),
+                         ),
+                       ),
+                     ),
+                   ),
+                 )
+          got <- Abort.run[HttpFailure](
+                   KyoHttp
+                     .seam(5.seconds, idle = 300.millis)
+                     .lines(call(s"http://127.0.0.1:${s.port}/stalled"))
+                     .run,
+                 )
+      yield assert(
+        got match
+            case Result.Failure(HttpFailure.Transport(r)) =>
+              r.contains("no data")
+            case _                                        => false,
+        got.toString,
+      )
+    }
 
     "a 200 body comes as lines; a 429 fails with its status, retry-after and body; no server is a transport failure" in {
       Abort.run[HttpBindException](server).map {

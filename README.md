@@ -1264,7 +1264,7 @@ The charts (`Sparkline`, `Gauge`, `ProgressBar`, `BarChart`, `Spinner`), `ListVi
 
 ## A real app: the assistant
 
-<!-- claude 2026-10-19: created this section (L3): the code blocks are regions of the assistant module, of its main and of its suite (ReadmeSuite checks them) -->
+<!-- claude 2026-10-19: created this section (L3): the code blocks are regions of the assistant module, of its main and of its suite (ReadmeSuite checks them); changed: the interpreters in memory are in the test sources, Done keeps the stop reason (L3 review) -->
 The assistant is the flagship example: a chat with a language model
 (Anthropic, OpenAI, or a scripted fake provider) in the terminal. It is
 also the example of the shape of a real app. Its code is in two places:
@@ -1298,8 +1298,8 @@ text form of a conversation, on the JVM and on Node.js.
             event match
                 case ChatEvent.TextDelta(t) =>
                   message.copy(content = message.content + t)
-                case ChatEvent.Stop(_, u)   =>
-                  message.copy(status = MessageStatus.Done, usage = u)
+                case ChatEvent.Stop(r, u)   =>
+                  message.copy(status = MessageStatus.Done(r), usage = u)
                 case ChatEvent.Error(e)     =>
                   message.copy(status = MessageStatus.Failed(e))
           case _                       => message
@@ -1367,8 +1367,9 @@ the run:
 Each platform has its interpreters. On the JVM: `SseProvider` with the
 wire of Anthropic or of OpenAI over the HTTP client of kyo-http
 (`KyoHttp`), the keys (`SecretsJvm`), and the files (`FileStorage` of
-tui4s-use). The tests have interpreters in memory: `FakeProvider`,
-`Secrets.inMemory` and `Storage.inMemory`.
+tui4s-use). The tests have interpreters in memory in their own sources
+(`Memory.secrets`, `Memory.wiring`), with `FakeProvider` and
+`Storage.inMemory`.
 
 ### One store
 
@@ -1494,7 +1495,7 @@ memory and the fake provider:
         height: Int = 30,
     )(using Frame): Headless < (Async & Scope) =
       Storage.inMemory.map { storage =>
-        val (files, secrets) = Wiring.inMemory(storage, keys)
+        val (files, secrets) = Memory.wiring(storage, keys)
         Headless.start(width, height, stylesheet = Colors.defaults)(quit =>
           Tui.size.map(size =>
             Memo.run(

@@ -26,7 +26,7 @@ package.
 <!-- claude 2026-10-19: created the Forms row (L1c) -->
 <!-- claude 2026-10-19: changed the rows of Todo and Dashboard: the composables of tui4s-use; created the rows of the Native recipes and of the Recipes (L2a, L2a review) -->
 <!-- claude 2026-10-19: changed: the Widgets row and the Tabs examples of the section below; Tabs is in tui4s-widgets and takes a Model (L2b); created the Gallery row (L2b) -->
-<!-- claude 2026-10-19: created the Assistant row and the section "The keys of the assistant" (L3) -->
+<!-- claude 2026-10-19: created the Assistant row and the section "The keys of the assistant" (L3); changed: no redirect, --fake keeps the settings, the fallbacks, the notes, the idle limit (L3 review) -->
 
 ## The keys of the assistant
 
@@ -54,15 +54,24 @@ this order, for each provider:
 The app reads no other file. It never reads the credentials of another
 tool (for example `~/.claude/.credentials.json` or `~/.codex/auth.json`),
 and it never uses the login of a web account. It never shows, logs or prints
-a key: the settings (Ctrl-S) show only where each key comes from.
+a key: the settings (Ctrl-S) show only where each key comes from. The HTTP
+client follows no redirect, so a key goes only to the host of the provider.
 
 With no key, the app takes the fake provider. With `--fake`, it reads no key
 and takes the fake provider (no network): send `/fail` to see an error, and
 press Esc while it writes to stop it. The provider of the last run stays the
-provider when it still has a key. The conversations, the settings and the log
+provider when it still has a key; a run with `--fake` does not change the
+stored settings. The conversations, the settings and the log
 of a run are files in the data directory of the app
 (`~/.local/share/tui4s/assistant` on Linux); the directory and the files
 of the conversations and of the settings are for their owner only.
+
+A request to the default model of Anthropic asks for the server fallbacks of
+the API (`fallbacks: "default"`): when the safety rules of that model decline
+a request, Anthropic runs it again on the model that it recommends for that
+kind of request. A reply that a model declines, and a reply that stops at the
+token limit, show a note in the transcript. A stream that gives no data for
+5 minutes is a network error.
 
 ## State and events with Kyo
 

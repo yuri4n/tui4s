@@ -17,7 +17,14 @@ class WireTest extends Test[Any]:
       ApiKey.parse("sk-test-SECRET", KeySource.Environment("X")).get
 
     private val request = ChatRequest(
-      Chunk(Message(Role.User, "hi", Instant.Epoch, MessageStatus.Done)),
+      Chunk(
+        Message(
+          Role.User,
+          "hi",
+          Instant.Epoch,
+          MessageStatus.Done(StopReason.EndTurn),
+        ),
+      ),
       "a-model",
       Absent,
       "Be brief.",
@@ -151,6 +158,99 @@ class WireTest extends Test[Any]:
             .flatMap(_.str) ==
           Present("hi") &&
           !call.toString.contains("SECRET"),
+      )
+    }
+
+    // claude 2026-10-19: created (L3 review)
+    "the stop reasons: a refusal and max_tokens (Anthropic), length (OpenAI)" in {
+      for
+          r <- run(Anthropic, fixture("anthropic-refusal.sse"))
+          m <- run(Anthropic, fixture("anthropic-max-tokens.sse"))
+          l <- run(OpenAI, fixture("openai-length.sse"))
+      yield assert(
+        r == Result.succeed(
+          Chunk(ChatEvent.Stop(StopReason.Refusal, Usage(14, 0))),
+        ) && m == Result.succeed(
+          Chunk(
+            ChatEvent.TextDelta("A long answer that"),
+            ChatEvent.Stop(StopReason.MaxTokens, Usage(11, 64000)),
+          ),
+        ) && l == Result.succeed(
+          Chunk(
+            ChatEvent.TextDelta("A long answer that"),
+            ChatEvent.Stop(StopReason.MaxTokens, Usage(11, 4096)),
+          ),
+        ),
+        s"$r $m $l",
+      )
+    }
+
+    // claude 2026-10-19: created (L3 review)
+    "a server fallback in the stream: the text of the two models is joined" in {
+      run(Anthropic, fixture("anthropic-fallback.sse")).map(r =>
+        assert(
+          r == Result.succeed(
+            Chunk(
+              ChatEvent.TextDelta("First part, "),
+              ChatEvent.TextDelta("then the fallback model."),
+              ChatEvent.Stop(StopReason.EndTurn, Usage(17, 9)),
+            ),
+          ),
+          r.toString,
+        ),
+      )
+    }
+
+    // claude 2026-10-19: created (L3 review)
+    "the errors of a stream: each kind of each provider" in {
+      val anthropic = Chunk(
+        "overloaded_error"      -> ChatError.Network("overloaded_error: m"),
+        "api_error"             -> ChatError.Network("api_error: m"),
+        "rate_limit_error"      -> ChatError.RateLimited(Absent),
+        "authentication_error"  -> ChatError.Auth,
+        "permission_error"      -> ChatError.Auth,
+        "invalid_request_error" ->
+          ChatError.Protocol("invalid_request_error: m"),
+      )
+      val openai    = Chunk(
+        "rate_limit_exceeded"     -> ChatError.RateLimited(Absent),
+        "invalid_api_key"         -> ChatError.Auth,
+        "server_error"            -> ChatError.Network("server_error: m"),
+        "service_unavailable"     -> ChatError.Network("service_unavailable: m"),
+        "context_length_exceeded" ->
+          ChatError.Protocol("context_length_exceeded: m"),
+      )
+      val wrong     =
+        anthropic.filter((k, e) => Anthropic.error(k, "m") != e) ++
+          openai.filter((k, e) => OpenAI.error(k, "m") != e)
+      assert(wrong.isEmpty, wrong.toString)
+    }
+
+    // claude 2026-10-19: created (L3 review)
+    "OpenAI: a 429 is a rate limit with the delay of retry-after" in {
+      val body =
+        """{"error":{"message":"Rate limit reached","type":"requests","code":"rate_limit_exceeded"}}"""
+      run(OpenAI, failing(HttpFailure.Status(429, Present("3"), body))).map(r =>
+        assert(
+          r == Result.fail(ChatError.RateLimited(Present(3.seconds))),
+          r.toString,
+        ),
+      )
+    }
+
+    // claude 2026-10-19: created (L3 review)
+    "Anthropic: a call to the default model has the server fallbacks; another model has none" in {
+      import JsonTree.*
+      val default                = Anthropic.call(request.copy(model = Models.anthropic), key)
+      val other                  = Anthropic.call(request, key)
+      def beta(c: HttpCall)      =
+        c.headers.toMap.get("anthropic-beta").map(_.reveal)
+      def fallbacks(c: HttpCall) =
+        JsonTree.parse(c.body).get.field("fallbacks").flatMap(_.str)
+      assert(
+        beta(default) == Some(Anthropic.fallbackBeta) &&
+          fallbacks(default) == Present("default") &&
+          beta(other) == None && fallbacks(other) == Absent,
       )
     }
 

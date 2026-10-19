@@ -49,14 +49,19 @@ class UiRulesTest extends PropertyTest[Any]:
         ConversationId.parse("u1").get,
         "t",
         Chunk(
-          Message(Role.User, "hi", at, MessageStatus.Done),
+          Message(Role.User, "hi", at, MessageStatus.Done(StopReason.EndTurn)),
           Message(
             Role.Assistant,
             "part",
             at,
             MessageStatus.Failed(ChatError.Cancelled),
           ),
-          Message(Role.User, "again", at, MessageStatus.Done),
+          Message(
+            Role.User,
+            "again",
+            at,
+            MessageStatus.Done(StopReason.EndTurn),
+          ),
           Message(Role.Assistant, "", at, MessageStatus.Failed(ChatError.Auth)),
         ),
         at,

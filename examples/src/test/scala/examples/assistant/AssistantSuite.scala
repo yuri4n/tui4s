@@ -9,12 +9,14 @@ import tui4s.use.Storage
 import tui4s.widgets.Colors
 
 /** The assistant on the headless test kit, wired as the main wires it, with the
-  * interpreters in memory (the storage, the keys) and the scripted provider: a
-  * send and the reply that streams, a stop, an error, the conversations, the
-  * palette, the settings (a key never shows), the log pane, a resize, the keys
-  * of the composer, the help and the quit.
+  * interpreters in memory (the storage, the keys) and the scripted provider (a
+  * gate that the test opens one piece at a time, where a frame in the middle of
+  * a reply counts): a send and the reply that streams, a stop, an error, the
+  * follow rule of the transcript, the conversations, the palette, the settings
+  * (a key never shows), the log pane, a resize, the keys of the composer, the
+  * help and the quit.
   */
-// claude 2026-10-19: created (L3)
+// claude 2026-10-19: created (L3); changed: the gate, the follow rule (L3 review)
 class AssistantSuite extends FunSuite:
 
     /** Runs `v` to its end on the Kyo scheduler (at most 60 s). */
@@ -33,7 +35,7 @@ class AssistantSuite extends FunSuite:
         height: Int = 30,
     )(using Frame): Headless < (Async & Scope) =
       Storage.inMemory.map { storage =>
-        val (files, secrets) = Wiring.inMemory(storage, keys)
+        val (files, secrets) = Memory.wiring(storage, keys)
         Headless.start(width, height, stylesheet = Colors.defaults)(quit =>
           Tui.size.map(size =>
             Memo.run(
@@ -95,35 +97,78 @@ class AssistantSuite extends FunSuite:
       assert(!s.contains("Type a message below."), s.text)
     }
 
+    // claude 2026-10-19: changed: a gate, not the clock (L3 review)
     test(
       "the reply grows in place: a frame in the middle has part of it and the spinner",
     ) {
       val (mid, end) = run {
-        start(fake = FakeProvider.make(delay = 60.millis)).map(h =>
-          for
-              _   <- send(h, "hi")
-              mid <- wait(h)(_.contains("You said"))
-              end <- wait(h)(finished)
-          yield (mid, end),
+        PieceGate.init.map(gate =>
+          start(fake = gate.provider()).map(h =>
+            for
+                _   <- send(h, "hi")
+                _   <- gate.release(3)
+                mid <- wait(h)(_.contains("You said: \"hi\"."))
+                _   <- gate.release(100)
+                end <- wait(h)(finished)
+            yield (mid, end),
+          ),
         )
       }
       assert(mid.contains("streaming") && !mid.contains("stop me."), mid.text)
       assert(end.contains("ready") && end.text.contains("stop"), end.text)
     }
 
+    // claude 2026-10-19: changed: a gate, not the clock (L3 review)
     test("Esc stops the reply: its text stays, marked stopped") {
       val s = run {
-        start(fake = FakeProvider.make(delay = 80.millis)).map(h =>
-          for
-              _ <- send(h, "hi")
-              _ <- wait(h)(_.contains("You said"))
-              _ <- h.key(Keyboard.Escape)
-              s <- wait(h)(_.contains("■ stopped"))
-          yield s,
+        PieceGate.init.map(gate =>
+          start(fake = gate.provider()).map(h =>
+            for
+                _ <- send(h, "hi")
+                _ <- gate.release(3)
+                _ <- wait(h)(_.contains("You said: \"hi\"."))
+                _ <- h.key(Keyboard.Escape)
+                s <- wait(h)(_.contains("■ stopped"))
+            yield s,
+          ),
         )
       }
       assert(s.contains("You said") && s.contains("ready"), s.text)
       assert(!s.contains("stop me."), s.text)
+    }
+
+    /** The rows of the transcript that show a line of [[PieceGate.lines]]. */
+    private def lines(s: Screen): Seq[String] =
+      s.rows.filter(_.contains("line "))
+
+    // claude 2026-10-19: created (L3 review)
+    test(
+      "the transcript follows the end; after a scroll up it stays while the reply grows; f follows again",
+    ) {
+      val (followed, up, grown, again) = run {
+        PieceGate.init.map(gate =>
+          start(fake = gate.provider(PieceGate.lines(60))).map(h =>
+            for
+                _        <- send(h, "go")
+                _        <- gate.release(40)
+                followed <- wait(h)(_.contains("line 40"))
+                // Shift-Tab: from the composer to the transcript
+                _        <- h.key(Keyboard.Tab, Modifiers(shift = true))
+                _        <- h.key(Keyboard.ArrowUp)
+                _        <- h.key(Keyboard.ArrowUp)
+                up       <- wait(h)(s => lines(s) != lines(followed))
+                _        <- gate.release(20)
+                grown    <- wait(h)(finished)
+                _        <- h.key(Keyboard.Char('f'))
+                again    <- wait(h)(_.contains("line 60"))
+            yield (followed, up, grown, again),
+          ),
+        )
+      }
+      assert(!followed.contains("line 41"), followed.text)
+      assert(lines(grown) == lines(up), s"${up.text}\n${grown.text}")
+      assert(!grown.contains("line 60"), grown.text)
+      assert(again.contains("line 60"), again.text)
     }
 
     test("an error of the provider shows under the partial reply") {

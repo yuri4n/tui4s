@@ -20,9 +20,10 @@ import tui4s.use.TextCodec
   * }}}
   *
   * A text field is one line: [[Escape]] writes "\\", a line feed and a carriage
-  * return as `\\`, `\n` and `\r`. The status of a message is `done`,
-  * `streaming`, or `failed` and the error: `auth`, `cancelled`,
-  * `rate-limited <ms or ->`, `network <text>`, `protocol <text>`.
+  * return as `\\`, `\n` and `\r`. The status of a message is `done` (then the
+  * stop reason when it is not the end of the turn: `max-tokens`, `refusal`,
+  * `other <name>`), `streaming`, or `failed` and the error: `auth`,
+  * `cancelled`, `rate-limited <ms or ->`, `network <text>`, `protocol <text>`.
   */
 // claude 2026-10-19: created (L3)
 object ConversationCodec:
@@ -72,9 +73,15 @@ object ConversationCodec:
         case Role.User      => "user"
         case Role.Assistant => "assistant"
 
+    // claude 2026-10-19: changed: the stop reason of done (L3 review)
     private def status(s: MessageStatus): String = s match
         case MessageStatus.Streaming => "streaming"
-        case MessageStatus.Done      => "done"
+        case MessageStatus.Done(r)   =>
+          r match
+              case StopReason.EndTurn   => "done"
+              case StopReason.MaxTokens => "done max-tokens"
+              case StopReason.Refusal   => "done refusal"
+              case StopReason.Other(n)  => s"done other ${Escape(n)}"
         case MessageStatus.Failed(e) =>
           "failed " + (e match
               case ChatError.Auth            => "auth"
@@ -132,9 +139,18 @@ object ConversationCodec:
                   Left(s"bad message line: $head")
           case _                 => Left("a message without its text line")
 
+    // claude 2026-10-19: changed: the stop reason of done (L3 review)
     private def parseStatus(text: String): Either[String, MessageStatus] =
       text.split(" ", 2).nn.map(_.nn).toList match
-          case "done" :: Nil           => Right(MessageStatus.Done)
+          case "done" :: Nil           => Right(MessageStatus.Done(StopReason.EndTurn))
+          case "done" :: rest :: Nil   =>
+            (rest.split(" ", 2).nn.map(_.nn).toList match
+                case "max-tokens" :: Nil => Right(StopReason.MaxTokens)
+                case "refusal" :: Nil    => Right(StopReason.Refusal)
+                case "other" :: n :: Nil =>
+                  Escape.undo(n).map(StopReason.Other(_))
+                case _                   => Left(s"bad stop reason: $rest")
+            ).map(MessageStatus.Done(_))
           case "streaming" :: Nil      => Right(MessageStatus.Streaming)
           case "failed" :: rest :: Nil =>
             (rest.split(" ", 2).nn.map(_.nn).toList match

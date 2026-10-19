@@ -258,7 +258,7 @@ object Modal:
                 case Keyboard.Char('n') | Keyboard.Escape => d.close(false)
                 case _                                    => Kyo.unit
           Modal(
-            layer(d, keys)(q =>
+            question(d, keys)(q =>
               UI.fragment(
                 span(q),
                 div.style(_.row.gap(2.px).justify(_.center))(
@@ -291,7 +291,7 @@ object Modal:
                 case Keyboard.Escape => d.close(Absent)
                 case _               => Kyo.unit
           Modal(
-            layer(d, keys)(q =>
+            question(d, keys)(q =>
               UI.fragment(
                 span(q),
                 input
@@ -305,8 +305,47 @@ object Modal:
             text.set(""),
           )
 
+    /** A layer of your own content, in the middle of the screen and over the
+      * rest, while `open` is true: a dialog with the title `title` that keeps
+      * the focus (`focusTrap`) and keeps its keys from the app. Esc runs
+      * `close`. `style` goes after the style of the layer (a border, the
+      * surface background): give it a width. Put a field with `focusAuto` in
+      * `content`, so the focus goes into the layer when it opens.
+      *
+      * {{{
+      * Modal.layer(open, "Settings", open.set(false), Style.width(60.em))(
+      *   form.onSubmit(save)(input.value(name).focusAuto(true), button("Save")),
+      * )
+      * }}}
+      */
+    // claude 2026-10-19: created (L3 review)
+    def layer(
+        open: Signal[Boolean],
+        title: String,
+        close: Any < Async,
+        style: Style = Style.empty,
+    )(content: UI*)(using Frame): UI =
+      when(open)(
+        div.style(_.position(_.overlay).justify(_.center).align(_.center))(
+          div
+            .role("dialog")
+            .aria("label", title)
+            .focusTrap(true)
+            .stopPropagation(true)
+            .onKeyDown {
+              case KeyboardEvent(Keyboard.Escape, _, _) => close
+              case _                                    => Kyo.unit
+            }
+            .style(Looks.layer.gap(1.px).minWidth(30.em) ++ style)(
+              span(title).style(_.bold.color(Colors.accent)),
+              UI.fragment(content*),
+            ),
+        ),
+      )
+
     /** The layer of the open request of `d`. */
-    private def layer[A](
+    // claude 2026-10-19: changed: the name question (L3 review)
+    private def question[A](
         d: Dialog[String, A],
         keys: KeyboardEvent => Any < Async,
     )(

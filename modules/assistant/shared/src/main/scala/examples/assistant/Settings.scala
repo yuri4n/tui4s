@@ -81,21 +81,28 @@ object Settings:
     /** The settings at the start of the app. `forced` (the flag `--fake`) wins.
       * Else the stored settings, when their provider is in `available` (it has
       * a key). Else the first provider of `available` in the order Anthropic,
-      * OpenAI, Fake.
+      * OpenAI, Fake. A change of the provider takes its default model, and
+      * keeps the stored temperature and system prompt.
       */
+    // claude 2026-10-19: changed: a new provider keeps the prompt (L3 review)
     def pick(
         stored: Maybe[Settings],
         available: Chunk[ProviderChoice],
         forced: Maybe[ProviderChoice],
     ): Settings =
-      forced match
-          case Present(p) =>
-            stored.filter(_.provider == p).getOrElse(of(p))
-          case Absent     =>
-            stored.filter(s => available.contains(s.provider)).getOrElse {
-              val first = ProviderChoice.values.find(available.contains)
-              of(first.getOrElse(ProviderChoice.Fake))
-            }
+        def keep(p: ProviderChoice): Settings =
+          stored.fold(of(p))(s =>
+            if s.provider == p then s
+            else s.copy(provider = p, model = p.defaultModel),
+          )
+        forced match
+            case Present(p) => keep(p)
+            case Absent     =>
+              stored.filter(s => available.contains(s.provider)).getOrElse {
+                val first = ProviderChoice.values.find(available.contains)
+                keep(first.getOrElse(ProviderChoice.Fake))
+              }
+    end pick
 
     /** The temperature of the text of a field: an empty text is Absent (the
       * default of the provider); else a number from 0 to 2, or the reason why

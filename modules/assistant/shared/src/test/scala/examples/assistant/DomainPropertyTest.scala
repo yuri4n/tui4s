@@ -40,7 +40,9 @@ class DomainPropertyTest extends PropertyTest[Any]:
           ChatEvent.Error(ChatError.Cancelled)
         val m      = fold(events)
         assert(
-          m.content == before.mkString && m.status == MessageStatus.Done &&
+          m.content == before.mkString && m.status == MessageStatus.Done(
+            StopReason.EndTurn,
+          ) &&
             m.usage == u,
         )
       }
@@ -106,7 +108,8 @@ class DomainPropertyTest extends PropertyTest[Any]:
       }
     }
 
-    "Settings.pick: --fake wins; else the stored provider with a key; else the first with a key" - {
+    // claude 2026-10-19: changed: the prompt and the temperature stay (L3 review)
+    "Settings.pick: --fake wins; else the stored provider with a key; else the first with a key; the prompt stays" - {
       forAll(Gen.boolean, Gen.listOfN(3, Gen.boolean), settings) {
         (force, has, stored) =>
           val available = Chunk
@@ -115,6 +118,10 @@ class DomainPropertyTest extends PropertyTest[Any]:
             .collect { case (p, true) => p }
           val forced    = if force then Present(ProviderChoice.Fake) else Absent
           val s         = Settings.pick(Present(stored), available, forced)
+          assert(
+            s.systemPrompt == stored.systemPrompt &&
+              s.temperature == stored.temperature,
+          )
           if force then assert(s.provider == ProviderChoice.Fake)
           else if available.contains(stored.provider) then assert(s == stored)
           else

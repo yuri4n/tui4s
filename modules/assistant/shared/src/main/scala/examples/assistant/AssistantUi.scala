@@ -103,6 +103,7 @@ object Line:
             .flatten,
         )
 
+    // claude 2026-10-19: changed: a note for a stop that is not an end (L3 review)
     private def message(m: Message, width: Int): Chunk[Line] =
         val header = m.role match
             case Role.User      => "You"
@@ -111,6 +112,12 @@ object Line:
             case MessageStatus.Failed(ChatError.Cancelled)    => Chunk("■ stopped")
             case MessageStatus.Failed(e)                      => wrap(s"✗ ${e.describe}", width)
             case MessageStatus.Streaming if m.content.isEmpty => Chunk("…")
+            case MessageStatus.Done(StopReason.MaxTokens)     =>
+              Chunk("■ the reply stopped at the token limit")
+            case MessageStatus.Done(StopReason.Refusal)       =>
+              Chunk("✗ the model declined to answer")
+            case MessageStatus.Done(StopReason.Other(name))   =>
+              wrap(s"■ the reply stopped: $name", width)
             case _                                            => Chunk.empty
         Line(Kind.Header(m.role), header) +:
           ((if m.content.isEmpty then Chunk.empty else wrap(m.content, width))
@@ -214,34 +221,8 @@ object AssistantUi:
     private val pre: Style =
       Style.whiteSpace(_.pre).overflow(_.hidden).textOverflow(_.ellipsis)
 
-    /** A box with a border and a title on its top border, as `Panel`, with the
-      * style `size` (a `Panel` takes no size).
-      */
-    def box(title: Signal[String], size: Style = Style.empty)(content: UI*)(
-        using Frame,
-    ): UI =
-      section
-        .role("group")
-        .style(
-          Style
-            .border(1.px, Style.BorderStyle.solid, Colors.border)
-            .rounded(1.px)
-            .padding(0.px, 1.px)
-            .position(_.relative) ++ size,
-        )(
-          title.render(t =>
-            span(s" $t ").style(
-              Style.bold
-                .color(Colors.accent)
-                .position(_.absolute)
-                .top((-1).em)
-                .left(1.em),
-            ),
-          ),
-          UI.fragment(content*),
-        )
-
     /** The UI of `store`. */
+    // claude 2026-10-19: changed: the panels of tui4s-widgets (L3 review)
     def app(store: Assistant, quit: Unit < Sync, screen: Signal[ScreenSize])(
         using Frame,
     ): UI < (Sync & Scope) =
@@ -308,15 +289,15 @@ object AssistantUi:
           .onKeyDown(keys.handler)
           .style(_.height(100.pct))(
             div(
-              box(
-                Signal.initConst("Chats"),
-                Style.width(Metrics.listCells.em).flexShrink(0),
+              Panel(
+                "Chats",
+                style = Style.width(Metrics.listCells.em).flexShrink(0),
               )(
                 div.style(_.flexGrow(1).minHeight(0.px).overflowY(_.auto))(list),
               ),
-              box(
+              Panel.reactive(
                 store.active.map(_.fold("")(_.title)),
-                Style.flexGrow(1).minWidth(0.px),
+                style = Style.flexGrow(1).minWidth(0.px),
               )(
                 transcript(store, metrics, follow, offset),
               ),
@@ -325,11 +306,11 @@ object AssistantUi:
                 .map(m => Style.row.height((m.textRows + 2).em).flexShrink(0)),
             ),
             when(store.logPane.map(_ == Pane.Shown))(
-              box(Signal.initConst("Log"), Style.flexShrink(0))(logView),
+              Panel("Log", style = Style.flexShrink(0))(logView),
             ),
-            box(
-              Signal.initConst("Message · Enter sends · Alt-Enter new line"),
-              Style.flexShrink(0),
+            Panel(
+              "Message · Enter sends · Alt-Enter new line",
+              style = Style.flexShrink(0),
             )(
               form.onSubmit(tail.andThen(store.send))(
                 textarea
@@ -478,40 +459,11 @@ object AssistantUi:
         control,
       )
 
-    /** A layer in the middle of the screen with `title` and `content`: a modal
-      * (`focusTrap`); Esc closes it; its keys do not reach the app.
-      */
-    private def layer(store: Assistant, title: String, content: UI*)(using
-        Frame,
-    ): UI =
-      div.style(_.position(_.overlay).justify(_.center).align(_.center))(
-        div
-          .role("dialog")
-          .aria("label", title)
-          .focusTrap(true)
-          .stopPropagation(true)
-          .onKeyDown {
-            case KeyboardEvent(Keyboard.Escape, _, _) =>
-              store.overlay.set(Overlay.Closed)
-            case _                                    => Kyo.unit
-          }
-          .style(
-            Style
-              .border(1.px, Colors.border)
-              .bg(Colors.surface)
-              .padding(0.px, 1.px)
-              .gap(1.px)
-              .width(64.em),
-          )(
-            span(title).style(_.bold.color(Colors.accent)),
-            UI.fragment(content*),
-          ),
-      )
-
     /** The settings: the provider (only those with a key), the model, the
       * temperature and the system prompt. Enter saves (a form); Esc or Cancel
       * closes. The keys never show: the layer says where each one comes from.
       */
+    // claude 2026-10-19: changed: Modal.layer of tui4s-widgets (L3 review)
     def settingsLayer(store: Assistant, drafts: Drafts, radio: UI)(using
         Frame,
     ): UI =
@@ -523,48 +475,59 @@ object AssistantUi:
                 s"${p.label}: a key ${s.describe}",
               ),
           )
-        when(store.overlay.map(_ == Overlay.Settings))(
-          layer(
-            store,
-            "Settings",
-            form.onSubmit(drafts.save)(
-              field("Provider", radio),
+        Modal.layer(
+          store.overlay.map(_ == Overlay.Settings),
+          "Settings",
+          store.overlay.set(Overlay.Closed),
+          Style.width(64.em),
+        )(
+          form.onSubmit(drafts.save)(
+            field("Provider", radio),
+            field(
+              "Model",
+              input
+                .value(drafts.model)
+                .focusAuto(true)
+                .focusRestore(true)
+                .style(_.flexGrow(1)),
+            ),
+            field(
+              "Temperature",
+              input
+                .value(drafts.temperature)
+                .placeholder("the default of the provider")
+                .style(_.flexGrow(1)),
+            ),
+            // claude 2026-10-19: created (L3 review): the default model of
+            // Anthropic answers HTTP 400 to a temperature
+            when(drafts.model.map(_.trim == Models.anthropic))(
               field(
-                "Model",
-                input
-                  .value(drafts.model)
-                  .focusAuto(true)
-                  .focusRestore(true)
-                  .style(_.flexGrow(1)),
+                "",
+                span("This model takes no temperature: keep it empty.")
+                  .style(pre.color(Colors.muted)),
               ),
-              field(
-                "Temperature",
-                input
-                  .value(drafts.temperature)
-                  .placeholder("the default of the provider")
-                  .style(_.flexGrow(1)),
-              ),
-              field(
-                "System prompt",
-                textarea.value(drafts.system).style(_.height(3.em).flexGrow(1)),
-              ),
-              field(
-                "Keys",
-                div(keys.map(k => span(k).style(pre.color(Colors.muted)))*),
-              ),
-              span(drafts.error).style(_.color(Colors.danger)),
-              div.style(_.row.gap(2.px))(
-                button("Save"),
-                button("Cancel")
-                  .onClick(store.overlay.set(Overlay.Closed))
-                  .stopPropagation(true),
-              ),
+            ),
+            field(
+              "System prompt",
+              textarea.value(drafts.system).style(_.height(3.em).flexGrow(1)),
+            ),
+            field(
+              "Keys",
+              div(keys.map(k => span(k).style(pre.color(Colors.muted)))*),
+            ),
+            span(drafts.error).style(_.color(Colors.danger)),
+            div.style(_.row.gap(2.px))(
+              button("Save"),
+              button("Cancel")
+                .onClick(store.overlay.set(Overlay.Closed))
+                .stopPropagation(true),
             ),
           ),
         )
     end settingsLayer
 
     /** The help: the keys of the commands and of the composer. */
+    // claude 2026-10-19: changed: Modal.layer of tui4s-widgets (L3 review)
     def helpLayer(store: Assistant, keys: Keymap)(using Frame): UI =
         val rows = keys.help ++ Chunk(
           "Enter"            -> "send the message (in the composer)",
@@ -572,26 +535,27 @@ object AssistantUi:
           "Tab"              -> "the next part (composer, chats, transcript)",
           "f"                -> "follow the end (in the transcript)",
         )
-        when(store.overlay.map(_ == Overlay.Help))(
-          layer(
-            store,
-            "Help",
-            div(
-              rows.map((k, h) =>
-                div.style(_.row)(
-                  span(k).style(
-                    _.bold.color(Colors.accent).width(18.em).flexShrink(0),
-                  ),
-                  span(h),
+        Modal.layer(
+          store.overlay.map(_ == Overlay.Help),
+          "Help",
+          store.overlay.set(Overlay.Closed),
+          Style.width(64.em),
+        )(
+          div(
+            rows.map((k, h) =>
+              div.style(_.row)(
+                span(k).style(
+                  _.bold.color(Colors.accent).width(18.em).flexShrink(0),
                 ),
-              )*,
-            ),
-            button("Close")
-              .focusAuto(true)
-              .focusRestore(true)
-              .onClick(store.overlay.set(Overlay.Closed))
-              .style(_.alignSelf(_.center)),
+                span(h),
+              ),
+            )*,
           ),
+          button("Close")
+            .focusAuto(true)
+            .focusRestore(true)
+            .onClick(store.overlay.set(Overlay.Closed))
+            .style(_.alignSelf(_.center)),
         )
     end helpLayer
 end AssistantUi

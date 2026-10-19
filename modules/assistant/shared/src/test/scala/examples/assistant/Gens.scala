@@ -56,10 +56,21 @@ object Gens:
         case _ => text.map(ChatError.Protocol(_))
       }
 
+    /** A reason of a stop. */
+    // claude 2026-10-19: created (L3 review)
+    val stopReason: Gen[StopReason] =
+      below(4).flatMap {
+        case 0 => Gen.const(StopReason.EndTurn)
+        case 1 => Gen.const(StopReason.MaxTokens)
+        case 2 => Gen.const(StopReason.Refusal)
+        case _ => text.map(StopReason.Other(_))
+      }
+
     /** A status of a message. */
+    // claude 2026-10-19: changed: Done with a stop reason (L3 review)
     val status: Gen[MessageStatus] =
       below(3).flatMap {
-        case 0 => Gen.const(MessageStatus.Done)
+        case 0 => stopReason.map(MessageStatus.Done(_))
         case 1 => Gen.const(MessageStatus.Streaming)
         case _ => chatError.map(MessageStatus.Failed(_))
       }

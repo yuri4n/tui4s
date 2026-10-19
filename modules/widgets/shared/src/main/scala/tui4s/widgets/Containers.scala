@@ -11,6 +11,7 @@ import kyo.UI.*
   *
   * {{{
   * Panel(title = "CPU", border = Panel.Border.Solid)(span("42 %"), gauge)
+  * Panel.reactive(chat.map(_.title), style = Style.flexGrow(1))(transcript)
   * }}}
   */
 // claude 2026-10-19: created (L2b)
@@ -35,29 +36,65 @@ object Panel:
         case None
     end Border
 
-    /** The panel of `content` with `title` (none when empty). */
-    def apply(title: String = "", border: Border = Border.Rounded)(
+    /** The panel of `content` with `title` (none when empty). `style` goes
+      * after the style of the box: give it a size or a flex rule.
+      */
+    // claude 2026-10-19: changed: the style of the box (L3 review)
+    def apply(
+        title: String = "",
+        border: Border = Border.Rounded,
+        style: Style = Style.empty,
+    )(
         content: UI*,
     )(using Frame): UI =
-        val box   = border match
+      section
+        .role("group")
+        .aria("label", title)
+        .style(box(border) ++ style)(head(title, border), UI.fragment(content*))
+
+    /** The panel of `content` with the title of the signal `title` (none while
+      * it is empty): the title changes with the signal, the content stays. The
+      * group has no accessible label, as the title changes. `style` goes after
+      * the style of the box.
+      */
+    // claude 2026-10-19: created (L3 review)
+    def reactive(
+        title: Signal[String],
+        border: Border = Border.Rounded,
+        style: Style = Style.empty,
+    )(
+        content: UI*,
+    )(using Frame): UI =
+      section
+        .role("group")
+        .style(box(border) ++ style)(
+          title.render(t => head(t, border)),
+          UI.fragment(content*),
+        )
+
+    /** The style of a box with `border`. */
+    // claude 2026-10-19: created (L3 review)
+    private def box(border: Border): Style =
+        val b = border match
             case Border.None    => Style.padding(0.px, 1.px)
             case Border.Rounded => line(Style.BorderStyle.solid).rounded(1.px)
             case Border.Solid   => line(Style.BorderStyle.solid)
             case Border.Dashed  => line(Style.BorderStyle.dashed)
             case Border.Dotted  => line(Style.BorderStyle.dotted)
+        b.position(_.relative)
+    end box
+
+    /** The title on the top border (in the flow with no border). */
+    // claude 2026-10-19: created (L3 review)
+    private def head(title: String, border: Border)(using Frame): UI =
         val label = Style.bold.color(Colors.accent)
-        val head  =
-          if title.isEmpty then UI.empty
-          else if border == Border.None then span(title).style(label)
-          else
-              span(s" $title ").style(
-                label.position(_.absolute).top((-1).em).left(1.em),
-              )
-        section
-          .role("group")
-          .aria("label", title)
-          .style(box.position(_.relative))(head, UI.fragment(content*))
-    end apply
+        if title.isEmpty then UI.empty
+        else if border == Border.None then span(title).style(label)
+        else
+            span(s" $title ").style(
+              label.position(_.absolute).top((-1).em).left(1.em),
+            )
+    end head
 
     private def line(s: Style.BorderStyle): Style =
       Style.border(1.px, s, Colors.border).padding(0.px, 1.px)

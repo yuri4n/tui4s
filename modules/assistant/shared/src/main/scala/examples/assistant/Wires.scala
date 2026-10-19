@@ -10,6 +10,16 @@ import kyo.*
   * not take sampling parameters, and the API then answers HTTP 400) and the
   * messages.
   *
+  * A request to the default model ([[Models.anthropic]]) also has the server
+  * fallbacks: the header `anthropic-beta: server-side-fallback-2026-07-01` and
+  * `"fallbacks": "default"`. When the safety rules of that model decline a
+  * request, the API runs it again on the fallback model that Anthropic
+  * recommends for that category, in the same stream (a `fallback` content block
+  * marks the change; the wire ignores it, and the text of the two models is
+  * joined). A request to another model has no fallbacks: that model can refuse
+  * the parameter. A refusal that stays is the stop reason `refusal`
+  * ([[StopReason.Refusal]]): the transcript shows a note.
+  *
   * The events: `message_start` gives the input tokens; `content_block_delta`
   * with a `text_delta` gives a piece of the text (a thinking block, which the
   * latest models stream with no text by default, gives nothing);
@@ -18,13 +28,23 @@ import kyo.*
   * are network errors, `rate_limit_error` a rate limit, `authentication_error`
   * and `permission_error` a key error, another one a protocol error).
   */
-// claude 2026-10-19: created (L3)
+// claude 2026-10-19: created (L3); changed: the fallbacks of the default model (L3 review)
 object Anthropic extends Wire:
     /** The endpoint of the Messages API. */
     val url: String = "https://api.anthropic.com/v1/messages"
 
     /** The version of the API (the header `anthropic-version`). */
     val version: String = "2023-06-01"
+
+    /** The beta of the server fallbacks (the header `anthropic-beta`). */
+    // claude 2026-10-19: created (L3 review)
+    val fallbackBeta: String = "server-side-fallback-2026-07-01"
+
+    /** True when a request to `model` has the server fallbacks: only the
+      * default model.
+      */
+    // claude 2026-10-19: created (L3 review)
+    def fallbacks(model: String): Boolean = model == Models.anthropic
 
     /** The limit of the tokens of a reply (a stream can be long). */
     val maxTokens: Int = 64000
@@ -38,6 +58,7 @@ object Anthropic extends Wire:
 
     def name: String = "Anthropic"
 
+    // claude 2026-10-19: changed: the beta header of the fallbacks (L3 review)
     def call(request: ChatRequest, key: ApiKey)(using Frame): HttpCall =
       HttpCall(
         url,
@@ -46,16 +67,21 @@ object Anthropic extends Wire:
           "anthropic-version" -> HeaderValue.Plain(version),
           "content-type"      -> HeaderValue.Plain("application/json"),
           "accept"            -> HeaderValue.Plain("text/event-stream"),
-        ),
+        ) ++ (if fallbacks(request.model) then
+                  Chunk("anthropic-beta" -> HeaderValue.Plain(fallbackBeta))
+              else Chunk.empty),
         JsonTree.render(body(request)),
       )
 
     /** The JSON body of `request`. */
+    // claude 2026-10-19: changed: the fallbacks of the default model (L3 review)
     def body(request: ChatRequest): Value =
       obj(
         "model"       -> text(request.model),
         "max_tokens"  -> integer(maxTokens.toLong),
         "stream"      -> boolean(true),
+        "fallbacks"   ->
+          (if fallbacks(request.model) then text("default") else Absent),
         "system"      ->
           (if request.system.trim.isEmpty then Absent
            else text(request.system)),

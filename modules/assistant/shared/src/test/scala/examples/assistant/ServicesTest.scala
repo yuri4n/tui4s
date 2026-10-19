@@ -5,16 +5,17 @@ import kyo.test.*
 import tui4s.use.Storage
 
 /** The services on their interpreters in memory: the fake provider, the store
-  * of the conversations over `Storage.inMemory`, the log, the keys in memory
-  * and the set of the providers. On the JVM and on Node.js.
+  * of the conversations over `Storage.inMemory` (and over a storage that cannot
+  * write), the log, the keys in memory and the set of the providers. On the JVM
+  * and on Node.js.
   */
-// claude 2026-10-19: created (L3)
+// claude 2026-10-19: created (L3); changed: a write that fails (L3 review)
 class ServicesTest extends Test[Any]:
 
     private val at = Instant.Epoch
 
     private def user(text: String) =
-      Message(Role.User, text, at, MessageStatus.Done)
+      Message(Role.User, text, at, MessageStatus.Done(StopReason.EndTurn))
 
     private def request(text: String) =
       ChatRequest(Chunk(user(text)), Models.fake, Absent, "")
@@ -107,6 +108,22 @@ class ServicesTest extends Test[Any]:
           case _                                              => false)
     }
 
+    // claude 2026-10-19: created (L3 review)
+    "the store: a write that fails is a StoreError, not a panic" in {
+      for
+          storage <- Storage.inMemory
+          store    = ConversationStore.make(Memory.unwritable(storage))
+          a        = chat("a1", "first")
+          saved   <- Abort.run[StoreError](store.save(a))
+          deleted <- Abort.run[StoreError](store.delete(a.id))
+      yield
+          def unwritable(r: Result[StoreError, Unit]) = r match
+              case Result.Failure(StoreError.Unwritable("a1", why)) =>
+                why.contains("the disk is full")
+              case _                                                => false
+          assert(unwritable(saved) && unwritable(deleted), s"$saved $deleted")
+    }
+
     "the log keeps its last lines, each with its level" in {
       for
           log   <- AppLog.make(limit = 2)
@@ -138,7 +155,7 @@ class ServicesTest extends Test[Any]:
                 case ProviderChoice.OpenAI =>
                   Abort.fail(SecretsError.OpenToOthers("/k", "rw-r--r--"))
                 case other                 =>
-                  Secrets.inMemory(Map(other -> "sk-ant-SECRET")).apiKey(other)
+                  Memory.secrets(Map(other -> "sk-ant-SECRET")).apiKey(other)
       for
           log   <- AppLog.make()
           ps    <- Providers.make(failing, (_, _) => fake, fake, log)

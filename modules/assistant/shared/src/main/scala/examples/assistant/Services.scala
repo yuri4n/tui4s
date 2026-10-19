@@ -122,8 +122,10 @@ trait Secrets:
         Frame,
     ): Maybe[ApiKey] < (Sync & Abort[SecretsError])
 
-/** The environment variables of the keys, and an interpreter in memory. */
-// claude 2026-10-19: created (L3)
+/** The environment variables of the keys. The interpreters are on each platform
+  * (`SecretsJvm`), and in memory in the test sources.
+  */
+// claude 2026-10-19: created (L3); changed: the interpreter in memory went to the tests (L3 review)
 object Secrets:
     /** The environment variable of the key of `p`; Absent for the fake. */
     def variable(p: ProviderChoice): Maybe[String] = p match
@@ -131,23 +133,22 @@ object Secrets:
         case ProviderChoice.OpenAI    => Present("OPENAI_API_KEY")
         case ProviderChoice.Fake      => Absent
 
-    /** The keys `keys` (tests): each as from its environment variable. */
-    def inMemory(keys: Map[ProviderChoice, String]): Secrets = new Secrets:
-        def apiKey(provider: ProviderChoice)(using
-            Frame,
-        ): Maybe[ApiKey] < (Sync & Abort[SecretsError]) =
-          (for
-              text <- Maybe.fromOption(keys.get(provider))
-              name <- variable(provider)
-              key  <- ApiKey.parse(text, KeySource.Environment(name))
-          yield key): Maybe[ApiKey]
-end Secrets
-
-/** Why a stored conversation cannot be read. */
-// claude 2026-10-19: created (L3)
+/** Why a stored conversation cannot be read or written. */
+// claude 2026-10-19: created (L3); changed: Unwritable (L3 review)
 enum StoreError derives CanEqual:
     /** The text under `id` is not a conversation: `reason`. */
     case Unreadable(id: String, reason: String)
+
+    /** The storage did not write the text under `id`: `reason` (a full or
+      * read-only disk).
+      */
+    case Unwritable(id: String, reason: String)
+
+    /** The text for the person. */
+    def describe: String = this match
+        case Unreadable(id, r) => s"the chat $id cannot be read: $r"
+        case Unwritable(id, r) => s"the chat $id was not saved: $r"
+end StoreError
 
 /** The capability to keep the conversations: list, load, save and delete. The
   * interpreter of [[ConversationStore.make]] keeps them in a `Storage` of
@@ -165,10 +166,14 @@ trait ConversationStore:
     ): Maybe[Conversation] < (Sync & Abort[StoreError])
 
     /** Stores `c` (a new one goes first in the list). */
-    def save(c: Conversation)(using Frame): Unit < Sync
+    // claude 2026-10-19: changed: a failed write is a StoreError (L3 review)
+    def save(c: Conversation)(using Frame): Unit < (Sync & Abort[StoreError])
 
     /** Removes the conversation `id`. */
-    def delete(id: ConversationId)(using Frame): Unit < Sync
+    // claude 2026-10-19: changed: a failed write is a StoreError (L3 review)
+    def delete(id: ConversationId)(using
+        Frame,
+    ): Unit < (Sync & Abort[StoreError])
 end ConversationStore
 
 /** The interpreter of [[ConversationStore]] over a `Storage`. */
@@ -181,8 +186,10 @@ object ConversationStore:
     def key(id: ConversationId): String = s"chat-${id.text}"
 
     /** The store over `storage`. A `Storage` has no delete: a deleted
-      * conversation leaves the list and its text becomes empty.
+      * conversation leaves the list and its text becomes empty. A write that
+      * fails (the storage throws) is a [[StoreError.Unwritable]].
       */
+    // claude 2026-10-19: changed: the writes give StoreError (L3 review)
     def make(storage: Storage): ConversationStore = new ConversationStore:
         import ConversationCodec.codec
         import IndexCodec.codec as index
@@ -196,8 +203,24 @@ object ConversationStore:
               ),
             )
 
-        private def write(ids: Chunk[ConversationId])(using Frame) =
-          storage.set(indexKey, index.encode(ids))
+        /** Writes `text` under `key`: a throw of the storage is a
+          * [[StoreError.Unwritable]] of `id`.
+          */
+        private def set(id: ConversationId, key: String, text: String)(using
+            Frame,
+        ): Unit < (Sync & Abort[StoreError]) =
+          Abort.run[Throwable](storage.set(key, text)).map {
+            case Result.Success(_) => Kyo.unit
+            case Result.Failure(t) =>
+              Abort.fail(StoreError.Unwritable(id.text, t.toString))
+            case Result.Panic(t)   =>
+              Abort.fail(StoreError.Unwritable(id.text, t.toString))
+          }
+
+        private def write(id: ConversationId, ids: Chunk[ConversationId])(using
+            Frame,
+        ) =
+          set(id, indexKey, index.encode(ids))
 
         def list(using Frame): Chunk[ConversationId] < Sync = ids
 
@@ -213,19 +236,22 @@ object ConversationStore:
             case _                        => Absent
           }
 
-        def save(c: Conversation)(using Frame): Unit < Sync =
-          storage
-            .set(key(c.id), summon[TextCodec[Conversation]].encode(c))
+        def save(c: Conversation)(using
+            Frame,
+        ): Unit < (Sync & Abort[StoreError]) =
+          set(c.id, key(c.id), summon[TextCodec[Conversation]].encode(c))
             .andThen(
               ids.map(xs =>
-                if xs.contains(c.id) then Kyo.unit else write(c.id +: xs),
+                if xs.contains(c.id) then Kyo.unit else write(c.id, c.id +: xs),
               ),
             )
 
-        def delete(id: ConversationId)(using Frame): Unit < Sync =
+        def delete(id: ConversationId)(using
+            Frame,
+        ): Unit < (Sync & Abort[StoreError]) =
           ids
-            .map(xs => write(xs.filterNot(_ == id)))
-            .andThen(storage.set(key(id), ""))
+            .map(xs => write(id, xs.filterNot(_ == id)))
+            .andThen(set(id, key(id), ""))
 end ConversationStore
 
 /** The log of the app: its last lines as a signal (the log pane shows them),

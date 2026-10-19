@@ -10,6 +10,7 @@ import java.nio.file.attribute.{
 }
 import java.nio.file.{Files, LinkOption, Path as JPath}
 import scala.jdk.CollectionConverters.*
+import scala.util.Using
 
 /** The access to the key file: the one file that [[SecretsJvm]] reads. A seam,
   * so that a test sees each path that the interpreter touches.
@@ -49,10 +50,21 @@ object KeyFile:
                 else Right(Present(a.permissions.nn.asScala.toSet))
           }
 
+        /** Opens `path` with no link followed (`O_NOFOLLOW`): a link that takes
+          * the place of the file after the check of its permissions is an
+          * error, not the text of its target.
+          */
+        // claude 2026-10-19: changed: no link followed in the read (L3 review)
         def read(path: JPath)(using
             Frame,
         ): String < (Sync & Abort[SecretsError]) =
-          attempt(path)(Right(Files.readString(path, UTF_8).nn))
+          attempt(path)(
+            Right(
+              Using.resource(
+                Files.newInputStream(path, LinkOption.NOFOLLOW_LINKS).nn,
+              )(in => String(in.readAllBytes().nn, UTF_8)),
+            ),
+          )
 
         private def attempt[A](path: JPath)(f: => Either[String, A])(using
             Frame,

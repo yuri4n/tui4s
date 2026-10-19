@@ -97,13 +97,16 @@ enum ChatError derives CanEqual:
 end ChatError
 
 /** Where a message is: it streams, it is done, or it failed. */
-// claude 2026-10-19: created (L3)
+// claude 2026-10-19: created (L3); changed: Done keeps the stop reason (L3 review)
 enum MessageStatus derives CanEqual:
     /** The reply comes in pieces: more text can come. */
     case Streaming
 
-    /** The message is complete. */
-    case Done
+    /** The message is complete: `reason` tells why the reply stopped (a message
+      * of the person is [[StopReason.EndTurn]]). A reply that stopped at the
+      * token limit, or that the model declined, shows a note.
+      */
+    case Done(reason: StopReason)
 
     /** The reply failed with `error`; the message keeps the text before it. */
     case Failed(error: ChatError)

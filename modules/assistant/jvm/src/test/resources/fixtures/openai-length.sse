@@ -1,0 +1,8 @@
+data: {"id":"chatcmpl-4","object":"chat.completion.chunk","created":1760000000,"model":"a-model","choices":[{"index":0,"delta":{"role":"assistant","content":"A long answer that"},"finish_reason":null}],"usage":null}
+
+data: {"id":"chatcmpl-4","object":"chat.completion.chunk","created":1760000000,"model":"a-model","choices":[{"index":0,"delta":{},"finish_reason":"length"}],"usage":null}
+
+data: {"id":"chatcmpl-4","object":"chat.completion.chunk","created":1760000000,"model":"a-model","choices":[],"usage":{"prompt_tokens":11,"completion_tokens":4096,"total_tokens":4107}}
+
+data: [DONE]
+

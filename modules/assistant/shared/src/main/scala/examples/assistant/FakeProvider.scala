@@ -5,15 +5,16 @@ import kyo.*
 /** A scripted chat provider: no network and no key. Its script gives the reply
   * to a request: the pieces of the text and how the reply ends (a stop, or a
   * failure). It streams the pieces with a pause of `delay` before each one
-  * (Kyo's `Clock`: a test under `Clock.withTimeControl` moves the time on). The
-  * app takes it with the flag `--fake` or when it finds no key; the tests take
-  * it for every scenario.
+  * (Kyo's `Clock`: a test under `Clock.withTimeControl` moves the time on), or
+  * with a pause of your own ([[paced]]: a test gives a gate that it opens one
+  * piece at a time). The app takes it with the flag `--fake` or when it finds
+  * no key; the tests take it for every scenario.
   *
   * {{{
   * val provider = FakeProvider.make(FakeProvider.demo, delay = 30.millis)
   * }}}
   */
-// claude 2026-10-19: created (L3)
+// claude 2026-10-19: created (L3); changed: paced (L3 review)
 object FakeProvider:
     /** How a scripted reply ends. */
     enum Ending derives CanEqual:
@@ -68,7 +69,15 @@ object FakeProvider:
       * usage of a reply counts one input token for 4 characters of the request,
       * and one output token for each piece.
       */
+    // claude 2026-10-19: changed: on paced (L3 review)
     def make(script: Script = demo, delay: Duration = 30.millis): ChatProvider =
+      paced(script, Async.sleep(delay))
+
+    /** The provider of `script`, with the pause `pause` before each piece (it
+      * runs again for each piece). The usage is as in [[make]].
+      */
+    // claude 2026-10-19: created (L3 review)
+    def paced(script: Script, pause: => Unit < Async): ChatProvider =
       new ChatProvider:
           def stream(request: ChatRequest)(using
               Frame,
@@ -81,9 +90,7 @@ object FakeProvider:
               Stream {
                 Kyo
                   .foreachDiscard(reply.pieces)(p =>
-                    Async
-                      .sleep(delay)
-                      .andThen(Emit.value(Chunk(ChatEvent.TextDelta(p)))),
+                    pause.andThen(Emit.value(Chunk(ChatEvent.TextDelta(p)))),
                   )
                   .andThen(reply.ending match
                       case Ending.Stop(reason) =>
