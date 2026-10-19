@@ -4,8 +4,7 @@ import jatatui.core.backend.TestBackend
 import jatatui.core.buffer.Buffer
 import jatatui.core.style.{Color as JColor, Modifier, Style as JStyle}
 import jatatui.core.text.Span as JSpan
-
-import java.text.BreakIterator
+import tui4s.internal.TextEdit
 
 /** The style of one screen cell, in plain Scala types (no jatatui type).
   *
@@ -126,17 +125,21 @@ object Screen:
         // The trailing cells of a wide character hold " "; skip them, as
         // jatatui's Buffer.diff does, so that a row reads as the terminal
         // shows it ("✔ call bob", not "✔  call bob").
+        // claude 2026-10-19: changed: the rows as a fold (purity plan, P1)
         val rows   = Vector.tabulate(area.height) { y =>
-          val sb   = new java.lang.StringBuilder(area.width)
-          var skip = 0 // scalafix:ok DisableSyntax.var; P1: rows as a fold
-          var x    = 0 // scalafix:ok DisableSyntax.var; P1: rows as a fold
-          while x < area.width do // scalafix:ok DisableSyntax.while; P1: rows as a fold
-              val sym = buf.cellAt(area.x + x, area.y + y).symbol()
-              if skip == 0 then
-                  val _ = sb.append(sym)
-              skip = (skip.max(width(sym)) - 1).max(0)
-              x += 1
-          trimEnd(sb.toString)
+          val syms       = Vector.tabulate(area.width)(x =>
+            buf.cellAt(area.x + x, area.y + y).symbol().nn,
+          )
+          // `skip`: the trailing cells of the last wide character still to
+          // skip
+          val (shown, _) = syms.foldLeft((Vector.empty[String], 0)) {
+            case ((acc, skip), sym) =>
+              (
+                if skip == 0 then acc :+ sym else acc,
+                (skip.max(width(sym)) - 1).max(0),
+              )
+          }
+          trimEnd(shown.mkString)
         }
         val styles = Vector.tabulate(area.height, area.width) { (y, x) =>
           CellStyle.of(buf.cellAt(area.x + x, area.y + y).style())
@@ -146,43 +149,28 @@ object Screen:
 
     private def width(s: String): Int = JSpan.raw(s).width()
 
+    // claude 2026-10-19: changed: no loop (purity plan, P1)
     private def trimEnd(s: String): String =
-        var end = s.length // scalafix:ok DisableSyntax.var; P1: trimEnd as a fold
-        while end > 0 && s.charAt(end - 1) == ' ' do end -= 1 // scalafix:ok DisableSyntax.while; P1: trimEnd as a fold
-        s.substring(0, end)
-
-    /** The grapheme clusters of `s`, in order. */
-    private def graphemes(s: String): Vector[String] =
-        val it  = BreakIterator.getCharacterInstance()
-        it.setText(s)
-        val out = Vector.newBuilder[String]
-        var a   = it.first() // scalafix:ok DisableSyntax.var; P1: TextEdit.graphemes
-        var b   = it.next()  // scalafix:ok DisableSyntax.var; P1: TextEdit.graphemes
-        while b != BreakIterator.DONE do // scalafix:ok DisableSyntax.while; P1: TextEdit.graphemes
-            out += s.substring(a, b)
-            a = b
-            b = it.next()
-        out.result()
-    end graphemes
+      s.substring(0, s.lastIndexWhere(_ != ' ') + 1).nn
 
     /** The cells `x until x + width` of a row string. */
+    // claude 2026-10-19: changed: a fold over TextEdit.graphemes (purity plan,
+    // P1)
     private def cells(row: String, x: Int, width: Int): String =
-        val sb  = new java.lang.StringBuilder(width)
-        var col = 0 // scalafix:ok DisableSyntax.var; P1: cells as a fold
-        graphemes(row).foreach { g =>
-          val w = Screen.width(g).max(1)
-          if col >= x && col + w <= x + width then
-              val _ = sb.append(g)
-          else if col < x + width && col + w > x then
-              // a wide character cut by an edge: the visible cells are blank
-              var c = col.max(x) // scalafix:ok DisableSyntax.var; P1: cells as a fold
-              while c < (col + w).min(x + width) do // scalafix:ok DisableSyntax.while; P1: cells as a fold
-                  val _ = sb.append(' ')
-                  c += 1
-          end if
-          col += w
-        }
-        trimEnd(sb.toString)
+        val (pieces, _) =
+          TextEdit.graphemes(row).foldLeft((Vector.empty[String], 0)) {
+            case ((acc, col), g) =>
+              val w     = Screen.width(g).max(1)
+              val piece =
+                if col >= x && col + w <= x + width then g
+                else if col < x + width && col + w > x then
+                    // a wide character cut by an edge: the visible cells are
+                    // blank
+                    " " * ((col + w).min(x + width) - col.max(x))
+                else ""
+              (acc :+ piece, col + w)
+          }
+        trimEnd(pieces.mkString)
     end cells
 end Screen
 

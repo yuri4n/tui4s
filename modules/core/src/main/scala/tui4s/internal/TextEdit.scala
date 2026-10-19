@@ -104,18 +104,17 @@ private[tui4s] object TextEdit:
     /** The UTF-16 offsets where grapheme clusters start, plus the length at the
       * end: "ab" -> [0, 1, 2]. The number of graphemes is `length - 1`.
       */
+    // claude 2026-10-19: changed: the boundaries from an Iterator (purity
+    // plan, P1)
     def boundaries(s: String): Array[Int] =
-        val b = Array.newBuilder[Int]
-        b += 0
-        if s.nonEmpty then
-            val it  = BreakIterator.getCharacterInstance()
-            it.setText(s)
-            var end = it.next() // scalafix:ok DisableSyntax.var; P1: boundaries from an Iterator
-            while end != BreakIterator.DONE do // scalafix:ok DisableSyntax.while; P1: boundaries from an Iterator
-                b += end
-                end = it.next()
-        b.result()
-    end boundaries
+      if s.isEmpty then Array(0)
+      else
+          val it   = BreakIterator.getCharacterInstance()
+          it.setText(s)
+          val ends = Iterator
+            .continually(it.next())
+            .takeWhile(_ != BreakIterator.DONE)
+          (Iterator.single(0) ++ ends).toArray
 
     /** The grapheme clusters of `s`, in order. */
     def graphemes(s: String): Vector[String] =
@@ -127,21 +126,17 @@ private[tui4s] object TextEdit:
     /** `s` for a single-line field: line breaks (`\r\n`, `\n`, `\r`) and tabs
       * become spaces, other control characters are dropped.
       */
+    // claude 2026-10-19: changed: replace and filterNot (purity plan, P1)
     def singleLine(s: String): String =
-        val out = new java.lang.StringBuilder(s.length)
-        var i   = 0 // scalafix:ok DisableSyntax.var; P1: singleLine with replace and filterNot
-        while i < s.length do // scalafix:ok DisableSyntax.while; P1: singleLine with replace and filterNot
-            val c = s.charAt(i)
-            if c == '\r' && i + 1 < s.length && s.charAt(i + 1) == '\n' then
-                discard(out.append(' '))
-                i += 1
-            else if c == '\r' || c == '\n' || c == '\t' then
-                discard(out.append(' '))
-            else if !Character.isISOControl(c) then discard(out.append(c))
-            i += 1
-        end while // scalafix:ok DisableSyntax.while; P1: singleLine with replace and filterNot
-        out.toString
-    end singleLine
+      s.replace("\r\n", " ")
+        .nn
+        .replace('\r', ' ')
+        .nn
+        .replace('\n', ' ')
+        .nn
+        .replace('\t', ' ')
+        .nn
+        .filterNot(Character.isISOControl)
 
     /** True when the text of an `Unknown` key is a character to insert: not
       * empty, no control character, and not ASCII (the DOM names of the other
@@ -178,11 +173,15 @@ private[tui4s] object TextEdit:
     /** The start of the word before the caret (Ctrl-W): skip white space, then
       * everything up to the previous white space.
       */
+    // claude 2026-10-19: changed: a tailrec walk back (purity plan, P1)
     private def wordStart(text: String, bounds: Array[Int], at: Int): Int =
-        def blankAt(i: Int): Boolean =
+        def blankAt(i: Int): Boolean          =
           text.substring(bounds(i), bounds(i + 1)).isBlank
-        var i                        = at // scalafix:ok DisableSyntax.var; P1: a tailrec wordStart
-        while i > 0 && blankAt(i - 1) do i -= 1 // scalafix:ok DisableSyntax.while; P1: a tailrec wordStart
-        while i > 0 && !blankAt(i - 1) do i -= 1 // scalafix:ok DisableSyntax.while; P1: a tailrec wordStart
-        i
+        // Goes back from `i` while the grapheme on the left is blank (for
+        // `blank = true`) or not blank (for `blank = false`).
+        @annotation.tailrec
+        def back(i: Int, blank: Boolean): Int =
+          if i > 0 && blankAt(i - 1) == blank then back(i - 1, blank) else i
+        back(back(at, blank = true), blank = false)
+    end wordStart
 end TextEdit
