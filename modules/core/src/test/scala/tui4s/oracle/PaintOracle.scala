@@ -19,7 +19,8 @@ import scala.jdk.CollectionConverters.*
   * not change it: the pure painter and the new canvas must give the same cells.
   * The old canvas skips chars, not cells, at the left edge of a clip (the bug
   * that P5 fixes): a property that compares with it keeps the texts away from
-  * that edge.
+  * that edge. One change (L1c): the caret cell shows the glyph at the caret
+  * only when it fits in the field, the fix of the painter bug of L1b.
   *
   * The shim at the end gives the old code a `TestBackend` and reads the buffer
   * back as rows of cells with their styles.
@@ -575,7 +576,12 @@ object PaintOracle:
                   discard(canvas.text(r.x, r.y, text, textStyle, clip))
                   if focused then
                       val cx = r.x + scroll._2
-                      val ch = glyphs.lift(caret).getOrElse(" ")
+                      // claude 2026-10-19: changed (L1c): the glyph at the
+                      // caret shows only when it fits in the field
+                      val ch = glyphs
+                        .lift(caret)
+                        .filter(g => scroll._2 + Layout.textWidth(g) <= r.w)
+                        .getOrElse(" ")
                       canvas.put(
                         cx,
                         r.y,

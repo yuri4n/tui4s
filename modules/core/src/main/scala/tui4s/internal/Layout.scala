@@ -1430,28 +1430,31 @@ private[tui4s] object Layout:
         (m2, Rect(x, y, sz.w, sz.h))
     end outOfFlowRect
 
-    /** The cells that the damage inside the node at `from` can name: the ports
-      * of the viewports at `from` and above it, up to the first layer, whose
-      * box ([[layerBox]]) ends the walk. None when no viewport and no layer
-      * holds it (the damage stays as it is).
+    /** The cells that the damage inside the node at `from` can name: the port
+      * of each node at `from` and above it (the content box of a box, the port
+      * of a viewport, the screen), up to the first layer, whose box
+      * ([[layerBox]]) ends the walk. It is the clip of the painter
+      * ([[Paint.clipOf]]) for a kid of `from`. So a clear names only cells that
+      * the paint of the same damage gives back: a kid that overflows its owner
+      * is not cleared outside the content box of the owner (a border of the
+      * owner, or the cells after the background of the owner, keep their
+      * value). None when `from` is not in the layout.
       */
-    // claude 2026-10-19: created (L1a): a viewport clips the damage of its
-    // subtree, so a clear of a kid that scrolled out does not touch the cells
-    // outside the viewport; changed: a layer clips the damage of its subtree
-    // to its box (L1b)
+    // claude 2026-10-19: changed: the port of every node clips the damage, as
+    // the painter clips (L1c: the painter bug of L1b)
     def damageClip(laid: Laid, from: Option[Loc]): Option[Rect] =
         @annotation.tailrec
         def up(q: Option[Loc], acc: Option[Rect]): Option[Rect] =
           q.flatMap(laid.nodes.get) match
               case None    => acc
               case Some(n) =>
-                val here = n.view.fold(acc)(v =>
-                  Some(acc.fold(v.port)(_.intersect(v.port))),
-                )
+                val box  = n.kind match
+                    case Kind.Screen => n.rect
+                    case _           => n.port
+                val here = acc.fold(box)(_.intersect(box))
                 if n.layer.isDefined then
-                    val box = layerBox(laid, n)
-                    Some(here.fold(box)(_.intersect(box)))
-                else up(n.owner, here)
+                    Some(here.intersect(layerBox(laid, n)))
+                else up(n.owner, Some(here))
         up(from, None)
     end damageClip
 
@@ -1716,10 +1719,12 @@ private[tui4s] object Layout:
                 node.props.listStyle,
                 tableCols,
               )
+              // claude 2026-10-19: changed: the port of the node (its content
+              // box, or the port of its new view) clips the damage of its kids,
+              // as the painter clips them (L1c: the painter bug of L1b)
+              val port                     = a.view.fold(node.content)(_.port)
               val clip                     =
-                selfClip(laid, node).fold(a.view.map(_.port))(c =>
-                  Some(a.view.fold(c)(v => c.intersect(v.port))),
-                )
+                Some(selfClip(laid, node).fold(port)(_.intersect(port)))
               def clear(r: Rect): Damage   =
                 Damage.Clear(clip.fold(r)(r.intersect), node.bgForKids)
               val newPaths                 = kids.map(_.item.path).toSet

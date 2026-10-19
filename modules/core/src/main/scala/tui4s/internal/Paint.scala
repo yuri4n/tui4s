@@ -771,12 +771,20 @@ private[tui4s] object Paint:
                 (r.x until r.right).toVector.flatMap(x =>
                   put(x, r.y, " ", field, clip),
                 )
+              // claude 2026-10-19: changed: the glyph at the caret shows only
+              // when it fits in the field; a wide glyph in the last cell (a
+              // field of 1 cell) named a cell outside the field (L1c: the
+              // painter bug of L1b)
+              val atCaret   = glyphs
+                .lift(caret)
+                .filter(g => scroll._2 + Layout.textWidth(g) <= r.w)
+                .getOrElse(" ")
               val cursor    =
                 if focused then
                     put(
                       r.x + scroll._2,
                       r.y,
-                      glyphs.lift(caret).getOrElse(" "),
+                      atCaret,
                       field.withAddModifier(
                         jatatui.core.style.Modifier.REVERSED,
                       ),
