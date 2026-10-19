@@ -325,13 +325,29 @@ if os.path.exists(classload):
     def n(pred):
         return sum(1 for l in loaded if pred(l))
     jdk = n(lambda l: "source: jrt:/" in l or "shared objects file" in l)
+
+    # claude 2026-10-19: changed (L1c): the jars are classified by their file name. The native-packager stage puts
+    # every jar in examples/target/universal/stage/lib with its organisation in front of its name
+    # (io.getkyo.kyo-ui_3-1.0.0-RC7.jar); the old rules read the directories of the coursier cache, so they counted
+    # Scala, Kyo and jatatui as 0 and every class of the stage as an example class.
+    def source(l):
+        return l.split("source:", 1)[1].strip()
+
+    def base(l):
+        return os.path.basename(source(l).rstrip("/"))
+
     def jar(name):
-        return n(lambda l: f"/{name}" in l)
+        return n(lambda l: re.search(r"(^|[./])" + re.escape(name), base(l)) is not None)
+
+    scala = n(lambda l: "scala3-library" in base(l) or "scala-library" in base(l))
+    jatatui = n(lambda l: "jatatui" in base(l) or base(l).startswith("crossterm-"))
+    core = n(lambda l: "tui4s-core" in base(l) or "modules/core/target" in source(l))
+    examples = n(lambda l: "tui4s-examples" in base(l) or re.search(r"examples/target/scala-[^/]+/classes", source(l)) is not None)
     print(f"INFO class-load (examples/target/bin/counter, start, first frame, q): {len(loaded)} classes;"
-          f" JDK {jdk}; Scala {jar('scala3-library') + jar('scala-library')}; Kyo {jar('kyo-')}"
-          f" (kyo-ui {jar('kyo-ui')}, kyo-http {jar('kyo-http')}, kyo-net {jar('kyo-net')}); jatatui {jar('jatatui-')};"
-          f" tui4s core {n(lambda l: 'modules/core/target' in l or 'tui4s-core' in l)};"
-          f" examples {n(lambda l: 'examples/target' in l or 'tui4s-examples' in l)} ({classload})")
+          f" JDK {jdk}; Scala {scala}; Kyo {jar('kyo-')}"
+          f" (kyo-ui {jar('kyo-ui')}, kyo-http {jar('kyo-http')}, kyo-net {jar('kyo-net')}); jatatui {jatatui};"
+          f" tui4s core {core};"
+          f" examples {examples} ({classload})")
 else:
     print(f"INFO class-load: no {classload}")
 
