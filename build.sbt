@@ -84,48 +84,47 @@ Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
 /** The test settings of a module whose suites run the runner: runner, app,
   * testkit and core (D25). They were the settings of modules/core/build.sbt.
   *
-  * kyo-test (the Kyo project's own test framework, released with Kyo) runs
-  * the suites; kyo-test-prop gives the property tests (PropertyTest, Gen,
-  * Shrink); tasty-query reads the TASTy of the kyo-ui jar (KyoUiSurfaceTest)
-  * and of the tui4s jars (PublicApiTest).
+  * kyo-test (the Kyo project's own test framework, released with Kyo) runs the
+  * suites; kyo-test-prop gives the property tests (PropertyTest, Gen, Shrink);
+  * tasty-query reads the TASTy of the kyo-ui jar (KyoUiSurfaceTest) and of the
+  * tui4s jars (PublicApiTest).
   *
-  * The tests run in a forked JVM. Kyo starts one scheduler per class loader
-  * and nothing stops it, so each test run inside a long-lived sbt (a shell,
-  * `~`, BSP) would leave one more scheduler and its threads running. A forked
-  * JVM exits after the tests. The two long flags stop JDK 25 warnings about
+  * The tests run in a forked JVM. Kyo starts one scheduler per class loader and
+  * nothing stops it, so each test run inside a long-lived sbt (a shell, `~`,
+  * BSP) would leave one more scheduler and its threads running. A forked JVM
+  * exits after the tests. The two long flags stop JDK 25 warnings about
   * sun.misc.Unsafe and about the native crossterm library. -Xss16m is for
-  * tasty-query on the kyo-ui jar. UTF-8 output keeps the box-drawing
-  * characters of a golden-screen diff readable in the sbt log.
+  * tasty-query on the kyo-ui jar. UTF-8 output keeps the box-drawing characters
+  * of a golden-screen diff readable in the sbt log.
   *
   * The tui4s scheduler values (D-17 c). Kyo reads these properties once, when
-  * its scheduler starts. With Kyo's defaults the scheduler cycle runs every
-  * 100 us; with 10 ms it finds and drains a stalled worker less often, which
-  * costs less CPU when the app is idle and gives fewer split frames under
-  * load (spike S1: 0 splits with no load, at most 0.75 per 10 000 under
-  * load). The minimum interval of the blocking monitor removes a measurement
-  * of about 90 ms when the scheduler starts (see `SchedulerDefaults`). The
-  * test JVM always sets them. `TuiApp` sets the same values for a real app
+  * its scheduler starts. With Kyo's defaults the scheduler cycle runs every 100
+  * us; with 10 ms it finds and drains a stalled worker less often, which costs
+  * less CPU when the app is idle and gives fewer split frames under load (spike
+  * S1: 0 splits with no load, at most 0.75 per 10 000 under load). The minimum
+  * interval of the blocking monitor removes a measurement of about 90 ms when
+  * the scheduler starts (see `SchedulerDefaults`). The test JVM always sets
+  * them. `TuiApp` sets the same values for a real app
   * (`tui4s.spi.SchedulerDefaults`, in its constructor).
   *
   * The load flag of the glitch tests (gate 1 item 2). The frame contract is
   * SOFT: at most 1 split frame per 10 000 events under load. A glitch test
   * sends 500 events and asserts 0 split frames; on a loaded 2-CPU CI runner
   * that gives about a 5 percent chance of 1 split, while a real regression
-  * gives many. So CI sets TUI4S_LOAD=1 (.github/workflows/ci.yml) and the
-  * test JVM gets -Dtui4s.load=1, which allows 1 split in 500 events. Without
-  * the variable (a developer machine) the assertion stays 0.
+  * gives many. So CI sets TUI4S_LOAD=1 (.github/workflows/ci.yml) and the test
+  * JVM gets -Dtui4s.load=1, which allows 1 split in 500 events. Without the
+  * variable (a developer machine) the assertion stays 0.
   *
-  * The suites run one at a time inside the forked JVM: the settle of the
-  * runner reads the JVM-wide scheduler, so a suite that runs next to another
-  * one sees its load. This is sbt's default for a forked JVM; it is set here
-  * so that a change is a visible decision. Inside a suite, kyo-test runs the
-  * leaves in parallel unless the suite says `config.sequential` (the runner
-  * suites do).
+  * The suites run one at a time inside the forked JVM: the settle of the runner
+  * reads the JVM-wide scheduler, so a suite that runs next to another one sees
+  * its load. This is sbt's default for a forked JVM; it is set here so that a
+  * change is a visible decision. Inside a suite, kyo-test runs the leaves in
+  * parallel unless the suite says `config.sequential` (the runner suites do).
   */
 // claude 2026-10-19: created (D25): the test settings of modules/core/build.sbt
 // (created 2026-10-12, changed 2026-10-13 (T2, C3) and 2026-10-19 (C2)), for
 // the four modules of the split
-lazy val runnerTestSettings: Seq[Def.Setting[_]] = Seq(
+lazy val runnerTestSettings = Seq(
   libraryDependencies ++= Seq(
     "io.getkyo"     %% "kyo-test-runner" % Versions.kyo        % Test,
     "io.getkyo"     %% "kyo-test-prop"   % Versions.kyo        % Test,
@@ -133,7 +132,7 @@ lazy val runnerTestSettings: Seq[Def.Setting[_]] = Seq(
   ),
   // Use `+=`: `:=` would drop the other frameworks.
   Test / testFrameworks += new TestFramework("kyo.test.runner.SbtFramework"),
-  Test / fork           := true,
+  Test / fork               := true,
   Test / javaOptions ++= Seq(
     "-Xmx1g",
     "-Xss16m",
