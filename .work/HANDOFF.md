@@ -85,8 +85,19 @@
   within 1 s (documented); useProcess's blocking stdout read holds a scheduler thread; LocalStorage (JS) untested on
   Node (no window); Lines.split ends lines only at LF.
 - D25 DECIDED (issue #17): artifact split runner/app/testkit + composite core, one agent, right after L2b, before L3.
-- NEXT: L2b tui4s-widgets (the catalog of realapp-web.json PART B; widgets may depend on use) + a gallery example;
-  examples.widgets (TabsView) moves into the module.
+- L2b DONE, pushed 4264c42 (35 files, +5477/-447; 31 widgets in tui4s.widgets: Model (Local|Bound|Controlled),
+  Colors (8 Color.Var names + Colors.defaults stylesheet), Panel, SplitPane, Accordion, Tabs (moved; examples.widgets.Tabs
+  stays as the tui4s Component adapter), ListView(+virtual), DataTable, TreeView, Pager, Sparkline, Gauge, ProgressBar,
+  BarChart, Spinner, SearchBox, Autocomplete, Checklist, RadioGroup, NumberStepper, DateField, StatusBar, KeyHints,
+  CommandPalette, Modal, Toasts, Menu.bar, Tooltip, Breadcrumbs, Pagination, Tags, Wizard; examples/gallery (35 leaves)
+  + README 'Widgets' (5 regions) + PTY row gallery; 389 core, 92 use, 108 widgets (JVM+JS), 110 examples, PTY 156/156).
+  Review: 12 should, 8 nits, applied (px->cells units, wide-char measure by cells, Pager follow rule, DataTable header
+  column, useSelection reuse, aria naming, Wizard.onFinish by-name, handle shapes, tree law). Later widgets: form
+  validation, file picker, Markdown viewer, calendar popup, line chart, chat transcript (L3). Open: on the web
+  aria-activedescendant does not scroll (L4 may need UI.scrollIntoView); Toasts/Spinner re-render on each tick.
+- L2 DONE 2026-10-19 (L2a, L2b).
+- NEXT: D25 split (1 agent): modules runner, app, testkit, core (composite, holds the Headless-based suites);
+  then L3 examples.assistant.
 - (history) L1 ran in three workflows (cheap cadence: implementer + API/examples reviewer + fixer, Opus): L1a viewport scroll
   and clip, wrap and ellipsis, wide characters; L1b overlay and z-order, terminal-size Signal, Color.Var, FlexWrap and
   Display, one warning per ignored property; L1c native inputs and the multi-line textarea (Alt-Enter, Ctrl-J,
