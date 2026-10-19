@@ -77,4 +77,28 @@ class WarningsTest extends RunnerSuite:
           )
       end for
     }
+    // claude 2026-10-19: created (L1c)
+    "an input element that the runner does not implement warns once in a run" in {
+      for
+          h     <- Headless.start(30, 4)(_ =>
+                     div(
+                       dateInput,
+                       dateInput,
+                       fileInput,
+                       input.value("ok"),
+                     ),
+                   )
+          lines <- h.awaitLog
+      yield
+          def count(s: String): Int = lines.count(_.contains(s))
+          assert(
+            count(
+              "tui4s: the element DateInput is not supported in the terminal: it shows an empty box and takes no key (first seen at 0.0)",
+            ) == 1,
+            lines.mkString("\n"),
+          )
+          assert(count("the element FileInput") == 1, lines.mkString("\n"))
+          assert(lines.size == 2, lines.mkString("\n"))
+      end for
+    }
 end WarningsTest

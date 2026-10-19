@@ -258,10 +258,63 @@ private[tui4s] final case class Border(
   *     signal of the window size, and a runner cannot write the Scala.js one.
   *     The old runner gave the UI no size. Now: [[tui4s.Tui.size]], a
   *     `Signal[TerminalSize]` that the runner writes on a resize.
+  *
+  * The input elements and their attributes (the audit of 2026-10-19, kyo-ui
+  * 1.0.0-RC7; the DOM runner is `HtmlRenderer`, `ReactiveUI` and the client
+  * script). The DOM writes these attributes: `type` (from the element),
+  * `placeholder`, `value`, `checked`, `disabled`, `readonly`, `min`, `max`,
+  * `step`, and the `name` of a radio. kyo-ui has no `rows`, `cols`,
+  * `maxLength`, `required` and `form` attribute, and no `autofocus`:
+  * `focusAuto` seeds the focus of any interactive element (L1b). A field is in
+  * a form when a `Form` holds it. The decisions:
+  *   - `Input`, `EmailInput`, `TelInput`, `UrlInput`, `SearchInput` (the
+  *     `ConstrainedInput` fields: `value`, `placeholder`, `readOnly`,
+  *     `disabled`, `onInput`, `onChange`, `inputFilter`, `inputMask`). The old
+  *     runner: one underlined line; the keys edit by grapheme clusters
+  *     ([[TextEdit]]); the placeholder is dim and italic; Enter runs
+  *     `onChange`. Keep. Add: the maximum length of `tui4s.maxLength` (kyo-ui
+  *     has no attribute for it). `inputFilter` and `inputMask` stay ignored.
+  *   - `PasswordInput`. The old runner: one "*" for each grapheme cluster.
+  *     Implement: one "•" for each cluster; the text never goes into the paint
+  *     plan.
+  *   - `NumberInput` (`min`, `max`, `step`, `onChangeNumeric`; its `value` is a
+  *     `String`). The old runner: a free text. Implement: the keys accept
+  *     digits, one sign and one decimal point (`NumberText`); ArrowUp and
+  *     ArrowDown change the value by `step` (1 when none), clamped to `min` and
+  *     `max`. The DOM writes the text of each edit to the bound ref, and on a
+  *     step or a commit the number as kyo-ui formats it (`NumberFormat`: "3",
+  *     "2.5") and calls `onChangeNumeric`. The runner does the same.
+  *   - `Textarea`. The old runner: one line, as a text input. Implement: lines
+  *     that wrap by cells, a caret that moves by lines, a viewport of its own
+  *     (`AreaText`). Its height is the definite `height` of its style, else 3
+  *     rows (kyo-ui has no `rows`).
+  *   - `Checkbox`, `Radio` (`checked`, `onChange`; the `name` of a radio). The
+  *     old runner: Space and Enter toggle a checkbox and check a radio. Keep.
+  *     The `name` of a radio makes no group: the DOM leaves the group to the
+  *     browser, and the runner leaves it to the refs of the app.
+  *   - `Select` (`value`, `onChange`; `Opt` with `value` and `selected`). The
+  *     old runner: Space, Enter, ArrowDown and ArrowUp cycle the options. Keep.
+  *   - `Dropdown` (`options`, `value`, `onChange`). The old runner: it shows
+  *     the label of its value, it takes the focus, and no key changes it.
+  *     Implement: the keys of a select (the DOM opens a list; the terminal has
+  *     no list).
+  *   - `RangeInput` (`value` is a `Double`, `min`, `max`, `step`, `onChange`).
+  *     The old runner: a track and a thumb, and no key. Keep the look.
+  *     Implement: ArrowLeft, ArrowRight, ArrowDown and ArrowUp move it by
+  *     `step`, PageUp and PageDown by 10 steps, Home and End to `min` and
+  *     `max`.
+  *   - `DateInput`, `TimeInput`, `ColorInput`, `FileInput`. The old runner: an
+  *     empty box that takes the focus and no key. Keep, and warn once in a run
+  *     ([[Warn.UnsupportedElement]]).
+  *   - `HiddenInput`: no layout and no paint (old and new).
+  *   - `disabled` (every `HasDisabled` element: the inputs and `Button`): no
+  *     focus, no key and no paste, and a dim text. Keep: the DOM does not focus
+  *     a disabled element either. `readOnly` (the text inputs and the
+  *     textarea): the focus and the moves of the caret, no edit, no paste and
+  *     no `onChange`. Keep, and the number keys and the newline keys obey it
+  *     too.
   */
-// claude 2026-10-19: changed: the audit of the overflow and text-flow
-// properties (L1a), and of the position, display, wrap and colour-variable
-// properties and the window size (L1b)
+// claude 2026-10-19: changed: the audit of the input elements (L1c)
 private[tui4s] final case class Props(
     dir: Dir,
     /** `rowReverse` or `columnReverse`: the items go from the end. */
