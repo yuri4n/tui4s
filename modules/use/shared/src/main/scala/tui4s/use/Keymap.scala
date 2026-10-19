@@ -86,6 +86,9 @@ object Binding:
 
 /** A key map as data: a handler for `onKeyDown` and the key hints for a help
   * line. Make it with [[useKeymap]].
+  *
+  * @param bindings
+  *   the bindings, in order: the first one that matches a key runs
   */
 // claude 2026-10-19: created (L2a)
 final class Keymap private[use] (val bindings: Chunk[Binding]):

@@ -32,13 +32,22 @@ object TextCodec:
           Result.succeed,
         )
 
-    given string: TextCodec[String]   = instance(identity, Result.succeed)
-    given int: TextCodec[Int]         =
+    /** A text is its own text. */
+    given string: TextCodec[String] = instance(identity, Result.succeed)
+
+    /** The decimal text of an `Int`. */
+    given int: TextCodec[Int] =
       instance(_.toString, parse("an Int", _.toIntOption))
-    given long: TextCodec[Long]       =
+
+    /** The decimal text of a `Long`. */
+    given long: TextCodec[Long] =
       instance(_.toString, parse("a Long", _.toLongOption))
-    given double: TextCodec[Double]   =
+
+    /** The text of a `Double` (`toString`). */
+    given double: TextCodec[Double] =
       instance(_.toString, parse("a Double", _.toDoubleOption))
+
+    /** "true" or "false". */
     given boolean: TextCodec[Boolean] =
       instance(_.toString, parse("a Boolean", _.toBooleanOption))
 end TextCodec
