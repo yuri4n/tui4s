@@ -136,7 +136,7 @@ object PerfProbe:
         }
         val damage   = d2 ++ Layout.layerDamage(laid, l2)
         val plan     = Paint(l2, env, damage)
-        sink = Warnings.scan(l2, damage, Set.empty)
+        sink = Warnings.scan(l2, damage, Set.empty, laid)
         (l2, plan)
     end step
 

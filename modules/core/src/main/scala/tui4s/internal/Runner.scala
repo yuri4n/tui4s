@@ -863,7 +863,10 @@ private[tui4s] final class Runner private (
                   val plan         = Paint(w1.laid, w1.env, damage)
                   // claude 2026-10-19: created (L1b): the new warnings of the
                   // nodes of this frame, logged once in the run
-                  val warns        = Warnings.scan(w1.laid, damage, w1.warned)
+                  // claude 2026-10-19: changed: the screen of the last
+                  // frame, whose elements are scanned (PF-b)
+                  val warns        =
+                    Warnings.scan(w1.laid, damage, w1.warned, w.laid)
                   canvas.write(plan)
                   canvas.flush(plan).map { flushed =>
                     val done = w1.copy(

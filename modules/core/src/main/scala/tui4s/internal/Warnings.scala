@@ -107,19 +107,31 @@ private[tui4s] object Warnings:
     /** The new warnings of a frame: the elements of the subtrees of the roots
       * of `damage` (the nodes that the frame laid out or painted again), in
       * document order, without the warnings of `seen`. Gives each new warning
-      * with its first element.
+      * with its first element. An element that is at the same path in
+      * `before` (the screen of the last frame) is not scanned again: the frame
+      * that laid it out painted it, so its warnings are in `seen` (the warnings
+      * of an element are a function of the element and of the custom
+      * properties of the run).
       */
+    // claude 2026-10-19: changed: a node of the same element at the same path
+    // in `before` is not scanned again (PF-b)
     def scan(
         laid: Laid,
         damage: Vector[Damage],
         seen: Set[Warn],
+        before: Laid = Laid.empty,
     ): Vector[(Warn, Loc)] =
         val roots                               = Loc.tops(damage.collect { case Damage.Paint(p) => p })
+        def scanned(p: Loc, e: Element): Boolean =
+          before.nodes.get(p).exists(_.kind match
+              case Kind.El(e0) => e0 eq e
+              case _           => false)
         def walk(p: Loc): Iterator[(Warn, Loc)] =
           laid.nodes.get(p).iterator.flatMap { n =>
             // claude 2026-10-19: changed: the unsupported input elements
             // (L1c)
             val here = n.kind match
+                case Kind.El(e) if scanned(p, e) => Iterator.empty
                 case Kind.El(e) =>
                   (of(e.attrs.uiStyle, n.props.text.vars) ++ element(
                     e,
