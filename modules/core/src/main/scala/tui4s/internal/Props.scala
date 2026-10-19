@@ -150,7 +150,10 @@ private[tui4s] final case class Border(
   *     default) clips by cells.
   *   - The text measure counts cells: `Layout.textWidth` is jatatui's
   *     `Span.width` (2 cells for a wide character or an emoji), the wrap splits
-  *     a long word by cells, and the painter cuts a text into `Glyph`s.
+  *     a long word by cells, the painter cuts a text into `Glyph`s, a text
+  *     input scrolls and puts its caret by cells, the label of a select or a
+  *     dropdown fits by cells (`Paint.fit`), and the ellipsis never splits a
+  *     wide glyph.
   */
 // claude 2026-10-19: changed: the audit of the overflow and text-flow
 // properties (L1a)
@@ -364,8 +367,9 @@ private[tui4s] object Props:
                   case Some(ListStyle.disc)    =>
                     base0.copy(decoration = Sides.lr(2, 0))
                   case Some(ListStyle.decimal) =>
+                    // claude 2026-10-19: changed: the marker in cells (L1a)
                     base0.copy(decoration =
-                      Sides.lr(s"${index + 1}. ".length, 0),
+                      Sides.lr(Layout.textWidth(s"${index + 1}. "), 0),
                     )
                   case _                       => base0
             case _         => base0

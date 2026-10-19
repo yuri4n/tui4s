@@ -573,6 +573,34 @@ class DispatchTest extends RunnerSuite:
         s"${s1.text} kept $kept gone $gone fresh $fresh",
       )
     }
+
+    // claude 2026-10-19: created (L1a): wide characters in a text input
+    "a text input on CJK text: the caret is a cell position (a wide character takes two cells), and a long value scrolls by cells" in {
+      for
+          h  <- Headless.start(20, 1)(_ => input.id("i"))
+          _  <- h.typeText("中文字")
+          s1 <- h.screen
+          _  <- h.key(Keyboard.ArrowLeft)
+          s2 <- h.screen
+          _  <- h.typeText("漢字" * 10)
+          s3 <- h.screen
+      yield
+          def caretAt(s: Screen): Vector[Int] =
+            (0 until 20).filter(x => s.styleAt(x, 0).reversed).toVector
+          // after the three characters: the caret is the cell after them
+          assert(
+            s1.row(0) == "中文字" && caretAt(s1) == Vector(6),
+            s"${s1.row(0)} ${caretAt(s1)}",
+          )
+          // one left: the caret is on 字, at cell 4
+          assert(caretAt(s2) == Vector(4), s"${caretAt(s2)}")
+          // 20 more wide characters before 字: the field shows the 9 before the
+          // caret (18 cells) and 字 under the caret at cell 18
+          assert(
+            s3.row(0) == "字漢" * 4 + "字字" && caretAt(s3) == Vector(18),
+            s"${s3.row(0)} ${caretAt(s3)}",
+          )
+    }
 end DispatchTest
 
 /** A Kyo log backend that keeps the lines at level error (with the message of

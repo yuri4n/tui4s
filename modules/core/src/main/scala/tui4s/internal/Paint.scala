@@ -257,6 +257,19 @@ private[tui4s] object Paint:
         Option.when(w > 0)(Glyph(g, w))
       }
 
+    /** `s` in exactly `cells` cells: its whole glyphs that fit, then spaces. A
+      * wide glyph that does not fit is dropped, not split.
+      */
+    // claude 2026-10-19: created (L1a): the cut by chars of the pickers moved
+    // their arrow out of the box when the label had wide characters
+    def fit(s: String, cells: Int): String =
+        val gs   = glyphs(s)
+        val kept = gs
+          .zip(gs.scanLeft(0)(_ + _.width).drop(1))
+          .takeWhile(_._2 <= cells)
+        kept.map(_._1.symbol).mkString +
+          " " * (cells - kept.lastOption.fold(0)(_._2)).max(0)
+
     /** `line` cut to `width` cells with "…" (1 cell) in its last cell: the
       * glyphs that fit in `width - 1` cells, then "…". The cut is by cells: a
       * wide glyph that does not fit next to the ellipsis is dropped whole.
@@ -444,12 +457,9 @@ private[tui4s] object Paint:
                 .map(_._2)
                 .orElse(labels.headOption.map(_._2))
                 .getOrElse("")
-              at(
-                r.x,
-                r.y,
-                (label + " " * r.w).take((r.w - 1).max(0)) + "▾",
-                style,
-              )
+              // claude 2026-10-19: changed: the label fits by cells, so the
+              // arrow stays in the last cell with a wide label (L1a)
+              at(r.x, r.y, fit(label, r.w - 1) + "▾", style)
             case d: Dropdown    =>
               val v     = pickerValue(env, n.path, d.value)
               val label = d.options.toVector
@@ -457,12 +467,8 @@ private[tui4s] object Paint:
                 .map(_._2)
                 .orElse(d.options.headOption.map(_._2))
                 .getOrElse("")
-              at(
-                r.x,
-                r.y,
-                (label + " " * r.w).take((r.w - 1).max(0)) + "▾",
-                style,
-              )
+              // claude 2026-10-19: changed: the label fits by cells (L1a)
+              at(r.x, r.y, fit(label, r.w - 1) + "▾", style)
             case ri: RangeInput =>
               // a constant value (`.value(50.0)`) comes from the element, as in
               // the text and picker paths; only a bound ref comes from the

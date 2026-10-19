@@ -400,6 +400,38 @@ class GoldenScreenTest extends ScreenSuite:
       }
     }
 
+    // claude 2026-10-19: created (L1a)
+    "wide characters in decorations" - {
+      "a select with a wide label keeps its arrow in the last cell; a button and a list marker measure their wide labels by cells" in {
+        val pick = select.value("a")(
+          option.value("a")("漢字"),
+          option.value("b")("b"),
+        )
+        assertScreen(div.style(_.row)(pick), 8, 1, "漢 字  ▾")
+        assertScreen(div.style(_.row)(button("漢")), 8, 1, "[ 漢  ]")
+        assertScreen(
+          ul(li("中文"), li("👍")).style(_.listStyle(_.decimal)),
+          8,
+          2,
+          "1. 中 文\n2. 👍",
+        )
+      }
+      "a text input shows a wide value by cells; its placeholder clips by cells" in {
+        assertScreen(
+          div.style(_.row)(input.value("中文字").style(_.width(5.px))),
+          8,
+          1,
+          "中 文",
+        )
+        assertScreen(
+          div.style(_.row)(input.placeholder("漢字漢字").style(_.width(5.px))),
+          8,
+          1,
+          "漢 字",
+        )
+      }
+    }
+
     "placeholders" - {
       "an image shows its alt text in brackets" in {
         assertScreen(img(ImgSrc.Path("logo.png"), "logo"), 8, 1, "[logo]")
