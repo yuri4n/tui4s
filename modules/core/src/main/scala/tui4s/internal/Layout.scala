@@ -59,9 +59,7 @@ private[tui4s] final case class Scene(
           case Some(Content.Value(v)) => Some(v)
           case _                      => None
 
-    /** The text of the text input `ti` at `p`: its bound value or its
-      * constant.
-      */
+    /** The text of the text input `ti` at `p`: its bound value or its constant. */
     def textValue(p: Loc, ti: TextInput): String =
       ti.value match
           case Present(UI.Bound.Const(v)) => v
@@ -79,7 +77,8 @@ private[tui4s] final case class Scene(
       */
     def pickerValue(p: Loc, value: Maybe[UI.Bound[String]]): String =
       value match
-          case Present(UI.Bound.Ref(_))   => boundValue(p).map(_.toString).getOrElse("")
+          case Present(UI.Bound.Ref(_))   =>
+            boundValue(p).map(_.toString).getOrElse("")
           case Present(UI.Bound.Const(v)) => v
           case _                          => ""
 end Scene

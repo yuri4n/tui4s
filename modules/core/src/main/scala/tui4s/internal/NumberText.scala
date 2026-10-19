@@ -5,10 +5,10 @@ package tui4s.internal
   *
   * The grammar: an optional minus sign (`-`) first, then digits with at most
   * one decimal point (`.`), as the valid floating-point number of HTML (it has
-  * no `+`). A field holds a [[partial]] text while the user
-  * types it (`""`, `"-"`, `"1."`, `".5"`); the text is a number when it also
-  * has a digit ([[parse]]). Other characters (a letter, a second sign, a second
-  * point, a space, an exponent) are not typed.
+  * no `+`). A field holds a [[partial]] text while the user types it (`""`,
+  * `"-"`, `"1."`, `".5"`); the text is a number when it also has a digit
+  * ([[parse]]). Other characters (a letter, a second sign, a second point, a
+  * space, an exponent) are not typed.
   *
   * The arithmetic is decimal (`BigDecimal`), so a step of 0.1 from 0.2 gives
   * 0.3, not 0.30000000000000004. A number shows as kyo-ui's `NumberFormat`
@@ -61,8 +61,8 @@ private[tui4s] object NumberText:
     /** `v` on the grid of the steps of `step` (1 when none or not positive)
       * from `min`, inside `min` and `max`, as HTML puts the value of a range on
       * its steps: the nearest value `min + k * step` (the upper one at a tie),
-      * at least `min` and at most the largest such value not above `max`.
-      * `min` when `max` is below `min`.
+      * at least `min` and at most the largest such value not above `max`. `min`
+      * when `max` is below `min`.
       */
     // claude 2026-10-19: created (L1c review): the grid of a range
     def onGrid(
@@ -71,14 +71,17 @@ private[tui4s] object NumberText:
         min: Double,
         max: Double,
     ): BigDecimal =
-        val by   = BigDecimal.decimal(step.filter(_ > 0).getOrElse(1.0))
-        val lo   = BigDecimal.decimal(min)
-        val hi   = BigDecimal.decimal(max)
-        def at(k: BigDecimal): BigDecimal = lo + by * k
+        val by                               = BigDecimal.decimal(step.filter(_ > 0).getOrElse(1.0))
+        val lo                               = BigDecimal.decimal(min)
+        val hi                               = BigDecimal.decimal(max)
+        def at(k: BigDecimal): BigDecimal    = lo + by * k
         def floor(x: BigDecimal): BigDecimal =
           x.setScale(0, BigDecimal.RoundingMode.FLOOR)
         if hi < lo then lo
-        else at(floor((v - lo) / by + BigDecimal("0.5"))).max(lo).min(at(floor((hi - lo) / by)))
+        else
+            at(floor((v - lo) / by + BigDecimal("0.5")))
+              .max(lo)
+              .min(at(floor((hi - lo) / by)))
     end onGrid
 
     /** `v` clamped to `min` and `max` (no bound when none). */

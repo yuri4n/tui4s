@@ -282,14 +282,14 @@ private[tui4s] final case class Border(
   *     digits, one minus sign and one decimal point (`NumberText`; HTML has no
   *     `+`); ArrowUp and ArrowDown change the value by `step` (1 when none),
   *     clamped to `min` and `max`, and a step that changes nothing runs no
-  *     callback. The DOM writes the text of each edit to the bound ref, and on a
-  *     step or a commit the number as kyo-ui formats it (`NumberFormat`: "3",
+  *     callback. The DOM writes the text of each edit to the bound ref, and on
+  *     a step or a commit the number as kyo-ui formats it (`NumberFormat`: "3",
   *     "2.5") and calls `onChangeNumeric`. The runner does the same.
   *   - `Textarea`. The old runner: one line, as a text input. Implement: lines
   *     that wrap by cells, a caret that moves by lines, a viewport of its own
   *     (`AreaText`). Its height is the definite `height` of its style, else 3
-  *     rows (kyo-ui has no `rows`). Its `onChange` runs on Enter in a form,
-  *     and at its blur after an edit that changed the text (the DOM's change
+  *     rows (kyo-ui has no `rows`). Its `onChange` runs on Enter in a form, and
+  *     at its blur after an edit that changed the text (the DOM's change
   *     event).
   *   - `Checkbox`, `Radio` (`checked`, `onChange`; the `name` of a radio). The
   *     old runner: Space and Enter toggle a checkbox and check a radio. Keep.

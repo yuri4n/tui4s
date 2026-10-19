@@ -110,12 +110,12 @@ object LayoutPropertyTest:
 
     /** The L1c change of the damage, applied to the damage `d` of one relayout
       * of the old layout at `at` (from `pre` to `post`). The relayout goes up
-      * from `at` while the natural size or the props of a node change; only
-      * the damage of the node `top` where it stops is kept. So each clear of
-      * `d` clears a kid of `top` (a removed kid, the old or the new box of a
-      * kid): the new layout cuts it to the content boxes of `top` and of its
-      * owners ([[contentClip]]). The clear just before `Paint(top)` clears
-      * `top` itself: it is cut to the content boxes of the owners of `top`.
+      * from `at` while the natural size or the props of a node change; only the
+      * damage of the node `top` where it stops is kept. So each clear of `d`
+      * clears a kid of `top` (a removed kid, the old or the new box of a kid):
+      * the new layout cuts it to the content boxes of `top` and of its owners
+      * ([[contentClip]]). The clear just before `Paint(top)` clears `top`
+      * itself: it is cut to the content boxes of the owners of `top`.
       */
     // claude 2026-10-19: created (L1c review): the delta of the frozen oracle
     def cutClears(

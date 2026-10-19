@@ -199,9 +199,9 @@ private[tui4s] object TextEdit:
 
     /** Removes the graphemes `from until to`; the caret goes to `from`. Under
       * `rules`: nothing (the caret stays at `caret`) in a read-only field, or
-      * when the text is `rules.valid` and the result is not. A text that is
-      * not valid (a value that the app wrote) can lose any grapheme, so the
-      * user can always delete toward a valid text.
+      * when the text is `rules.valid` and the result is not. A text that is not
+      * valid (a value that the app wrote) can lose any grapheme, so the user
+      * can always delete toward a valid text.
       */
     // claude 2026-10-19: changed: the rules of the field (L1c); a text that is
     // not valid can lose a grapheme (L1c review)
@@ -217,8 +217,7 @@ private[tui4s] object TextEdit:
           text.substring(0, bounds(from)) + text.substring(bounds(to))
         if rules.access == FieldAccess.ReadOnly ||
             rules.valid(text) && !rules.valid(updated)
-        then
-            (text, caret)
+        then (text, caret)
         else (updated, from)
     end remove
 

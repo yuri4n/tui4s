@@ -232,7 +232,12 @@ private[tui4s] final class Dispatch(
                             ev,
                             Keyboard.ArrowDown,
                           ) || isKey(ev, Keyboard.ArrowUp) =>
-                        cycle(w, target, s, if isKey(ev, Keyboard.ArrowUp) then -1 else 1)
+                        cycle(
+                          w,
+                          target,
+                          s,
+                          if isKey(ev, Keyboard.ArrowUp) then -1 else 1,
+                        )
                       case d: Dropdown
                           if activate(ev) || isKey(ev, Keyboard.ArrowDown) ||
                             isKey(ev, Keyboard.ArrowUp) =>
@@ -488,9 +493,9 @@ private[tui4s] final class Dispatch(
       * browser's `stepUp` and `stepDown` ([[NumberText.step]]: by `step`,
       * clamped to `min` and `max`). It is an edit (the bound write and
       * `onInput`) and a commit (`onChangeNumeric`), as the DOM runner
-      * dispatches both. Nothing on a read-only field, and nothing when the
-      * text does not change (a step at `max` or `min`), as a browser fires no
-      * event then.
+      * dispatches both. Nothing on a read-only field, and nothing when the text
+      * does not change (a step at `max` or `min`), as a browser fires no event
+      * then.
       */
     // claude 2026-10-19: created (L1c)
     private def stepNumber(w: World, p: Loc, ni: NumberInput, steps: Int)(using
@@ -523,8 +528,8 @@ private[tui4s] final class Dispatch(
     /** A key of [[RangeKey]] on the range at `p`: its value (the bound ref, the
       * constant, else `min`) moves by its steps or to an end, with `step` (1
       * when none), on the grid of the steps from `min`, inside `min` and `max`
-      * (0 and 100 when none, as in HTML; [[NumberText.onGrid]]). When the
-      * value changes: the bound write, then `onChange`.
+      * (0 and 100 when none, as in HTML; [[NumberText.onGrid]]). When the value
+      * changes: the bound write, then `onChange`.
       */
     // claude 2026-10-19: created (L1c); changed: the grid of the steps (L1c
     // review)
@@ -633,7 +638,7 @@ private[tui4s] final class Dispatch(
             val first              = ti match
                 case _: Textarea if !w1.edited.exists(_._1 == p) =>
                   Some((p, value))
-                case _                                         => w1.edited
+                case _                                           => w1.edited
             val w2                 = w1
               .copy(regions = w1.regions.updated(p, stored), edited = first)
               .markNode(p)
@@ -735,10 +740,10 @@ private[tui4s] final class Dispatch(
 
     // ---- focus ----
 
-    /** Moves the focus to `next`. With `runHandlers`: when the old element is
-      * a textarea whose text changed since it got the focus, its `onChange`
-      * with the text (the DOM's change event, which a blur fires); then both
-      * forms of `onBlur` of the old element and of `onFocus` of the new one.
+    /** Moves the focus to `next`. With `runHandlers`: when the old element is a
+      * textarea whose text changed since it got the focus, its `onChange` with
+      * the text (the DOM's change event, which a blur fires); then both forms
+      * of `onBlur` of the old element and of `onFocus` of the new one.
       */
     def setFocus(w: World, next: Option[Loc], runHandlers: Boolean)(using
         Frame,

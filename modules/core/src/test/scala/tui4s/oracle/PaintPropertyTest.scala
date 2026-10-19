@@ -108,8 +108,8 @@ object PaintPropertyTest:
     def screen(size: Size): Rect = Rect(0, 0, size.w, size.h)
 
     /** The L1c change of the painter in a frame of `laid` and `env` painted
-      * inside `clip`: the cell of the caret of the focused text input when
-      * the glyph at the caret does not fit in the field or in the clip of the
+      * inside `clip`: the cell of the caret of the focused text input when the
+      * glyph at the caret does not fit in the field or in the clip of the
       * field. There the old painter put the glyph (a wide glyph named a cell
       * outside the field); the new painter puts a space. None when the glyph
       * fits, or when the cell is outside the clip (neither painter writes it).
@@ -118,7 +118,7 @@ object PaintPropertyTest:
     def caretDelta(laid: Laid, env: Scene, clip: Rect): Option[(Int, Int)] =
       env.focus.flatMap(laid.nodes.get).flatMap { n =>
         n.kind match
-            case Kind.El(_: UI.Ast.Textarea) => None
+            case Kind.El(_: UI.Ast.Textarea)   => None
             case Kind.El(ti: UI.Ast.TextInput) =>
               val r      = n.rect.inset(n.props.border.fold(Sides.zero)(_.sides))
               val glyphs = Paint.fieldGlyphs(env, n, ti)
@@ -135,15 +135,17 @@ object PaintPropertyTest:
                 .map(Layout.textWidth)
                 .filter(w => scroll._2 + w > r.w || x + w > area.right)
                 .flatMap(_ => Option.when(inside)((x, r.y)))
-            case _ => None
+            case _                             => None
       }
 
-    /** The old painter's screen on `backend` with the L1c change at `cell`:
-      * the symbol there is a space (the style stays: the reversed caret).
+    /** The old painter's screen on `backend` with the L1c change at `cell`: the
+      * symbol there is a space (the style stays: the reversed caret).
       */
     // claude 2026-10-19: created (L1c review)
     def patch(backend: TestBackend, cell: Option[(Int, Int)]): Unit =
-      cell.foreach((x, y) => discard(backend.buffer().cellAt(x, y).setSymbol(" ")))
+      cell.foreach((x, y) =>
+        discard(backend.buffer().cellAt(x, y).setSymbol(" ")),
+      )
 
     /** The pure painter and the canvas on a `TestBackend`. */
     final class Now(size: Size):

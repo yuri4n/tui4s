@@ -88,7 +88,9 @@ class FormsSuite extends FunSuite:
       assert(words(s).contains("Sent: abcdefghijklmnopqrst,"), s.text)
     }
 
-    test("a password: one • for each character; the text is not on the screen") {
+    test(
+      "a password: one • for each character; the text is not on the screen",
+    ) {
       val s = after(1)(h => h.typeText("pw").andThen(h.key(Keyboard.Enter)))
       assert(line(s, "Secret").contains("••"), s.text)
       assert(!s.contains("pw"), s.text)
@@ -137,13 +139,16 @@ class FormsSuite extends FunSuite:
     }
 
     test("a radio group: Space on Pro checks it and clears Free") {
-      val s = after(7)(h => h.key(Keyboard.Space).andThen(h.key(Keyboard.Enter)))
+      val s =
+        after(7)(h => h.key(Keyboard.Space).andThen(h.key(Keyboard.Enter)))
       assert(line(s, "Plan").contains("( ) Free"), s.text)
       assert(line(s, "Plan").contains("(•) Pro"), s.text)
       assert(words(s).contains(", pro,"), s.text)
     }
 
-    test("a select and a dropdown: ArrowDown picks the next option; Enter on them does not submit") {
+    test(
+      "a select and a dropdown: ArrowDown picks the next option; Enter on them does not submit",
+    ) {
       val s = after(8)(h =>
         h.key(Keyboard.ArrowDown)
           .andThen(h.key(Keyboard.Enter))
@@ -156,8 +161,10 @@ class FormsSuite extends FunSuite:
       assert(s.contains("Fill the form, then press Enter."), s.text)
     }
 
-    test("the textarea: Alt-Enter and Ctrl-J give new lines; Enter submits the form") {
-      val s = after(10)(h =>
+    test(
+      "the textarea: Alt-Enter and Ctrl-J give new lines; Enter submits the form",
+    ) {
+      val s    = after(10)(h =>
         h.typeText("hi")
           .andThen(h.key(Keyboard.Enter, Modifiers(alt = true)))
           .andThen(h.typeText("yo"))
@@ -195,17 +202,17 @@ class FormsSuite extends FunSuite:
     test(
       "Tab skips the disabled field; Reset gives every field its first value and does not submit",
     ) {
-      val s = run {
+      val s                = run {
         for
             h <- start
             _ <- h.typeText("Bob")
             _ <- tabs(h, 4)
-            _ <- h.key(Keyboard.Space)   // no news
-            _ <- tabs(h, 4)              // the colour
+            _ <- h.key(Keyboard.Space) // no news
+            _ <- tabs(h, 4)            // the colour
             _ <- h.key(Keyboard.ArrowDown)
-            _ <- tabs(h, 3)              // the read-only Account field
-            _ <- h.key(Keyboard.Tab)     // Team is disabled: Submit
-            _ <- h.key(Keyboard.Tab)     // Reset
+            _ <- tabs(h, 3)            // the read-only Account field
+            _ <- h.key(Keyboard.Tab)   // Team is disabled: Submit
+            _ <- h.key(Keyboard.Tab)   // Reset
             s <- h.screen
             _ <- h.key(Keyboard.Enter)
             r <- h.screen
@@ -214,7 +221,10 @@ class FormsSuite extends FunSuite:
       val (before, screen) = s
       // Reset has the focus: the terminal cursor is hidden on a button
       assert(before.cursor.isEmpty, s"${before.cursor}")
-      assert(screen.contains("The form has its first values again."), screen.text)
+      assert(
+        screen.contains("The form has its first values again."),
+        screen.text,
+      )
       assert(!line(screen, "Name").contains("Bob"), screen.text)
       assert(line(screen, "Mail").contains("[x] news"), screen.text)
       assert(line(screen, "Colour").contains("Blue"), screen.text)

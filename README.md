@@ -492,8 +492,8 @@ import tui4s.{Tui, TuiApp, maxLength}
   * number, a range, two checkboxes, two radios, a select, a dropdown, a
   * textarea of 3 rows, a read-only and a disabled field, and the Submit and
   * Reset buttons. Tab moves between the fields. Enter in a field submits the
-  * form (also in the textarea: Alt-Enter or Ctrl-J there gives a new line).
-  * The result shows under the form. Esc quits.
+  * form (also in the textarea: Alt-Enter or Ctrl-J there gives a new line). The
+  * result shows under the form. Esc quits.
   */
 object Forms:
 

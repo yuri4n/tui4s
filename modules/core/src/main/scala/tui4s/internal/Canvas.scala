@@ -171,8 +171,7 @@ private[tui4s] final class Canvas private (
         else
             val updates = diff(plan.spans)
             val cursor  = Canvas.Shown.of(plan.cursor)
-            if updates.isEmpty && shown == cursor then
-                Result.succeed(0)
+            if updates.isEmpty && shown == cursor then Result.succeed(0)
             else
                 terminalIO {
                   if updates.nonEmpty then draw(updates)

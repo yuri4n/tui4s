@@ -19,13 +19,13 @@ import tui4s.internal.*
   * cause: the caret cell of a focused field put a wide glyph into a field of 1
   * cell, so its hidden half named a cell outside the field.
   *
-  * The property runs on three kinds of UIs: the random trees of [[UiGen]]
-  * (the box styles of the old layout, the widths and the viewports); the same
-  * trees with fixed layers over them, one of them in a region that moves it or
-  * takes it away, and a dropdown ([[OverlayPropertyTest.withLayers]]); and the
-  * same trees with a textarea after them, which has the focus and lines that
-  * wrap in scene A ([[withArea]]). The step adds the damage of the layers
-  * that moved, as the runner does.
+  * The property runs on three kinds of UIs: the random trees of [[UiGen]] (the
+  * box styles of the old layout, the widths and the viewports); the same trees
+  * with fixed layers over them, one of them in a region that moves it or takes
+  * it away, and a dropdown ([[OverlayPropertyTest.withLayers]]); and the same
+  * trees with a textarea after them, which has the focus and lines that wrap in
+  * scene A ([[withArea]]). The step adds the damage of the layers that moved,
+  * as the runner does.
   */
 // claude 2026-10-19: created (L1c): the negative controls and the property
 // of the painter bug of L1b; changed: the layers and the textarea (L1c review)
