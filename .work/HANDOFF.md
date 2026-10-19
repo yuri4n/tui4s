@@ -38,6 +38,14 @@
   pure, so a per-mount effect value arrives via onMount (TabsView focus group); TuiLog keeps `Throwable | Null` and
   LocalTime.now inside its edge file; the audit's extra P4 ideas (Headless end mark, Todo Model/TodoStore, shared
   CounterView, Dashboard Series) were not done; F9b not done; D24 open.
+- L1a DONE, pushed eda54ac (27 files, +3735/-333; viewports on kyo-ui overflow/overflowX/Y with World.scroll, follow-focus
+  (CSSOM nearest rule, aria-activedescendant target), key table Up/Down/PgUp/PgDn/Home/End + Left/Right, indicator with
+  scrollbarWidth/Color, TextFlow ADTs (Space/Wrapping/Cut) for whiteSpace/textWrap/textOverflow, wide-char fixes in
+  select labels and markers; LayoutOracle = 5bcca5d Layout; 12 properties; 14 goldens; no new tui4s public API;
+  321 core leaves, 52 examples, PTY 136/136, glitch 0/500 x2). Review: 1 blocking (row wrap with a sibling lost lines;
+  fixed with a golden + negative control), 11 others applied. Open: UI.scrollIntoView is a no-op under tui4s (sink
+  private[kyo]; draft .work/upstream/kyo-ui-scroll-into-view.md); a viewport needs a bounded height (CSS min-height
+  gotcha, documented); a scroll re-lays the viewport content (PF-b F5/F6 still to do, after L1c); no stick-to-bottom.
 - NEXT: L1 in three workflows (cheap cadence: implementer + API/examples reviewer + fixer, Opus): L1a viewport scroll
   and clip, wrap and ellipsis, wide characters; L1b overlay and z-order, terminal-size Signal, Color.Var, FlexWrap and
   Display, one warning per ignored property; L1c native inputs and the multi-line textarea (Alt-Enter, Ctrl-J,
