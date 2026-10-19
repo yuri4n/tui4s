@@ -2,12 +2,17 @@
 // claude 2026-10-12: changed the whole file: a runner for kyo-ui (RC-16)
 description := "A terminal runner for kyo-ui, on Kyo and jatatui."
 
+// kyo-kernel's POM has JMH (and through it commons-math3, asm and
+// jopt-simple) in compile scope: 3.0 MB that no run loads, so it is excluded.
+// claude 2026-10-19: created (D): the JMH exclusion
+val noJmh = ExclusionRule("org.openjdk.jmh")
+
 libraryDependencies ++= Seq(
-  "io.getkyo"         %% "kyo-core"          % Versions.kyo,
+  ("io.getkyo"        %% "kyo-core"          % Versions.kyo).excludeAll(noJmh),
   // kyo-ui and kyo-core must have the same version. The transitive jars of
   // kyo-ui (kyo-http, kyo-net, kyo-ffi, ...) stay: `UI.Href.Absolute` needs
   // kyo-http (D-18, spike S4).
-  "io.getkyo"         %% "kyo-ui"            % Versions.kyo,
+  ("io.getkyo"        %% "kyo-ui"            % Versions.kyo).excludeAll(noJmh),
   "com.olvind.jatatui" % "jatatui-core"      % Versions.jatatui,
   "com.olvind.jatatui" % "jatatui-crossterm" % Versions.jatatui,
   "io.getkyo"         %% "kyo-test-runner"   % Versions.kyo        % Test,

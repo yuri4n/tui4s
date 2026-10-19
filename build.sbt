@@ -115,6 +115,10 @@ lazy val examples = project
     name           := "tui4s-examples",
     maintainer     := "yuri4n",
     publish / skip := true,
+    // kyo-core of pini4s brings JMH too (see modules/core/build.sbt): keep
+    // it out of the distribution.
+    // claude 2026-10-19: created (D)
+    excludeDependencies += ExclusionRule("org.openjdk.jmh"),
     // `sbt run` is not a way to use a terminal UI (see the launchers below):
     // the forked JVM gets no terminal on stdin, so the app stops with
     // NotATerminal and prints why.
