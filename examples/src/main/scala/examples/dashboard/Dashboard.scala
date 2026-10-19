@@ -6,7 +6,7 @@ import examples.widgets.Tabs
 import kyo.*
 import kyo.UI.*
 import tui4s.use.{Binding, Chord, Keymap, timeAgo, useNow}
-import tui4s.widgets.{Gauge, Sparkline}
+import tui4s.widgets.{Colors, Gauge, Sparkline}
 import tui4s.{TerminalSize, Tui, TuiApp}
 
 /** The Dashboard in plain kyo-ui: one tab per series (CPU, Memory, Network), a
@@ -368,3 +368,12 @@ end Dashboard
 // claude 2026-10-13: created (T2, RC-33)
 object DashboardApp extends TuiApp:
     def ui: UI < (Async & Scope) = Dashboard.app()
+
+    /** The colour variables of tui4s-widgets: the gauge, the sparkline and the
+      * tabs take their colours from them (without them, the run logs a warning
+      * for each variable).
+      */
+    // claude 2026-10-19: created (L2b review): the PTY row dashboard found
+    // the warnings of the colour variables after the restore
+    override def stylesheet: Stylesheet = Colors.defaults
+end DashboardApp
