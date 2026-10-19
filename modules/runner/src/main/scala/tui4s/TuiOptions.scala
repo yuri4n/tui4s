@@ -45,7 +45,7 @@ import java.time.Duration
   *   `scala.Console.out`, which keeps the stream that `System.out` was when
   *   `scala.Console` was first used: when it was used before the run, `println`
   *   is not captured, and the run says so in the log and on stderr after the
-  *   terminal is restored. A [[TuiApp]] installs the capture streams in its
+  *   terminal is restored. A `TuiApp` installs the capture streams in its
   *   constructor, before the app's own code, so this does not happen to it;
   *   with `Tui.run` in a main of its own, start the run before the first
   *   `println`. With `false`, nothing is captured.
@@ -72,6 +72,7 @@ import java.time.Duration
   */
 // claude 2026-10-19: changed: the Scaladoc of autoFocus: a focusAuto element
 // takes the focus also without autoFocus (L1b review)
+// claude 2026-10-19: changed: TuiApp is in tui4s-app, not a link (D25)
 final case class TuiOptions(
     autoFocus: Boolean = true,
     settle: Settle = Settle.Quiescent(Duration.ofMillis(100)),

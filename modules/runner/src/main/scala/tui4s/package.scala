@@ -13,18 +13,20 @@
   * [[tui4s.Tui.quit]] ends the run. [[tui4s.Tui.run]] runs a UI in the real
   * terminal (raw mode, the alternate screen, an input thread for the keys),
   * restores the terminal when the run ends, and fails with a [[tui4s.TuiError]]
-  * when it cannot start. The headless test kit [[tui4s.testkit.Headless]] runs
-  * an app without a terminal and sends it keys. Components come in two styles:
-  * [[tui4s.Hooks]] (a component is a function with `Signal.initRef`,
-  * `useEffect`, `useInterval`, ...; `component(key)` lets the runner mount it)
-  * and the class [[tui4s.Component]] (a `State` type member; the runner keeps
-  * the state under the position and the state key). A component in a `when`
-  * loses its state when it is hidden, and the fibers of the components and
-  * hooks end with the run. [[tui4s.TuiApp]] is the main class of an app: it
-  * prepares the JVM (the scheduler values of [[tui4s.spi.SchedulerDefaults]],
-  * the output capture), runs the UI with `Tui.run`, and gives the exit code (0
-  * after a quit, 1 after a failure; 143 and 130 when `kill -TERM` and
-  * `kill -INT` stop the JVM).
+  * when it cannot start. The headless test kit `tui4s.testkit.Headless`
+  * (artifact tui4s-testkit) runs an app without a terminal and sends it keys.
+  * Components come in two styles: [[tui4s.Hooks]] (a component is a function
+  * with `Signal.initRef`, `useEffect`, `useInterval`, ...; `component(key)`
+  * lets the runner mount it) and the class [[tui4s.Component]] (a `State` type
+  * member; the runner keeps the state under the position and the state key). A
+  * component in a `when` loses its state when it is hidden, and the fibers of
+  * the components and hooks end with the run. `tui4s.TuiApp` (artifact
+  * tui4s-app) is the main class of an app: it prepares the JVM (the scheduler
+  * values of [[tui4s.spi.SchedulerDefaults]], the output capture), runs the UI
+  * with `Tui.run`, and gives the exit code (0 after a quit, 1 after a failure;
+  * 143 and 130 when `kill -TERM` and `kill -INT` stop the JVM). The artifact
+  * tui4s-core gives the runner, the app and the test kit in one dependency
+  * (`tui4s.Core`).
   *
   * Scroll, wrap and ellipsis are plain kyo-ui styles:
   * {{{
@@ -166,4 +168,6 @@
   */
 // claude 2026-10-19: changed: the package Scaladoc names the inputs and their
 // keys (L1c)
+// claude 2026-10-19: changed: Headless and TuiApp are in tui4s-testkit and
+// tui4s-app (D25)
 package object tui4s

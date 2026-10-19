@@ -42,11 +42,12 @@ import tui.crossterm.{
   *
   * Java records are not Scala extractors, so the matches use type patterns.
   * Every match lists all cases of the sealed Java interface, so a new crossterm
-  * case is a compile error here (`modules/core/build.sbt` makes the
+  * case is a compile error here (`modules/runner/build.sbt` makes the
   * exhaustivity warning of this file an error).
   */
 // claude 2026-10-13: changed (T1): the Scaladoc says what jatatui's JNI does
 // with a typed character outside the BMP
+// claude 2026-10-19: changed: modules/runner (D25)
 // claude 2026-10-13: changed (T1, RC-22, D-21 a): to kyo-ui KeyboardEvent,
 // Msg.Paste, Msg.Resize (it replaces the prototype's Keys.scala and keeps its
 // rules); the mouse and the focus events are dropped (D-30)

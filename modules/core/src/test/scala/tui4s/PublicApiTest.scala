@@ -12,16 +12,29 @@ import java.net.URI
 import java.nio.file.{FileSystems, Files, Path}
 
 /** The seal of `tui4s.internal` (gate 1 item 1, RC-36), read from the TASTy of
-  * the core's own classes with tasty-query: every top-level definition of
-  * `tui4s.internal` is `private[tui4s]`, and no public signature of `tui4s`,
-  * `tui4s.spi` or `tui4s.testkit` names a type of `tui4s.internal`.
+  * the main classes of tui4s-runner, tui4s-app, tui4s-testkit and tui4s-core
+  * with tasty-query: every top-level definition of `tui4s.internal` is
+  * `private[tui4s]`, and no public signature of `tui4s`, `tui4s.spi` or
+  * `tui4s.testkit` names a type of `tui4s.internal`.
   */
 // claude 2026-10-13: created (C3)
+// claude 2026-10-19: changed: the four class path entries of the split (D25)
 class PublicApiTest extends Test[Any]:
 
-    /** The TASTy reader over this JVM's class path, and the class path entry of
-      * the core's main classes (the one that holds `tui4s/Tui.tasty`).
+    /** The TASTy file that marks the main classes of each tui4s module. */
+    // claude 2026-10-19: created (D25)
+    private val markers = List(
+      "tui4s/Tui.tasty",              // tui4s-runner
+      "tui4s/TuiApp.tasty",           // tui4s-app
+      "tui4s/testkit/Headless.tasty", // tui4s-testkit
+      "tui4s/Core.tasty",             // tui4s-core
+    )
+
+    /** The TASTy reader over this JVM's class path, and the symbols of the
+      * class path entries of the main classes of the four tui4s modules (the
+      * entries that hold a file of [[markers]]).
       */
+    // claude 2026-10-19: changed: the four entries of the split (D25)
     private lazy val reader: (Context, List[Symbol]) =
         val cp      = java.lang.System
           .getProperty("java.class.path", "")
@@ -35,13 +48,13 @@ class PublicApiTest extends Test[Any]:
         val all     = jrt :: cp
         val entries = ClasspathLoaders.read(all)
         val ctx     = Context.initialize(entries)
-        val core    = all
-          .zip(entries)
-          .collectFirst {
-            case (p, e) if Files.exists(p.resolve("tui4s/Tui.tasty")) => e
-          }
-          .getOrElse(sys.error("no class path entry with tui4s/Tui.tasty"))
-        (ctx, ctx.findSymbolsByClasspathEntry(core).toList)
+        val modules = markers.map { m =>
+          all
+            .zip(entries)
+            .collectFirst { case (p, e) if Files.exists(p.resolve(m)) => e }
+            .getOrElse(sys.error(s"no class path entry with $m"))
+        }
+        (ctx, modules.flatMap(ctx.findSymbolsByClasspathEntry(_).toList))
     end reader
 
     private def scoped(s: TermOrTypeSymbol): Boolean = s.visibility match

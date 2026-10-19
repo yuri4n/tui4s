@@ -2,7 +2,11 @@
 // claude 2026-10-12: changed this header: tui4s runs kyo-ui (line 1, core line)
 //
 // Published modules (each one has its own releases; see AGENTS.md):
-//   core -> io.github.yuri4n::tui4s-core  (kyo-ui on Kyo + jatatui)
+//   runner  -> io.github.yuri4n::tui4s-runner   (kyo-ui on Kyo + jatatui)
+//   app     -> io.github.yuri4n::tui4s-app      (TuiApp, on the runner)
+//   testkit -> io.github.yuri4n::tui4s-testkit  (Headless, on the runner)
+//   core    -> io.github.yuri4n::tui4s-core     (runner + app + testkit)
+// claude 2026-10-19: changed: the four modules of the split of the core (D25)
 //   zio  -> io.github.yuri4n::tui4s-zio   (ZIO integration)
 //   cats -> io.github.yuri4n::tui4s-cats  (Cats Effect integration)
 //   use     -> io.github.yuri4n::tui4s-use      (composables; JVM and JS)
@@ -69,12 +73,85 @@ ThisBuild / tpolecatExcludeOptions += ScalacOptions.privateCheckAllPatmat
 ThisBuild / versionPolicyIgnoredInternalDependencyVersions :=
   Some("^\\d+\\.\\d+\\.\\d+\\+\\d+".r)
 
-// One test JVM at a time (D-9). The core tests settle on the JVM-wide Kyo
+// One test JVM at a time (D-9). The runner tests settle on the JVM-wide Kyo
 // scheduler. A second test JVM on the same CPUs raises the rate of split
 // frames (spike S1: 3 JVMs on 2 CPUs gave 0.67 to 1.50 per 10 000). With this
 // limit, sbt runs the forked test JVMs of the modules one after the other.
 // claude 2026-10-12: created
+// claude 2026-10-19: changed: the runner tests (D25)
 Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
+
+/** The test settings of a module whose suites run the runner: runner, app,
+  * testkit and core (D25). They were the settings of modules/core/build.sbt.
+  *
+  * kyo-test (the Kyo project's own test framework, released with Kyo) runs
+  * the suites; kyo-test-prop gives the property tests (PropertyTest, Gen,
+  * Shrink); tasty-query reads the TASTy of the kyo-ui jar (KyoUiSurfaceTest)
+  * and of the tui4s jars (PublicApiTest).
+  *
+  * The tests run in a forked JVM. Kyo starts one scheduler per class loader
+  * and nothing stops it, so each test run inside a long-lived sbt (a shell,
+  * `~`, BSP) would leave one more scheduler and its threads running. A forked
+  * JVM exits after the tests. The two long flags stop JDK 25 warnings about
+  * sun.misc.Unsafe and about the native crossterm library. -Xss16m is for
+  * tasty-query on the kyo-ui jar. UTF-8 output keeps the box-drawing
+  * characters of a golden-screen diff readable in the sbt log.
+  *
+  * The tui4s scheduler values (D-17 c). Kyo reads these properties once, when
+  * its scheduler starts. With Kyo's defaults the scheduler cycle runs every
+  * 100 us; with 10 ms it finds and drains a stalled worker less often, which
+  * costs less CPU when the app is idle and gives fewer split frames under
+  * load (spike S1: 0 splits with no load, at most 0.75 per 10 000 under
+  * load). The minimum interval of the blocking monitor removes a measurement
+  * of about 90 ms when the scheduler starts (see `SchedulerDefaults`). The
+  * test JVM always sets them. `TuiApp` sets the same values for a real app
+  * (`tui4s.spi.SchedulerDefaults`, in its constructor).
+  *
+  * The load flag of the glitch tests (gate 1 item 2). The frame contract is
+  * SOFT: at most 1 split frame per 10 000 events under load. A glitch test
+  * sends 500 events and asserts 0 split frames; on a loaded 2-CPU CI runner
+  * that gives about a 5 percent chance of 1 split, while a real regression
+  * gives many. So CI sets TUI4S_LOAD=1 (.github/workflows/ci.yml) and the
+  * test JVM gets -Dtui4s.load=1, which allows 1 split in 500 events. Without
+  * the variable (a developer machine) the assertion stays 0.
+  *
+  * The suites run one at a time inside the forked JVM: the settle of the
+  * runner reads the JVM-wide scheduler, so a suite that runs next to another
+  * one sees its load. This is sbt's default for a forked JVM; it is set here
+  * so that a change is a visible decision. Inside a suite, kyo-test runs the
+  * leaves in parallel unless the suite says `config.sequential` (the runner
+  * suites do).
+  */
+// claude 2026-10-19: created (D25): the test settings of modules/core/build.sbt
+// (created 2026-10-12, changed 2026-10-13 (T2, C3) and 2026-10-19 (C2)), for
+// the four modules of the split
+lazy val runnerTestSettings: Seq[Def.Setting[_]] = Seq(
+  libraryDependencies ++= Seq(
+    "io.getkyo"     %% "kyo-test-runner" % Versions.kyo        % Test,
+    "io.getkyo"     %% "kyo-test-prop"   % Versions.kyo        % Test,
+    "ch.epfl.scala" %% "tasty-query"     % Versions.tastyQuery % Test,
+  ),
+  // Use `+=`: `:=` would drop the other frameworks.
+  Test / testFrameworks += new TestFramework("kyo.test.runner.SbtFramework"),
+  Test / fork           := true,
+  Test / javaOptions ++= Seq(
+    "-Xmx1g",
+    "-Xss16m",
+    "-Dstdout.encoding=UTF-8",
+    "-Dstderr.encoding=UTF-8",
+    "--sun-misc-unsafe-memory-access=allow",
+    "--enable-native-access=ALL-UNNAMED",
+    "-Dkyo.scheduler.cycleIntervalNs=10000000",
+    "-Dkyo.scheduler.blockingMonitorIntervalNs=20000000",
+    "-Dkyo.scheduler.blockingMonitorMinIntervalNs=20000000",
+    "-Dkyo.scheduler.regulator.concurrencyCollectIntervalMs=100",
+  ),
+  Test / javaOptions ++= {
+    if (sys.env.get("TUI4S_LOAD").exists(_.trim == "1")) Seq("-Dtui4s.load=1")
+    else Seq.empty
+  },
+  Test / testForkedParallel := false,
+)
 
 /** A published module in `modules/<id>`, versioned from its `<id>-v*` tags. */
 def module(id: String): Project =
@@ -88,18 +165,34 @@ def module(id: String): Project =
     )
     .settings(name := s"tui4s-$id")
 
-// claude 2026-10-19: changed: the cross-built modules (L2a)
+// claude 2026-10-19: changed: the cross-built modules (L2a); the four modules
+// of the split of the core (D25)
 lazy val root = project
   .in(file("."))
-  .aggregate(core, zio, cats, use, widgets, examples)
+  .aggregate(runner, app, testkit, core, zio, cats, use, widgets, examples)
   .settings(
     name           := "tui4s",
     publish / skip := true,
   )
 
-lazy val core = module("core")
-lazy val zio  = module("zio").dependsOn(core)
-lazy val cats = module("cats").dependsOn(core)
+// The split of tui4s-core (D25, issue #17). The runner is the renderer, the
+// embedder and the component model; app holds TuiApp and testkit holds
+// Headless, each on the runner; core is the composite of the three. A test
+// suite lives in the lowest module whose main classpath it needs: the suites
+// that need only the runner are in modules/runner, and the suites that run
+// Headless or TuiApp are in modules/core. They use the test sources of the
+// runner (FakeCrossterm, the fixtures, ScriptedInput), hence test->test.
+// claude 2026-10-19: created (D25)
+lazy val runner  = module("runner").settings(runnerTestSettings)
+lazy val app     = module("app").dependsOn(runner).settings(runnerTestSettings)
+lazy val testkit =
+  module("testkit").dependsOn(runner).settings(runnerTestSettings)
+lazy val core    = module("core")
+  .dependsOn(runner % "compile->compile;test->test", app, testkit)
+  .settings(runnerTestSettings)
+// claude 2026-10-19: changed: zio and cats depend on the runner (D25)
+lazy val zio     = module("zio").dependsOn(runner)
+lazy val cats    = module("cats").dependsOn(runner)
 
 /** A published module in `modules/<id>` for the JVM and for Scala.js, with no
   * dependency on the core: plain kyo-ui code (D6). The sources are in
@@ -122,7 +215,8 @@ def crossModule(id: String): CrossProject =
       versionPolicyIntention :=
         (LocalProject(id) / versionPolicyIntention).value,
       // kyo-kernel's POM brings JMH in compile scope (see
-      // modules/core/build.sbt): keep it out of the POM of the module.
+      // modules/runner/build.sbt): keep it out of the POM of the module.
+      // claude 2026-10-19: changed: modules/runner (D25)
       libraryDependencies ++= Seq(
         ("io.getkyo" %%% "kyo-ui"          % Versions.kyo)
           .excludeAll(ExclusionRule("org.openjdk.jmh")),
@@ -206,9 +300,9 @@ lazy val examples = project
     name           := "tui4s-examples",
     maintainer     := "yuri4n",
     publish / skip := true,
-    // kyo-core of pini4s brings JMH too (see modules/core/build.sbt): keep
+    // kyo-core of pini4s brings JMH too (see modules/runner/build.sbt): keep
     // it out of the distribution.
-    // claude 2026-10-19: created (D)
+    // claude 2026-10-19: created (D); changed: modules/runner (D25)
     excludeDependencies += ExclusionRule("org.openjdk.jmh"),
     // `sbt run` is not a way to use a terminal UI (see the launchers below):
     // the forked JVM gets no terminal on stdin, so the app stops with
@@ -292,8 +386,9 @@ addCommandAlias(
   "check",
   "; scalafmtCheckAll; scalafmtSbtCheck; Test/compile; scalafixAll --check; test; versionPolicyCheck",
 )
-// claude 2026-10-19: changed: use and widgets (L2a)
+// claude 2026-10-19: changed: use and widgets (L2a); runner, app and testkit
+// (D25)
 addCommandAlias(
   "versions",
-  "; show core/version; show zio/version; show cats/version; show useJVM/version; show widgetsJVM/version",
+  "; show runner/version; show app/version; show testkit/version; show core/version; show zio/version; show cats/version; show useJVM/version; show widgetsJVM/version",
 )

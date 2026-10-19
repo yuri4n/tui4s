@@ -148,7 +148,8 @@ object StyleTableTest:
         .map(_.name.stripPrefix("Style.Prop."))
         .toSet
 
-    private val source = "modules/core/src/main/scala/tui4s/package.scala"
+    // claude 2026-10-19: changed: modules/runner (D25)
+    private val source = "modules/runner/src/main/scala/tui4s/package.scala"
 
     /** The lines of the package Scaladoc source: the first directory, from the
       * working directory up, that has it.
