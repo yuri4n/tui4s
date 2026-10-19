@@ -57,10 +57,25 @@ enum ChatCommand derives CanEqual:
         case Palette      => "commands"
         case Quit         => "quit"
 
-    /** The keys of the command. The composer uses Ctrl-A, E, U, K, W and J, so
-      * no command takes them.
+    /** The keys of the command on `on`. The composer uses Ctrl-A, E, U, K, W
+      * and J, so no command takes them.
+      *
+      * A browser acts on most Ctrl chords of Windows and Linux (Ctrl-S saves
+      * the page, Ctrl-P prints, Ctrl-R reloads it), and kyo-ui 1.0.0-RC7 cannot
+      * stop that. So on the web each command has an Alt chord first, then the
+      * Ctrl chord of the terminal for macOS (where the browser takes Cmd, and
+      * Option and a letter types a character). The web has no chord that a
+      * browser keeps for itself: Ctrl-PgUp and Ctrl-PgDn switch the tabs (the
+      * chats move with Alt-↑ and Alt-↓), and no quit (the person closes the
+      * tab).
       */
-    def chords: Chunk[Chord] = this match
+    // claude 2026-10-19: changed: the chords of the web (L4)
+    def chords(on: Surface): Chunk[Chord] = on match
+        case Surface.Terminal   => terminal
+        case Surface.Browser(_) => browser
+
+    /** The chords of the terminal. */
+    private def terminal: Chunk[Chord] = this match
         case NewChat      => Chunk(Chord.ctrl('n'))
         case NextChat     =>
           Chunk(Chord(Keyboard.PageDown, Modifiers(ctrl = true)))
@@ -74,6 +89,27 @@ enum ChatCommand derives CanEqual:
         case Help         => Chunk(Chord(Keyboard.F1))
         case Palette      => Chunk(Chord.ctrl('p'))
         case Quit         => Chunk(Chord.ctrl('q'))
+
+    /** The chords of the web: an Alt chord, then the Ctrl chord of macOS. */
+    // claude 2026-10-19: created (L4)
+    private def browser: Chunk[Chord] =
+        def alt(c: Char) = Chord(Keyboard.Char(c), Modifiers(alt = true))
+        this match
+            case NewChat      => Chunk(alt('n'), Chord.ctrl('n'))
+            case NextChat     =>
+              Chunk(Chord(Keyboard.ArrowDown, Modifiers(alt = true)))
+            case PreviousChat =>
+              Chunk(Chord(Keyboard.ArrowUp, Modifiers(alt = true)))
+            case DeleteChat   => Chunk(alt('x'), Chord.ctrl('d'))
+            case RenameChat   => Chunk(alt('r'), Chord.ctrl('r'))
+            case OpenSettings => Chunk(alt(','), Chord.ctrl('s'))
+            case ToggleLog    => Chunk(alt('l'), Chord.ctrl('l'))
+            case Cancel       => Chunk(Chord(Keyboard.Escape))
+            case Help         => Chunk(alt('?'), Chord(Keyboard.F1))
+            case Palette      => Chunk(alt('p'), Chord.ctrl('p'))
+            case Quit         => Chunk.empty
+        end match
+    end browser
 end ChatCommand
 
 /** The order of the commands. */

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- claude 2026-10-19: created (L4): the page of the assistant on the web.
+     The policy lets the page call only the hosts of the two providers, so
+     the key can go nowhere else; kyo-ui writes styles, hence 'unsafe-inline'
+     for styles (not for scripts). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src https://api.anthropic.com https://api.openai.com; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>tui4s assistant</title>
+<style>html, body, #app { height: 100%; margin: 0; }</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="main.js"></script>
+</body>
+</html>

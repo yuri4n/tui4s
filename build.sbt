@@ -169,7 +169,7 @@ def module(id: String, watch: Seq[String] = Seq.empty): Project =
     .settings(name := s"tui4s-$id")
 
 // claude 2026-10-19: changed: the cross-built modules (L2a); the four modules
-// of the split of the core (D25); the assistant (L3)
+// of the split of the core (D25); the assistant (L3); the web app (L4)
 lazy val root = project
   .in(file("."))
   .aggregate(
@@ -183,6 +183,7 @@ lazy val root = project
     widgets,
     assistant,
     examples,
+    assistantWeb,
   )
   .settings(
     name           := "tui4s",
@@ -473,3 +474,31 @@ addCommandAlias(
   "versions",
   "; show runner/version; show app/version; show testkit/version; show core/version; show zio/version; show cats/version; show useJVM/version; show widgetsJVM/version",
 )
+
+/** The assistant on the web (L4, D5): a standalone Scala.js app from the shared
+  * module of the assistant and its JS interpreters. It is static files (one
+  * page and one script), with no server and no link to the terminal app. It is
+  * in `examples/web`, not in `modules`: it is an app, as the examples are, and
+  * `modules` has the libraries. `scripts/web-build.sh` links it (fullLinkJS)
+  * and assembles `dist/assistant`. Not published.
+  *
+  * The locale database: kyo-ui brings the full CLDR database of
+  * scala-java-locales (61 percent of the default bundle of 33 MB); the app
+  * shows English only, so the minimal en-US database replaces it (the research
+  * of 2026-10-17: 7.9 MB, 0.99 MB with gzip).
+  */
+// claude 2026-10-19: created (L4)
+lazy val assistantWeb = project
+  .in(file("examples/web"))
+  .enablePlugins(ScalaJSPlugin)
+  .dependsOn(assistantJS)
+  .settings(
+    name                                        := "tui4s-assistant-web",
+    publish / skip                              := true,
+    scalaJSUseMainModuleInitializer             := true,
+    excludeDependencies += ExclusionRule(
+      "io.github.cquiroz",
+      "locales-full-currencies-db_sjs1_3",
+    ),
+    libraryDependencies += "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.5.4",
+  )

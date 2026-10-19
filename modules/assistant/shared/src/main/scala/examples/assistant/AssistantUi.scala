@@ -90,7 +90,12 @@ object Line:
     /** The lines of `c` in `width` cells: for each message, its writer, its
       * text (wrapped) and its note; an empty line between two messages.
       */
-    def of(c: Maybe[Conversation], width: Int): Chunk[Line] =
+    // claude 2026-10-19: changed: the hint is a parameter (L4: the web has its own)
+    def of(
+        c: Maybe[Conversation],
+        width: Int,
+        hint: String = Line.hint,
+    ): Chunk[Line] =
       c.filter(_.messages.nonEmpty)
         .fold(wrap(hint, width).map(Line(Kind.Hint, _)))(c =>
           Chunk
@@ -209,25 +214,37 @@ end Line
 // claude 2026-10-19: created (L3)
 object AssistantUi:
 
-    /** The store of the app from the services of its environment, and its UI.
-      * `quit` ends the app; `screen` is the size of the screen.
+    /** The store of the app from the services of its environment, and its UI on
+      * the [[Surface]] of the environment. `quit` ends the app; `screen` is the
+      * size of the screen in cells.
       */
+    // claude 2026-10-19: changed: the surface (L4)
     // region: run
     def run(mode: StartMode, quit: Unit < Sync, screen: Signal[ScreenSize])(
         using Frame,
-    ): UI < (Env[Wiring.Services] & Async & Scope) =
-      Assistant.make(mode).map(store => app(store, quit, screen))
+    ): UI < (Env[Wiring.Services & Surface] & Async & Scope) =
+      Env
+        .get[Surface]
+        .map(surface =>
+          Assistant
+            .make(mode, surface.look)
+            .map(store => app(store, surface, quit, screen)),
+        )
     // endregion: run
 
     /** One line of text that keeps its spaces and ends with "…" at the edge. */
     private val pre: Style =
       Style.whiteSpace(_.pre).overflow(_.hidden).textOverflow(_.ellipsis)
 
-    /** The UI of `store`. */
-    // claude 2026-10-19: changed: the panels of tui4s-widgets (L3 review)
-    def app(store: Assistant, quit: Unit < Sync, screen: Signal[ScreenSize])(
-        using Frame,
-    ): UI < (Sync & Scope) =
+    /** The UI of `store` on `surface`. */
+    // claude 2026-10-19: changed: the panels of tui4s-widgets (L3 review); the
+    // surface: its units, its keys, its composer (L4)
+    def app(
+        store: Assistant,
+        surface: Surface,
+        quit: Unit < Sync,
+        screen: Signal[ScreenSize],
+    )(using Frame): UI < (Sync & Scope) =
         for
             follow  <- Signal.initRef(Pager.Follow.Tail)
             offset  <- Signal.initRef(0)
@@ -243,6 +260,7 @@ object AssistantUi:
                          follow = Model.Local(Pager.Follow.Tail),
                        )
             drafts  <- Drafts.make(store)
+            echo    <- AtomicRef.init[Surface.Echo](Surface.Echo.Off)
             radio   <- RadioGroup(
                          store.providers.available.head,
                          store.providers.available.drop(1)*,
@@ -256,6 +274,7 @@ object AssistantUi:
             palette <- CommandPalette(
                          keymap(
                            store,
+                           surface,
                            ChatCommand.palette,
                            quit,
                            tail,
@@ -263,11 +282,25 @@ object AssistantUi:
                            prompt,
                            drafts,
                            Kyo.unit,
+                           store.cancel,
                          ),
                          limit = ChatCommand.palette.size,
                        )
+            // Esc at the root. In a terminal an open layer takes Esc first.
+            // On the web (kyo-ui 1.0.0-RC7) a key in a field of a layer
+            // skips the handlers of the layer and comes to the root: so Esc
+            // here also closes an open layer, and else stops the reply.
+            // claude 2026-10-19: created (L4)
+            escape   = store.overlay.get.map {
+                         case Overlay.Closed =>
+                           palette.isOpen.current.map(open =>
+                             if open then palette.close else store.cancel,
+                           )
+                         case _              => store.overlay.set(Overlay.Closed)
+                       }
             keys     = keymap(
                          store,
+                         surface,
                          Chunk.from(ChatCommand.values),
                          quit,
                          tail,
@@ -275,9 +308,11 @@ object AssistantUi:
                          prompt,
                          drafts,
                          palette.open,
+                         escape,
                        )
             hints    = keymap(
                          store,
+                         surface,
                          ChatCommand.hints,
                          quit,
                          tail,
@@ -285,6 +320,7 @@ object AssistantUi:
                          prompt,
                          drafts,
                          palette.open,
+                         escape,
                        )
             metrics  =
               screen
@@ -302,7 +338,9 @@ object AssistantUi:
               div(
                 Panel(
                   "Chats",
-                  style = Style.width(Metrics.listCells.em).flexShrink(0),
+                  style = Style
+                    .width(surface.cols(Metrics.listCells))
+                    .flexShrink(0) ++ surface.panel,
                 )(
                   div.style(_.flexGrow(1).minHeight(0.px).overflowY(_.auto))(
                     list,
@@ -310,27 +348,38 @@ object AssistantUi:
                 ),
                 Panel.reactive(
                   store.active.map(_.fold("")(_.title)),
-                  style = Style.flexGrow(1).minWidth(0.px),
+                  style = Style.flexGrow(1).minWidth(0.px) ++ surface.panel,
                 )(
-                  transcript(store, metrics, follow, offset),
+                  transcript(store, surface, metrics, follow, offset),
                 ),
               ).style(
                 metrics
-                  .map(m => Style.row.height((m.textRows + 2).em).flexShrink(0)),
+                  .map(m =>
+                    Style.row.height(surface.rows(m.textRows + 2)).flexShrink(0),
+                  ),
               ),
               when(store.logPane.map(_ == Pane.Shown))(
-                Panel("Log", style = Style.flexShrink(0))(logView),
+                Panel(
+                  "Log",
+                  style = Style.flexShrink(0) ++ surface.lines ++ surface.panel,
+                )(
+                  logView,
+                ),
               ),
               Panel(
-                "Message · Enter sends · Alt-Enter new line",
-                style = Style.flexShrink(0),
+                surface.composerTitle,
+                style = Style.flexShrink(0) ++ surface.panel,
               )(
-                form.onSubmit(tail.andThen(store.send))(
+                composer(
+                  surface,
                   textarea
                     .value(store.composer)
                     .placeholder("Type a message")
                     .focusAuto(true)
-                    .style(_.height(Metrics.composerRows.em)),
+                    .style(_.height(surface.rows(Metrics.composerRows))),
+                  store.composer,
+                  tail.andThen(store.send),
+                  echo,
                 ),
               ),
               StatusBar(
@@ -346,8 +395,8 @@ object AssistantUi:
                 },
               ),
               KeyHints(hints),
-              settingsLayer(store, drafts, radio, looks),
-              helpLayer(store, keys),
+              settingsLayer(store, surface, drafts, radio, looks),
+              helpLayer(store, surface, keys),
               palette.view,
               confirm.view,
               prompt.view,
@@ -356,11 +405,61 @@ object AssistantUi:
         end for
     end app
 
+    /** The composer `area` on `surface`. In a terminal the text area is in a
+      * form: Enter sends it, and Alt-Enter and Ctrl-J insert a line break. On
+      * the web the text area is not in a form (kyo-ui submits a form on each
+      * Enter in it, also Shift-Enter), and a browser inserts a line break for
+      * Enter and Shift-Enter. So on the web Enter runs `send`, and the input
+      * event of the break that follows gives back what the send left
+      * ([[Surface.echo]]); Shift-Enter keeps the break of the browser, at the
+      * caret; Alt-Enter and Ctrl-J add a line break at the end (a handler does
+      * not know the caret).
+      */
+    // claude 2026-10-19: created (L4)
+    private def composer(
+        surface: Surface,
+        area: UI.Ast.Textarea,
+        text: SignalRef[String],
+        send: Unit < Async,
+        echo: AtomicRef[Surface.Echo],
+    )(using Frame): UI =
+      surface match
+          case Surface.Terminal   => form.onSubmit(send)(area)
+          case Surface.Browser(_) =>
+            def plain(m: Modifiers) = !m.ctrl && !m.alt && !m.shift && !m.meta
+            area
+              .onKeyDown(e =>
+                e.key match
+                    case Keyboard.Enter if plain(e.modifiers)   =>
+                      for
+                          before <- text.get
+                          _      <- send
+                          after  <- text.get
+                          _      <- echo.set(Surface.Echo.Sent(before, after))
+                      yield ()
+                    case Keyboard.Enter if e.modifiers.alt      =>
+                      text.updateAndGet(_ + "\n").unit
+                    case Keyboard.Char('j') if e.modifiers.ctrl =>
+                      text.updateAndGet(_ + "\n").unit
+                    case _                                      => Kyo.unit,
+              )
+              .onInput(t =>
+                echo
+                  .getAndSet(Surface.Echo.Off)
+                  .map(e =>
+                    if e == Surface.Echo.Off then Kyo.unit
+                    else text.set(Surface.echo(e, t)),
+                  ),
+              )
+
     /** The keymap of `commands`: each command with its keys, its help and its
       * action.
       */
+    // claude 2026-10-19: changed: the chords of the surface; a command with no
+    // chord there is not in the keymap; the action of Esc (L4)
     def keymap(
         store: Assistant,
+        surface: Surface,
         commands: Chunk[ChatCommand],
         quit: Unit < Sync,
         tail: Unit < Sync,
@@ -368,6 +467,7 @@ object AssistantUi:
         prompt: Modal[Maybe[String]],
         drafts: Drafts,
         openPalette: Unit < Sync,
+        escape: Any < Async,
     )(using Frame): Keymap =
         def action(c: ChatCommand): Any < Async = c match
             case ChatCommand.NewChat      => tail.andThen(store.newChat)
@@ -387,26 +487,32 @@ object AssistantUi:
               )
             case ChatCommand.OpenSettings => drafts.open
             case ChatCommand.ToggleLog    => store.toggleLog
-            case ChatCommand.Cancel       => store.cancel
+            case ChatCommand.Cancel       => escape
             case ChatCommand.Help         => store.overlay.set(Overlay.Help)
             case ChatCommand.Palette      => openPalette
             case ChatCommand.Quit         => quit
-        Keymap.of(commands.map(c => Binding(c.chords, c.help, action(c)))*)
+        Keymap.of(
+          commands
+            .filter(_.chords(surface).nonEmpty)
+            .map(c => Binding(c.chords(surface), c.help, action(c)))*,
+        )
     end keymap
 
     /** The transcript: the window of the lines of the active conversation. The
       * window follows the end (`Pager.Follow.Tail`) until a key scrolls it up;
       * `f` and End follow again, and so does a send.
       */
+    // claude 2026-10-19: changed: the rows of the surface; its hint (L4)
     def transcript(
         store: Assistant,
+        surface: Surface,
         metrics: Signal[Metrics],
         follow: SignalRef[Pager.Follow],
         offset: SignalRef[Int],
     )(using Frame): UI =
         val shown                               = store.active
           .combineLatest(metrics)
-          .map((c, m) => (Line.of(c, m.textCells), m.textRows))
+          .map((c, m) => (Line.of(c, m.textCells, surface.hint), m.textRows))
           .combineLatest(offset)
           .combineLatest(follow)
           .map { case (((ls, h), o), f) =>
@@ -443,7 +549,7 @@ object AssistantUi:
             .tabIndex(0)
             .preventScrollKeys
             .onKeyDown(keys)
-            .style(_.height(h.em).overflow(_.hidden))(
+            .style(_.height(surface.rows(h)).overflow(_.hidden))(
               UI.fragment(ls.slice(top, top + h).map(line)*),
             )
         }
@@ -467,21 +573,30 @@ object AssistantUi:
     end line
 
     /** A row of a layer: a label of 13 cells and its control. */
-    private def field(label: String, control: UI)(using Frame): UI =
-      div.style(_.row.gap(1.px).align(_.start))(
-        span(label).style(_.width(13.em).flexShrink(0)),
+    // claude 2026-10-19: changed: the units of the surface (L4)
+    private def field(surface: Surface, label: String, control: UI)(using
+        Frame,
+    ): UI =
+      div.style(_.row.gap(surface.cols(1)).align(_.start))(
+        span(label).style(_.width(surface.cols(13)).flexShrink(0)),
         control,
       )
 
     /** The settings: the provider (only those with a key), the model, the
-      * temperature and the system prompt. Enter saves (a form); Esc or Cancel
-      * closes. The keys never show: the layer says where each one comes from.
+      * temperature, the look and the system prompt. Enter saves (a form); Esc
+      * or Cancel closes. The keys never show: in a terminal the layer says
+      * where each one comes from; on the web ([[keyFields]]) the person types a
+      * key in a masked field, and the layer says only that one is kept.
       */
     // claude 2026-10-19: changed: Modal.layer of tui4s-widgets (L3 review);
-    // the look (L4)
-    def settingsLayer(store: Assistant, drafts: Drafts, radio: UI, looks: UI)(
-        using Frame,
-    ): UI =
+    // the look, the surface, the keys of the web (L4)
+    def settingsLayer(
+        store: Assistant,
+        surface: Surface,
+        drafts: Drafts,
+        radio: UI,
+        looks: UI,
+    )(using Frame): UI =
         val keys = Chunk(ProviderChoice.Anthropic, ProviderChoice.OpenAI)
           .map(p =>
             store.providers
@@ -490,15 +605,16 @@ object AssistantUi:
                 s"${p.label}: a key ${s.describe}",
               ),
           )
+        val f    = field(surface, _, _)
         Modal.layer(
           store.overlay.map(_ == Overlay.Settings),
           "Settings",
           store.overlay.set(Overlay.Closed),
-          Style.width(64.em),
+          Style.width(surface.cols(64)),
         )(
           form.onSubmit(drafts.save)(
-            field("Provider", radio),
-            field(
+            f("Provider", radio),
+            f(
               "Model",
               input
                 .value(drafts.model)
@@ -506,7 +622,7 @@ object AssistantUi:
                 .focusRestore(true)
                 .style(_.flexGrow(1)),
             ),
-            field(
+            f(
               "Temperature",
               input
                 .value(drafts.temperature)
@@ -516,52 +632,111 @@ object AssistantUi:
             // claude 2026-10-19: created (L3 review): the default model of
             // Anthropic answers HTTP 400 to a temperature
             when(drafts.model.map(_.trim == Models.anthropic))(
-              field(
+              f(
                 "",
                 span("This model takes no temperature: keep it empty.")
                   .style(pre.color(Colors.muted)),
               ),
             ),
-            field("Look", looks),
-            field(
+            f("Look", looks),
+            f(
               "System prompt",
-              textarea.value(drafts.system).style(_.height(3.em).flexGrow(1)),
+              textarea
+                .value(drafts.system)
+                .style(_.height(surface.rows(3)).flexGrow(1)),
             ),
-            field(
-              "Keys",
-              div(keys.map(k => span(k).style(pre.color(Colors.muted)))*),
-            ),
+            surface match
+                case Surface.Terminal   =>
+                  f(
+                    "Keys",
+                    div(keys.map(k => span(k).style(pre.color(Colors.muted)))*),
+                  )
+                case Surface.Browser(_) => UI.empty
+            ,
             span(drafts.error).style(_.color(Colors.danger)),
-            div.style(_.row.gap(2.px))(
+            div.style(_.row.gap(surface.cols(2)))(
               button("Save"),
               button("Cancel")
                 .onClick(store.overlay.set(Overlay.Closed))
                 .stopPropagation(true),
             ),
           ),
+          surface match
+              case Surface.Terminal       => UI.empty
+              case Surface.Browser(vault) =>
+                keyFields(store, surface, drafts, vault),
         )
     end settingsLayer
 
+    /** The keys of the web: for each real provider a masked field and Keep (a
+      * form: Enter keeps too), and Forget; the field never shows a kept key,
+      * only that one is kept. A change starts the app again ([[KeyVault]]).
+      * Outside the form of the settings, so Keep does not save them.
+      */
+    // claude 2026-10-19: created (L4)
+    private def keyFields(
+        store: Assistant,
+        surface: Surface,
+        drafts: Drafts,
+        vault: KeyVault,
+    )(using Frame): UI =
+      div.style(_.gap(surface.cols(1)))(
+        span(
+          "Your key stays in this browser; anyone with this profile can read it.",
+        ).style(_.color(Colors.warning)),
+        UI.fragment(
+          drafts.keys.map((p, text) =>
+            div.style(_.row.gap(surface.cols(1)).align(_.center))(
+              form
+                .onSubmit(drafts.keep(p, vault))(
+                  div.style(_.row.gap(surface.cols(1)).align(_.center))(
+                    span(s"${p.label} key").style(
+                      _.width(surface.cols(13)).flexShrink(0),
+                    ),
+                    passwordInput
+                      .value(text)
+                      .placeholder(
+                        store.providers
+                          .source(p)
+                          .fold("no key: paste one here")(s =>
+                            s"a key is ${s.describe}",
+                          ),
+                      )
+                      .style(_.flexGrow(1)),
+                    button("Keep"),
+                  ),
+                )
+                .style(_.flexGrow(1)),
+              button("Forget").onClick(vault.forget(p)),
+            ),
+          )*,
+        ),
+      )
+
     /** The help: the keys of the commands and of the composer. */
-    // claude 2026-10-19: changed: Modal.layer of tui4s-widgets (L3 review)
-    def helpLayer(store: Assistant, keys: Keymap)(using Frame): UI =
-        val rows = keys.help ++ Chunk(
-          "Enter"            -> "send the message (in the composer)",
-          "Alt-Enter/Ctrl-J" -> "a new line (in the composer)",
-          "Tab"              -> "the next part (composer, chats, transcript)",
-          "f"                -> "follow the end (in the transcript)",
+    // claude 2026-10-19: changed: Modal.layer of tui4s-widgets (L3 review);
+    // the keys of the composer and the units of the surface (L4)
+    def helpLayer(store: Assistant, surface: Surface, keys: Keymap)(using
+        Frame,
+    ): UI =
+        val rows = keys.help ++ surface.composerHelp ++ Chunk(
+          "Tab" -> "the next part (composer, chats, transcript)",
+          "f"   -> "follow the end (in the transcript)",
         )
         Modal.layer(
           store.overlay.map(_ == Overlay.Help),
           "Help",
           store.overlay.set(Overlay.Closed),
-          Style.width(64.em),
+          Style.width(surface.cols(64)),
         )(
           div(
             rows.map((k, h) =>
               div.style(_.row)(
                 span(k).style(
-                  _.bold.color(Colors.accent).width(18.em).flexShrink(0),
+                  _.bold
+                    .color(Colors.accent)
+                    .width(surface.cols(18))
+                    .flexShrink(0),
                 ),
                 span(h),
               ),
@@ -593,6 +768,9 @@ final class Drafts private (
     /** The look of the draft. */
     // claude 2026-10-19: created (L4)
     val look: SignalRef[Look],
+    /** The text of a new key of each real provider (the web). */
+    // claude 2026-10-19: created (L4)
+    val keys: Chunk[(ProviderChoice, SignalRef[String])],
     /** The error of the last save; empty when there is none. */
     val error: SignalRef[String],
 )(using Frame):
@@ -606,9 +784,28 @@ final class Drafts private (
           .andThen(temperature.set(s.temperature.fold("")(_.toString)))
           .andThen(system.set(s.systemPrompt))
           .andThen(store.look.current.map(look.set))
+          .andThen(Kyo.foreachDiscard(keys)((_, t) => t.set("")))
           .andThen(error.set(""))
           .andThen(store.overlay.set(Overlay.Settings)),
       )
+
+    /** Keeps the key of the draft of `p` in `vault` (the app starts again), or
+      * shows why the text is not a key.
+      */
+    // claude 2026-10-19: created (L4)
+    def keep(p: ProviderChoice, vault: KeyVault): Unit < Sync =
+      Maybe
+        .fromOption(keys.find(_._1 == p))
+        .fold(Kyo.unit)((_, text) =>
+          text.get.map(t =>
+            ApiKey.parse(t, KeySource.Browser) match
+                case Absent     =>
+                  error.set(
+                    s"not a key of ${p.label}: 1 to 512 visible characters, no space",
+                  )
+                case Present(k) => text.set("").andThen(vault.keep(p, k)),
+          ),
+        )
 
     /** Checks the drafts; gives them to the store and closes the layer, or
       * shows why they are not valid. A new provider takes its default model
@@ -641,6 +838,7 @@ end Drafts
 // claude 2026-10-19: created (L3)
 object Drafts:
     /** Empty drafts; [[Drafts.open]] fills them. */
+    // claude 2026-10-19: changed: the look and the keys (L4)
     def make(store: Assistant)(using Frame): Drafts < Sync =
       for
           s <- store.settings.current
@@ -649,6 +847,9 @@ object Drafts:
           t <- Signal.initRef("")
           y <- Signal.initRef(s.systemPrompt)
           l <- store.look.current.map(Signal.initRef(_))
+          k <- Kyo.foreach(
+                 Chunk(ProviderChoice.Anthropic, ProviderChoice.OpenAI),
+               )(p => Signal.initRef("").map(r => (p, r)))
           e <- Signal.initRef("")
-      yield Drafts(store, p, m, t, y, l, e)
+      yield Drafts(store, p, m, t, y, l, k, e)
 end Drafts

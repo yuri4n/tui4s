@@ -1466,6 +1466,7 @@ The main gives the layers of the JVM and runs the UI:
               Wiring.conversations,
               Wiring.log,
               Wiring.providers(AssistantJvm.live, FakeProvider.make(), mode),
+              Layer(Surface.Terminal),
             )(
               AssistantUi.run(
                 mode,
@@ -1505,6 +1506,7 @@ memory and the fake provider:
                 Wiring.conversations,
                 Wiring.log,
                 Wiring.providers((_, _) => fake, fake, StartMode.Detect),
+                Layer(Surface.Terminal),
               )(
                 AssistantUi.run(
                   StartMode.Detect,

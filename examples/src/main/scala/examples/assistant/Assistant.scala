@@ -32,6 +32,7 @@ object AssistantApp extends TuiApp:
     override def options: TuiOptions =
       TuiOptions(logFile = AssistantJvm.logFile)
 
+    // claude 2026-10-19: changed: the surface of the terminal (L4)
     // region: main
     def ui: UI < (Async & Scope) =
         val mode =
@@ -45,6 +46,7 @@ object AssistantApp extends TuiApp:
               Wiring.conversations,
               Wiring.log,
               Wiring.providers(AssistantJvm.live, FakeProvider.make(), mode),
+              Layer(Surface.Terminal),
             )(
               AssistantUi.run(
                 mode,

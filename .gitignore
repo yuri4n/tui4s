@@ -54,3 +54,7 @@ docs/.env
 .direnv/
 /result
 /result-*
+
+# The web build of the assistant (scripts/web-build.sh).
+# claude 2026-10-19: created (L4)
+dist/

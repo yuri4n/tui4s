@@ -42,7 +42,12 @@ class FeedbackTest extends Test[Any]:
           a <-
             text(StatusBar(Signal.initConst("file.txt"), right = span("UTF-8")))
           b <- text(KeyHints(keys))
-      yield assert(a == "file.txtUTF-8" && b == "Ctrl-Q quit", (a, b).toString)
+      // claude 2026-10-19: changed: two spaces after each hint, not a margin (L4)
+      yield assert(
+        a == "file.txtUTF-8" && b == "Ctrl-Q quit  ",
+        (a, b).toString,
+      )
+      end for
     }
 
     "a command palette: open, filter, Enter runs the command and closes" in {

@@ -23,7 +23,8 @@ class AssistantSuite extends FunSuite:
         import AllowUnsafe.embrace.danger
         KyoApp.Unsafe.runAndBlock(60.seconds)(v).getOrThrow
 
-    // claude 2026-10-19: changed: start: the looks, as the main gives them (L4)
+    // claude 2026-10-19: changed: start: the looks and the surface, as the main
+    // gives them (L4)
     // region: test
     /** The app on a `width` x `height` screen: the storage and the keys in
       * memory, the scripted provider `fake` (also as the real providers).
@@ -45,6 +46,7 @@ class AssistantSuite extends FunSuite:
                 Wiring.conversations,
                 Wiring.log,
                 Wiring.providers((_, _) => fake, fake, StartMode.Detect),
+                Layer(Surface.Terminal),
               )(
                 AssistantUi.run(
                   StartMode.Detect,

@@ -48,10 +48,14 @@ object KeyHints:
     /** The hints of the bindings of `keymap` that have a help text. */
     def apply(keymap: Keymap)(using Frame): UI = of(keymap.help)
 
-    /** The hints `hints` (the chords and the help text of each). A margin of
-      * two cells, not a `gap`, keeps the hints apart: a `gap` also puts rows
-      * between the wrapped lines, as in CSS.
+    /** The hints `hints` (the chords and the help text of each). Two spaces
+      * after each help text, not a `gap`, keep the hints apart: a `gap` also
+      * puts rows between the wrapped lines, as in CSS. The text keeps its
+      * spaces (`white-space: pre`): a browser drops a space at the start or the
+      * end of a flex item, and a px margin is one cell in a terminal but one
+      * pixel in a browser.
       */
+    // claude 2026-10-19: changed: the spaces of the web (L4)
     def of(hints: Chunk[(String, String)])(using Frame): UI =
       div
         .role("note")
@@ -60,8 +64,8 @@ object KeyHints:
             hints.map((k, h) =>
               span(
                 span(k).style(_.bold.color(Colors.accent)),
-                span(s" $h").style(Looks.muted),
-              ).style(_.margin(0.px, 2.px, 0.px, 0.px)),
+                span(s" $h  ").style(Looks.muted.whiteSpace(_.pre)),
+              ),
             )*,
           ),
         )
@@ -95,6 +99,9 @@ final class CommandPalette private (
     val open: Unit < Sync,
     /** True while the layer shows. */
     val isOpen: Signal[Boolean],
+    /** Closes the layer (as Esc in its field does). */
+    // claude 2026-10-19: created (L4): an app closes it from its own Esc
+    val close: Unit < Sync,
 )
 
 /** Makes a [[CommandPalette]]. */
@@ -189,6 +196,7 @@ object CommandPalette:
               when(shown)(layer),
               query.set("").andThen(sel.first).andThen(shown.set(true)),
               shown,
+              close,
             )
         end for
     end apply
