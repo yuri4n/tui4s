@@ -10,10 +10,9 @@ import tui4s.internal.*
   *     lines that [[Layout.textLines]] gives at that width, for every flow, on
   *     the texts of [[WrapPropertyTest]] (the greedy wrap is stable from the
   *     width of the widest line to the width of the wrap).
-  *   - The plan of a screen with the lines of the layout equals the plan of
-  *     the same screen with no lines (the painter wraps again): after a full
-  *     layout and after a step, on the random trees and on the trees with
-  *     layers.
+  *   - The plan of a screen with the lines of the layout equals the plan of the
+  *     same screen with no lines (the painter wraps again): after a full layout
+  *     and after a step, on the random trees and on the trees with layers.
   */
 // claude 2026-10-19: created (PF-b, F4)
 class LineCachePropertyTest extends PropertyTest[Any]:
@@ -33,9 +32,9 @@ class LineCachePropertyTest extends PropertyTest[Any]:
 
       forAll(UiGen.built(5, UiGen.text, StepPropertyTest.styles), UiGen.size) {
         (b, size) =>
-          val env  = b.sceneA(size)
-          val laid = Layout.layoutAll(b.ui, env)
-          val full = PaintOracle.full(size)
+          val env             = b.sceneA(size)
+          val laid            = Layout.layoutAll(b.ui, env)
+          val full            = PaintOracle.full(size)
           assert(Paint(laid, env, full) == Paint(bare(laid), env, full))
           val (_, laidB, dmg) = PaintPropertyTest.stepped(b, size)
           val envB            = b.sceneB(size)

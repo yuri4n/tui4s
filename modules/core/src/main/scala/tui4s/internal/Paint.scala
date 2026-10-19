@@ -452,7 +452,9 @@ private[tui4s] object Paint:
               val lines =
                 n.lines
                   .flatMap(_.at(n.rect.w, flow))
-                  .getOrElse(Layout.textLines(n.props.text(txt), n.rect.w, flow))
+                  .getOrElse(
+                    Layout.textLines(n.props.text(txt), n.rect.w, flow),
+                  )
                   .map(l =>
                     if flow.cut == Cut.Ellipsis && Layout
                           .textWidth(l) > n.rect.w

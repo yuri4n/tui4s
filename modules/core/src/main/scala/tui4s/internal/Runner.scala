@@ -695,7 +695,10 @@ private[tui4s] final class Runner private (
       */
     // claude 2026-10-19: created (L1a); changed: the changed paths of the
     // step (PF-b, F6)
-    private def reveal(w: World, changed: Vector[Loc]): (World, Vector[Damage]) =
+    private def reveal(
+        w: World,
+        changed: Vector[Loc],
+    ): (World, Vector[Damage]) =
         val target          = Scroll.target(w.laid, w.focus)
         // claude 2026-10-19: changed: the view of the focus too (L1c)
         val kept            = Scroll.kept(w.laid, w.scroll, w.focus)
@@ -874,32 +877,33 @@ private[tui4s] final class Runner private (
                   // and flushes 0 cells
                   val held         = !w.full && w1.lastPlan.contains(plan)
                   if !held then canvas.write(plan)
-                  (if held then Result.succeed(0) else canvas.flush(plan)).map { flushed =>
-                    val done = w1.copy(
-                      dirtyRegions = Vector.empty,
-                      dirtyNodes = Set.empty,
-                      scrolled = Set.empty,
-                      full = false,
-                      warned = w1.warned ++ warns.map(_._1),
-                      lastPlan = Some(plan),
-                    )
-                    (
-                      done,
-                      warns.map((warn, at) => warn.line(at)),
-                      // claude 2026-10-12: changed: repaired and settleTimeouts
-                      // in the frame stats (K29, D-17 c)
-                      FrameStats(
-                        seq,
-                        cause,
-                        plan.cells,
-                        flushed,
-                        0L,
-                        w.updates,
-                        subtrees = plan.roots,
-                        repaired = w.repaired,
-                        settleTimeouts = w.settleTimeouts,
-                      ),
-                    )
+                  (if held then Result.succeed(0) else canvas.flush(plan)).map {
+                    flushed =>
+                      val done = w1.copy(
+                        dirtyRegions = Vector.empty,
+                        dirtyNodes = Set.empty,
+                        scrolled = Set.empty,
+                        full = false,
+                        warned = w1.warned ++ warns.map(_._1),
+                        lastPlan = Some(plan),
+                      )
+                      (
+                        done,
+                        warns.map((warn, at) => warn.line(at)),
+                        // claude 2026-10-12: changed: repaired and settleTimeouts
+                        // in the frame stats (K29, D-17 c)
+                        FrameStats(
+                          seq,
+                          cause,
+                          plan.cells,
+                          flushed,
+                          0L,
+                          w.updates,
+                          subtrees = plan.roots,
+                          repaired = w.repaired,
+                          settleTimeouts = w.settleTimeouts,
+                        ),
+                      )
                   }
             }
             .map(orFail)

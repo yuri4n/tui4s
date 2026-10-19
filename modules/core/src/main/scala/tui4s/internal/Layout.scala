@@ -40,8 +40,8 @@ end Content
   * (`World.scroll`); the layout clamps it. `vars` holds the custom properties
   * of the stylesheet of the run ([[CssVars]]): the screen has them. `look` says
   * how the frame shows the caret ([[CaretLook]]). `changes` holds the paths
-  * whose layout inputs changed since the last layout (F6): a relayout keeps
-  * the natural size of a clean node of its screen, and `prior` is that screen
+  * whose layout inputs changed since the last layout (F6): a relayout keeps the
+  * natural size of a clean node of its screen, and `prior` is that screen
   * ([[Layout.relayout]] sets it).
   */
 // claude 2026-10-19: changed: the changes and the prior screen of a relayout
@@ -94,8 +94,8 @@ end Scene
   * under it: its subtree reads the same scene as at its last layout, so its
   * measure is the same (the locality law of F6: a measure reads the scene only
   * at or under its path). `All` makes no node clean (no reuse). A new input of
-  * a measure must have its changed paths here, or a relayout keeps a stale
-  * size (StepPropertyTest finds it).
+  * a measure must have its changed paths here, or a relayout keeps a stale size
+  * (StepPropertyTest finds it).
   */
 // claude 2026-10-19: created (PF-b, F6)
 private[tui4s] enum Changes derives CanEqual:
@@ -106,7 +106,7 @@ private[tui4s] enum Changes derives CanEqual:
 
     /** True when no changed path is at or under `p`. */
     def clean(p: Loc): Boolean = this match
-        case All        => false
+        case All       => false
         case At(paths) => !paths.contains(p)
 end Changes
 
@@ -116,9 +116,9 @@ private[tui4s] object Changes:
       At(ps.iterator.flatMap(_.prefixes).toSet)
 
 /** The lines of a text node with the flow `flow` in `w` cells
-  * ([[Layout.textLines]]); `widest` is the width of the widest line. The
-  * layout wraps a text once, when it measures it, and the painter takes these
-  * lines (F4).
+  * ([[Layout.textLines]]); `widest` is the width of the widest line. The layout
+  * wraps a text once, when it measures it, and the painter takes these lines
+  * (F4).
   */
 // claude 2026-10-19: created (PF-b, F4): the line cache
 private[tui4s] final case class Lines(
@@ -128,11 +128,11 @@ private[tui4s] final case class Lines(
     widest: Int,
 ):
     /** The lines of the same text with the flow `f` in `at` cells, when these
-      * lines are them: at the same width; with no wrap (the lines do not
-      * depend on the width); or at a width from `widest` to `w`. Law (the
-      * greedy wrap is stable): a line that fits in `w` cells and is not wider
-      * than `widest` fits in `at` cells, and a word that does not fit in `w`
-      * cells does not fit in `at` cells, so each break is the same.
+      * lines are them: at the same width; with no wrap (the lines do not depend
+      * on the width); or at a width from `widest` to `w`. Law (the greedy wrap
+      * is stable): a line that fits in `w` cells and is not wider than `widest`
+      * fits in `at` cells, and a word that does not fit in `w` cells does not
+      * fit in `at` cells, so each break is the same.
       */
     def at(at: Int, f: TextFlow): Option[Vector[String]] =
       Option.when(
@@ -675,8 +675,8 @@ private[tui4s] object Layout:
 
     /** The kids of an element, measured in the width `w` and the height `h`
       * (the definite height that their percentages resolve against): the
-      * measured items after [[settle]], and the regions met while flattening.
-      * A measure and a layout of the same element at the same `w` and `h` give
+      * measured items after [[settle]], and the regions met while flattening. A
+      * measure and a layout of the same element at the same `w` and `h` give
       * the same kids (the measure is a pure function of them), so the layout
       * reuses them (F5).
       */
@@ -723,7 +723,11 @@ private[tui4s] object Layout:
           case t: Text    =>
             val flow  = TextFlow.of(parent)
             val lines =
-              Lines.of(availW, flow, textLines(parent.text(t.value), availW, flow))
+              Lines.of(
+                availW,
+                flow,
+                textLines(parent.text(t.value), availW, flow),
+              )
             val w     = lines.widest
             val keep  =
               flow.wrap == Wrapping.Off && Props.scrolls(parent.overflowX)
@@ -757,15 +761,16 @@ private[tui4s] object Layout:
                     env,
                   )
                   Measured(item, p, size, kids, Some(fit))
+            end match
           case _          => Measured(item, Props.neutral(parent.text), Size.zero)
 
-    /** The natural size of the element `e` at `path` with the props `p` and
-      * the constraint `fit`, from the prior screen of `env`: the node there
-      * when it is clean ([[Changes.clean]]) and has the same element, the same
-      * props and the same constraint. Law: a measure reads only its item, its
-      * constraint, its props (which hold what it takes from its parent) and
-      * the scene at or under its path, so a clean node of the same item,
-      * props and constraint has the size that a measure gives now.
+    /** The natural size of the element `e` at `path` with the props `p` and the
+      * constraint `fit`, from the prior screen of `env`: the node there when it
+      * is clean ([[Changes.clean]]) and has the same element, the same props
+      * and the same constraint. Law: a measure reads only its item, its
+      * constraint, its props (which hold what it takes from its parent) and the
+      * scene at or under its path, so a clean node of the same item, props and
+      * constraint has the size that a measure gives now.
       */
     // claude 2026-10-19: created (PF-b, F6)
     private def prior(
@@ -782,7 +787,8 @@ private[tui4s] object Layout:
             .filter(o =>
               (o.kind match
                   case Kind.El(e0) => e0 eq e
-                  case _           => false) && o.props == p,
+                  case _           => false
+              ) && o.props == p,
             )
             .flatMap(o =>
               if o.fit.contains(fit) then Some(o.natural)
@@ -855,7 +861,15 @@ private[tui4s] object Layout:
                             p,
                             inner,
                             flat.items.zipWithIndex.map((it, i) =>
-                              measureItem(it, inner, innerH, p, env, p.listStyle, i),
+                              measureItem(
+                                it,
+                                inner,
+                                innerH,
+                                p,
+                                env,
+                                p.listStyle,
+                                i,
+                              ),
                             ),
                           ),
                           flat.regions,
@@ -871,7 +885,9 @@ private[tui4s] object Layout:
               case _        =>
                 combine(
                   p,
-                  kids.fold(Vector.empty[Measured])(_.items).filterNot(outOfFlow),
+                  kids
+                    .fold(Vector.empty[Measured])(_.items)
+                    .filterNot(outOfFlow),
                   p.dir match
                       case Dir.Row    => Some(inner)
                       case Dir.Column => innerH,
@@ -1329,7 +1345,7 @@ private[tui4s] object Layout:
     ): (Vector[Measured], Vector[Loc], Vector[Int]) =
         val availH = kidsH(node)
         node.kind match
-            case Kind.Screen       =>
+            case Kind.Screen                                                  =>
               val flat = flatten(root, Loc.root, Nil, env)
               (
                 flat.items.zipWithIndex.map((it, i) =>
@@ -1338,7 +1354,7 @@ private[tui4s] object Layout:
                 flat.regions,
                 Vector.empty,
               )
-            case Kind.El(e: Table) =>
+            case Kind.El(e: Table)                                            =>
               val flat = itemsOf(e, node.path, env)
               val rows = flat.items.flatMap { it =>
                 it.ui match
@@ -1353,12 +1369,11 @@ private[tui4s] object Layout:
                 flat.regions,
                 Vector.empty,
               )
-            case Kind.El(_)
-                if pre.exists(k => k.w == inner && k.h == availH) =>
+            case Kind.El(_) if pre.exists(k => k.w == inner && k.h == availH) =>
               pre.fold((Vector.empty, Vector.empty, Vector.empty))(k =>
                 (k.items, k.regions, Vector.empty),
               )
-            case Kind.El(e)        =>
+            case Kind.El(e)                                                   =>
               val flat = itemsOf(e, node.path, env)
               (
                 settle(
@@ -1379,7 +1394,7 @@ private[tui4s] object Layout:
                 flat.regions,
                 Vector.empty,
               )
-            case Kind.Txt(_, _)    => (Vector.empty, Vector.empty, Vector.empty)
+            case Kind.Txt(_, _)                                               => (Vector.empty, Vector.empty, Vector.empty)
         end match
     end measuredKids
 
@@ -2074,8 +2089,8 @@ private[tui4s] object Layout:
                 .zipWithIndex
                 .foldLeft((afterRemove, removedDamage, 0)) {
                   case ((l, d, n), ((m, r), i)) =>
-                    val old  = laid.nodes.get(m.item.path)
-                    val same = old.filter(o =>
+                    val old                    = laid.nodes.get(m.item.path)
+                    val same                   = old.filter(o =>
                       sameItem(
                         o,
                         m.item,

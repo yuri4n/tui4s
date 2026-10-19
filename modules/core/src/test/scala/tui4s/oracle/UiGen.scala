@@ -280,9 +280,8 @@ object UiGen:
         .zip3(between(0, 4), between(0, styles), kids(depth, txt, styles))
         .map((tag, style, ks) => build(Spec.Box(tag, style, ks), Loc.root))
 
-    /** The changes of a step from scene A to scene B, as the runner gives
-      * them: the paths of [[changed]] and the focus of scene A (scene B has
-      * none).
+    /** The changes of a step from scene A to scene B, as the runner gives them:
+      * the paths of [[changed]] and the focus of scene A (scene B has none).
       */
     // claude 2026-10-19: created (PF-b, F6)
     def changes(b: Built): Changes = Changes.of(changed(b) ++ b.focus)

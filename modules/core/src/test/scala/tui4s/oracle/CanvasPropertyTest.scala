@@ -15,9 +15,9 @@ import tui4s.testkit.Screen
   *     is the count of `diff`;
   *   - a repaint of the same full frame flushes 0 cells;
   *   - `read` gives the screen of the backend after a flush;
-  *   - a write of the last plan again (any plan, also a step) changes no
-  *     kept cell and flushes 0 cells: so a frame whose plan equals the last
-  *     plan can skip the write and the diff (F9b).
+  *   - a write of the last plan again (any plan, also a step) changes no kept
+  *     cell and flushes 0 cells: so a frame whose plan equals the last plan can
+  *     skip the write and the diff (F9b).
   */
 // claude 2026-10-19: created (P5)
 class CanvasPropertyTest extends PropertyTest[Any]:
