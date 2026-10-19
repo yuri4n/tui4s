@@ -27,7 +27,9 @@ end Msg
 /** What drives a region. */
 private[tui4s] enum Source:
     case One(signal: Signal[UI])
-    case Many(fe: Foreach[Any, UI])
+    // claude 2026-10-19: changed: the item type of the Foreach is a type
+    // parameter, not Any (purity plan, P1: no cast at the mount)
+    case Many[A](fe: Foreach[A, ?]) extends Source
     case Bound(ref: SignalRef[?])
     case Local
     // claude 2026-10-13: created (C4, the C2 cut back): a component node; `key`
@@ -83,7 +85,8 @@ private[tui4s] final case class World(
     // components that wait for their first content
     // claude 2026-10-13: changed (C4, review R2-4): `comps` by the path and
     // the state key (a joined string can be the same for two paths)
-    comps: Map[(Loc, String), SignalRef[Any]],
+    // claude 2026-10-19: changed: SignalRef[?], so a write needs no cast (P1)
+    comps: Map[(Loc, String), SignalRef[?]],
     pending: Set[Loc],
     backlog: Vector[Msg],
     updates: Int,

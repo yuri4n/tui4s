@@ -336,14 +336,23 @@ private[tui4s] object Layout:
 
     // ---- tables ----
 
-    private def rowsOf(table: Element, path: Loc, env: Scene): Vector[Item] =
-      itemsOf(table, path, env).items.flatMap { it =>
-        it.ui match
-            case _: Tr     => Vector(it)
-            case tb: Tbody =>
-              itemsOf(tb, it.path, env).items.filter(_.ui.isInstanceOf[Tr]) // scalafix:ok DisableSyntax.isInstanceOf; P1: rowsOf gives (Item, Tr)
-            case _ => Vector.empty
-      }
+    /** The rows of `table` (also those inside a `Tbody`), each with its `Tr`. */
+    // claude 2026-10-19: changed: each row with its Tr, no cast (purity plan,
+    // P1)
+    private def rowsOf(
+        table: Element,
+        path: Loc,
+        env: Scene,
+    ): Vector[(Item, Tr)] =
+        def row(it: Item): Vector[(Item, Tr)] = it.ui match
+            case tr: Tr => Vector((it, tr))
+            case _      => Vector.empty
+        itemsOf(table, path, env).items.flatMap { it =>
+          it.ui match
+              case tb: Tbody => itemsOf(tb, it.path, env).items.flatMap(row)
+              case _         => row(it)
+        }
+    end rowsOf
 
     /** Column widths and the table's content size. Cells are one row high;
       * columns are one cell apart.
@@ -356,14 +365,10 @@ private[tui4s] object Layout:
         env: Scene,
     ): (Vector[Int], Size) =
         val rows  = rowsOf(table, path, env)
-        val cells = rows.map { row =>
-          val rp =
-            Props.resolve(row.ui.asInstanceOf[Element], p.text, false, None, 0) // scalafix:ok DisableSyntax.asInstanceOf; P1: rowsOf gives (Item, Tr)
-          itemsOf(
-            row.ui.asInstanceOf[Element], // scalafix:ok DisableSyntax.asInstanceOf; P1: rowsOf gives (Item, Tr)
-            row.path,
-            env,
-          ).items.zipWithIndex.map((c, i) =>
+        // claude 2026-10-19: changed: the Tr of rowsOf, no cast (P1)
+        val cells = rows.map { (row, tr) =>
+          val rp = Props.resolve(tr, p.text, false, None, 0)
+          itemsOf(tr, row.path, env).items.zipWithIndex.map((c, i) =>
             measureItem(c, inner, None, rp, env, None, i).size.w,
           )
         }
@@ -508,18 +513,22 @@ private[tui4s] object Layout:
             val crossRoom     = (crossSize - mCross(m)).max(0)
             /* a left-aligned text paints only its glyphs: it does not stretch
              * (smaller damage when it changes) */
-            val textNoStretch = m.item.ui
-              .isInstanceOf[Text] && p.text.align == kyo.Style.TextAlign.left // scalafix:ok DisableSyntax.isInstanceOf; P1: a match on Text
-            val fixedCross =
+            // claude 2026-10-19: changed: a match on Text (purity plan, P1)
+            val isText        = m.item.ui match
+                case _: Text => true
+                case _       => false
+            val textNoStretch =
+              isText && p.text.align == kyo.Style.TextAlign.left
+            val fixedCross    =
               textNoStretch || (if column then m.props.width.isDefined
                                 else m.props.height.isDefined)
-            val align      = m.props.alignSelf.getOrElse(p.align)
-            val crossLen   =
+            val align         = m.props.alignSelf.getOrElse(p.align)
+            val crossLen      =
               if align == Alignment.stretch && !fixedCross then crossRoom
               else crossOf(m.size).min(crossRoom)
-            val crossLead  =
+            val crossLead     =
               if column then m.props.margin.l else m.props.margin.t
-            val crossPos   = crossLead + (align match
+            val crossPos      = crossLead + (align match
                 case Alignment.center => (crossRoom - crossLen) / 2
                 case Alignment.end    => crossRoom - crossLen
                 case _                => 0)

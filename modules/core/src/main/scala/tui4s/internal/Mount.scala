@@ -143,9 +143,10 @@ private[tui4s] final class Mount(
     /** Unique keys for a `Foreach`: kyo-ui does not reject duplicates, but two
       * items on one path would collide here.
       */
-    private def keysOf(
-        fe: Foreach[Any, UI],
-        items: Vector[Any],
+    // claude 2026-10-19: changed: the item type A, not Any (P1)
+    private def keysOf[A](
+        fe: Foreach[A, ?],
+        items: Vector[A],
     ): Vector[String] =
         val raw =
           items.zipWithIndex.map((a, i) => fe.key.fold(i.toString)(k => k(a)))
@@ -161,10 +162,11 @@ private[tui4s] final class Mount(
     /** Re-renders only the items that are new, or whose value or index changed;
       * the others keep their UI value (so their nested regions are kept too).
       */
-    def reconcile(
-        fe: Foreach[Any, UI],
+    // claude 2026-10-19: changed: the item type A, not Any (P1)
+    def reconcile[A](
+        fe: Foreach[A, ?],
         old: Vector[ItemState],
-        values: Vector[Any],
+        values: Vector[A],
     ): Vector[ItemState] =
         val byKey = old.map(it => it.key -> it).toMap
         keysOf(fe, values).zip(values).zipWithIndex.map { case ((k, a), i) =>
@@ -183,13 +185,13 @@ private[tui4s] final class Mount(
         Frame,
     ): World < Sync =
       ui match
-          case f: Fragment[?]     =>
+          case f: Fragment[?]    =>
             Kyo.foldLeft(f.children.toSeq.zipWithIndex)(w) {
               case (acc, (c, i)) => walk(c, path :+ i.toString, acc, reclaim)
             }
           // claude 2026-10-13: changed (C4, the C2 cut back): a `Reactive`
           // whose signal is in the component registry is a component node
-          case r: Reactive[?]     =>
+          case r: Reactive[?]    =>
             ComponentSpec.lookup(r.signal) match
                 case Some(spec) => mountComponent(spec, path, w, reclaim)
                 case None       =>
@@ -237,10 +239,9 @@ private[tui4s] final class Mount(
                         end for
                   end match
             end match
-          case fe0: Foreach[?, ?] =>
-            /* Erasure-forced: a Foreach carries its own A for signal, key and
-             * render (kyo-ui's `applyTyped` is private). */
-            val fe = fe0.asInstanceOf[Foreach[Any, UI]] // scalafix:ok DisableSyntax.asInstanceOf; P1: a match on Foreach[a, ?]
+          // claude 2026-10-19: changed: a type pattern binds the item type
+          // `a` of the Foreach, so no cast (purity plan, P1)
+          case fe: Foreach[a, ?] =>
             reclaim.get(path) match
                 case Some(
                       old @ RegionState(_, Source.Many(prev), _, _, items, _),
@@ -276,7 +277,7 @@ private[tui4s] final class Mount(
                   yield w2
                   end for
             end match
-          case el: Element        =>
+          case el: Element       =>
             val withBound: World < Sync = boundRef(el) match
                 case None      => w
                 case Some(ref) =>
@@ -314,7 +315,7 @@ private[tui4s] final class Mount(
                         walk(c, path :+ i.toString, acc, reclaim)
                     }
             }
-          case _                  => w
+          case _                 => w
 
     /** Mounts a component node at `path`.
       *
@@ -381,8 +382,8 @@ private[tui4s] final class Mount(
             for
                 state   <- w1.comps.get((path, key)) match
                                case Some(ref) =>
-                                 Kyo.lift(ref.asInstanceOf[SignalRef[c.State]]) // scalafix:ok DisableSyntax.asInstanceOf; P1: merge the 2 casts into one KEEP helper
-                               case None =>
+                                 Kyo.lift(Mount.stateRef[c.State](ref))
+                               case None      =>
                                  given CanEqual[c.State, c.State] =
                                    CanEqual.derived
                                  Signal.initRef[c.State](c.initial)
@@ -408,10 +409,7 @@ private[tui4s] final class Mount(
                              path :+ "~",
                              w1.copy(
                                regions = w1.regions.updated(path, region),
-                               comps = w1.comps.updated(
-                                 (path, key),
-                                 state.asInstanceOf[SignalRef[Any]], // scalafix:ok DisableSyntax.asInstanceOf; P1: merge the 2 casts into one KEEP helper
-                               ),
+                               comps = w1.comps.updated((path, key), state),
                              ),
                              reclaim.removed(path),
                            )
@@ -607,6 +605,17 @@ private[tui4s] final class Mount(
         Sync
           .defer(started.synchronized(started.asScala.toList)) // scalafix:ok DisableSyntax.jvmSync; P2: a Gauge on a Kyo AtomicRef (A7)
           .map(fs => Kyo.foreachDiscard(fs)(_.interrupt.unit))
+end Mount
+
+private[tui4s] object Mount:
+    /** The state of a mounted [[tui4s.Component]] with its own `State` type.
+      * `World.comps` keeps the state under the path and the state key. Only a
+      * component with that state key writes it there, and one state key has one
+      * `State` type (the contract of `Component.stateKey`).
+      */
+    // claude 2026-10-19: created: the one cast of the component state (P1)
+    def stateRef[S](ref: SignalRef[?]): SignalRef[S] =
+      ref.asInstanceOf[SignalRef[S]] // scalafix:ok DisableSyntax.asInstanceOf; KEEP: true by construction (one stateKey has one State type: Component.stateKey)
 end Mount
 
 /** The live-fiber gauge of the running app, for the fibers that the hooks start

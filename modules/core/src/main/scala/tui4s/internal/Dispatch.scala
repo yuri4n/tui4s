@@ -179,15 +179,18 @@ private[tui4s] final class Dispatch(
                   // claude 2026-10-13: changed (PR #13 review: Codex,
                   // Dispatch.scala:180, :204): a button's Enter submits
                   // through its click (the Click rule), not here too
+                  // claude 2026-10-19: changed: a match, no isInstanceOf (P1)
                   val submit                = form.filter(_ =>
-                    isKey(ev, Keyboard.Enter) && !e.isInstanceOf[Select] &&
-                      !e.isInstanceOf[Button], // scalafix:ok DisableSyntax.isInstanceOf; P1: a match and enum Click
+                    isKey(ev, Keyboard.Enter) && (e match
+                        case _: Select | _: Button => false
+                        case _                     => true),
                   )
                   val action: World < Async = e match
                       case ti: TextInput                        => editText(w, target, ti, ev)
+                      // claude 2026-10-19: changed: the Click of the element,
+                      // not a Boolean (P1)
                       case b: (Button | Anchor) if activate(ev) =>
-                        activateClick(ch, target, b.isInstanceOf[Button], ev) // scalafix:ok DisableSyntax.isInstanceOf; P1: a match and enum Click
-                          .andThen(w)
+                        activateClick(ch, target, Click.of(b), ev).andThen(w)
                       case bi: BooleanInput if activate(ev)     =>
                         toggle(w, target, bi)
                       case s: Select
@@ -222,19 +225,21 @@ private[tui4s] final class Dispatch(
       * click: it runs kyo-ui's Click rule over the chain, innermost first. On
       * the target: `onClickSelf` and its event form. On each element: the event
       * form of `onClick`, then `onClick`. A click of a Button that reaches a
-      * Form submits it (`submits`; kyo-ui: "Only Button clicks submit forms",
-      * so an Anchor's Enter submits through the key rule instead). The bubbling
-      * stops after an element that declared a click handler (the self forms
-      * count on the target only) and has `stopPropagation`. kyo-ui's keydown
-      * rule runs only the target's `onClick`, but in a browser the Enter or
-      * Space on a button IS a click, and a terminal has no other click.
+      * Form submits it ([[Click.Submits]]; kyo-ui: "Only Button clicks submit
+      * forms", so an Anchor's Enter submits through the key rule instead). The
+      * bubbling stops after an element that declared a click handler (the self
+      * forms count on the target only) and has `stopPropagation`. kyo-ui's
+      * keydown rule runs only the target's `onClick`, but in a browser the
+      * Enter or Space on a button IS a click, and a terminal has no other
+      * click.
       */
     // claude 2026-10-13: changed (PR #13 review: Codex, Dispatch.scala:180):
     // the click bubbles, as kyo-ui's Click rule does; it replaces `click`
+    // claude 2026-10-19: changed: a Click, not a Boolean (purity plan, P1)
     private def activateClick(
         ch: List[(Loc, Element)],
         target: Loc,
-        submits: Boolean,
+        click: Click,
         ev: KeyboardEvent,
     )(using Frame): Unit < Async =
         val mouse                                        = MouseEvent(ev.targetId, ev.modifiers)
@@ -251,8 +256,9 @@ private[tui4s] final class Dispatch(
                       )
                   else Kyo.unit
                 val submit   = e match
-                    case f: Form if submits && !isTarget => submitForm(f, mouse)
-                    case _                               => Kyo.unit
+                    case f: Form if click == Click.Submits && !isTarget =>
+                      submitForm(f, mouse)
+                    case _                                              => Kyo.unit
                 val declared = a.onClick.nonEmpty || a.onClickEvt.nonEmpty ||
                   (isTarget && (a.onClickSelf.nonEmpty || a.onClickSelfEvt.nonEmpty))
                 self
@@ -515,6 +521,20 @@ private[tui4s] final class Dispatch(
         end if
     end moveInGroup
 end Dispatch
+
+/** What a keyboard click of a button or a link does besides its handlers: the
+  * click of a `Button` submits the form that holds it; the click of an `Anchor`
+  * does not (kyo-ui: "Only Button clicks submit forms").
+  */
+// claude 2026-10-19: created: an ADT, not a Boolean (purity plan, P1)
+private[tui4s] enum Click derives CanEqual:
+    case Submits, Plain
+
+private[tui4s] object Click:
+    /** The click of `e`. */
+    def of(e: Button | Anchor): Click = e match
+        case _: Button => Submits
+        case _: Anchor => Plain
 
 /** The quit action of the running app, for [[tui4s.Tui.quit]]. A `Local`, so it
   * also reaches fibers forked by a handler or by the UI's construction.

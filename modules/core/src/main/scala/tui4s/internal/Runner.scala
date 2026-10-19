@@ -370,11 +370,13 @@ private[tui4s] final class Runner(
                         c.region,
                       )
                   end if
-                case Source.Many(fe)                   =>
+                // claude 2026-10-19: changed: the item type `a` of the Foreach
+                // (Source.Many is typed, P1)
+                case many: Source.Many[a]              =>
                   val items = mount.reconcile(
-                    fe,
+                    many.fe,
                     r.items,
-                    c.value.asInstanceOf[Chunk[Any]].toVector, // scalafix:ok DisableSyntax.asInstanceOf; KEEP: true by construction (Msg.Content)
+                    c.value.asInstanceOf[Chunk[a]].toVector, // scalafix:ok DisableSyntax.asInstanceOf; KEEP: true by construction (Msg.Content)
                   )
                   if items == r.items then w
                   else
