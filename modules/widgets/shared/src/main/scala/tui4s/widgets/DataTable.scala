@@ -49,7 +49,6 @@ object DataTable:
 
         /** The largest first. */
         case Descending
-    end Direction
 
     /** The sort of the rows: none, or by the column at `column`. */
     enum Sort derives CanEqual:
@@ -58,7 +57,6 @@ object DataTable:
 
         /** The rows by the column at `column` (from 0), in `direction`. */
         case By(column: Int, direction: Direction)
-    end Sort
 
     /** A column: its title, the text of a cell, its width, and its order
       * (Absent: the order of the cell texts).

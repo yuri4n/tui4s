@@ -117,9 +117,9 @@ end ProgressBar
 
 /** Horizontal bars in text cells: one row per bar, with its label, a bar of
   * eighth blocks scaled to `max` (Absent: the largest value) in `width` cells,
-  * and its value. The labels are one column and the bars another, so the
-  * layout measures the labels in cells: a wide character in a label does not
-  * move its bar. A pure UI value.
+  * and its value. The labels are one column and the bars another, so the layout
+  * measures the labels in cells: a wide character in a label does not move its
+  * bar. A pure UI value.
   *
   * {{{
   * BarChart(Signal.initConst(Chunk("Mon" -> 3.0, "Tue" -> 7.5)), width = 24)

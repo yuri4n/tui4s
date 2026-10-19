@@ -32,8 +32,8 @@ object Menu:
     // claude 2026-10-19: changed (L2b review): the highlight is a Selection;
     // aria-activedescendant; preventScrollKeys on the bar
     def bar(first: Group, rest: Group*)(using Frame): UI < Sync =
-        val groups                      = Chunk.from(first +: rest)
-        val n                           = groups.size
+        val groups                        = Chunk.from(first +: rest)
+        val n                             = groups.size
         def items(i: Int): Chunk[Binding] =
           groups(i).keys.bindings.filter(_.help.nonEmpty)
         for
@@ -221,7 +221,6 @@ object Pagination:
 
         /** Two or more pages left out ("…"). */
         case Gap
-    end Cell
 
     /** The pages of `pages` pages. */
     def apply(

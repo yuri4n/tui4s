@@ -37,7 +37,6 @@ object Pager:
 
         /** The window shows the last lines, also after a new line. */
         case Tail
-    end Follow
 
     /** The direction of a search for a match ([[Pager.next]]). */
     // claude 2026-10-19: created (L2b review): an enum, not a Boolean
@@ -47,7 +46,6 @@ object Pager:
 
         /** The match before the line. */
         case Previous
-    end Search
 
     /** The pager of `lines`. */
     def apply(
@@ -62,14 +60,14 @@ object Pager:
           text   <- Model.ref(query)
           offset <- Signal.initRef(0)
       yield
-          val h                                    = height.max(1)
-          val view                                 = lines
+          val h                                   = height.max(1)
+          val view                                = lines
             .combineLatest(offset)
             .combineLatest(mode.value)
             .map { case ((xs, o), f) => (xs, top(xs.size, h, o, f)) }
           // claude 2026-10-19: changed (L2b review): only a move up from the
           // end turns the follow off
-          def scrollTo(to: Int): Unit < Async      =
+          def scrollTo(to: Int): Unit < Async     =
             view.current.map { (xs, _) =>
               val end = (xs.size - h).max(0)
               val at  = to.min(end).max(0)
@@ -77,15 +75,15 @@ object Pager:
                 .set(at)
                 .andThen(if at < end then mode.change(Follow.Off) else Kyo.unit)
             }
-          def by(delta: Int): Unit < Async         =
+          def by(delta: Int): Unit < Async        =
             view.current.map((_, t) => scrollTo(t + delta))
-          def find(dir: Search): Unit < Async      =
+          def find(dir: Search): Unit < Async     =
             for
                 (xs, t) <- view.current
                 q       <- text.get
                 _       <- next(matches(xs, q), t, dir).fold(Kyo.unit)(scrollTo)
             yield ()
-          def keys(e: KeyboardEvent): Any < Async  =
+          def keys(e: KeyboardEvent): Any < Async =
             e.key match
                 case Keyboard.ArrowUp | Keyboard.Char('k')   => by(-1)
                 case Keyboard.ArrowDown | Keyboard.Char('j') => by(1)

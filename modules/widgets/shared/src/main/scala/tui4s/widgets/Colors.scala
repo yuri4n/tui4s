@@ -97,10 +97,10 @@ private[widgets] object Looks:
       Random.nextStringAlphanumeric(8).map(s => s"$prefix-$s")
 
     /** The terminal cells of `s`: 2 for a wide or fullwidth character (CJK,
-      * most emoji), 0 for a combining mark, a joiner, a variation selector or
-      * a control character, 1 for the rest. A portable approximation of the
-      * East Asian Width of Unicode (the module does not depend on the measure
-      * of tui4s-core).
+      * most emoji), 0 for a combining mark, a joiner, a variation selector or a
+      * control character, 1 for the rest. A portable approximation of the East
+      * Asian Width of Unicode (the module does not depend on the measure of
+      * tui4s-core).
       */
     // claude 2026-10-19: created (L2b review): widths in cells, not chars
     def cells(s: String): Int =

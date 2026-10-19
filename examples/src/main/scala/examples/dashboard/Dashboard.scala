@@ -19,8 +19,8 @@ import tui4s.{TerminalSize, Tui, TuiApp}
   * the arrows, PageUp, PageDown, Home and End scroll it. In a terminal of 120
   * columns or more, the tabs and the log are side by side. The gauge and the
   * sparkline are in tui4s-widgets; the tabs are the adapter
-  * `examples.widgets.Tabs` over `tui4s.widgets.Tabs`. The keys `p`, `?` and
-  * `q` are a keymap of tui4s-use (the help box lists them), and the status line
+  * `examples.widgets.Tabs` over `tui4s.widgets.Tabs`. The keys `p`, `?` and `q`
+  * are a keymap of tui4s-use (the help box lists them), and the status line
   * says how long ago the last sample came (`useNow`, `timeAgo`).
   */
 // claude 2026-10-19: changed: the Scaladoc names the log pane that scrolls

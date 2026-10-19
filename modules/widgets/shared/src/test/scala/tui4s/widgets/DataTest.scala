@@ -181,7 +181,10 @@ class DataTest extends Test[Any]:
           t4     <- text(ui)
           f4     <- follow.get
       yield
-          assert(f1 == Pager.Follow.Tail && f2 == Pager.Follow.Off, (f1, f2).toString)
+          assert(
+            f1 == Pager.Follow.Tail && f2 == Pager.Follow.Off,
+            (f1, f2).toString,
+          )
           assert(t3.contains("lines 3-7 of 30  2 matches"), t3)
           assert(t4.contains("lines 26-30 of 30") && f4 == Pager.Follow.Off, t4)
       end for
@@ -191,7 +194,9 @@ class DataTest extends Test[Any]:
     "a Fit column counts cells: a wide character takes two, a combining mark none" in {
       val col = DataTable.Column[String]("N", identity)
       assert(DataTable.fit(Chunk(col), Chunk("日本語", "ab")) == Chunk(Present(6)))
-      assert(DataTable.fit(Chunk(col), Chunk("e\u0301e\u0301")) == Chunk(Present(3)))
+      assert(
+        DataTable.fit(Chunk(col), Chunk("e\u0301e\u0301")) == Chunk(Present(3)),
+      )
     }
 
     "the texts of the gauge, the sparkline, the bars and the progress" in {
@@ -271,26 +276,28 @@ class DataPropertyTest extends PropertyTest[Any]:
         val all   = TreeView.rows(roots, identity[Int], Set.empty)
         if all.isEmpty then assert(roots.isEmpty)
         else
-            val node   = roots(Math.floorMod(pick, roots.size))
-            val k      = node.value
-            val rows1  = TreeView.rows(roots, identity[Int], Set(k))
-            val at     = rows1.indexWhere(_.value == k)
-            val kids   = rows1.slice(at + 1, at + 1 + node.children.size)
-            val opened =
+            val node    = roots(Math.floorMod(pick, roots.size))
+            val k       = node.value
+            val rows1   = TreeView.rows(roots, identity[Int], Set(k))
+            val at      = rows1.indexWhere(_.value == k)
+            val kids    = rows1.slice(at + 1, at + 1 + node.children.size)
+            val opened  =
               rows1.size == all.size + node.children.size &&
                 kids.map(_.value) == node.children.map(_.value) &&
                 kids.forall(_.depth == 1)
             // open a child too, then close it: the rows of the first open
-            val inner  = node.children.filter(_.children.nonEmpty)
-            val closed =
+            val inner   = node.children.filter(_.children.nonEmpty)
+            val closed  =
               inner.isEmpty || {
-                  val c     = inner(Math.floorMod(pick2, inner.size)).value
-                  val rows2 = TreeView.rows(roots, identity[Int], Set(k, c))
-                  val back  = TreeView.rows(roots, identity[Int], Set(k, c) - c)
-                  rows2.size > rows1.size && back == rows1
+                val c     = inner(Math.floorMod(pick2, inner.size)).value
+                val rows2 = TreeView.rows(roots, identity[Int], Set(k, c))
+                val back  = TreeView.rows(roots, identity[Int], Set(k, c) - c)
+                rows2.size > rows1.size && back == rows1
               }
             val parents = rows1.indices.forall(i =>
-              TreeView.parent(rows1, i).forall(p => rows1(p).depth < rows1(i).depth),
+              TreeView
+                .parent(rows1, i)
+                .forall(p => rows1(p).depth < rows1(i).depth),
             )
             assert(all.forall(_.depth == 0) && opened && closed && parents)
         end if

@@ -2,7 +2,15 @@ package tui4s.widgets
 
 import kyo.*
 import kyo.UI.*
-import tui4s.use.{Binding, Dialog, Edge, Keymap, useDialog, useNow, useSelection}
+import tui4s.use.{
+  Binding,
+  Dialog,
+  Edge,
+  Keymap,
+  useDialog,
+  useNow,
+  useSelection,
+}
 
 /** A status row: `left` text that grows and ends with "…" when it does not fit,
   * and a `right` slot (a clock, key hints). The background is
@@ -66,8 +74,8 @@ end KeyHints
   * gives it back when it closes. A key in the layer does not reach the app
   * (`stopPropagation`).
   *
-  * The highlight is a `Selection` of tui4s-use; the field names the
-  * highlighted command with `aria-activedescendant`.
+  * The highlight is a `Selection` of tui4s-use; the field names the highlighted
+  * command with `aria-activedescendant`.
   *
   * Keys (in the layer): typing filters; ArrowUp and ArrowDown move the
   * highlight; Enter runs; Esc closes.
@@ -103,7 +111,8 @@ object CommandPalette:
             shown <- Signal.initRef(false)
             query <- Signal.initRef("")
             found  = query.map(q => filter(all, q).take(limit.max(1)))
-            sel   <- useSelection(found, identity[Binding], Edge.Clamp, limit.max(1))
+            sel   <-
+              useSelection(found, identity[Binding], Edge.Clamp, limit.max(1))
             id    <- Looks.freshId("commands")
         yield
             val close                               = shown.set(false)

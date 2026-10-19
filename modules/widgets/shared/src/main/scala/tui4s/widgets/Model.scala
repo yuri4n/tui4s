@@ -17,8 +17,8 @@ import kyo.*
   * kyo-ui's own `UI.Bound` (`Const` or `Ref`) says only where an input reads
   * and writes its value. `Model` adds the two owners that it does not have:
   * `Local`, where the widget makes the ref itself, and `Controlled`, where the
-  * widget never writes and `onChange` is a request that the parent can
-  * reject. `Model.Bound` has the meaning of `UI.Bound.Ref`.
+  * widget never writes and `onChange` is a request that the parent can reject.
+  * `Model.Bound` has the meaning of `UI.Bound.Ref`.
   *
   * A change to the value that the widget shows already runs nothing: no write
   * and no `onChange`. A widget that edits text (a search box, a date field)

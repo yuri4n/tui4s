@@ -65,9 +65,9 @@ end SearchBox
   * Keys (in the field): the keys of a text input; ArrowDown opens the list or
   * goes to the next suggestion; ArrowUp goes to the one before; Enter picks the
   * highlighted one (it becomes the text, and `onPick` gets it); Esc closes the
-  * list. While the list shows, a key in the field does not reach the
-  * ancestors (`stopPropagation`): the Esc that closes the list does not also
-  * close a dialog around the field.
+  * list. While the list shows, a key in the field does not reach the ancestors
+  * (`stopPropagation`): the Esc that closes the list does not also close a
+  * dialog around the field.
   *
   * {{{
   * Autocomplete(languages, matcher = Autocomplete.Match.Fuzzy, onPick = choose)
@@ -125,40 +125,43 @@ object Autocomplete:
             e.key match
                 case Keyboard.ArrowDown =>
                   open.get.map(o =>
-                    if o then sel.moveDown else open.set(true).andThen(sel.first),
+                    if o then sel.moveDown
+                    else open.set(true).andThen(sel.first),
                   )
                 case Keyboard.ArrowUp   => sel.moveUp
                 case Keyboard.Enter     => pick
                 case Keyboard.Escape    => open.set(false)
                 case _                  => Kyo.unit
           val layer: UI                           =
-            shown.combineLatest(sel.index).render((xs, h) =>
-              div
-                .id(id)
-                .role("listbox")
-                .style(
-                  Looks.layer
-                    .position(_.absolute)
-                    .top(100.pct)
-                    .left(0.px)
-                    .zIndex(10)
-                    .minWidth(20.em),
-                )(
-                  UI.fragment(
-                    xs.zipWithIndex.map((s, i) =>
-                      div
-                        .id(s"$id-$i")
-                        .role("option")
-                        .aria("selected", (i == h).toString)
-                        .style((if i == h then Looks.selected
-                                else Looks.plain).row)(
-                          span(Looks.marker(i == h)),
-                          span(s),
-                        ),
-                    )*,
+            shown
+              .combineLatest(sel.index)
+              .render((xs, h) =>
+                div
+                  .id(id)
+                  .role("listbox")
+                  .style(
+                    Looks.layer
+                      .position(_.absolute)
+                      .top(100.pct)
+                      .left(0.px)
+                      .zIndex(10)
+                      .minWidth(20.em),
+                  )(
+                    UI.fragment(
+                      xs.zipWithIndex.map((s, i) =>
+                        div
+                          .id(s"$id-$i")
+                          .role("option")
+                          .aria("selected", (i == h).toString)
+                          .style((if i == h then Looks.selected
+                                  else Looks.plain).row)(
+                            span(Looks.marker(i == h)),
+                            span(s),
+                          ),
+                      )*,
+                    ),
                   ),
-                ),
-            )
+              )
           open
             .combineLatest(shown)
             .map((o, xs) => o && xs.nonEmpty)

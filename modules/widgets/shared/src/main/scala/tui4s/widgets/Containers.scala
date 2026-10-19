@@ -87,7 +87,6 @@ object SplitPane:
 
         /** The second pane is under the first one. */
         case Column
-    end Direction
 
     /** The split of `first` and `second`. */
     def apply(first: UI, second: UI)(
@@ -181,7 +180,6 @@ object Accordion:
 
         /** Each section opens and closes on its own. */
         case Many
-    end Mode
 
     /** The accordion of the sections `first` and `rest`. */
     def apply(first: Section, rest: Section*)(

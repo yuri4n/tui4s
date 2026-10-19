@@ -177,7 +177,10 @@ class FeedbackTest extends Test[Any]:
       yield
           assert(a == Chunk("  OpenCtrl-O", "› SaveCtrl-S"), a.toString)
           assert(name == "› SaveCtrl-S", name)
-          assert(b == Chunk("› UndoCtrl-Z") && c.headOption.contains("› OpenCtrl-O"), (b, c).toString)
+          assert(
+            b == Chunk("› UndoCtrl-Z") && c.headOption.contains("› OpenCtrl-O"),
+            (b, c).toString,
+          )
       end for
     }
 

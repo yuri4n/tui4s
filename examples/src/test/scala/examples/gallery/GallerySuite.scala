@@ -154,8 +154,10 @@ class GallerySuite extends FunSuite:
                      ),
                      (r: Row) => r._1,
                      DataTable.Column[Row]("Name", _._1, DataTable.Width.Fill),
-                     DataTable.Column[Row]("Size", _._2, DataTable.Width.Fixed(5)),
-                     DataTable.Column[Row]("Tag", _ => "t", DataTable.Width.Fixed(3)),
+                     DataTable
+                       .Column[Row]("Size", _._2, DataTable.Width.Fixed(5)),
+                     DataTable
+                       .Column[Row]("Tag", _ => "t", DataTable.Width.Fixed(3)),
                    )(height = 3),
                  )
             s <- h.screen
