@@ -106,6 +106,26 @@ trait Wire:
     def end(state: State): Chunk[ChatEvent]
 end Wire
 
+/** Makes a [[Wire]] from another one. */
+// claude 2026-10-19: created (L4)
+object Wire:
+    /** `base` with the headers `extra` after its own headers in each call: the
+      * web adds the header of [[Anthropic.browserAccess]].
+      */
+    def withHeaders(base: Wire, extra: Chunk[(String, HeaderValue)]): Wire =
+      new Wire:
+          type State = base.State
+          def name: String                                                   = base.name
+          def call(request: ChatRequest, key: ApiKey)(using Frame): HttpCall =
+              val c = base.call(request, key)
+              c.copy(headers = c.headers ++ extra)
+          def start: State                                                   = base.start
+          def step(state: State, event: SseEvent)(using
+              Frame,
+          ): (State, Chunk[ChatEvent])                                       = base.step(state, event)
+          def end(state: State): Chunk[ChatEvent]                            = base.end(state)
+end Wire
+
 /** A chat provider over server-sent events: the [[Wire]] of the provider, its
   * key, and the HTTP seam of the platform.
   */

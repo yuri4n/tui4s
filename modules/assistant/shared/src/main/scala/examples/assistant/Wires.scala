@@ -46,6 +46,16 @@ object Anthropic extends Wire:
     // claude 2026-10-19: created (L3 review)
     def fallbacks(model: String): Boolean = model == Models.anthropic
 
+    /** The header that lets a page of a browser call the API with its own key
+      * (CORS). Its risk: the key is in the page, so a script of the page (or an
+      * extension, or a person at the browser) can read it. The web app sends it
+      * only with the key that the person typed in that browser, and only to
+      * [[url]].
+      */
+    // claude 2026-10-19: created (L4)
+    val browserAccess: (String, HeaderValue) =
+      "anthropic-dangerous-direct-browser-access" -> HeaderValue.Plain("true")
+
     /** The limit of the tokens of a reply (a stream can be long). */
     val maxTokens: Int = 64000
 

@@ -52,7 +52,7 @@ trait ChatProvider:
 // endregion: provider
 
 /** Where a key came from: the app shows the source, never the key. */
-// claude 2026-10-19: created (L3)
+// claude 2026-10-19: created (L3); changed: Browser (L4)
 enum KeySource derives CanEqual:
     /** The environment variable `name`. */
     case Environment(name: String)
@@ -60,10 +60,14 @@ enum KeySource derives CanEqual:
     /** The key file at `path`. */
     case File(path: String)
 
+    /** The storage of the browser: the person typed the key in the settings. */
+    case Browser
+
     /** The text of the source for the person. */
     def describe: String = this match
         case Environment(n) => s"from $$$n"
         case File(p)        => s"from the file $p"
+        case Browser        => "kept in this browser"
 end KeySource
 
 /** An API key and its source. Its `toString` never shows the key, so a log
@@ -121,6 +125,21 @@ trait Secrets:
     def apiKey(provider: ProviderChoice)(using
         Frame,
     ): Maybe[ApiKey] < (Sync & Abort[SecretsError])
+
+/** The capability to keep a key that the person types in the app: the web,
+  * where no environment gives a key. The JS interpreter (`BrowserKeys`) keeps
+  * it in the `localStorage` of the browser, and starts the app again, so the
+  * providers are made again with the key ([[Providers]] are made once, at the
+  * start). The terminal has no vault: its keys come from the environment or the
+  * key file.
+  */
+// claude 2026-10-19: created (L4)
+trait KeyVault:
+    /** Keeps `key` as the key of `provider`, and starts the app again. */
+    def keep(provider: ProviderChoice, key: ApiKey)(using Frame): Unit < Sync
+
+    /** Forgets the key of `provider`, and starts the app again. */
+    def forget(provider: ProviderChoice)(using Frame): Unit < Sync
 
 /** The environment variables of the keys. The interpreters are on each platform
   * (`SecretsJvm`), and in memory in the test sources.
