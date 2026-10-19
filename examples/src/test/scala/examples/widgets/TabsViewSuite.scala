@@ -7,7 +7,6 @@ import munit.FunSuite
 
 /** Exercises public Kyo UI trees and callbacks without a renderer. */
 class TabsViewSuite extends FunSuite:
-    private val labels = Seq("One", "Two", "Three")
 
     private def run[A](v: => A < (Async & Scope))(using Frame): A =
         import AllowUnsafe.embrace.danger
@@ -37,7 +36,7 @@ class TabsViewSuite extends FunSuite:
     test(
       "reusing an allocation effect creates independent state and focus groups",
     ) {
-      val allocate                                      = new TabsView(labels, panel = panel).ui
+      val allocate                                      = new TabsView("One", "Two", "Three")(panel = panel).ui
       val (firstGroup, secondGroup, changed, unchanged) = run {
         for
             first     <- allocate
@@ -66,8 +65,7 @@ class TabsViewSuite extends FunSuite:
         for
             state    <- Signal.initRef(TabsView.State(0, "owned-test"))
             seen     <- Signal.initRef(Vector.empty[(Int, Int)])
-            widget    = new TabsView(
-                          labels,
+            widget    = new TabsView("One", "Two", "Three")(
                           onChange = next =>
                             state.get
                               .map(s => seen.updateAndGet(_ :+ (next, s.selected)))
@@ -95,8 +93,7 @@ class TabsViewSuite extends FunSuite:
       val (source, afterClick, afterWrite) = run {
         for
             raw        <- Signal.initRef(0)
-            ui         <- new TabsView(
-                            labels,
+            ui         <- new TabsView("One", "Two", "Three")(
                             selected = Some(raw.map(_ * 2)),
                             panel = panel,
                           ).ui

@@ -76,8 +76,7 @@ import examples.widgets.Tabs
 
 object OwnedTabsExample:
     def ui: UI =
-      new Tabs(
-        Seq("CPU", "Memory", "Network"),
+      new Tabs("CPU", "Memory", "Network")(
         heading = h1("Dashboard"),
         panel = index => p(s"Selected metric: $index"),
       ).ui
@@ -101,8 +100,7 @@ object ControlledTabsExample:
     def ui: UI < Sync =
       Signal.initRef(0).map { selected =>
         div(
-          new Tabs(
-            Seq("CPU", "Memory", "Network"),
+          new Tabs("CPU", "Memory", "Network")(
             selected = Some(selected),
             onChange = next =>
               if next == 2 then () else selected.set(next),
@@ -125,9 +123,9 @@ and the panel function. Labels must be nonempty. `heading: UI` and
 `panel: Int => UI` are ordinary typed parameters: the panel is a scoped slot
 without another slot abstraction.
 
-`Widgets.tabs(labels)` is the short form with local state.
-`Widgets.tabs(selectedRef, labels)` supplies the ref as a signal and writes
-accepted requests straight back to it. Use `Tabs` directly for a panel, heading,
+`Widgets.tabs("One", "Two")` is the short form with local state.
+`Widgets.tabs(selectedRef, "One", "Two")` supplies the ref as a signal and
+writes accepted requests straight back to it. Use `Tabs` directly for a panel, heading,
 custom change handler, or initial selection.
 
 ### Construction and mount lifetime
@@ -142,8 +140,7 @@ import examples.widgets.TabsView
 
 object PortableTabsExample:
     def ui: UI < Sync =
-      new TabsView(
-        Seq("Overview", "Details"),
+      new TabsView("Overview", "Details")(
         panel = index => span(s"Panel $index"),
       ).ui
 ```
@@ -187,8 +184,7 @@ object EmittedTabsExample:
             case Event.Selected(index) => changes.updateAndGet(_ :+ index).unit
 
         div(
-          new Tabs(
-            Seq("Overview", "Details"),
+          new Tabs("Overview", "Details")(
             onChange = index =>
               Emit.runForeach[Event](selectionChanged(index))(record),
           ).ui,
@@ -231,8 +227,7 @@ object OrdinaryStoreExample:
     def view: UI < Env[DashboardStore] =
       Env.use[DashboardStore] { dashboard =>
         div(
-          new Tabs(
-            Seq("CPU", "Memory", "Network"),
+          new Tabs("CPU", "Memory", "Network")(
             selected = Some(dashboard.selected),
             onChange = index => dashboard.select(index),
           ).ui,
@@ -264,8 +259,7 @@ import examples.widgets.Tabs
 object KeyedStoreExample:
     def tabs(using StateStore): UI < Sync =
       useState("dashboard.currentTab")(0).map { selected =>
-        new Tabs(
-          Seq("CPU", "Memory", "Network"),
+        new Tabs("CPU", "Memory", "Network")(
           selected = Some(selected),
           onChange = index => selected.set(index),
         ).ui

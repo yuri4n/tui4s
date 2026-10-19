@@ -186,8 +186,8 @@ store, with Kyo `Env` or `Layer` supplying it to the app.
 
 The Dashboard's reusable `examples.widgets.Tabs` owns its selection by default.
 Supply `selected = Some(signal)` and `onChange = next => ...` when the parent
-owns it. The parent decides whether to accept a request. `Widgets.tabs(ref,
-labels)` connects a writable signal directly. `TabsView` provides the same
+owns it. The parent decides whether to accept a request.
+`Widgets.tabs(ref, "One", "Two")` connects a writable signal directly. `TabsView` provides the same
 widget as a plain Kyo UI construction effect; `Tabs` adds tui4s mount lifetime.
 
 The [state and events guide](examples/README.md#state-and-events-with-kyo)

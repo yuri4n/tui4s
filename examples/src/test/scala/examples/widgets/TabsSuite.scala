@@ -7,7 +7,6 @@ import tui4s.testkit.{Headless, Screen}
 
 class TabsSuite extends FunSuite:
 
-    private val labels = Seq("One", "Two", "Three")
 
     private def run[A](v: => A < (Async & Scope))(using Frame): A =
         import AllowUnsafe.embrace.danger
@@ -22,8 +21,7 @@ class TabsSuite extends FunSuite:
       val (first, last, wrapped, second) = run {
         for
             h       <- Headless.start(50, 5)(_ =>
-                         new Tabs(
-                           labels,
+                         new Tabs("One", "Two", "Three")(
                            heading = span("Heading"),
                            panel = panel,
                          ).ui,
@@ -49,7 +47,7 @@ class TabsSuite extends FunSuite:
       val (initial, next, entered) = run {
         for
             h       <- Headless.start(40, 5)(_ =>
-                         new Tabs(labels, initialTab = -1, panel = panel).ui,
+                         new Tabs("One", "Two", "Three")(initialTab = -1, panel = panel).ui,
                        )
             initial <- h.screen
             _       <- h.key(Keyboard.ArrowRight)
@@ -75,8 +73,7 @@ class TabsSuite extends FunSuite:
                             div(
                               when(shown)(
                                 revision.render(n =>
-                                  new Tabs(
-                                    labels,
+                                  new Tabs("One", "Two", "Three")(
                                     heading = span(s"[revision=$n]"),
                                     panel = panel,
                                   ).ui,
@@ -107,12 +104,10 @@ class TabsSuite extends FunSuite:
         for
             h             <- Headless.start(40, 8)(_ =>
                                div(
-                                 new Tabs(
-                                   Seq("A0", "A1"),
+                                 new Tabs("A0", "A1")(
                                    panel = n => span(s"[a=$n]"),
                                  ).ui,
-                                 new Tabs(
-                                   Seq("B0", "B1"),
+                                 new Tabs("B0", "B1")(
                                    panel = n => span(s"[b=$n]"),
                                  ).ui,
                                ),
@@ -141,7 +136,7 @@ class TabsSuite extends FunSuite:
     }
 
     test("reusing one Tabs value mounts independent state and focus groups") {
-      val tabs                              = new Tabs(Seq("Zero", "One"), panel = panel)
+      val tabs                              = new Tabs("Zero", "One")(panel = panel)
       val (firstChanged, secondChanged)     = run {
         for
             h             <- Headless.start(40, 8)(_ => div(tabs.ui, tabs.ui))
@@ -169,8 +164,7 @@ class TabsSuite extends FunSuite:
             selected <- Signal.initRef(0)
             requests <- Signal.initRef(Vector.empty[Int])
             h        <- Headless.start(40, 5)(_ =>
-                          new Tabs(
-                            labels,
+                          new Tabs("One", "Two", "Three")(
                             selected = Some(selected),
                             onChange = next =>
                               requests
@@ -207,8 +201,7 @@ class TabsSuite extends FunSuite:
         for
             requests <- Signal.initRef(Vector.empty[Int])
             h        <- Headless.start(40, 5)(_ =>
-                          new Tabs(
-                            labels,
+                          new Tabs("One", "Two", "Three")(
                             onChange = next => requests.updateAndGet(_ :+ next).unit,
                             panel = panel,
                           ).ui,
@@ -226,8 +219,11 @@ class TabsSuite extends FunSuite:
       assert(screen.contains("[panel=2]"), screen.text)
     }
 
-    test("empty labels fail when tabs are constructed") {
-      val error = intercept[IllegalArgumentException](new Tabs(Seq.empty))
-      assert(error.getMessage.contains("at least one label"))
+    // claude 2026-10-19: changed: tabs without a label do not compile (the
+    // labels are `first, rest*`), not a failure at construction (P1b, A5 g)
+    test("tabs without a label do not compile") {
+      val errors = compileErrors("new Tabs()()")
+      assert(errors.nonEmpty, "new Tabs()() compiled")
+      assert(compileErrors("""new Tabs("One")()""").isEmpty)
     }
 end TabsSuite

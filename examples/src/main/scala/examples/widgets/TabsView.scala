@@ -17,16 +17,24 @@ import java.util.concurrent.atomic.AtomicLong // scalafix:ok DisableSyntax.jvmSy
   * Runtime adapters can allocate [[initial]] at mount, retain that state during
   * parent renders, and pass it to [[view]]. The constructor captures the
   * caller's diagnostic `Frame` for later rendering and event effects.
+  *
+  * The labels come first: `first` and then the `rest`, so a widget without a
+  * tab does not compile. The options come in a second parameter list.
+  *
+  * {{{
+  * new TabsView("Overview", "Details")(panel = index => span(s"Panel $index")).ui
+  * }}}
   */
-final class TabsView(using Frame)(
-    labels: Seq[String],
+// claude 2026-10-19: changed: the labels are `first, rest*`, not a Seq that
+// can be empty (P1b, A5 g)
+final class TabsView(using Frame)(first: String, rest: String*)(
     initialTab: Int = 0,
     selected: Option[Signal[Int]] = None,
     onChange: Int => Unit < Async = _ => (),
     heading: UI = UI.empty,
     panel: Int => UI = _ => UI.empty,
 ):
-    require(labels.nonEmpty, "Tabs needs at least one label")
+    private val labels: Chunk[String] = Chunk.from(first +: rest)
 
     private def normalize(index: Int): Int =
       Math.floorMod(index, labels.size)

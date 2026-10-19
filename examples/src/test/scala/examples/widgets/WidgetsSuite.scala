@@ -39,7 +39,7 @@ class WidgetsSuite extends FunSuite:
         for
             selected <- Signal.initRef(0)
             h        <- Headless.start(40, 3)(_ =>
-                          Widgets.tabs(selected, Seq("One", "Two", "Three")),
+                          Widgets.tabs(selected, "One", "Two", "Three"),
                         )
             first    <- h.screen
             _        <- h.key(Keyboard.ArrowRight) // the focus group

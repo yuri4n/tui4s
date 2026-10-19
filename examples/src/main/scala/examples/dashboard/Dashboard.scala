@@ -20,7 +20,12 @@ import tui4s.{Tui, TuiApp}
 // parameters, so that a test can use short ones
 object Dashboard:
 
-    val series = Seq("CPU", "Memory", "Network")
+    /** The series: one tab for each. The tabs need a first label. */
+    // claude 2026-10-19: changed: the first series and the others, for the
+    // tabs (P1b, A5 g)
+    val firstSeries: String       = "CPU"
+    val otherSeries: Seq[String]  = Seq("Memory", "Network")
+    val series: Seq[String]       = firstSeries +: otherSeries
 
     /** One sample of every series, and the last 40 samples of each. One ref, so
       * one tick is one atomic change.
@@ -120,7 +125,10 @@ object Dashboard:
         case KeyboardEvent(Keyboard.Char('q'), _, _) => Tui.quit
         case _                                       => ()
       }(
-        new Tabs(series, heading = h1("Dashboard"), panel = overview(s, _)),
+        new Tabs(firstSeries, otherSeries*)(
+          heading = h1("Dashboard"),
+          panel = overview(s, _),
+        ),
         logPane(s),
         span(
           s.paused.map(p =>

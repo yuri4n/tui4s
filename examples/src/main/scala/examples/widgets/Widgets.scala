@@ -41,9 +41,17 @@ object Widgets:
     /** Tabs with component-owned selection. Use [[Tabs]] for a panel slot, an
       * initial tab, a change callback, or a parent-owned selection signal.
       */
-    def tabs(labels: Seq[String])(using Frame): UI = new Tabs(labels).ui
+    // claude 2026-10-19: changed: the labels are `first, rest*` (P1b, A5 g)
+    def tabs(first: String, rest: String*)(using Frame): UI =
+      new Tabs(first, rest*)().ui
 
     /** A two-way binding to a parent's state. */
-    def tabs(selected: SignalRef[Int], labels: Seq[String])(using Frame): UI =
-      new Tabs(labels, selected = Some(selected), onChange = selected.set).ui
+    // claude 2026-10-19: changed: the labels are `first, rest*` (P1b, A5 g)
+    def tabs(selected: SignalRef[Int], first: String, rest: String*)(using
+        Frame,
+    ): UI =
+      new Tabs(first, rest*)(
+        selected = Some(selected),
+        onChange = selected.set,
+      ).ui
 end Widgets

@@ -15,8 +15,7 @@ class StateStoreSuite extends FunSuite:
 
     private def sharedTabs(name: String)(using StateStore, Frame): UI < Sync =
       useState("tabs.selected")(0).map(selected =>
-        new Tabs(
-          Seq("One", "Two"),
+        new Tabs("One", "Two")(
           selected = Some(selected),
           onChange = selected.set,
           panel = index => span(s"[$name=$index]"),
