@@ -24,7 +24,14 @@
   Open for the user: D24. PTY kit gaps to add in P4+P6: a SIGHUP 129 row and a row for an app that fails inside the UI
   (exit 1, message after the restore). Accepted window (in AGENTS.md): a JVM stop between the hook removal and
   TuiApp.runMain's read of Hooks.shuttingDown is not seen.
-- D20 cheap cadence: next = P5 (3 agents, Fable skeptic on the Canvas monitor), then P4 + P6 (1 agent).
+- P5 DONE, pushed 14d1a74 (16 files, +1815/-491; pure painter gives a Plan = ops + row spans (F9a); new edge file
+  internal/Canvas.scala with the kernels write and diff, flush = diff + draw under the backend monitor, read gives a Screen;
+  clip-by-cells fix with ClipTest negative control; PaintOracle = a50d1d6 Paint; 9 properties x 200; suppressions 29 -> 19
+  (9 edge files); 281 core leaves, 49 examples, PTY 121/121, glitch 0/500 x2). Skeptic: 2 should (oracle coverage of
+  decorations, glyphs wider than 2 cells), 3 nits, all applied. Open product question: a wide glyph cut by the clip's
+  right edge keeps the old cell (old behaviour). Not done: F9b (skip a repair frame whose ops did not change).
+- D20 cheap cadence: next = P4 + P6 (1 agent): Headless on Canvas.read, the sinks, hook/onMount failure logging,
+  PTY rows SIGHUP 129 and a failing app; then L0 is done and L1 starts.
 - Upstream drafts land in `.work/upstream/` (the user posts them).
 <!-- claude 2026-10-19: created this item -->
 
