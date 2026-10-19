@@ -201,7 +201,8 @@ private[tui4s] final class Runner private (
           // claude 2026-10-12: created the two cases below (K29, D-16): a
           // watcher armed: verify its region one time; the repair tick
           // re-reads every region
-          case Msg.Armed(p, g)                                     => verifyRegion(w, p, Some(g))
+          // claude 2026-10-19: changed: the region leaves World.unarmed (P2)
+          case Msg.Armed(p, g)                                     => verifyRegion(w.armed(p, g), p, Some(g))
           case Msg.Repair                                          => repairAll(w)
           case Msg.Quit                                            => w.copy(quit = true)
 
@@ -248,7 +249,8 @@ private[tui4s] final class Runner private (
     // claude 2026-10-13: changed: the Scaladoc names the keys and the paste
     // (C3)
     private def verify(w: World, input: Boolean)(using Frame): World < Sync =
-        val unarmed = if input then mount.unarmedRegions(w) else Set.empty[Loc]
+        // claude 2026-10-19: changed: a function of the World (P2)
+        val unarmed = if input then w.unarmedRegions else Set.empty[Loc]
         // TODO(#9): drop the pull check when Kyo closes the lost-wakeup window
         // of `Signal` (the conditions of D-17 c).
         // https://github.com/yuri4n/tui4s/issues/9
@@ -382,7 +384,8 @@ private[tui4s] final class Runner private (
           // claude 2026-10-12: created the two cases below (K29, D-16): an arm
           // inside a settle verifies its region; a tick inside a settle is kept
           // for the next step, once (review R2-7)
-          case Msg.Armed(p, g) => verifyRegion(w, p, Some(g))
+          // claude 2026-10-19: changed: the region leaves World.unarmed (P2)
+          case Msg.Armed(p, g) => verifyRegion(w.armed(p, g), p, Some(g))
           case Msg.Repair      =>
             if w.backlog.contains(Msg.Repair) then w
             else w.copy(backlog = w.backlog :+ Msg.Repair)

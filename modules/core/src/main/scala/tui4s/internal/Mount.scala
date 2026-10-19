@@ -17,25 +17,6 @@ private[tui4s] final class Mount(
     knobs: Knobs = Knobs.default,
 ):
 
-    // claude 2026-10-12: created (D-16, armkey): the regions whose watcher has
-    // not armed yet (path -> gen). Until the arm, a write is not seen by the
-    // watcher; an Input step verifies these regions.
-    private val unarmed =
-      new java.util.concurrent.ConcurrentHashMap[Loc, java.lang.Long]() // scalafix:ok DisableSyntax.jvmSync; P2: World.unarmed
-
-    /** The regions of `w` whose watcher has not armed yet; stale entries (an
-      * old generation) are dropped.
-      */
-    private[tui4s] def unarmedRegions(w: World): Set[Loc] =
-        import scala.jdk.CollectionConverters.*
-        unarmed.asScala.toList.flatMap { (p, g) =>
-          if w.regions.get(p).exists(_.gen == g.longValue) then Some(p)
-          else
-              discard(unarmed.remove(p, g))
-              None
-        }.toSet
-    end unarmedRegions
-
     // claude 2026-10-13: created (C4, the C2 cut back): the hook mount posts
     // its content with it
     private def post(path: Loc, gen: Long, v: Any)(using
@@ -43,15 +24,26 @@ private[tui4s] final class Mount(
     ): Unit < Async =
       Abort.run[Closed](inbox.put(Msg.Content(path, gen, v))).unit
 
-    // claude 2026-10-12: changed: the watcher joins the gauge and runs the own
-    // loop below, not `Signal.observe`
-    // claude 2026-10-19: changed: the gauge starts the watcher (P2, A7)
+    /** Starts the watcher of the region at `path` (of generation `gen`). The
+      * caller puts the region in `World.unarmed` ([[newWatcher]]): until its
+      * `Msg.Armed` arrives, an Input step verifies it.
+      */
+    // claude 2026-10-19: changed: the gauge starts the watcher (P2, A7); the
+    // unarmed regions are in the World (P2)
     private def watch[A](signal: Signal[A], path: Loc, gen: Long)(using
         Frame,
     ): Fiber[Any, Nothing] < Sync =
-      Sync
-        .defer(discard(unarmed.put(path, java.lang.Long.valueOf(gen))))
-        .andThen(gauge.fork(Abort.run[Closed](loop(signal, path, gen)).unit))
+      gauge.fork(Abort.run[Closed](loop(signal, path, gen)).unit)
+
+    /** `w` with the new region at `path` (of generation `gen`) in
+      * `World.unarmed` and in the young regions of this step.
+      */
+    // claude 2026-10-19: created (P2): the armkey entry of a new watcher
+    private def newWatcher(w: World, path: Loc, gen: Long): World =
+      w.copy(
+        unarmed = w.unarmed.updated(path, gen),
+        youngNow = w.youngNow + path,
+      )
 
     // TODO(#8): go back to `signal.observe` when Kyo fixes the leak of
     // `Signal.observe` (one `Async.race` per value in a long-lived fiber keeps
@@ -79,14 +71,10 @@ private[tui4s] final class Mount(
           if n == 0 then Kyo.unit
           else signal.currentWith(cur => inbox.put(Msg.Content(path, gen, cur)))
         val delay                                = knobs.seam(n)
-        // claude 2026-10-12: changed (armkey): the arm step leaves `unarmed`
+        // claude 2026-10-19: changed: the arm step only posts `Msg.Armed`; the
+        // runner takes the region out of `World.unarmed` (P2)
         val arm: Unit < (Async & Abort[Closed])  =
-          if n == 0 then
-              Sync
-                .defer(
-                  discard(unarmed.remove(path, java.lang.Long.valueOf(gen))),
-                )
-                .andThen(inbox.put(Msg.Armed(path, gen)))
+          if n == 0 then inbox.put(Msg.Armed(path, gen))
           else Kyo.unit
         post
           .andThen(if delay > Duration.Zero then Async.sleep(delay)
@@ -163,10 +151,12 @@ private[tui4s] final class Mount(
                             w2      <- walk(
                                          cur,
                                          path.content,
-                                         w1.copy(
-                                           regions =
+                                         newWatcher(
+                                           w1.copy(regions =
                                              w1.regions.updated(path, region),
-                                           youngNow = w1.youngNow + path,
+                                           ),
+                                           path,
+                                           gen,
                                          ),
                                          reclaim,
                                        )
@@ -202,9 +192,10 @@ private[tui4s] final class Mount(
                                  )
                       w2      <-
                         Kyo.foldLeft(items)(
-                          w1.copy(
-                            regions = w1.regions.updated(path, region),
-                            youngNow = w1.youngNow + path,
+                          newWatcher(
+                            w1.copy(regions = w1.regions.updated(path, region)),
+                            path,
+                            gen,
                           ),
                         ) { (acc, it) =>
                           walk(it.ui, path.item(it.key), acc, reclaim)
@@ -226,19 +217,22 @@ private[tui4s] final class Mount(
                         for
                             cur     <- ref.current
                             watcher <- watch(ref, path, gen)
-                        yield w1.copy(
-                          regions = w1.regions.updated(
-                            path,
-                            RegionState(
+                        yield newWatcher(
+                          w1.copy(
+                            regions = w1.regions.updated(
                               path,
-                              Source.Bound(ref),
-                              gen,
-                              Content.Value(cur),
-                              Vector.empty,
-                              Some(watcher),
+                              RegionState(
+                                path,
+                                Source.Bound(ref),
+                                gen,
+                                Content.Value(cur),
+                                Vector.empty,
+                                Some(watcher),
+                              ),
                             ),
                           ),
-                          youngNow = w1.youngNow + path,
+                          path,
+                          gen,
                         )
                         end for
             withBound.map { w2 =>
@@ -480,16 +474,11 @@ private[tui4s] final class Mount(
       * path leaves `pending`: the settle does not wait for it). A path stays in
       * `pending` only while its region is a hook component that has no content
       * yet: another region at that path (a `Reactive`, a `Component`) does not
-      * post the content that the wait is for.
+      * post the content that the wait is for. It also drops the unarmed entry
+      * of a region that is gone or that has a new generation (its watcher was
+      * interrupted before its arm).
       */
-    // claude 2026-10-13: created (C4, the C2 cut back)
-    // claude 2026-10-13: changed (C4, P-6): also the pending paths whose
-    // region is gone (a component that mounted and unmounted in one settle
-    // kept the settle waiting until pendingTimeout)
-    // claude 2026-10-13: changed (C4, review R1-2): also the pending paths
-    // whose region is now another one (the `else` branch of a `render`)
-    // claude 2026-10-13: changed (C4, review R2-4): the live keys are the path
-    // and the state key
+    // claude 2026-10-19: changed: also the unarmed entries (P2)
     def gcComps(w: World): World =
         val live = w.regions.values.collect {
           case RegionState(
@@ -505,6 +494,8 @@ private[tui4s] final class Mount(
         w.copy(
           comps = w.comps.filter((k, _) => live.contains(k)),
           pending = w.pending.filter(p => w.regions.get(p).exists(waits)),
+          unarmed =
+            w.unarmed.filter((p, g) => w.regions.get(p).exists(_.gen == g)),
         )
     end gcComps
 

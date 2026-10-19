@@ -102,6 +102,10 @@ private[tui4s] final case class World(
     // claude 2026-10-12: created (D-17 c, RR O6): settles of this step that
     // ran out of `max`
     settleTimeouts: Int = 0,
+    // claude 2026-10-19: created (P2, D-16 armkey): the regions whose watcher
+    // has not armed yet (path -> gen); the mount adds an entry, `Msg.Armed`
+    // takes it out
+    unarmed: Map[Loc, Long] = Map.empty,
 ):
     def env: Scene =
       Scene(
@@ -117,6 +121,24 @@ private[tui4s] final case class World(
       if dirtyRegions.contains(p) then dirtyRegions else dirtyRegions :+ p,
     )
     def markNode(p: Loc): World   = copy(dirtyNodes = dirtyNodes + p)
+
+    /** The regions whose watcher has not armed yet: until the arm, the watcher
+      * does not see a write, so an Input step verifies them. An entry of an old
+      * generation does not count.
+      */
+    // claude 2026-10-19: created (P2): a pure function of the World, not a
+    // ConcurrentHashMap of Mount
+    def unarmedRegions: Set[Loc] =
+      unarmed.collect {
+        case (p, g) if regions.get(p).exists(_.gen == g) => p
+      }.toSet
+
+    /** The world after `Msg.Armed(p, g)`: the watcher of generation `g` at `p`
+      * has armed. An arm of an old generation leaves a newer entry.
+      */
+    // claude 2026-10-19: created (P2)
+    def armed(p: Loc, g: Long): World =
+      if unarmed.get(p).contains(g) then copy(unarmed = unarmed - p) else this
 end World
 
 private[tui4s] object World:
