@@ -44,11 +44,10 @@ private[tui4s] final case class LineSplit(
             else if line.size >= LineSplit.MaxLine && (c & 0xc0) != 0x80 then
                 (LineSplit(Vector(b), carriage = false), Some(line))
             else (LineSplit(line :+ b, carriage = false), None)
-        end if
     end put
 
-    /** The empty split, and the line without its line break that this split
-      * had (none when it had no byte).
+    /** The empty split, and the line without its line break that this split had
+      * (none when it had no byte).
       */
     def drain: (LineSplit, Option[Vector[Byte]]) =
       (LineSplit.empty, Option.when(partial.nonEmpty)(partial))
@@ -60,4 +59,3 @@ private[tui4s] object LineSplit:
 
     /** The longest line the capture keeps, in bytes; a longer one is cut. */
     val MaxLine: Int = 8192
-end LineSplit

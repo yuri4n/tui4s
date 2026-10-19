@@ -45,9 +45,9 @@ private[tui4s] object OutputCapture:
     )
 
     /** The forwarders of `System.out` and `System.err` now; every forwarder
-      * made so far, newest first (an older one can still be in use, for
-      * example by `scala.Console`); true when [[install]] installed them for
-      * good; the running capture.
+      * made so far, newest first (an older one can still be in use, for example
+      * by `scala.Console`); true when [[install]] installed them for good; the
+      * running capture.
       */
     private final case class State(
         out: Option[Fwd],
@@ -86,7 +86,8 @@ private[tui4s] object OutputCapture:
         val out  = forwarder(java.lang.System.out.nn, state.out) // tui4s: allowed
         val err  = forwarder(java.lang.System.err.nn, state.err) // tui4s: allowed
         val made = List(err, out).filterNot(f => state.all.exists(_ eq f))
-        state = state.copy(out = Some(out), err = Some(err), all = made ++ state.all)
+        state =
+          state.copy(out = Some(out), err = Some(err), all = made ++ state.all)
         java.lang.System.setOut(out.stream)
         java.lang.System.setErr(err.stream)
         // Loads scala.Console now, bound to the forwarders, if nothing used it
@@ -94,11 +95,11 @@ private[tui4s] object OutputCapture:
         discard(scala.Console.out)
     end installStreams
 
-    /** The forwarder for the system stream `sys`: the current one, or a new
-      * one when there is none or the program has set its own stream since.
-      * The new forwarder writes to that stream, and a stop restores it. A
-      * forwarder never changes its stream, so forwarders cannot write to each
-      * other in a loop.
+    /** The forwarder for the system stream `sys`: the current one, or a new one
+      * when there is none or the program has set its own stream since. The new
+      * forwarder writes to that stream, and a stop restores it. A forwarder
+      * never changes its stream, so forwarders cannot write to each other in a
+      * loop.
       */
     private def forwarder(sys: PrintStream, current: Option[Fwd]): Fwd =
       current
@@ -170,8 +171,8 @@ private[tui4s] object OutputCapture:
     /** The longest line the capture keeps, in bytes; a longer one is cut. */
     val MaxLine: Int = LineSplit.MaxLine
 
-    /** Writes to `original`, or line by line ([[LineSplit]]) to the sink of
-      * the running capture.
+    /** Writes to `original`, or line by line ([[LineSplit]]) to the sink of the
+      * running capture.
       */
     private final class Forward(original: PrintStream, charset: Charset)
         extends OutputStream:

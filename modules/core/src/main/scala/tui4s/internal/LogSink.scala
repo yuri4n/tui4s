@@ -56,7 +56,7 @@ private[tui4s] final class LogSink private (
     // claude 2026-10-19: changed (P6): Keep, not a Boolean; one state
     def line(text: String, keep: Keep): Unit = synchronized {
       state = state match
-          case State.ToFile(w)        =>
+          case State.ToFile(w)       =>
             try
                 w.write(text)
                 w.write('\n')
@@ -69,8 +69,9 @@ private[tui4s] final class LogSink private (
                     Ring(Queue.empty, 0L, Present(problem))
                       .add(text, keep, capacity),
                   )
-          case State.ToRing(ring)     => State.ToRing(ring.add(text, keep, capacity))
-          case State.Done(err, late)  =>
+          case State.ToRing(ring)    =>
+            State.ToRing(ring.add(text, keep, capacity))
+          case State.Done(err, late) =>
             late.fold {
               if keep == Keep.UntilRestore then err.println(text) // tui4s: allowed
               state
@@ -100,7 +101,7 @@ private[tui4s] final class LogSink private (
       catch
           case NonFatal(e) =>
             val problem = s"tui4s: writing the log file failed: $e"
-            err.println(problem) // tui4s: allowed
+            err.println(problem)                                // tui4s: allowed
             if keep == Keep.UntilRestore then err.println(text) // tui4s: allowed
             State.Done(err, Absent)
 
@@ -122,8 +123,8 @@ private[tui4s] final class LogSink private (
             if ring.dropped > 0 then
                 val note =
                   s"tui4s: ${ring.dropped} earlier output lines are not shown"
-                err.println(note) // tui4s: allowed
-            ring.lines.foreach(err.println) // tui4s: allowed
+                err.println(note)             // tui4s: allowed
+            ring.lines.foreach(err.println)   // tui4s: allowed
             ring.problem.foreach(err.println) // tui4s: allowed
             err.flush()
     }
@@ -140,8 +141,8 @@ end LogSink
 private[tui4s] object LogSink:
     /** What happens to a line when there is no log file. */
     enum Keep derives CanEqual:
-        /** Kept for the print after the restore: captured output, a log line
-          * at warn or above.
+        /** Kept for the print after the restore: captured output, a log line at
+          * warn or above.
           */
         case UntilRestore
 

@@ -787,20 +787,19 @@ class ComponentTest extends ComponentSuite:
     /** A `Component` whose `onMount` fails. */
     final class FailingMount extends Component:
         type State = Int
-        def initial: Int                            = 7
-        def view(n: SignalRef[Int]): UI             =
+        def initial: Int                                               = 7
+        def view(n: SignalRef[Int]): UI                                =
           span(n.map(v => s"[mounted $v]"))
         override def onMount(n: SignalRef[Int]): Any < (Async & Scope) =
           Sync.defer(throw IllegalStateException("onMount fails"))
-    end FailingMount
 
     // claude 2026-10-19: created: the failure of onMount and of a hook body
     // is logged once
     "a failure of Component.onMount and of a hook body: one line each in the run's log (in memory: no log file); the app goes on and renders" in {
-      val sink                    = LogSink.openNow(None)
-      def count(what: String)     = sink.kept.count(_.contains(what))
-      val onMount                 = "the onMount of "
-      val hook                    = "the body of the hook component "
+      val sink                = LogSink.openNow(None)
+      def count(what: String) = sink.kept.count(_.contains(what))
+      val onMount             = "the onMount of "
+      val hook                = "the body of the hook component "
       for
           rev    <- Signal.initRef(0)
           h      <- TuiLog.let(sink)(
@@ -823,7 +822,8 @@ class ComponentTest extends ComponentSuite:
           _      <- TuiLog.flush(2.seconds)
           s      <- h.screen
       yield
-          val lines = sink.kept.filter(l => l.contains(onMount) || l.contains(hook))
+          val lines =
+            sink.kept.filter(l => l.contains(onMount) || l.contains(hook))
           assert(logged >= 0, s"no log line: ${sink.kept}")
           assert(
             count(onMount) == 1 && count(hook) == 1,

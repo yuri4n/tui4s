@@ -102,10 +102,10 @@ final class TabsView(using Frame)(first: String, rest: String*)(
         )
     end view
 
-    /** Allocates fresh local state and a fresh focus group whenever this
-      * effect executes. Keep the returned UI during ordinary reactive updates.
-      * Use [[initial]], [[mount]] and [[view]] for a renderer's retained
-      * component mount lifecycle.
+    /** Allocates fresh local state and a fresh focus group whenever this effect
+      * executes. Keep the returned UI during ordinary reactive updates. Use
+      * [[initial]], [[mount]] and [[view]] for a renderer's retained component
+      * mount lifecycle.
       */
     // claude 2026-10-19: changed: the group comes from an effect (P4)
     def ui: UI < Sync =
@@ -135,3 +135,4 @@ object TabsView:
     // claude 2026-10-19: created (P4): the group comes from an effect
     private def newGroup(using Frame): String < Sync =
       Random.nextStringAlphanumeric(12).map("tabs-" + _)
+end TabsView

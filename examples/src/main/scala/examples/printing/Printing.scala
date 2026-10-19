@@ -38,7 +38,8 @@ object Printing:
       yield div.onKeyDown {
         case KeyboardEvent(Keyboard.Char('+'), _, _)            =>
           count.updateAndGet(_ + 1).map(n => print(s"printing: + gives $n"))
-        case KeyboardEvent(Keyboard.Char('f'), _, _) if failOnF => failed.set(true)
+        case KeyboardEvent(Keyboard.Char('f'), _, _) if failOnF =>
+          failed.set(true)
         case KeyboardEvent(Keyboard.Char('q'), _, _)            => quit
         case _                                                  => ()
       }(

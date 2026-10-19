@@ -55,7 +55,9 @@ class PrintingSuite extends FunSuite:
     }
 
     // claude 2026-10-19: created: the test aid --fail-on-f
-    test("--fail-on-f: the key f fails the UI and the run ends; without it, f does nothing") {
+    test(
+      "--fail-on-f: the key f fails the UI and the run ends; without it, f does nothing",
+    ) {
       val (failed, ended, kept) = run {
         for
             h      <- Headless.start(50, 6)(quit =>
@@ -63,9 +65,8 @@ class PrintingSuite extends FunSuite:
                       )
             failed <- Abort.run[Throwable](h.char('f')).map(!_.isSuccess)
             ended  <- h.awaitEnd(5.seconds)
-            plain  <- Headless.start(50, 6)(quit =>
-                        Printing.ui(quit, _ => Kyo.unit),
-                      )
+            plain  <-
+              Headless.start(50, 6)(quit => Printing.ui(quit, _ => Kyo.unit))
             _      <- plain.char('f')
             kept   <- plain.finished.map(!_)
         yield (failed, ended, kept)

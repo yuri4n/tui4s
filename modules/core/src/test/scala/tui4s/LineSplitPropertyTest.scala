@@ -16,22 +16,26 @@ class LineSplitPropertyTest extends PropertyTest[Any]:
     "LineSplit" - {
       // One write or one write per byte: the same lines, the same rest.
       forAll(text) { s =>
-          val bytes = s.getBytes(StandardCharsets.UTF_8)
-          val whole = LineSplit.empty.feed(bytes, 0, bytes.length)
-          val byOne = bytes.indices.foldLeft(
-            (LineSplit.empty, Vector.empty[Vector[Byte]]),
-          ) { case ((split, lines), i) =>
-            val (next, more) = split.feed(bytes, i, 1)
-            (next, lines ++ more)
-          }
-          assert(whole == byOne)
+        val bytes = s.getBytes(StandardCharsets.UTF_8)
+        val whole = LineSplit.empty.feed(bytes, 0, bytes.length)
+        val byOne = bytes.indices.foldLeft(
+          (LineSplit.empty, Vector.empty[Vector[Byte]]),
+        ) { case ((split, lines), i) =>
+          val (next, more) = split.feed(bytes, i, 1)
+          (next, lines ++ more)
+        }
+        assert(whole == byOne)
       }
 
       // No line holds a '\n' or a '\r'.
       forAll(text) { s =>
-          val bytes      = s.getBytes(StandardCharsets.UTF_8)
-          val (_, lines) = LineSplit.empty.feed(bytes, 0, bytes.length)
-          assert(lines.forall(l => !l.contains('\n'.toByte) && !l.contains('\r'.toByte)))
+        val bytes      = s.getBytes(StandardCharsets.UTF_8)
+        val (_, lines) = LineSplit.empty.feed(bytes, 0, bytes.length)
+        assert(
+          lines.forall(l =>
+            !l.contains('\n'.toByte) && !l.contains('\r'.toByte),
+          ),
+        )
       }
     }
 end LineSplitPropertyTest
@@ -46,8 +50,8 @@ object LineSplitPropertyTest:
       "\r\n",
       "\r",
       "50%\r",
-      "é",       // a 2-byte UTF-8 sequence
-      "中",       // a 3-byte UTF-8 sequence
+      "é", // a 2-byte UTF-8 sequence
+      "中", // a 3-byte UTF-8 sequence
       "👍", // a 4-byte UTF-8 sequence
     )
 

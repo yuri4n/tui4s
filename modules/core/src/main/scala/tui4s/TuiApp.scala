@@ -39,8 +39,8 @@ import java.io.PrintStream
   *     before the terminal changes), "interrupted" for an interrupt, the stack
   *     trace of any other error.
   *   - 143 (`kill -TERM`), 130 (`kill -INT`), 129 (`kill -HUP`, a closed
-  *     terminal window), or the code of a `System.exit` while the UI is up:
-  *     the JVM stops the app. The shutdown hook of the run interrupts the run,
+  *     terminal window), or the code of a `System.exit` while the UI is up: the
+  *     JVM stops the app. The shutdown hook of the run interrupts the run,
   *     restores the terminal and waits at most 2 s until the restore is
   *     complete; then the JVM exits with its own code (128 + the signal).
   *     `main` prints nothing then, and `onExit` does not run.

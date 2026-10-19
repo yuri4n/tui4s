@@ -85,9 +85,9 @@ final class Headless private (
       poll(timeout)(screen.map(predicate))
 
     /** Polls `cond` every 5 ms until it is true or `timeout` of wall-clock time
-      * has passed. The bound is `Async.timeout` on Kyo's live clock (a
-      * relative sleep): Kyo's `Clock.deadline` reads `System.nanoTime`, and it
-      * gives 0 for a negative value, so a deadline could never pass.
+      * has passed. The bound is `Async.timeout` on Kyo's live clock (a relative
+      * sleep): Kyo's `Clock.deadline` reads `System.nanoTime`, and it gives 0
+      * for a negative value, so a deadline could never pass.
       */
     // claude 2026-10-19: changed: the bound is Async.timeout on the live clock,
     // not System.nanoTime (P4)
