@@ -30,8 +30,18 @@
   (9 edge files); 281 core leaves, 49 examples, PTY 121/121, glitch 0/500 x2). Skeptic: 2 should (oracle coverage of
   decorations, glyphs wider than 2 cells), 3 nits, all applied. Open product question: a wide glyph cut by the clip's
   right edge keeps the old cell (old behaviour). Not done: F9b (skip a repair frame whose ops did not change).
-- D20 cheap cadence: next = P4 + P6 (1 agent): Headless on Canvas.read, the sinks, hook/onMount failure logging,
-  PTY rows SIGHUP 129 and a failing app; then L0 is done and L1 starts.
+- P4 + P6 DONE, pushed 5bcca5d (25 files, +798/-333; Headless on Canvas.read/cells; LogSink and OutputCapture with one
+  state value each; LineSplit pure + property; hook/onMount failures logged once; PTY rows hup 129 and printfail
+  (--fail-on-f); 284 core leaves, 50 examples, PTY 136/136).
+- L0 DONE 2026-10-19: branch vs main 151 files, +6843/-8992 (net -2,149 lines). 15 KEEP sites, 9 edge files, 0 other
+  suppressions. CI green through #47 (P5); the P4+P6 run is queued. Leftovers (not blockers): Component.initial is
+  pure, so a per-mount effect value arrives via onMount (TabsView focus group); TuiLog keeps `Throwable | Null` and
+  LocalTime.now inside its edge file; the audit's extra P4 ideas (Headless end mark, Todo Model/TodoStore, shared
+  CounterView, Dashboard Series) were not done; F9b not done; D24 open.
+- NEXT: L1 in three workflows (cheap cadence: implementer + API/examples reviewer + fixer, Opus): L1a viewport scroll
+  and clip, wrap and ellipsis, wide characters; L1b overlay and z-order, terminal-size Signal, Color.Var, FlexWrap and
+  Display, one warning per ignored property; L1c native inputs and the multi-line textarea (Alt-Enter, Ctrl-J,
+  Shift-Enter where reported). PF-b (F5, F6) rides L1a's layout work.
 - Upstream drafts land in `.work/upstream/` (the user posts them).
 <!-- claude 2026-10-19: created this item -->
 
