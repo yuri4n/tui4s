@@ -178,13 +178,20 @@ final class Headless private (
       * has `shift`), and waits for the frame of each key. A line break `\r\n`
       * is one Enter. A character outside the Basic Multilingual Plane (an
       * emoji) is one key `Keyboard.Unknown(<the character>)`, as kyo-ui's
-      * `Keyboard.fromString` gives it.
+      * `Keyboard.fromString` gives it. The frames are in the order of the
+      * keys.
+      *
+      * {{{
+      * for
+      *     frames <- h.typeText("call mom")
+      *     screen <- h.screen
+      * yield assert(frames.size == 8 && screen.contains("call mom"))
+      * }}}
       */
     // claude 2026-10-13: changed (T1, review R1-1): the Scaladoc names shift
-    // claude 2026-10-13: created (C3; the prototype's typeText returns Seq,
-    // not kyo.Chunk)
-    def typeText(s: String)(using Frame): Seq[FrameStats] < Async =
-      Kyo.foreach(Headless.keysOf(s))(press).map(_.toSeq)
+    // claude 2026-10-19: changed: a Chunk of the frames, not a Seq (P1b, A5 a)
+    def typeText(s: String)(using Frame): Chunk[FrameStats] < Async =
+      Kyo.foreach(Headless.keysOf(s))(press).map(Chunk.from(_))
 
     /** Pastes `text` as a terminal sends it, and returns the frame of each
       * event. With `TuiOptions.paste` (the default: bracketed paste) the paste
@@ -192,12 +199,20 @@ final class Headless private (
       * break in it is a space, so it never submits a form. Without it, the text
       * arrives as single keys, as `typeText` sends them: a line break is an
       * Enter (it can submit a form) and a tab is a Tab (it moves the focus).
+      *
+      * {{{
+      * for
+      *     frames <- h.paste("one\ntwo")
+      *     screen <- h.screen
+      * yield assert(frames.size == 1 && screen.contains("one two"))
+      * }}}
       */
     // claude 2026-10-13: created (C3, RC-14 part; the lesson of the review
     // thread TuiTest.scala:166 of the old PR 3: the kit acts as a real
     // terminal)
-    def paste(text: String)(using Frame): Seq[FrameStats] < Async =
-      if options.paste then send(n => Msg.Paste(text, n)).map(Seq(_))
+    // claude 2026-10-19: changed: a Chunk of the frames, not a Seq (P1b, A5 a)
+    def paste(text: String)(using Frame): Chunk[FrameStats] < Async =
+      if options.paste then send(n => Msg.Paste(text, n)).map(Chunk(_))
       else typeText(text)
 
     /** Resizes the screen and waits for the frame of the resize. Background

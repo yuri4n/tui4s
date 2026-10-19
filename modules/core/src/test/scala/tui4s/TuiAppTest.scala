@@ -80,7 +80,7 @@ object MainCounter extends TuiApp:
             )
           }
 
-    def seenArgs: Seq[String] = args
+    def seenArgs: Chunk[String] = args
 
     // claude 2026-10-13: changed (T2, review R2-1): fails with failExit
     override protected def onExit: Unit < (Async & Abort[Throwable]) =
@@ -178,7 +178,7 @@ class TuiAppTest extends Test[Any]:
           err.lines.toString,
         )
         assert(printed(err).exists(_.contains("cause:")))
-        assert(MainCounter.seenArgs == Seq("a", "b"))
+        assert(MainCounter.seenArgs == Chunk("a", "b"))
         assert(MainCounter.exited.get == -1, "onExit ran after a failure")
         // The terminal never changed.
         assert(!fake.calls.exists(_.startsWith("execute")), fake.calls.toString)
@@ -357,7 +357,7 @@ class TuiAppTest extends Test[Any]:
         pushWhen(fake, "Args: --hello world")('q'),
       ).map { code =>
         assert(code == 0, err.lines.toString)
-        assert(MainCounter.seenArgs == Seq("--hello", "world"))
+        assert(MainCounter.seenArgs == Chunk("--hello", "world"))
         assert(fake.screen.contains("Args: --hello world"), fake.screen.text)
       }
     }

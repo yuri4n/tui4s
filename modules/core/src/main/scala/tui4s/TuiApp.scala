@@ -61,7 +61,8 @@ abstract class TuiApp:
     SchedulerDefaults.applyIfUnset()
     OutputCapture.install()
 
-    @volatile private var arguments: Seq[String] = Nil // scalafix:ok DisableSyntax.var, DisableSyntax.jvmSync; KEEP: args: set once before the run
+    // claude 2026-10-19: changed: a Chunk, not a Seq (P1b, A5 a)
+    @volatile private var arguments: Chunk[String] = Chunk.empty // scalafix:ok DisableSyntax.var, DisableSyntax.jvmSync; KEEP: args: set once before the run
 
     /** The UI of the app. [[Tui.quit]] ends the run: an app whose UI is a
       * function of the quit value (as [[Tui.run]] gives it) passes `Tui.quit`
@@ -107,7 +108,7 @@ abstract class TuiApp:
         err: => PrintStream = OutputCapture.realErr,
     ): Int =
         SchedulerDefaults.applyIfUnset()
-        arguments = args.toSeq
+        arguments = Chunk.from(args)
         val restored = CountDownLatch(1)
         val run      = Tui
           .runWith(
@@ -123,8 +124,17 @@ abstract class TuiApp:
         if hooks.shuttingDown then 1 else TuiApp.report(result, err)
     end runMain
 
-    /** The command-line arguments of [[main]]. */
-    protected final def args: Seq[String] = arguments
+    /** The command-line arguments of [[main]], in order. They are set before
+      * [[ui]] and [[options]] are read.
+      *
+      * {{{
+      * object Greeter extends TuiApp:
+      *     def ui: UI < (Async & Scope) =
+      *       span(s"Hello, ${args.headOption.getOrElse("you")}")
+      * }}}
+      */
+    // claude 2026-10-19: changed: a Chunk, not a Seq (P1b, A5 a)
+    protected final def args: Chunk[String] = arguments
 
     /** Runs after the terminal is restored, after a run that ended with a quit:
       * print a result, write a file. A kyo-ui app keeps its state in its
