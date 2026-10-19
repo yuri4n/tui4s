@@ -151,6 +151,11 @@ object KyoUiSurface:
       "kyo.UI.Ast.Select"       -> Set("value", "onChange", "children"),
       "kyo.UI.Ast.Opt"          -> Set("value"),
       "kyo.UI.Ast.Form"         -> Set("onSubmit", "onSubmitEvt"),
+      // claude 2026-10-19: created (L1c): the number field, the range and
+      // the dropdown
+      "kyo.UI.Ast.NumberInput"  -> Set("min", "max", "step", "onChangeNumeric"),
+      "kyo.UI.Ast.RangeInput"   -> Set("value", "min", "max", "step", "onChange"),
+      "kyo.UI.Ast.Dropdown"     -> Set("options", "value", "onChange"),
       // claude 2026-10-19: created (L1b review): what CssVars reads
       "kyo.Stylesheet"          -> Set("entries"),
       "kyo.Selector"            -> Set("css"),

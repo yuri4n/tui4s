@@ -482,6 +482,21 @@ class GoldenScreenTest extends ScreenSuite:
         )
       }
       // claude 2026-10-19: created (L1c)
+      "a password shows one bullet for each grapheme cluster; a number shows its text" in {
+        assertScreen(
+          div.style(_.row)(passwordInput.value("中文é👍🏽")),
+          8,
+          1,
+          "••••",
+        )
+        assertScreen(
+          div.style(_.row)(numberInput.value("-12.5")),
+          8,
+          1,
+          "-12.5",
+        )
+      }
+      // claude 2026-10-19: created (L1c)
       "a textarea of 3 rows wraps its lines at the spaces, by cells; the view of a long text shows the caret, with the scroll indicator" in {
         val at = Loc.root.child(0)
         val ui =

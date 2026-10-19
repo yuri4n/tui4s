@@ -254,22 +254,25 @@ private[tui4s] object Scroll:
         .nextOption()
 
     /** True when the element `e` uses the key `k` itself, so the key does not
-      * scroll: a textarea moves its caret (all the keys), a text input moves
-      * its caret (the arrows, Home and End), a select cycles (Up and Down), a
-      * member of a focus group moves the focus (Left and Right).
+      * scroll: a textarea moves its caret and a range moves its value (all the
+      * keys), a text input moves its caret (the arrows, Home and End), a select
+      * cycles (Up and Down), a member of a focus group moves the focus (Left
+      * and Right).
       */
-    // claude 2026-10-19: changed: a textarea uses every navigation key (L1c)
+    // claude 2026-10-19: changed: a textarea and a range use every
+    // navigation key; a dropdown cycles as a select (L1c)
     def consumes(e: Element, k: ScrollKey): Boolean =
         val group = e.attrs.focusGroup.nonEmpty
         e match
-            case _: UI.Ast.Textarea  => true
-            case _: UI.Ast.TextInput =>
+            case _: UI.Ast.Textarea                    => true
+            case _: UI.Ast.RangeInput                  => true
+            case _: UI.Ast.TextInput                   =>
               k match
                   case ScrollKey.PageUp | ScrollKey.PageDown => false
                   case _                                     => true
-            case _: UI.Ast.Select    =>
+            case _: UI.Ast.Select | _: UI.Ast.Dropdown =>
               k == ScrollKey.Up || k == ScrollKey.Down
-            case _                   =>
+            case _                                     =>
               group && (k == ScrollKey.Left || k == ScrollKey.Right)
         end match
     end consumes

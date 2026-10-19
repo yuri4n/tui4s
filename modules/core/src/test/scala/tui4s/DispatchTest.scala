@@ -790,6 +790,83 @@ class DispatchTest extends RunnerSuite:
           assert(caretOf(s4) == Some((7, 2)), s"${caretOf(s4)}")
           assert(v == "l0\nl1\nl2\nl3\nl4 long\nl5")
     }
+
+    // claude 2026-10-19: created (L1c)
+    "a number input: the keys take digits, one sign and one point; ArrowUp and ArrowDown step by step, clamped to min and max; Enter commits the number" in {
+      for
+          ref  <- Signal.initRef("")
+          nums <- Signal.initRef(Vector.empty[Double])
+          h    <- Headless.start(20, 1)(_ =>
+                    numberInput
+                      .value(ref)
+                      .min(0)
+                      .max(2)
+                      .step(0.5)
+                      .onChangeNumeric(d => nums.updateAndGet(_ :+ d).unit),
+                  )
+          _    <- h.typeText("-1x.5.2")
+          t1   <- ref.get
+          _    <- h.key(Keyboard.ArrowUp)
+          t2   <- ref.get
+          _    <- Kyo.foreach(1 to 5)(_ => h.key(Keyboard.ArrowUp))
+          t3   <- ref.get
+          _    <- h.key(Keyboard.ArrowDown)
+          t4   <- ref.get
+          _    <- h.key(Keyboard.Backspace)
+          t5   <- ref.get
+          _    <- h.key(Keyboard.Enter)
+          t6   <- ref.get
+          ns   <- nums.get
+          s    <- h.screen
+      yield
+          // "x" and the second point are not taken
+          assert(t1 == "-1.52", t1)
+          // a step from -1.52 is clamped to min 0; five more stop at max 2
+          assert(t2 == "0" && t3 == "2" && t4 == "1.5", s"$t2 $t3 $t4")
+          // "1." is a number that the user still types; Enter commits it
+          assert(t5 == "1." && t6 == "1", s"$t5 $t6")
+          assert(ns.lastOption.contains(1.0) && ns.size == 8, s"$ns")
+          assert(s.row(0).startsWith("1"), s.row(0))
+    }
+
+    // claude 2026-10-19: created (L1c)
+    "a range: the arrows move it by step, PageUp and PageDown by 10 steps, Home and End to min and max; a dropdown cycles with the keys of a select" in {
+      for
+          ref  <- Signal.initRef(6.0)
+          pick <- Signal.initRef("a")
+          sent <- Signal.initRef(0)
+          h    <- Headless.start(12, 2)(_ =>
+                    form.onSubmit(sent.updateAndGet(_ + 1).unit)(
+                      rangeInput.value(ref).min(0).max(20).step(2),
+                      dropdown("a" -> "Apple", "b" -> "Bean").value(pick),
+                    ),
+                  )
+          vs   <- Kyo.foreach(
+                    Seq(
+                      Keyboard.ArrowRight,
+                      Keyboard.ArrowDown,
+                      Keyboard.PageUp,
+                      Keyboard.Home,
+                      Keyboard.PageDown,
+                      Keyboard.End,
+                      Keyboard.ArrowLeft,
+                    ),
+                  )(k => h.key(k).andThen(ref.get))
+          _    <- h.key(Keyboard.Tab)
+          _    <- h.key(Keyboard.ArrowDown)
+          p1   <- pick.get
+          _    <- h.key(Keyboard.Enter)
+          p2   <- pick.get
+          n    <- sent.get
+          s    <- h.screen
+      yield
+          assert(
+            vs == Seq(8.0, 6.0, 20.0, 0.0, 0.0, 20.0, 18.0),
+            s"$vs",
+          )
+          assert(p1 == "b" && p2 == "a" && n == 0, s"$p1 $p2 $n")
+          assert(s.row(0).trim.startsWith("─") && s.row(0).contains("●"))
+    }
 end DispatchTest
 
 /** A Kyo log backend that keeps the lines at level error (with the message of

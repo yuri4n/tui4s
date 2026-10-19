@@ -31,6 +31,9 @@
 #   and DisplayProp cases of kyo.internal.CssStyleRenderer.renderProp (Props.position copies the CSS of overlay
 #   and dropdown; Warnings matches the Display values).
 # claude 2026-10-19: changed: the L1b review part
+# L1c part: ui.member lines of NumberInput (min, max, step, onChangeNumeric), RangeInput (value, min, max, step,
+#   onChange) and Dropdown (options, value, onChange): the number steps, the range keys and the keys of a dropdown.
+# claude 2026-10-19: changed: the L1c part
 ast.type	UI.Ast.Activatable	trait public extends UI,Element
 ast.type	UI.Ast.Anchor	case class public extends UI,Inline,Interactive,Focusable,Activatable,Clickable
 ast.type	UI.Ast.AsHtmlChild	trait public extends 
@@ -286,6 +289,18 @@ ui.member	UI.Ast.TextInput.onChange	public Maybe[Function1[String,<[Any,Async]]]
 ui.member	UI.Ast.TextInput.onInput	public Maybe[Function1[String,<[Any,Async]]]
 ui.member	UI.Ast.TextInput.readOnly	public Maybe[Boolean]
 ui.member	UI.Ast.TextInput.value	public Maybe[Bound[String]]
+ui.member	UI.Ast.Dropdown.onChange	public Maybe[Function1[String,<[Any,Async]]]
+ui.member	UI.Ast.Dropdown.options	public Chunk[Tuple2[String,String]]
+ui.member	UI.Ast.Dropdown.value	public Maybe[Bound[String]]
+ui.member	UI.Ast.NumberInput.max	public Maybe[Double]
+ui.member	UI.Ast.NumberInput.min	public Maybe[Double]
+ui.member	UI.Ast.NumberInput.onChangeNumeric	public Maybe[Function1[Double,<[Any,Async]]]
+ui.member	UI.Ast.NumberInput.step	public Maybe[Double]
+ui.member	UI.Ast.RangeInput.max	public Maybe[Double]
+ui.member	UI.Ast.RangeInput.min	public Maybe[Double]
+ui.member	UI.Ast.RangeInput.onChange	public Maybe[Function1[Double,<[Any,Async]]]
+ui.member	UI.Ast.RangeInput.step	public Maybe[Double]
+ui.member	UI.Ast.RangeInput.value	public Maybe[Bound[Double]]
 css	internal.CssStyleRenderer.renderProp.DisplayProp	d81762ab9ae1b457 n=63
 css	internal.CssStyleRenderer.renderProp.PositionProp	3177e2cf870c6013 n=51
 enum.case	Style.Display.block	-

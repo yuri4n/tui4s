@@ -806,9 +806,11 @@ private[tui4s] object Paint:
               // and the cursor lands by cell widths (a wide character takes
               // two cells), not by UTF-16 chars
               val value     = textValue(env, n.path, ti)
+              // claude 2026-10-19: changed: a password shows one "•" for
+              // each grapheme cluster; its text never goes into the plan (L1c)
               val glyphs    = e match
                   case _: PasswordInput =>
-                    TextEdit.graphemes(value).map(_ => "*")
+                    TextEdit.graphemes(value).map(_ => "•")
                   case _                => TextEdit.graphemes(value)
               val widths    = glyphs.map(Layout.textWidth)
               val caret     = env.caret(n.path).max(0).min(glyphs.size)

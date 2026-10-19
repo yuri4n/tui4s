@@ -1,9 +1,10 @@
 package tui4s
 
-import kyo.UI.{Keyboard, KeyboardEvent, Modifiers}
+import kyo.UI.{Keyboard, KeyboardEvent, Modifiers, passwordInput}
 import kyo.test.prop.{Gen, PropertyTest}
-import kyo.{Absent, Maybe}
-import tui4s.internal.{AreaLine, AreaText, Break, Rules, TextEdit}
+import kyo.{Absent, Maybe, px}
+import tui4s.internal.*
+import tui4s.oracle.PaintOracle
 
 /** Property tests of the grapheme split of [[TextEdit]] and of the multi-line
   * editing of a textarea ([[AreaText]]), with kyo-test-prop under the kyo-test
@@ -112,6 +113,63 @@ class TextEditPropertyTest extends PropertyTest[Any]:
         assert(t == before + clean + gs.drop(c).mkString)
       }
     }
+
+    // claude 2026-10-19: created (L1c)
+    "NumberText: the grammar of a number field" - {
+      // The text of a number field while the user types: an optional sign
+      // first, then digits with at most one point.
+      forAll(numberish)(s => assert(NumberText.partial(s) == grammar(s)))
+
+      // A number: the grammar and a digit; its value is the value of
+      // Double.parseDouble.
+      forAll(numberish) { s =>
+        val n = NumberText.parse(s)
+        assert(n.isDefined == (grammar(s) && s.exists(_.isDigit)))
+        assert(n.forall(_.toDouble == java.lang.Double.parseDouble(s)))
+      }
+
+      // The text of a number reads back as the same number.
+      forAll(numberish) { s =>
+        assert(
+          NumberText
+            .parse(s)
+            .forall(v => NumberText.parse(NumberText.format(v)).contains(v)),
+        )
+      }
+
+      // Typed one key at a time, a number field holds only its grammar.
+      forAll(numberish) { s =>
+        val rules = Rules(FieldAccess.Edit, Int.MaxValue, NumberText.partial)
+        val typed = s.foldLeft(("", 0)) { case ((t, c), ch) =>
+          TextEdit.key(t, c, kb(Keyboard.Char(ch)), rules)
+        }
+        assert(grammar(typed._1))
+      }
+    }
+
+    // claude 2026-10-19: created (L1c)
+    "a password: one cell of the mask for each grapheme cluster; no grapheme of the text goes into the plan" - {
+      forAll(text) { s =>
+        val n    = TextEdit.count(s)
+        val size = Size(n + 2, 1)
+        val env  = Scene(
+          p => Option.when(p == Loc.root)(Content.Value(s)),
+          None,
+          size,
+          _ => 0,
+        )
+        val ui   = passwordInput.style(_.width((n + 2).px))
+        val plan = Paint(Layout.layoutAll(ui, env), env, PaintOracle.full(size))
+        val run  = plan.ops.collect { case Op.Run(_, _, gs, _) => gs }.flatten
+        assert(
+          run.size == n && run.forall(g => g.symbol == "•" && g.width == 1),
+        )
+        assert(plan.ops.forall {
+          case Op.Put(_, _, sym, _) => sym == " " || sym == "•"
+          case _                    => true
+        })
+      }
+    }
 end TextEditPropertyTest
 
 object TextEditPropertyTest:
@@ -138,6 +196,40 @@ object TextEditPropertyTest:
 
     /** A text of 0 to `size` pieces. */
     val text: Gen[String] = Gen.list(piece).map(_.mkString)
+
+    /** A text of 0 to 8 characters for a number field: digits, signs, points,
+      * and characters that the grammar does not take (a letter, an exponent, a
+      * space, a comma, a CJK character); or a text of the grammar.
+      */
+    // claude 2026-10-19: created (L1c)
+    val numberish: Gen[String] =
+        val any   = Gen
+          .list(
+            Gen.oneOf('0', '1', '7', '9', '+', '-', '.', 'e', 'a', ' ', ',',
+              '中'),
+          )
+          .map(_.take(8).mkString)
+        val valid = Gen
+          .zip3(
+            Gen.oneOf("", "+", "-"),
+            Gen.list(Gen.oneOf('0', '3', '9')).map(_.take(4).mkString),
+            Gen.oneOf("", ".", ".5", ".25"),
+          )
+          .map((a, b, c) => a + b + c)
+        Gen.frequency(1 -> any, 1 -> valid)
+    end numberish
+
+    /** The grammar of a number field, written as a count: an optional sign
+      * first, then digits and at most one point.
+      */
+    // claude 2026-10-19: created (L1c)
+    def grammar(s: String): Boolean =
+        val body = s.headOption match
+            case Some('+') | Some('-') => s.drop(1)
+            case _                     => s
+        body.count(_ == '.') <= 1 && body.forall(c =>
+          c == '.' || c.isDigit && c <= '9' && c >= '0',
+        )
 
     /** The width of a textarea: 1 to 12 cells. */
     // claude 2026-10-19: created (L1c)

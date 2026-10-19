@@ -205,18 +205,32 @@ private[tui4s] final class Dispatch(
                   val submit                = form.filter(_ =>
                     isKey(ev, Keyboard.Enter) && (e match
                         case _: Select | _: Button => false
+                        // claude 2026-10-19: created (L1c): the DOM keeps
+                        // Enter on a dropdown from the form
+                        case _: Dropdown           => false
                         case _: Textarea           => !AreaText.isNewline(ev)
                         case _                     => true),
                   )
                   val action: World < Async = e match
-                      case ta: Textarea                         =>
+                      // claude 2026-10-19: created (L1c): the number steps,
+                      // the range keys, the keys of a dropdown (below)
+                      case ni: NumberInput if NumberSteps.of(ev).nonEmpty =>
+                        stepNumber(
+                          w,
+                          target,
+                          ni,
+                          NumberSteps.of(ev).getOrElse(0),
+                        )
+                      case ri: RangeInput if RangeKey.of(ev).nonEmpty     =>
+                        moveRange(w, target, ri, RangeKey.of(ev))
+                      case ta: Textarea                                   =>
                         editArea(w, target, ta, ev, form.nonEmpty)
-                      case ti: TextInput                        => editText(w, target, ti, ev)
+                      case ti: TextInput                                  => editText(w, target, ti, ev)
                       // claude 2026-10-19: changed: the Click of the element,
                       // not a Boolean (P1)
-                      case b: (Button | Anchor) if activate(ev) =>
+                      case b: (Button | Anchor) if activate(ev)           =>
                         activateClick(ch, target, Click.of(b), ev).andThen(w)
-                      case bi: BooleanInput if activate(ev)     =>
+                      case bi: BooleanInput if activate(ev)               =>
                         toggle(w, target, bi)
                       case s: Select
                           if activate(ev) || isKey(
@@ -224,6 +238,17 @@ private[tui4s] final class Dispatch(
                             Keyboard.ArrowDown,
                           ) || isKey(ev, Keyboard.ArrowUp) =>
                         cycle(w, target, s, !isKey(ev, Keyboard.ArrowUp))
+                      case d: Dropdown
+                          if activate(ev) || isKey(ev, Keyboard.ArrowDown) ||
+                            isKey(ev, Keyboard.ArrowUp) =>
+                        cycleValues(
+                          w,
+                          target,
+                          d.options.toVector.map(_._1),
+                          d.value,
+                          d.onChange,
+                          !isKey(ev, Keyboard.ArrowUp),
+                        )
                       case _
                           if (isKey(ev, Keyboard.ArrowLeft) || isKey(
                             ev,
@@ -235,7 +260,7 @@ private[tui4s] final class Dispatch(
                           e.attrs.focusGroup.get,
                           if isKey(ev, Keyboard.ArrowRight) then 1 else -1,
                         )
-                      case _                                    => w
+                      case _                                              => w
                   // claude 2026-10-19: changed: the scroll of a navigation key,
                   // or the reveal of the focused element (L1a)
                   action.map { w0 =>
@@ -365,13 +390,40 @@ private[tui4s] final class Dispatch(
         val (next, nextCaret) = TextEdit.key(value, caret, ev, rules)
         // claude 2026-10-13: changed (review R2-5): no onChange on a
         // read-only input (kyo-ui ignores a Change on a read-only target)
+        // claude 2026-10-19: changed: the commit of a number field (L1c)
         if next == value && isKey(ev, Keyboard.Enter) &&
             rules.access == FieldAccess.Edit
         then
             safe("onChange", runWith(ti.onChange, value))
-              .andThen(moveCaret(w, p, caret, nextCaret))
+              .andThen(commitNumber(w, p, ti, value))
+              .map(moveCaret(_, p, caret, nextCaret))
         else commitText(w, p, ti, value, caret, next, nextCaret)
     end editText
+
+    /** The commit of a number field (Enter): when its text is a number, the
+      * text becomes the number as kyo-ui formats it ("1." becomes "1"; the
+      * bound write), then `onChangeNumeric` with the number, as the DOM
+      * runner's `ChangeNumeric`. Any other field: no change.
+      */
+    // claude 2026-10-19: created (L1c)
+    private def commitNumber(w: World, p: Loc, ti: TextInput, value: String)(
+        using Frame,
+    ): World < Async =
+      ti match
+          case ni: NumberInput =>
+            NumberText.parse(value) match
+                case Some(v) =>
+                  val text = NumberText.format(v)
+                  val c    = caretOf(w, p, value)
+                  commitText(w, p, ni, value, c, text, TextEdit.count(text))
+                    .map(w1 =>
+                      safe(
+                        "onChangeNumeric",
+                        runWith(ni.onChangeNumeric, v.toDouble),
+                      ).andThen(w1),
+                    )
+                case None    => w
+          case _               => w
 
     /** The key `ev` on the textarea at `p` ([[AreaText]]). A newline key
       * (Alt-Enter, Shift-Enter, Ctrl-J: [[AreaText.isNewline]]) inserts a line
@@ -416,15 +468,105 @@ private[tui4s] final class Dispatch(
         else commitText(w, p, ta, value, caret, next, nextCaret)
     end editArea
 
-    /** The rules of the edits of `ti` ([[Rules]]): read-only or not. */
+    /** The rules of the edits of `ti` ([[Rules]]): read-only or not; a number
+      * field holds a [[NumberText.partial]] text.
+      */
     // claude 2026-10-19: created (L1c)
     private def rulesOf(ti: TextInput): Rules =
       Rules(
         if ti.readOnly.getOrElse(false) then FieldAccess.ReadOnly
         else FieldAccess.Edit,
         Int.MaxValue,
-        _ => true,
+        ti match
+            case _: NumberInput => NumberText.partial
+            case _              => _ => true,
       )
+
+    /** ArrowUp or ArrowDown on the number field at `p` (`steps` 1 or -1): the
+      * browser's `stepUp` and `stepDown` ([[NumberText.step]]: by `step`,
+      * clamped to `min` and `max`). It is an edit (the bound write and
+      * `onInput`) and a commit (`onChangeNumeric`), as the DOM runner
+      * dispatches both. Nothing on a read-only field.
+      */
+    // claude 2026-10-19: created (L1c)
+    private def stepNumber(w: World, p: Loc, ni: NumberInput, steps: Int)(using
+        Frame,
+    ): World < Async =
+      if ni.readOnly.getOrElse(false) then w
+      else
+          val value     = currentText(w, p, ni)
+          val (next, v) = NumberText.step(
+            value,
+            steps,
+            ni.step.toOption,
+            ni.min.toOption,
+            ni.max.toOption,
+          )
+          val caret     = caretOf(w, p, value)
+          commitText(w, p, ni, value, caret, next, TextEdit.count(next))
+            .map(w1 =>
+              safe("onChangeNumeric", runWith(ni.onChangeNumeric, v.toDouble))
+                .andThen(w1),
+            )
+
+    /** A key of [[RangeKey]] on the range at `p`: its value (the bound ref, the
+      * constant, else `min`) moves by its steps or to an end, clamped to `min`
+      * and `max` (0 and 100 when none, as in HTML), with `step` (1 when none).
+      * When the value changes: the bound write, then `onChange`.
+      */
+    // claude 2026-10-19: created (L1c)
+    private def moveRange(
+        w: World,
+        p: Loc,
+        ri: RangeInput,
+        k: Option[RangeKey],
+    )(using Frame): World < Async =
+        val lo                 = ri.min.getOrElse(0.0)
+        val hi                 = ri.max.getOrElse(100.0)
+        val now                = w.regions.get(p).map(_.content) match
+            case Some(Content.Value(v: Double)) => v
+            case _                              =>
+              ri.value match
+                  case Present(UI.Bound.Const(c)) => c
+                  case _                          => lo
+        val at                 = BigDecimal.decimal(now)
+        val next               = k match
+            case Some(RangeKey.Steps(n)) =>
+              NumberText.stepBy(at, n, ri.step.toOption, Some(lo), Some(hi))
+            case Some(RangeKey.Low)      => BigDecimal.decimal(lo)
+            case Some(RangeKey.High)     => BigDecimal.decimal(hi)
+            case None                    => at
+        val v                  = next.toDouble
+        val write: Unit < Sync = ri.value match
+            case Present(UI.Bound.Ref(ref)) => writeBound(p, ref, v)
+            case _                          => Kyo.unit
+        if v == now then w
+        else
+            write
+              .andThen(safe("onChange", runWith(ri.onChange, v)))
+              .andThen(
+                w.copy(regions = w.regions.updated(p, stored(w, p, v)))
+                  .markNode(p),
+              )
+        end if
+    end moveRange
+
+    /** The region state of `p` with the value `v` (the runner's own copy of a
+      * bound value).
+      */
+    // claude 2026-10-19: created (L1c)
+    private def stored(w: World, p: Loc, v: Any): RegionState =
+      w.regions.get(p) match
+          case Some(r) => r.copy(content = Content.Value(v))
+          case None    =>
+            RegionState(
+              p,
+              Source.Local,
+              0,
+              Content.Value(v),
+              Vector.empty,
+              None,
+            )
 
     /** The caret of the text input at `p` with the text `value`: a grapheme
       * index; no entry is the end of the text.
@@ -519,43 +661,51 @@ private[tui4s] final class Dispatch(
     private def cycle(w: World, p: Loc, s: Select, forward: Boolean)(using
         Frame,
     ): World < Async =
-        val values = s.children.toVector.collect { case o: Opt =>
-          o.value.getOrElse("")
-        }
-        if values.isEmpty then w
-        else
-            val now                = w.regions.get(p).map(_.content) match
-                case Some(Content.Value(v)) => v.toString
-                case _                      =>
-                  s.value match
-                      case Present(UI.Bound.Const(v)) => v
-                      case _                          => values.head
-            val i                  = values.indexOf(now).max(0)
-            val next               = values(
-              (i + (if forward then 1 else -1) + values.size) % values.size,
+      cycleValues(
+        w,
+        p,
+        s.children.toVector.collect { case o: Opt => o.value.getOrElse("") },
+        s.value,
+        s.onChange,
+        forward,
+      )
+
+    /** The next value of a picker (a select, a dropdown) with the values
+      * `values` and its value `value`: the bound write, then `onChange`.
+      */
+    // claude 2026-10-19: changed: the values of any picker, not only a select
+    // (L1c: the dropdown)
+    private def cycleValues(
+        w: World,
+        p: Loc,
+        values: Vector[String],
+        value: Maybe[UI.Bound[String]],
+        onChange: Maybe[String => Any < Async],
+        forward: Boolean,
+    )(using Frame): World < Async =
+      if values.isEmpty then w
+      else
+          val now                = w.regions.get(p).map(_.content) match
+              case Some(Content.Value(v)) => v.toString
+              case _                      =>
+                value match
+                    case Present(UI.Bound.Const(v)) => v
+                    case _                          => values.head
+          val i                  = values.indexOf(now).max(0)
+          val next               = values(
+            (i + (if forward then 1 else -1) + values.size) % values.size,
+          )
+          // claude 2026-10-13: changed (C3, plan 0.3): the write seam
+          val write: Unit < Sync = value match
+              case Present(UI.Bound.Ref(ref)) => writeBound(p, ref, next)
+              case _                          => Kyo.unit
+          write
+            .andThen(safe("onChange", runWith(onChange, next)))
+            .andThen(
+              w.copy(regions = w.regions.updated(p, stored(w, p, next)))
+                .markNode(p),
             )
-            // claude 2026-10-13: changed (C3, plan 0.3): the write seam
-            val write: Unit < Sync = s.value match
-                case Present(UI.Bound.Ref(ref)) => writeBound(p, ref, next)
-                case _                          => Kyo.unit
-            val stored             = w.regions.get(p) match
-                case Some(r) => r.copy(content = Content.Value(next))
-                case None    =>
-                  RegionState(
-                    p,
-                    Source.Local,
-                    0,
-                    Content.Value(next),
-                    Vector.empty,
-                    None,
-                  )
-            write
-              .andThen(safe("onChange", runWith(s.onChange, next)))
-              .andThen(
-                w.copy(regions = w.regions.updated(p, stored)).markNode(p),
-              )
-        end if
-    end cycle
+    end cycleValues
 
     // ---- focus ----
 
@@ -631,6 +781,44 @@ private[tui4s] final class Dispatch(
         end if
     end moveInGroup
 end Dispatch
+
+/** The steps of a number field for a key: ArrowUp 1, ArrowDown -1 (no
+  * modifier); none for another key.
+  */
+// claude 2026-10-19: created (L1c)
+private[tui4s] object NumberSteps:
+    def of(ev: KeyboardEvent): Option[Int] =
+      if ev.modifiers != Modifiers.none then None
+      else
+          ev.key match
+              case Keyboard.ArrowUp   => Some(1)
+              case Keyboard.ArrowDown => Some(-1)
+              case _                  => None
+end NumberSteps
+
+/** A key of a range (kyo-ui's `RangeInput`, as the browser moves a slider):
+  * `Steps(n)` moves it by `n` steps (ArrowRight and ArrowUp 1, ArrowLeft and
+  * ArrowDown -1, PageUp 10, PageDown -10); `Low` and `High` move it to `min`
+  * (Home) and to `max` (End). No modifier.
+  */
+// claude 2026-10-19: created (L1c)
+private[tui4s] enum RangeKey derives CanEqual:
+    case Steps(n: Int)
+    case Low, High
+
+private[tui4s] object RangeKey:
+    def of(ev: KeyboardEvent): Option[RangeKey] =
+      if ev.modifiers != Modifiers.none then None
+      else
+          ev.key match
+              case Keyboard.ArrowRight | Keyboard.ArrowUp  => Some(Steps(1))
+              case Keyboard.ArrowLeft | Keyboard.ArrowDown => Some(Steps(-1))
+              case Keyboard.PageUp                         => Some(Steps(10))
+              case Keyboard.PageDown                       => Some(Steps(-10))
+              case Keyboard.Home                           => Some(Low)
+              case Keyboard.End                            => Some(High)
+              case _                                       => None
+end RangeKey
 
 /** What a keyboard click of a button or a link does besides its handlers: the
   * click of a `Button` submits the form that holds it; the click of an `Anchor`
