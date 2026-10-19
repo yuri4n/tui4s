@@ -44,7 +44,8 @@ import tui4s.{FrameCause, FrameStats, TuiOptions}
 final class Headless private (
     inbox: Channel[Msg],
     frames: Channel[FrameStats],
-    backend: TestBackend,
+    // claude 2026-10-19: changed: the canvas, not its backend (P4)
+    canvas: Canvas,
     seq: AtomicLong,
     run: Fiber[Unit, Scope],
     runner: Runner,
@@ -83,51 +84,45 @@ final class Headless private (
     ): Boolean < Async =
       poll(timeout)(screen.map(predicate))
 
-    /** Polls `cond` every 5 ms on the live clock until it is true or `timeout`
-      * of wall-clock time has passed.
+    /** Polls `cond` every 5 ms until it is true or `timeout` of wall-clock time
+      * has passed. The bound is `Async.timeout` on Kyo's live clock (a
+      * relative sleep): Kyo's `Clock.deadline` reads `System.nanoTime`, and it
+      * gives 0 for a negative value, so a deadline could never pass.
       */
+    // claude 2026-10-19: changed: the bound is Async.timeout on the live clock,
+    // not System.nanoTime (P4)
     private def poll(timeout: Duration)(cond: => Boolean < Sync)(using
         Frame,
     ): Boolean < Async =
-      Sync.defer(java.lang.System.nanoTime()).map { t0 => // scalafix:ok DisableSyntax.jvmGlobal; P4: Clock.deadline
-        Loop.foreach {
-          cond.map { ok =>
-            if ok then Loop.done(true)
-            else
-                Sync.defer(java.lang.System.nanoTime()).map { now => // scalafix:ok DisableSyntax.jvmGlobal; P4: Clock.deadline
-                  if now - t0 > timeout.toNanos then Loop.done(false)
-                  else
-                      Clock
-                        .let(Clock.live)(Async.sleep(5.millis))
-                        .andThen(Loop.continue)
-                }
-          }
-        }
+      Clock.let(Clock.live) {
+        Abort.recover[Timeout](_ => false)(
+          Async.timeout(timeout)(
+            Loop.foreach {
+              cond.map { ok =>
+                if ok then Loop.done(true)
+                else Async.sleep(5.millis).andThen(Loop.continue)
+              }
+            },
+          ),
+        )
       }
 
     /** The screen as it is now: rows, cell styles and the cursor. The read
-      * holds the backend's monitor, which the runner holds while it flushes a
-      * frame or resizes the backend: a screen is never a torn frame.
+      * holds the backend's monitor (`Canvas.read`), which the runner holds
+      * while it flushes a frame or resizes the backend: a screen is never a
+      * torn frame.
       */
-    /* claude 2026-10-12: changed (PR #11 review: Codex, Headless.scala:88): the
-     * monitor */
-    def screen(using Frame): Screen < Sync =
-      Sync.defer(backend.synchronized(Screen.of(backend))) // scalafix:ok DisableSyntax.jvmSync; P4: Canvas.read
+    // claude 2026-10-19: changed: the read of the canvas, not a monitor of
+    // the kit (P4)
+    def screen(using Frame): Screen < Sync = Sync.defer(canvas.read())
 
     /** The rows of the screen as it is now, with their trailing spaces (one
       * string per row, one place per cell). Under the backend's monitor, as
       * `screen`.
       */
-    /* claude 2026-10-12: changed (PR #11 review: Codex, Headless.scala:88): the
-     * monitor */
-    def lines(using Frame): Vector[String] < Sync = Sync.defer {
-      backend.synchronized { // scalafix:ok DisableSyntax.jvmSync; P4: Canvas.read
-        val buf = backend.buffer()
-        Vector.tabulate(buf.area.height)(y =>
-          (0 until buf.area.width).map(x => buf.cellAt(x, y).symbol()).mkString,
-        )
-      }
-    }
+    // claude 2026-10-19: changed: the read of the canvas, not a monitor of
+    // the kit (P4)
+    def lines(using Frame): Vector[String] < Sync = Sync.defer(canvas.cells())
 
     /** Sends one key and waits for its frame (the Input frame of this key).
       * Background frames that come first are consumed.
@@ -344,7 +339,7 @@ object Headless:
           // claude 2026-10-13: created (review R1-8, R2-7): the end mark after
           // the last frame
           _       <- run.onComplete(_ => Abort.run[Closed](frames.offer(endMark)))
-          h        = Headless(inbox, frames, backend, seq, run, runner, options)
+          h        = Headless(inbox, frames, canvas, seq, run, runner, options)
           // it quits and waits before its scope ends (RC-7)
           _       <- Scope.ensure(h.quit.andThen(h.awaitEnd(5.seconds)))
           _       <- firstFrame(frames, run)

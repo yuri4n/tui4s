@@ -29,13 +29,13 @@ import scala.jdk.CollectionConverters.*
   * cells of `back` that differ from `front`). Each one states its law.
   *
   * Threads: the runner fiber calls `write`, `diff`, `flush`, `resize` and
-  * `size`; one fiber draws (AGENTS.md). Another thread can call `read` (the
-  * headless kit) and `close` (the release of the terminal, also from the JVM
-  * shutdown hook). The backend's monitor orders them: `diff`, `flush`,
-  * `resize`, `read` and `close` take it; `write` and `size` do not (they touch
-  * only `back`). So:
-  *   - `read` never sees a half of a frame: `diff` changes `front` under the
-  *     monitor, and a flush draws under the same hold;
+  * `size`; one fiber draws (AGENTS.md). Another thread can call `read` and
+  * `cells` (the headless kit) and `close` (the release of the terminal, also
+  * from the JVM shutdown hook). The backend's monitor orders them: `diff`,
+  * `flush`, `resize`, `read`, `cells` and `close` take it; `write` and `size`
+  * do not (they touch only `back`). So:
+  *   - `read` and `cells` never see a half of a frame: `diff` changes `front`
+  *     under the monitor, and a flush draws under the same hold;
   *   - `close` waits for a draw in progress, and after `close` no call touches
   *     the backend: `flush` and `resize` check `closed` under the monitor. The
   *     release restores the terminal only after the last frame.
@@ -210,6 +210,19 @@ private[tui4s] final class Canvas private (
               Some((p.x, p.y))
             case _                                   => None
         Screen.of(front, cursor)
+      }
+
+    /** The symbols of the shown cells, one string per row and one place per
+      * cell, with the trailing spaces (`Headless.lines`). Under the backend's
+      * monitor, as [[read]].
+      */
+    // claude 2026-10-19: created (P4): the rows of Headless.lines
+    def cells(): Vector[String] =
+      backend.synchronized {
+        val w = front.area.width
+        Vector.tabulate(front.area.height)(y =>
+          (0 until w).map(x => front.cellAt(x, y).symbol()).mkString,
+        )
       }
 
     /** Stops all output, for the release of the terminal: after it, `flush` and
