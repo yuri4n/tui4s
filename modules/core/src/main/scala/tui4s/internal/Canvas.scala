@@ -6,8 +6,7 @@ import jatatui.core.backend.{Backend, TestBackend}
 import jatatui.core.buffer.{Buffer, BufferUpdate, Cell}
 import jatatui.core.layout.{Position, Rect as JRect}
 import kyo.*
-import tui4s.TuiError
-import tui4s.testkit.Screen
+import tui4s.{Screen, TuiError}
 
 import java.util.concurrent.locks.LockSupport
 import scala.jdk.CollectionConverters.*
@@ -224,6 +223,7 @@ private[tui4s] final class Canvas private (
       * with the cursor of a `TestBackend`. Under the backend's monitor, so it
       * is never a half of a frame.
       */
+    // claude 2026-10-19: changed: tui4s.Screen, not tui4s.testkit.Screen (D25)
     def read(): Screen =
       backend.synchronized {
         val cursor = backend match

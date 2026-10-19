@@ -5,7 +5,6 @@ import jatatui.core.buffer.BufferUpdate
 import jatatui.core.layout.{Position, Size}
 import tui.crossterm.{Command, Event as CEvent}
 import tui4s.internal.{Crossterm, Hooks, NativeCrossterm}
-import tui4s.testkit.Screen
 
 import java.io.{ByteArrayOutputStream, PrintStream}
 import java.nio.charset.StandardCharsets
@@ -56,6 +55,7 @@ final class FakeCrossterm(
       * which the runner's canvas holds while it draws: never a torn frame.
       */
     // claude 2026-10-13: changed (T1): under the backend's monitor
+    // claude 2026-10-19: changed: tui4s.Screen of the runner (D25)
     def screen: Screen =
       backendT.synchronized(Screen.of(backendT.buffer(), None))
 

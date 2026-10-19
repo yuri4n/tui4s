@@ -3,8 +3,8 @@ package tui4s.oracle
 import jatatui.core.backend.TestBackend
 import kyo.*
 import kyo.test.prop.{Gen, PropertyTest}
+import tui4s.Screen
 import tui4s.internal.*
-import tui4s.testkit.Screen
 
 /** P5, the laws of the canvas kernels and of the row spans:
   *   - `Plan.rowSpans` gives the cells of the rects inside the screen, each
@@ -83,6 +83,7 @@ class CanvasPropertyTest extends PropertyTest[Any]:
         canvas.write(plan)
         assert(canvas.flush(plan).getOrElse(-1) == 0)
         assert(first >= 0)
+        // claude 2026-10-19: changed: tui4s.Screen of the runner (D25)
         assert(canvas.read() == Screen.of(backend))
       }
 

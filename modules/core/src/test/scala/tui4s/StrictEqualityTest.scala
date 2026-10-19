@@ -2,7 +2,6 @@ package tui4s
 
 import kyo.test.*
 import tui4s.spi.Settle
-import tui4s.testkit.{CellColor, CellStyle, Screen}
 
 import java.time.Duration as JDuration
 import scala.language.strictEquality
@@ -12,6 +11,7 @@ import scala.language.strictEquality
   * `CanEqual` (OS-16 lesson).
   */
 // claude 2026-10-12: created
+// claude 2026-10-19: changed: the Screen types of package tui4s (D25)
 class StrictEqualityTest extends Test[Any]:
 
     "FrameStats, FrameCause, TuiOptions, Settle, Screen and CellStyle compare with ==" in {
