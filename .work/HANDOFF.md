@@ -16,7 +16,15 @@
   stopped, ticker deleted; suppressions 47 -> 38; 264 core leaves, 49 examples, PTY 121/121, glitch 0/500 x2).
   Skeptic: 1 should (nanoTime), 3 nits; D23 below. Left for later: hook/onMount failures still not logged (Mount comment);
   the GC regression test of the plan was not added (lean).
-- D20 cheap cadence: next = P3 (3 agents, Fable skeptic, PTY rows 143/130 decide).
+- P3 DONE, pushed a50d1d6 (15 files, +1081/-597; new edge file internal/ReleaseStack.scala = stack + Hooks + the one
+  tui4s-stop hook per run; Tui.run runs the UI on its own fiber (Fiber.use) and waits on a promise copy; release order
+  canvas, input, modes, flush, raw mode, capture (+R3 warning), log sink, hook removal; suppressions 38 -> 29 (8 edge
+  files); 270 core leaves, 49 examples, PTY 121/121 with q/Ctrl-C/TERM 143/INT 130 rows green; ReleaseStackTest 100
+  seeded rounds with a negative control). Skeptic: 1 should (guard the hook's interrupt call), 5 nits, all applied.
+  Open for the user: D24. PTY kit gaps to add in P4+P6: a SIGHUP 129 row and a row for an app that fails inside the UI
+  (exit 1, message after the restore). Accepted window (in AGENTS.md): a JVM stop between the hook removal and
+  TuiApp.runMain's read of Hooks.shuttingDown is not seen.
+- D20 cheap cadence: next = P5 (3 agents, Fable skeptic on the Canvas monitor), then P4 + P6 (1 agent).
 - Upstream drafts land in `.work/upstream/` (the user posts them).
 <!-- claude 2026-10-19: created this item -->
 

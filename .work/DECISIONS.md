@@ -303,3 +303,11 @@ The user answered the five launch questions (chat, 2026-10-19):
   (reviews R1-3, R2-3). A11 ("Kyo Clock is the time capability") holds for
   every other time use.
 <!-- claude 2026-10-19: created D23 -->
+- D24 (2026-10-19, OPEN for the user, from the P3 skeptic): AGENTS.md rule
+  OS-34 "Never join the run fiber from an interruptible wait" rests on a
+  premise that Kyo RC7 no longer has: IOTask.interrupt/abandon
+  (kyo-core IOTask.scala:163-191, 346-371) gives up a join on an interrupt.
+  Tui.run therefore keeps a promise copy of the run result (an Unsafe block
+  in the ReleaseStack edge file) only as a second guard; no test needs it.
+  Option: drop the copy, use `fiber.get`, and reword OS-34. Harmless as is.
+<!-- claude 2026-10-19: created D24 -->
