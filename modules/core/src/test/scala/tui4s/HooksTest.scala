@@ -14,6 +14,15 @@ import java.util.concurrent.atomic.AtomicInteger
 // claude 2026-10-13: created (C4)
 class HooksTest extends ComponentSuite:
 
+    /** The deprecated `useSignal`, for its own leaf below: the one use of it
+      * in the build.
+      */
+    // claude 2026-10-19: created (P1b, A5 f)
+    @scala.annotation.nowarn("cat=deprecation")
+    private def deprecatedUseSignal(initial: Int)(using
+        Frame,
+    ): SignalRef[Int] < Sync = useSignal(initial)
+
     /** True when the screen shows all `texts`, in this order. */
     def inOrder(texts: String*)(s: Screen): Boolean =
         val at = texts.map(s.text.indexOf(_))
@@ -43,7 +52,7 @@ class HooksTest extends ComponentSuite:
       for
           box <- AtomicRef.init(Option.empty[SignalRef[Int]])
           h   <- Headless.start(30, 3)(_ =>
-                   useSignal(5).map { c =>
+                   deprecatedUseSignal(5).map { c =>
                      box
                        .set(Some(c))
                        .andThen(
@@ -164,7 +173,7 @@ class HooksTest extends ComponentSuite:
           shown <- Signal.initRef(false)
           body   =
             for
-                c <- useSignal(0)
+                c <- Signal.initRef(0)
                 _ <- useInterval(20.millis)(
                        c.updateAndGet(_ + 1)
                          .andThen(Sync.defer(ticks.incrementAndGet())),
@@ -204,7 +213,7 @@ class HooksTest extends ComponentSuite:
           refs  <- AtomicRef.init(Map.empty[String, SignalRef[Int]])
           row    = (k: String) =>
                      component(k)(
-                       useSignal(0).map(c =>
+                       Signal.initRef(0).map(c =>
                          refs
                            .updateAndGet(_ + (k -> c))
                            .andThen(span(c.map(n => s"[$k=$n]"))),
@@ -236,7 +245,7 @@ class HooksTest extends ComponentSuite:
             div(
               span(s"[rev=$r]"),
               user.render(u =>
-                  val body = useSignal(0).map(c =>
+                  val body = Signal.initRef(0).map(c =>
                     refs
                       .updateAndGet(_ + (u -> c))
                       .andThen(span(c.map(n => s"[$u=$n]"))),
@@ -300,7 +309,7 @@ class HooksTest extends ComponentSuite:
       for
           shown <- Signal.initRef(true)
           refs  <- AtomicRef.init(Option.empty[SignalRef[Int]])
-          hook   = useSignal(0).map(c =>
+          hook   = Signal.initRef(0).map(c =>
                      refs.set(Some(c)).andThen(span(c.map(n => s"[hook=$n]"))),
                    )
           h     <- Headless.start(30, 5)(_ =>

@@ -20,7 +20,7 @@ import java.util.concurrent.{CountDownLatch, TimeUnit} // scalafix:ok DisableSyn
   * {{{
   * object CounterApp extends TuiApp:
   *     def ui: UI < (Async & Scope) =
-  *       for count <- Hooks.useSignal(0)
+  *       for count <- Signal.initRef(0)
   *       yield div.onKeyDown {
   *         case KeyboardEvent(Keyboard.Char('q'), _, _) => Tui.quit
   *         case _                                       => ()

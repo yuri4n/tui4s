@@ -2,7 +2,6 @@ package examples.printing
 
 import kyo.*
 import kyo.UI.*
-import tui4s.Hooks.useSignal
 import tui4s.{Tui, TuiApp, TuiOptions}
 
 import java.nio.file.Paths
@@ -26,7 +25,7 @@ object Printing:
     ): UI < Sync =
       for
           _     <- print("printing: the UI is built")
-          count <- useSignal(0)
+          count <- Signal.initRef(0)
       yield div.onKeyDown {
         case KeyboardEvent(Keyboard.Char('+'), _, _) =>
           count.updateAndGet(_ + 1).map(n => print(s"printing: + gives $n"))

@@ -6,21 +6,22 @@ package examples.counter
 // (`useSignal`) and its TuiApp main `CounterApp`; the KyoApp main moved to
 // examples.counterkyo. README.md "Quick start" shows the lines between the
 // two region lines, and ReadmeSuite checks that they are the same.
+// claude 2026-10-19: changed: Signal.initRef, not the deprecated useSignal
+// (P1b, A5 f)
 // region: quickstart
 import kyo.*
 import kyo.UI.*
-import tui4s.Hooks.useSignal
 import tui4s.{Tui, TuiApp}
 
-/** The Counter: a kyo-ui UI with one piece of state (`useSignal`), key handlers
-  * and two buttons. `+` and `-` change the count, Tab moves between the
+/** The Counter: a kyo-ui UI with one piece of state (a `SignalRef`), key
+  * handlers and two buttons. `+` and `-` change the count, Tab moves between the
   * buttons, Enter and Space press them, `q` quits (and so does Ctrl-C).
   */
 object Counter:
 
     /** The Counter UI; `quit` ends the run. */
     def ui(quit: Unit < Sync): UI < Sync =
-      useSignal(0).map(count => view(count, quit))
+      Signal.initRef(0).map(count => view(count, quit))
 
     /** The Counter view over a count that the caller owns. */
     def view(count: SignalRef[Int], quit: Unit < Sync): UI =

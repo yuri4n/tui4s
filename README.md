@@ -22,11 +22,12 @@ Integrations for [ZIO](https://zio.dev) and
 <!-- claude 2026-10-13: changed the status line (T2): TuiApp -->
 
 Components come in two styles. Hooks: a function, for example
-`for count <- useSignal(0) yield div(...)`, and `component(key)(body)` for a
-node that the runner mounts. A class: `final class Counter extends Component`
+`for count <- Signal.initRef(0) yield div(...)`, and `component(key)(body)`
+for a node that the runner mounts. A class: `final class Counter extends Component`
 with `type State = Int`, `initial`, `view(state)` and `onMount(state)`. See
 the Scaladoc of `tui4s.Hooks` and `tui4s.Component`.
 <!-- claude 2026-10-13: created these lines (C4): the two component styles -->
+<!-- claude 2026-10-19: changed: Signal.initRef, not the deprecated useSignal (P1b, A5 f) -->
 
 ## Development setup
 
@@ -66,27 +67,27 @@ and [pini4s's standalone setup and demo](vendor/pini4s/README.md).
 <!-- claude 2026-10-13: created this section (T1): the Counter example -->
 <!-- claude 2026-10-13: changed this section (T2, OS-48 part): the hooks Counter with its TuiApp main, and its test; the two code blocks are the text of the example files (ReadmeSuite checks them) -->
 <!-- claude 2026-10-17: changed the imports of the first code block (scalafix OrganizeImports changed them in Counter.scala) -->
+<!-- claude 2026-10-19: changed: the Counter uses Signal.initRef, not the deprecated useSignal (P1b, A5 f) -->
 The smallest app: the Counter example
 (`examples/src/main/scala/examples/counter/Counter.scala`). The UI is plain
-kyo-ui with one hook (`useSignal`); `object CounterApp extends TuiApp` is its
-main class. `+` and `-` change the count, `q` and Ctrl-C quit:
+kyo-ui with one piece of state (a `SignalRef` from `Signal.initRef`);
+`object CounterApp extends TuiApp` is its main class. `+` and `-` change the count, `q` and Ctrl-C quit:
 
 <!-- from: examples/src/main/scala/examples/counter/Counter.scala#quickstart -->
 ```scala
 import kyo.*
 import kyo.UI.*
-import tui4s.Hooks.useSignal
 import tui4s.{Tui, TuiApp}
 
-/** The Counter: a kyo-ui UI with one piece of state (`useSignal`), key handlers
-  * and two buttons. `+` and `-` change the count, Tab moves between the
+/** The Counter: a kyo-ui UI with one piece of state (a `SignalRef`), key
+  * handlers and two buttons. `+` and `-` change the count, Tab moves between the
   * buttons, Enter and Space press them, `q` quits (and so does Ctrl-C).
   */
 object Counter:
 
     /** The Counter UI; `quit` ends the run. */
     def ui(quit: Unit < Sync): UI < Sync =
-      useSignal(0).map(count => view(count, quit))
+      Signal.initRef(0).map(count => view(count, quit))
 
     /** The Counter view over a count that the caller owns. */
     def view(count: SignalRef[Int], quit: Unit < Sync): UI =

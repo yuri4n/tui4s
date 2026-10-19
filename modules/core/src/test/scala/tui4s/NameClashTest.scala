@@ -38,6 +38,8 @@ class NameClashTest extends RunnerSuite:
     }
     // claude 2026-10-13: created (C4): the hooks and the Component class with
     // the same imports and `import tui4s.Hooks.*`
+    // claude 2026-10-19: changed: useHold and useFold, not the deprecated
+    // useSignal (P1b, A5 f)
     "the same imports and tui4s.Hooks.*: the hooks and Component" in {
       final class Box extends Component:
           type State = Int
@@ -45,12 +47,15 @@ class NameClashTest extends RunnerSuite:
           def view(n: SignalRef[Int]): UI = span(n.map(v => s"box $v"))
       val app: UI < (Async & Scope) =
         for
-            n <- useSignal(2)
+            n <- useHold(2)(Stream.init(Seq.empty[Int]))
             _ <- useEffect(Kyo.unit)
             _ <- useInterval(1.hour)(Kyo.unit)
         yield div(
           span(n.map(v => s"hook $v")),
-          component("k")(useSignal(3).map(m => span(m.map(v => s"node $v")))),
+          component("k")(
+            useFold(3)(Stream.init(Seq.empty[Int]))((s, _) => s)
+              .map(m => span(m.map(v => s"node $v"))),
+          ),
           Box(),
         )
       for

@@ -11,7 +11,7 @@ import tui4s.{Component, Tui}
 object CounterHooks:
 
     def counter(label: String): UI < Sync =
-      for count <- useSignal(0)
+      for count <- Signal.initRef(0)
       yield div.style(_.border(1.px, Style.Color.slate).padding(0.px, 1.px))(
         span(label).style(_.bold),
         span("Count: ", count.map(_.toString)),
@@ -36,7 +36,7 @@ object CounterHooks:
       * drops their state, showing them again starts from 0.
       */
     val dynamic: UI < Sync =
-      for shown <- useSignal(true)
+      for shown <- Signal.initRef(true)
       yield div.onKeyDown {
         case KeyboardEvent(Keyboard.Char('h'), _, _) => shown.updateAndGet(!_)
         case KeyboardEvent(Keyboard.Char('q'), _, _) => Tui.quit

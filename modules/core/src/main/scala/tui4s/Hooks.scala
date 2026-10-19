@@ -11,9 +11,11 @@ import tui4s.internal.{ComponentSpec, Tui4sTrack}
   *
   * {{{
   * def counter(label: String): UI < Sync =
-  *     for count <- useSignal(0)
+  *     for count <- Signal.initRef(0)
   *     yield div(span(label), span(count.map(_.toString)), button("+").onClick(count.updateAndGet(_ + 1)))
   * }}}
+  *
+  * A piece of state is a Kyo `SignalRef`: `Signal.initRef(initial)`.
   *
   * At the top of an app, sequence the components in a `for`: they run once, and
   * their effects live as long as the `Scope` of the app. Inside a reactive part
@@ -34,7 +36,20 @@ import tui4s.internal.{ComponentSpec, Tui4sTrack}
 // claude 2026-10-19: changed: the Scaladoc names Sync & Scope (P1b, A5 e)
 object Hooks:
 
-    /** A piece of state: `Signal.initRef`. */
+    /** A piece of state: `Signal.initRef`. Deprecated: it only renames Kyo's
+      * `Signal.initRef`, so call that.
+      *
+      * {{{
+      * for count <- Signal.initRef(0) // not useSignal(0)
+      * yield span(count.map(_.toString))
+      * }}}
+      */
+    // claude 2026-10-19: changed: deprecated, Signal.initRef replaces it (P1b,
+    // A5 f)
+    @deprecated(
+      "use Signal.initRef(initial): useSignal only renames it",
+      "0.1.0",
+    )
     def useSignal[A](
         initial: A,
     )(using CanEqual[A, A], Frame): SignalRef[A] < Sync =

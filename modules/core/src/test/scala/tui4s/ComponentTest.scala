@@ -493,7 +493,7 @@ class ComponentTest extends ComponentSuite:
       for
           h   <- Headless.start(40, 5, options)(_ =>
                    for
-                       n  <- useSignal(0)
+                       n  <- Signal.initRef(0)
                        _  <- useInterval(50.millis)(n.updateAndGet(_ + 1))
                        ui <- slowApp(3.seconds, span(n.map(v => s"[tick=$v]")))
                    yield ui,
@@ -574,7 +574,7 @@ class ComponentTest extends ComponentSuite:
         for
             h   <- Headless.start(40, 5, options)(_ =>
                      for
-                         n  <- useSignal(0)
+                         n  <- Signal.initRef(0)
                          _  <- useInterval(50.millis)(n.updateAndGet(_ + 1))
                          ui <- slowApp(4.seconds, span(n.map(v => s"[tick=$v]")))
                      yield ui,
