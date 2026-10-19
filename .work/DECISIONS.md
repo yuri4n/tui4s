@@ -296,3 +296,10 @@ The user answered the five launch questions (chat, 2026-10-19):
 - D22 (2026-10-19, fact): `yuri4n/pini4s` is public; CI #43 is the first green
   run since 10-14. h34s got the Apache 2.0 license (321784b on its main).
 <!-- claude 2026-10-19: created D21, D22 -->
+- D23 (2026-10-19, P2 skeptic): the monotonic time source of the runner stays
+  `System.nanoTime` in `Sync.defer` with a KEEP comment, not Kyo `Clock`.
+  Kyo RC7 `Clock.nowMonotonic` maps a negative nanoTime to 0 (allowed by the
+  JDK spec), which would break the settle bounds and the pending timeout
+  (reviews R1-3, R2-3). A11 ("Kyo Clock is the time capability") holds for
+  every other time use.
+<!-- claude 2026-10-19: created D23 -->
