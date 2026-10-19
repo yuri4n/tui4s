@@ -14,13 +14,15 @@ import tui4s.internal.{
   Session,
   TerminalIO,
   Tui4sQuit,
+  Tui4sSize,
   TuiLog,
 }
 
 import java.io.PrintStream
 
 /** The entry points of a tui4s app: [[run]] runs a kyo-ui UI in the real
-  * terminal, [[quit]] ends it from inside.
+  * terminal, [[quit]] ends it from inside, [[size]] gives the size of its
+  * terminal.
   */
 // claude 2026-10-13: created (C3, RC-2 part: the prototype's Tui.quit)
 // claude 2026-10-13: changed (T1, RC-2): Tui.run
@@ -93,6 +95,27 @@ object Tui:
       * nothing. The run ends after the frame of the current event.
       */
     def quit(using Frame): Unit < Sync = Tui4sQuit()
+
+    /** The size of the terminal of the run that runs the caller, in cells, as a
+      * signal. A resize writes it in the step of the resize, so the regions
+      * that derive from it are in the frame of the resize, with the new layout.
+      * The construction of the UI, a component (hook or class), a handler and a
+      * fiber that one of them started can read it. Outside a run it is a signal
+      * that stays at 0 x 0.
+      *
+      * kyo-ui has no signal of the size on the JVM: its `UIWindow.size` is in
+      * the Scala.js jar only, and only the DOM writes it. So tui4s adds this
+      * one, which `Tui.run` and `Headless.start` feed.
+      *
+      * {{{
+      * def body(sidebar: UI, main: UI): UI < Sync =
+      *   Tui.size.map(size =>
+      *     div(sidebar, main).style(size.map(s =>
+      *       if s.width >= 100 then Style.row else Style.column)))
+      * }}}
+      */
+    // claude 2026-10-19: created (L1b)
+    def size(using Frame): Signal[TerminalSize] < Sync = Tui4sSize.get
 
     /** The run seam of the tests: `ui` on the terminal of `crossterm` (the real
       * one or a fake), with the shutdown hooks `hooks` and the stderr `err` for

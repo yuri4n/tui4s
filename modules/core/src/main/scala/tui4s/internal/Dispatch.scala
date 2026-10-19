@@ -5,6 +5,7 @@ package tui4s.internal
 import kyo.*
 import kyo.UI.Ast.*
 import kyo.UI.{Keyboard, KeyboardEvent, Modifiers, MouseEvent}
+import tui4s.TerminalSize
 
 /** Key routing. Mirrors kyo-ui's dispatcher (`ReactiveUI.dispatchToElement`)
   * and its client-side focus rules:
@@ -587,3 +588,19 @@ private[tui4s] object Tui4sQuit:
     def let[A, S](quit: Unit < Sync)(v: A < S)(using Frame): A < S =
       local.let(quit)(v)
     def apply()(using Frame): Unit < Sync                          = local.use(identity)
+
+/** The size of the terminal of the running app, for [[tui4s.Tui.size]]. A
+  * `Local`, as [[Tui4sQuit]]: the runner sets it around the run, so it also
+  * reaches the fibers that the UI forks. Outside a run it is a signal that
+  * stays at 0 x 0.
+  */
+// claude 2026-10-19: created (L1b)
+private[tui4s] object Tui4sSize:
+    private val local: Local[Signal[TerminalSize]] =
+      Local.init(Signal.initConst(TerminalSize(0, 0)))
+
+    def let[A, S](size: Signal[TerminalSize])(v: A < S)(using Frame): A < S =
+      local.let(size)(v)
+
+    def get(using Frame): Signal[TerminalSize] < Sync = local.use(identity)
+end Tui4sSize

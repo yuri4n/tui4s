@@ -5,7 +5,7 @@ package tui4s.internal
 import kyo.*
 import kyo.UI.Keyboard
 import tui4s.spi.Settle
-import tui4s.{FrameCause, FrameStats, TuiError}
+import tui4s.{FrameCause, FrameStats, TerminalSize, TuiError}
 
 /** The runner: one fiber that owns the world and the canvas.
   *
@@ -29,6 +29,9 @@ private[tui4s] final class Runner private (
     knobs: Knobs,
     gauge: FiberGauge,
     quitRequested: AtomicBoolean,
+    // claude 2026-10-19: created (L1b): the size of the terminal, for
+    // Tui.size
+    terminal: SignalRef[TerminalSize],
 ):
     private val options = runOpts.options
 
@@ -75,9 +78,12 @@ private[tui4s] final class Runner private (
       * gauge of this run is in scope too ([[Tui4sTrack]]), so a fiber that a
       * hook starts ([[tui4s.Hooks]]) joins it and stops when the run ends.
       */
-    // claude 2026-10-19: changed: the FiberGauge (P2, A7)
+    // claude 2026-10-19: changed: the FiberGauge (P2, A7); the size of the
+    // terminal (L1b)
     def scoped[A, S](v: => A < S)(using Frame): A < S =
-      Tui4sQuit.let(quit)(Tui4sTrack.let(gauge)(v))
+      Tui4sQuit.let(quit)(
+        Tui4sTrack.let(gauge)(Tui4sSize.let(terminal)(v)),
+      )
 
     // TODO(#8): remove the repair tick when the watchers go back to
     // `Signal.observe` (it has its own repair timer).
@@ -198,11 +204,14 @@ private[tui4s] final class Runner private (
           // claude 2026-10-13: created (C3, RC-14 part): a paste is one edit
           // of the focused text input
           case Msg.Paste(text, _)                                  => dispatch.onPaste(w, text)
-          // claude 2026-10-19: changed (P5): a failed resize ends the run
+          // claude 2026-10-19: changed (P5): a failed resize ends the run;
+          // changed: the size signal, written before the settle, so the
+          // regions that derive from it are in this frame (L1b)
           case Msg.Resize(size, _)                                 =>
             Sync
               .defer(canvas.resize(size))
               .map(orFail)
+              .andThen(terminal.set(TerminalSize(size.w, size.h)))
               .andThen(w.copy(size = size, full = true))
           case c: Msg.Content                                      => apply(w, c)
           // claude 2026-10-12: created the two cases below (K29, D-16): a
@@ -872,5 +881,8 @@ private[tui4s] object Runner:
       for
           gauge <- FiberGauge.init
           quit  <- AtomicBoolean.init(false)
-      yield new Runner(inbox, canvas, runOpts, stats, knobs, gauge, quit)
+          // claude 2026-10-19: created (L1b): the size signal
+          size  <- Sync.defer(canvas.size)
+          term  <- Signal.initRef(TerminalSize(size.w, size.h))
+      yield new Runner(inbox, canvas, runOpts, stats, knobs, gauge, quit, term)
 end Runner
