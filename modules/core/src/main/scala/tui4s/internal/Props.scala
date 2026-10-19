@@ -17,16 +17,30 @@ import kyo.Style.{
   ScrollbarWidth,
   TextAlign,
   TextDecoration,
+  TextOverflow,
   TextTransform,
+  TextWrap,
+  WhiteSpace,
 }
 import kyo.UI.Ast.*
 
 private[tui4s] enum Dir:
     case Row, Column
 
-/** Text attributes. Children inherit them, like CSS `color`, `font-weight`,
-  * `text-decoration` and `text-align`.
+/** What the wrap does with a word that is wider than its line (CSS
+  * `overflow-wrap`): `Split` splits it by cells (`break-word`, the default of
+  * the runner); `Keep` keeps it whole, so it overflows its line (`normal`).
   */
+// claude 2026-10-19: created (L1a): an ADT, not a Boolean
+private[tui4s] enum WordBreak derives CanEqual:
+    case Split, Keep
+
+/** Text attributes. Children inherit them, like CSS `color`, `font-weight`,
+  * `text-decoration`, `text-align`, `white-space` and `overflow-wrap`.
+  * `whiteSpace` is none when no element sets it: the runner keeps the spaces
+  * and the line breaks of a text, as `pre-wrap` does.
+  */
+// claude 2026-10-19: changed: white-space and overflow-wrap (L1a)
 private[tui4s] final case class TextAttrs(
     fg: Option[JColor],
     bold: Boolean,
@@ -37,6 +51,8 @@ private[tui4s] final case class TextAttrs(
     reverse: Boolean,
     transform: TextTransform,
     align: TextAlign,
+    whiteSpace: Option[WhiteSpace] = None,
+    breaks: WordBreak = WordBreak.Split,
 ):
     def style: JStyle =
         val mods = List(
@@ -113,15 +129,25 @@ private[tui4s] final case class Border(
   *     rows, shows a scroll indicator in its right column
   *     (`scrollbarWidth(none)` hides it, `scrollbarColor` gives its colours).
   *   - `whiteSpace` (`WhiteSpace`: normal, noWrap, pre, preWrap, preLine; CSS
-  *     `white-space`): ignored. A text keeps its spaces and its line breaks,
-  *     and it wraps in a column, never in a row.
+  *     `white-space`, inherited): see [[TextFlow]]. `normal` and `noWrap`
+  *     collapse each run of white space (line breaks too) to one space;
+  *     `preLine` keeps the line breaks; `pre` and `preWrap` keep both. `noWrap`
+  *     and `pre` never wrap. With no `whiteSpace`, a text keeps its spaces and
+  *     line breaks (the old rule). A text wraps in a column, and in a row whose
+  *     element has a definite `width` (CSS wraps a text in any box of a
+  *     definite width).
   *   - `textWrap` (`TextWrap`: wrap, noWrap, ellipsis, balance, pretty; CSS
   *     `overflow-wrap: break-word`, `overflow-wrap: normal`,
   *     `overflow-wrap: normal; text-overflow: ellipsis`, `text-wrap: balance`,
-  *     `text-wrap: pretty`): ignored. A word wider than its line always splits
-  *     (as `break-word`).
-  *   - `textOverflow` (`TextOverflow`: clip, ellipsis; CSS `text-overflow`):
-  *     ignored. A text is clipped by cells at the edge of its box.
+  *     `text-wrap: pretty`, inherited): `wrap` (the default) splits a word
+  *     wider than its line by cells; `noWrap` keeps it whole (it overflows);
+  *     `ellipsis` keeps it whole and sets `textOverflow: ellipsis`. `balance`
+  *     and `pretty` wrap as `wrap` does (a greedy wrap).
+  *   - `textOverflow` (`TextOverflow`: clip, ellipsis; CSS `text-overflow`, not
+  *     inherited): `ellipsis` on an element with `overflowX: hidden` paints "…"
+  *     (1 cell) at the cut of each line of its texts that is wider than the
+  *     text box; the cut is by cells and never splits a wide glyph. `clip` (the
+  *     default) clips by cells.
   *   - The text measure counts cells: `Layout.textWidth` is jatatui's
   *     `Span.width` (2 cells for a wide character or an emoji), the wrap splits
   *     a long word by cells, and the painter cuts a text into `Glyph`s.
@@ -167,6 +193,11 @@ private[tui4s] final case class Props(
     scrollbarWidth: ScrollbarWidth = ScrollbarWidth.auto,
     /** `scrollbarColor(thumb, track)`: the colours of the indicator. */
     scrollbarColor: Option[(Option[JColor], Option[JColor])] = None,
+    /** `textOverflow` (not inherited, as in CSS): `ellipsis` marks the cut of a
+      * line that overflows an element with `overflow: hidden`.
+      */
+    // claude 2026-10-19: created (L1a)
+    textOverflow: TextOverflow = TextOverflow.clip,
 ):
     def insets: Sides = border.fold(Sides.zero)(_.sides) + padding + decoration
 
@@ -438,6 +469,22 @@ private[tui4s] object Props:
             case Prop.ScrollbarWidthProp(v)        => p.copy(scrollbarWidth = v)
             case Prop.ScrollbarColorProp(th, tr)   =>
               p.copy(scrollbarColor = Some((color(th), color(tr))))
+            // claude 2026-10-19: created (L1a): the text flow, as the DOM
+            // runner maps it to CSS (`textWrap` is `overflow-wrap`)
+            case Prop.WhiteSpaceProp(v)            =>
+              p.copy(text = p.text.copy(whiteSpace = Some(v)))
+            case Prop.TextOverflowProp(v)          => p.copy(textOverflow = v)
+            case Prop.TextWrapProp(v)              =>
+              v match
+                  case TextWrap.noWrap   =>
+                    p.copy(text = p.text.copy(breaks = WordBreak.Keep))
+                  case TextWrap.ellipsis =>
+                    p.copy(
+                      text = p.text.copy(breaks = WordBreak.Keep),
+                      textOverflow = TextOverflow.ellipsis,
+                    )
+                  case _                 =>
+                    p.copy(text = p.text.copy(breaks = WordBreak.Split))
             case Prop.BorderWidthProp(t, r, b, l)  =>
               val sides = Sides(
                 side(t).min(1),

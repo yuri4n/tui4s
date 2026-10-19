@@ -311,6 +311,82 @@ class GoldenScreenTest extends ScreenSuite:
       }
     }
 
+    // claude 2026-10-19: created (L1a)
+    "white-space, text-wrap and the ellipsis" - {
+      "whiteSpace(noWrap) keeps one line; with overflow hidden and textOverflow(ellipsis) the cut is \"…\"; without overflow hidden it clips" in {
+        def title(s: Style) = div.style(s.width(8.px))("a long  title here")
+        val nowrap          = Style.whiteSpace(_.noWrap)
+        assertScreen(title(nowrap), 10, 2, "a long t")
+        assertScreen(
+          title(nowrap.overflow(_.hidden).textOverflow(_.ellipsis)),
+          10,
+          2,
+          "a long …",
+        )
+        assertScreen(title(Style.empty), 10, 3, "a long\ntitle\nhere")
+      }
+      "the ellipsis cuts by cells: a wide glyph that does not fit next to it is dropped" in {
+        def cut(w: Int) = div.style(
+          _.width(w.px)
+            .overflow(_.hidden)
+            .textOverflow(_.ellipsis)
+            .whiteSpace(_.noWrap),
+        )("漢字漢字漢字")
+        // the cell under the right half of a wide character reads as a space
+        assertScreen(cut(7), 10, 1, "漢 字 漢 …")
+        assertScreen(cut(6), 10, 1, "漢 字 …")
+        assertScreen(cut(1), 10, 1, "…")
+      }
+      "pre keeps the spaces and the line breaks and does not wrap; preWrap keeps them and wraps; normal and preLine collapse" in {
+        val text                      = "a  b\n  c d e f g"
+        def box(ws: Style.WhiteSpace) =
+          div.style(_.width(6.px).whiteSpace(ws))(text)
+        assertScreen(box(Style.WhiteSpace.pre), 8, 3, "a  b\n  c d")
+        assertScreen(box(Style.WhiteSpace.preWrap), 8, 3, "a  b\n  c d\ne f g")
+        assertScreen(box(Style.WhiteSpace.normal), 8, 3, "a b c\nd e f\ng")
+        assertScreen(box(Style.WhiteSpace.preLine), 8, 3, "a b\nc d e\nf g")
+      }
+      "a text in a row item with a definite width wraps; without the width it does not" in {
+        assertScreen(
+          div.style(_.row)(
+            span("one two three").style(_.width(5.px)),
+            span("x"),
+          ),
+          10,
+          3,
+          "one\ntwo  x\nthree",
+        )
+        assertScreen(
+          div.style(_.row)(span("one two three"), span("x")),
+          16,
+          3,
+          "one two threex",
+        )
+      }
+      "textWrap(noWrap) keeps a long word whole (it overflows); textWrap(ellipsis) with overflow hidden cuts it with \"…\"" in {
+        val text = "ab abcdefgh cd"
+        assertScreen(
+          div.style(_.width(5.px).textWrap(_.noWrap))(text),
+          8,
+          3,
+          "ab\nabcde\ncd",
+        )
+        assertScreen(
+          div
+            .style(_.width(5.px).textWrap(_.ellipsis).overflow(_.hidden))(text),
+          8,
+          3,
+          "ab\nabcd…\ncd",
+        )
+        assertScreen(
+          div.style(_.width(5.px))(text),
+          8,
+          4,
+          "ab\nabcde\nfgh\ncd",
+        )
+      }
+    }
+
     "wide characters" - {
       "take two cells each" in {
         val b = buffer(div.style(_.row)(span("漢"), span("x")), 6, 1)

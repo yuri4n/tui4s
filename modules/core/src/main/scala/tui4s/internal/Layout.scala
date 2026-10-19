@@ -5,7 +5,15 @@ package tui4s.internal
 import jatatui.core.style.Color as JColor
 import jatatui.core.text.Span
 import kyo.*
-import kyo.Style.{Alignment, Justification, ListStyle, Overflow, ScrollbarWidth}
+import kyo.Style.{
+  Alignment,
+  Justification,
+  ListStyle,
+  Overflow,
+  ScrollbarWidth,
+  TextOverflow,
+  WhiteSpace,
+}
 import kyo.UI.Ast.*
 
 /** What a region shows now. */
@@ -43,7 +51,87 @@ private[tui4s] final case class Scene(
 private[tui4s] enum Kind:
     case Screen
     case El(el: Element)
-    case Txt(text: String, wrap: Boolean)
+    // claude 2026-10-19: changed: the text flow, not a Boolean (L1a)
+    case Txt(text: String, flow: TextFlow)
+
+/** What a text does with its white space (CSS `white-space`): `Keep` keeps the
+  * spaces and the line breaks; `Collapse` makes each run of white space (line
+  * breaks too) one space and drops it at the two ends; `KeepBreaks` collapses
+  * the white space of each line and keeps the line breaks.
+  */
+// claude 2026-10-19: created (L1a)
+private[tui4s] enum Space derives CanEqual:
+    case Keep, Collapse, KeepBreaks
+
+/** How a text breaks into lines: `Off` keeps its line breaks and never wraps;
+  * `Split` wraps at the spaces and splits a word wider than the line by cells
+  * (CSS `overflow-wrap: break-word`); `Whole` wraps at the spaces and keeps a
+  * long word whole (`overflow-wrap: normal`).
+  */
+// claude 2026-10-19: created (L1a)
+private[tui4s] enum Wrapping derives CanEqual:
+    case Off, Split, Whole
+
+/** Where a line that is wider than its text box ends: `Clip` cuts it by cells;
+  * `Ellipsis` paints "…" in the last cell (CSS `text-overflow: ellipsis`).
+  */
+// claude 2026-10-19: created (L1a)
+private[tui4s] enum Cut derives CanEqual:
+    case Clip, Ellipsis
+
+/** The flow of a text node: its white space, its wrap and its cut, from the
+  * props of the element that holds it ([[TextFlow.of]]).
+  *
+  * For example, in `div.style(_.overflow(_.hidden).textOverflow(_.ellipsis)
+  * .whiteSpace(_.noWrap))("a long title")` the text has `TextFlow(Collapse,
+  * Off, Ellipsis)`: one line, "…" at the cut. A text in a plain column has
+  * `TextFlow.column`, in a plain row `TextFlow.row` (the old rule).
+  */
+// claude 2026-10-19: created (L1a)
+private[tui4s] final case class TextFlow(space: Space, wrap: Wrapping, cut: Cut)
+
+private[tui4s] object TextFlow:
+    /** A text in a column with no text-flow property: it wraps. */
+    val column: TextFlow = TextFlow(Space.Keep, Wrapping.Split, Cut.Clip)
+
+    /** A text in a row with no text-flow property: it does not wrap. */
+    val row: TextFlow = TextFlow(Space.Keep, Wrapping.Off, Cut.Clip)
+
+    /** The flow of a text whose element has the props `p`. White space:
+      * `normal` and `noWrap` collapse, `preLine` keeps the line breaks, `pre`,
+      * `preWrap` and no property keep all. Wrap: never with `noWrap` or `pre`;
+      * else in a column, or in a row of a definite `width` (CSS wraps a text in
+      * a box of a definite width), with the word break of `textWrap`. Cut: the
+      * ellipsis of `textOverflow` on an element with `overflowX: hidden`.
+      */
+    def of(p: Props): TextFlow =
+        val ws    = p.text.whiteSpace
+        val space = ws match
+            case Some(WhiteSpace.normal) | Some(WhiteSpace.noWrap) =>
+              Space.Collapse
+            case Some(WhiteSpace.preLine)                          => Space.KeepBreaks
+            case _                                                 => Space.Keep
+        val wraps = ws match
+            case Some(WhiteSpace.noWrap) | Some(WhiteSpace.pre) => false
+            case _                                              =>
+              p.dir == Dir.Column || p.width.exists {
+                case Length.Auto | Length.Calc(_) => false
+                case _                            => true
+              }
+        val wrap  =
+          if !wraps then Wrapping.Off
+          else
+              p.text.breaks match
+                  case WordBreak.Split => Wrapping.Split
+                  case WordBreak.Keep  => Wrapping.Whole
+        val cut   =
+          if p.textOverflow == TextOverflow.ellipsis &&
+              p.overflowX == Overflow.hidden
+          then Cut.Ellipsis
+          else Cut.Clip
+        TextFlow(space, wrap, cut)
+    end of
+end TextFlow
 
 /** One laid-out box. `rect` is the border box; margins are outside. `view` is
   * the scroll state of a viewport (an element with an axis that is not
@@ -156,8 +244,28 @@ private[tui4s] object Layout:
       * is measured once.
       */
     // claude 2026-10-19: changed: one fold that carries the width of the open
-    // line (PF-a, F4)
+    // line (PF-a, F4); the split of a long word is a parameter (L1a)
     def wrap(text: String, width: Int): Vector[String] =
+      wrapWords(text, width, Wrapping.Split)
+
+    /** The lines of `text` in `width` cells, as [[wrap]] gives them, but a word
+      * wider than the width stays whole on a line of its own (CSS
+      * `overflow-wrap: normal`).
+      */
+    // claude 2026-10-19: created (L1a)
+    def wrapWhole(text: String, width: Int): Vector[String] =
+      wrapWords(text, width, Wrapping.Whole)
+
+    /** The greedy wrap of [[wrap]]; a word wider than the width is split by
+      * [[chunksByWidth]] when `long` is `Wrapping.Split`, and stays whole when
+      * it is `Wrapping.Whole`.
+      */
+    // claude 2026-10-19: created (L1a): the old body of wrap
+    private def wrapWords(
+        text: String,
+        width: Int,
+        long: Wrapping,
+    ): Vector[String] =
         val w = width.max(1)
         text.split("\n", -1).toVector.flatMap { para =>
           val words = para.split(" ", -1)
@@ -165,11 +273,11 @@ private[tui4s] object Layout:
             .foldLeft(Wrap(Vector.empty, None)) { (acc, word) =>
               val ww = textWidth(word)
               acc.open match
-                  case Some(open) if open.w + 1 + ww <= w =>
+                  case Some(open) if open.w + 1 + ww <= w     =>
                     acc.copy(open = Some(open.add(word, ww)))
-                  case _ if ww <= w                       =>
+                  case _ if ww <= w || long == Wrapping.Whole =>
                     acc.close.copy(open = Some(Line(Vector(word), ww)))
-                  case _                                  =>
+                  case _                                      =>
                     val (chunks, lastW) = chunksByWidth(word, w)
                     Wrap(
                       acc.close.done ++ chunks.dropRight(1),
@@ -181,7 +289,7 @@ private[tui4s] object Layout:
             .done
           if lines.isEmpty then Vector("") else lines
         }
-    end wrap
+    end wrapWords
 
     /** Splits a word into pieces of at most `w` cells, and gives the width of
       * the last piece. The split is at a code point border: a wide character or
@@ -213,8 +321,33 @@ private[tui4s] object Layout:
         go(0, 0, 0, Vector.empty)
     end chunksByWidth
 
-    def textLines(text: String, width: Int, wrapped: Boolean): Vector[String] =
-      if wrapped then wrap(text, width) else text.split("\n", -1).toVector
+    /** The lines of `text` in `width` cells with the flow `flow`: its white
+      * space first ([[Space]]), then its wrap ([[Wrapping]]).
+      */
+    // claude 2026-10-19: changed: the text flow, not a Boolean (L1a)
+    def textLines(text: String, width: Int, flow: TextFlow): Vector[String] =
+        val t = flow.space match
+            case Space.Keep       => text
+            case Space.Collapse   => collapse(text)
+            case Space.KeepBreaks =>
+              text.split("\n", -1).map(collapse).mkString("\n")
+        flow.wrap match
+            case Wrapping.Off   => t.split("\n", -1).toVector
+            case Wrapping.Split => wrap(t, width)
+            case Wrapping.Whole => wrapWhole(t, width)
+    end textLines
+
+    /** A run of white space (spaces, tabs, line breaks). */
+    // claude 2026-10-19: created (L1a)
+    private val whiteRun: java.util.regex.Pattern =
+      java.util.regex.Pattern.compile("[ \t\n\r\f]+")
+
+    /** `s` with each run of white space as one space, and none at the two ends
+      * (the white space of a flex item collapses, as in CSS).
+      */
+    // claude 2026-10-19: created (L1a)
+    def collapse(s: String): String =
+      whiteRun.matcher(s).replaceAll(" ").trim
 
     // ---- flattening: what are the flex items of a container ----
 
@@ -323,16 +456,19 @@ private[tui4s] object Layout:
         index: Int,
     ): Measured =
       item.ui match
+          // claude 2026-10-19: changed: the text flow of the parent; a text
+          // that does not wrap keeps its width in a viewport that scrolls
+          // horizontally (L1a)
           case t: Text    =>
-            val lines =
-              textLines(parent.text(t.value), availW, parent.dir == Dir.Column)
+            val flow  = TextFlow.of(parent)
+            val lines = textLines(parent.text(t.value), availW, flow)
+            val w     = lines.map(textWidth).maxOption.getOrElse(0)
+            val keep  =
+              flow.wrap == Wrapping.Off && Props.scrolls(parent.overflowX)
             Measured(
               item,
               Props.neutral(parent.text),
-              Size(
-                lines.map(textWidth).maxOption.getOrElse(0).min(availW.max(0)),
-                lines.size,
-              ),
+              Size(if keep then w else w.min(availW.max(0)), lines.size),
             )
           case e: Element =>
             val p = Props.resolve(
@@ -836,7 +972,7 @@ private[tui4s] object Layout:
           case t: Text    =>
             val node = Node(
               m.item.path,
-              Kind.Txt(t.value, ctx.parent.dir == Dir.Column),
+              Kind.Txt(t.value, TextFlow.of(ctx.parent)),
               rect,
               m.props,
               ctx.bgUnder,

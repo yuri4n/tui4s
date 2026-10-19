@@ -130,9 +130,17 @@ private[tui4s] object Paint:
               val inner = n.rect.intersect(clip)
               n.kids.foldLeft(ops)((o, k) => paintNode(o, laid, env, k, inner))
             case _ if n.rect.intersect(clip).isEmpty => ops
-            case Kind.Txt(txt, wrapped)              =>
+            // claude 2026-10-19: changed: the text flow; the ellipsis (L1a)
+            case Kind.Txt(txt, flow)                 =>
               val lines =
-                Layout.textLines(n.props.text(txt), n.rect.w, wrapped)
+                Layout
+                  .textLines(n.props.text(txt), n.rect.w, flow)
+                  .map(l =>
+                    if flow.cut == Cut.Ellipsis && Layout
+                          .textWidth(l) > n.rect.w
+                    then ellipsis(l, n.rect.w)
+                    else l,
+                  )
               val style = n.props.text.style
               val area  = n.rect.intersect(clip)
               visibleRows(n.rect, area).foldLeft(ops) { (o, i) =>
@@ -248,6 +256,20 @@ private[tui4s] object Paint:
         val w       = if control then 0 else Layout.textWidth(g)
         Option.when(w > 0)(Glyph(g, w))
       }
+
+    /** `line` cut to `width` cells with "…" (1 cell) in its last cell: the
+      * glyphs that fit in `width - 1` cells, then "…". The cut is by cells: a
+      * wide glyph that does not fit next to the ellipsis is dropped whole.
+      */
+    // claude 2026-10-19: created (L1a)
+    def ellipsis(line: String, width: Int): String =
+      if width <= 0 then ""
+      else
+          val gs = glyphs(line)
+          gs.zip(gs.scanLeft(0)(_ + _.width).drop(1))
+            .takeWhile(_._2 <= width - 1)
+            .map(_._1.symbol)
+            .mkString + "…"
 
     /** The ops of `text` written at (x, y) inside `clip`. The clip cuts the
       * text by cells, not by chars: each glyph keeps the cells that it has in a
