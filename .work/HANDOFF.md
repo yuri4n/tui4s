@@ -4,7 +4,14 @@
 - P1 DONE, pushed 95bcf2a (30 files, +837/-356; 57 sites removed, suppressions 105 -> 49; RunOptions = A10; Tty LinkageError;
   blockingMonitorMinIntervalNs 20 ms with the reason in SchedulerDefaults; /tmp/jni-* copy removed after load on Linux via
   /proc/self/maps; JMH excluded; 240 core tests, 49 examples, PTY 121/121, 0 warnings). CI run started by workflow_dispatch.
-- D20 cheap cadence: next = PF-a + P1b, one agent.
+- CI #43 on 95bcf2a GREEN (pini4s is public since 2026-10-19; CI was red on main since 10-16 for the private submodule).
+- PF-a + P1b DONE, pushed 36d429c (51 files, +1356/-298; 15 commits; F1-F4, F8 with 5 oracles in
+  core/src/test/scala/tui4s/oracle and 14 properties x 200 samples; A4 TuiError NoStackTrace non-null cause; A5 a-g
+  except SchedulerDefaults.defaults, which stays Seq (tui4s.spi is Kyo-free, D-14 a: DECIDED keep); suppressions 49 -> 47;
+  255 core leaves, 49 examples, PTY 121/121, 0 warnings). Leftovers to PF-c: F1 owns index, F2 markRegion Set,
+  F8 lastChunk eq. Bug for P5: Canvas.text skips UTF-16 chars, not cells, when the clip starts right of the text.
+  Container note: JAVA_HOME is JDK 21; the PTY kit needs JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64.
+- D20 cheap cadence: next = P2 (3 agents, Fable skeptic).
 - Upstream drafts land in `.work/upstream/` (the user posts them).
 <!-- claude 2026-10-19: created this item -->
 

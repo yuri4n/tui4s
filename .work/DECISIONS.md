@@ -289,3 +289,10 @@ The user answered the five launch questions (chat, 2026-10-19):
   and the PTY run when terminal code changed; the cut is the review seat, not
   the verification.
 <!-- claude 2026-10-19: created D20 -->
+- D21 (2026-10-19, orchestrator): `SchedulerDefaults.defaults` stays `Seq[(String, String)]`.
+  A5(a) asked for Chunk, but `tui4s.spi` is Kyo-free (D-14 a) and the object
+  must load no Kyo class before the scheduler properties are set. A Kyo-free
+  List would be a public change outside A5 for no behavior; not worth it.
+- D22 (2026-10-19, fact): `yuri4n/pini4s` is public; CI #43 is the first green
+  run since 10-14. h34s got the Apache 2.0 license (321784b on its main).
+<!-- claude 2026-10-19: created D21, D22 -->
