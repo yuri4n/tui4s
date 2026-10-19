@@ -9,8 +9,8 @@ import tui4s.internal.*
   * two pieces are copied without a change.
   *
   * The rest of the old painter is not kept: `Paint.paintNode` writes into a
-  * mutable `Canvas`, so it is not a pure function. The node part of the cull
-  * is checked by a property of the clip instead (`CullPropertyTest`).
+  * mutable `Canvas`, so it is not a pure function. The node part of the cull is
+  * checked by a property of the clip instead (`CullPropertyTest`).
   */
 // claude 2026-10-19: created (PF-a, F3): a private copy of the old code
 private[tui4s] object CullOracle:

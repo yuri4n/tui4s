@@ -4,8 +4,8 @@ import tui4s.internal.Layout.textWidth
 
 /** The oracle of F4: `Layout.wrap` and its `chunksByWidth` as they were at
   * commit 95bcf2a, copied without a change (only `private` is gone). They
-  * measure the open line again for each word. Do not change them: the new
-  * fold must give the same lines.
+  * measure the open line again for each word. Do not change them: the new fold
+  * must give the same lines.
   */
 // claude 2026-10-19: created (PF-a, F4): a private copy of the old code
 private[tui4s] object WrapOracle:

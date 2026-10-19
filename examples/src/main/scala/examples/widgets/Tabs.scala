@@ -6,8 +6,8 @@ import tui4s.Component
 /** Mounts [[TabsView]] with tui4s's component lifetime. The runner retains
   * local state across parent renders and drops it on unmount. Selection is
   * local by default; a parent can supply a signal and handle change requests.
-  * Other Kyo UI renderers can use [[TabsView.ui]] directly. The labels and
-  * the options are those of [[TabsView]]:
+  * Other Kyo UI renderers can use [[TabsView.ui]] directly. The labels and the
+  * options are those of [[TabsView]]:
   *
   * {{{
   * new Tabs("CPU", "Memory", "Network")(heading = h1("Dashboard")).ui

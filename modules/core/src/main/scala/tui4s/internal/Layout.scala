@@ -65,9 +65,9 @@ end Node
   * that owns the items of each region.
   *
   * Invariant (I1): the nodes at or under the path of a node are the nodes that
-  * its `kids` reach. A kid path extends the path of its owner, and the items
-  * of one container are prefix-free (`flatten` stops at an element or a
-  * text). `layoutAll` and `relayout` keep the invariant.
+  * its `kids` reach. A kid path extends the path of its owner, and the items of
+  * one container are prefix-free (`flatten` stops at an element or a text).
+  * `layoutAll` and `relayout` keep the invariant.
   */
 private[tui4s] final case class Laid(
     nodes: Map[Loc, Node],
@@ -85,7 +85,9 @@ private[tui4s] final case class Laid(
           nodes
             .get(p)
             .iterator
-            .flatMap(n => Iterator.single(p) ++ n.kids.iterator.flatMap(subtree))
+            .flatMap(n =>
+              Iterator.single(p) ++ n.kids.iterator.flatMap(subtree),
+            )
         Laid(
           nodes -- subtree(prefix),
           regionOwner.filterNot((r, o) =>
@@ -135,11 +137,11 @@ private[tui4s] object Layout:
         def close: Wrap = Wrap(done ++ open.map(_.text), None)
 
     /** The lines of `text` in `width` cells (at least 1). Greedy: a word goes
-      * on the open line if it fits, else it opens a new line; a word wider
-      * than the width is split by [[chunksByWidth]]. One fold carries the
-      * width of the open line. The width of `a + " " + b` is `textWidth(a) + 1
-      * + textWidth(b)` (jatatui adds the widths of the code points), so each
-      * word is measured once.
+      * on the open line if it fits, else it opens a new line; a word wider than
+      * the width is split by [[chunksByWidth]]. One fold carries the width of
+      * the open line. The width of `a + " " + b` is `textWidth(a) + 1 +
+      * textWidth(b)` (jatatui adds the widths of the code points), so each word
+      * is measured once.
       */
     // claude 2026-10-19: changed: one fold that carries the width of the open
     // line (PF-a, F4)
@@ -161,6 +163,7 @@ private[tui4s] object Layout:
                       acc.close.done ++ chunks.dropRight(1),
                       chunks.lastOption.map(c => Line(Vector(c), lastW)),
                     )
+              end match
             }
             .close
             .done
@@ -169,9 +172,9 @@ private[tui4s] object Layout:
     end wrap
 
     /** Splits a word into pieces of at most `w` cells, and gives the width of
-      * the last piece. The split is at a code point border: a wide character
-      * or a surrogate pair does not split, and a code point wider than `w` is
-      * a piece alone. One walk over the code points carries the start and the
+      * the last piece. The split is at a code point border: a wide character or
+      * a surrogate pair does not split, and a code point wider than `w` is a
+      * piece alone. One walk over the code points carries the start and the
       * width of the open piece.
       */
     // claude 2026-10-12: created (PR #10 review: Codex, Layout.scala:114)
@@ -179,7 +182,12 @@ private[tui4s] object Layout:
     // piece (PF-a, F4)
     private def chunksByWidth(word: String, w: Int): (Vector[String], Int) =
         @annotation.tailrec
-        def go(i: Int, start: Int, cw: Int, done: Vector[String]): (Vector[String], Int) =
+        def go(
+            i: Int,
+            start: Int,
+            cw: Int,
+            done: Vector[String],
+        ): (Vector[String], Int) =
           if i >= word.length then
               if i > start then (done :+ word.substring(start, i), cw)
               else (done, 0)
@@ -211,7 +219,11 @@ private[tui4s] object Layout:
           case r: RawHtml       =>
             Flat(
               Vector(
-                Item(path, Text(htmlTag.matcher(r.value).replaceAll("")), regions),
+                Item(
+                  path,
+                  Text(htmlTag.matcher(r.value).replaceAll("")),
+                  regions,
+                ),
               ),
               Vector.empty,
             )

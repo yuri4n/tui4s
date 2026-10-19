@@ -53,7 +53,7 @@ class AppsTest extends RunnerSuite:
           _     <- h.key(Keyboard.Enter)                            // Left +
           _     <- h.key(Keyboard.Tab).andThen(h.key(Keyboard.Tab)) // Right +
           _     <- h.key(Keyboard.Enter).andThen(h.key(Keyboard.Enter))
-          _     <- h.key(Keyboard.Tab, Modifiers(shift = true))                // back to Left -
+          _     <- h.key(Keyboard.Tab, Modifiers(shift = true))     // back to Left -
           _     <- h.key(Keyboard.Enter)
           lines <- h.lines
           row    = lines.find(_.contains("Count:")).getOrElse("")
@@ -268,7 +268,10 @@ class AppsTest extends RunnerSuite:
                      scr =>
                        scr.rows.indexWhere(_.contains("walk dog")) >= 0 && {
                          val y = scr.rows.indexWhere(_.contains("walk dog"))
-                         scr.styleAt(2, y).bg.contains(CellColor.Rgb(0x63, 0x66, 0xf1)) // indigo
+                         scr
+                           .styleAt(2, y)
+                           .bg
+                           .contains(CellColor.Rgb(0x63, 0x66, 0xf1)) // indigo
                        },
                      2.seconds,
                    )

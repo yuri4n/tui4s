@@ -48,7 +48,9 @@ class DispatchTest extends RunnerSuite:
                   ),
                 )
           fs <- Kyo.foreach(1 to 4)(_ => h.key(Keyboard.Tab))
-          bs <- Kyo.foreach(1 to 2)(_ => h.key(Keyboard.Tab, Modifiers(shift = true)))
+          bs <- Kyo.foreach(1 to 2)(_ =>
+                  h.key(Keyboard.Tab, Modifiers(shift = true)),
+                )
       yield
           val order = (fs ++ bs).map(focusOf)
           assert(order == Seq("a", "b", "c", "a", "c", "b"), s"$order")

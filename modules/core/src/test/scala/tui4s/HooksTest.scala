@@ -14,8 +14,8 @@ import java.util.concurrent.atomic.AtomicInteger
 // claude 2026-10-13: created (C4)
 class HooksTest extends ComponentSuite:
 
-    /** The deprecated `useSignal`, for its own leaf below: the one use of it
-      * in the build.
+    /** The deprecated `useSignal`, for its own leaf below: the one use of it in
+      * the build.
       */
     // claude 2026-10-19: created (P1b, A5 f)
     @scala.annotation.nowarn("cat=deprecation")
@@ -31,11 +31,11 @@ class HooksTest extends ComponentSuite:
     // claude 2026-10-19: created (P1b, A5 e): the hooks that start a fiber
     // need Sync and Scope, not Async (this leaf does not compile otherwise)
     "useHold, useFold, useEffect and useInterval run in Sync & Scope" in {
-      val hold: Signal[Int] < (Sync & Scope)   = useHold(1)(Stream.init(Seq(2)))
-      val fold: Signal[Int] < (Sync & Scope)   =
+      val hold: Signal[Int] < (Sync & Scope) = useHold(1)(Stream.init(Seq(2)))
+      val fold: Signal[Int] < (Sync & Scope) =
         useFold(0)(Stream.init(Seq(1, 2)))(_ + _)
-      val effect: Unit < (Sync & Scope)        = useEffect(Kyo.unit)
-      val interval: Unit < (Sync & Scope)      = useInterval(1.hour)(Kyo.unit)
+      val effect: Unit < (Sync & Scope)      = useEffect(Kyo.unit)
+      val interval: Unit < (Sync & Scope)    = useInterval(1.hour)(Kyo.unit)
       Scope.run(
         for
             h <- hold
@@ -213,11 +213,13 @@ class HooksTest extends ComponentSuite:
           refs  <- AtomicRef.init(Map.empty[String, SignalRef[Int]])
           row    = (k: String) =>
                      component(k)(
-                       Signal.initRef(0).map(c =>
-                         refs
-                           .updateAndGet(_ + (k -> c))
-                           .andThen(span(c.map(n => s"[$k=$n]"))),
-                       ),
+                       Signal
+                         .initRef(0)
+                         .map(c =>
+                           refs
+                             .updateAndGet(_ + (k -> c))
+                             .andThen(span(c.map(n => s"[$k=$n]"))),
+                         ),
                      )
           h     <-
             Headless.start(30, 5)(_ => div(items.foreachKeyed(identity)(row)))
@@ -245,11 +247,13 @@ class HooksTest extends ComponentSuite:
             div(
               span(s"[rev=$r]"),
               user.render(u =>
-                  val body = Signal.initRef(0).map(c =>
-                    refs
-                      .updateAndGet(_ + (u -> c))
-                      .andThen(span(c.map(n => s"[$u=$n]"))),
-                  )
+                  val body = Signal
+                    .initRef(0)
+                    .map(c =>
+                      refs
+                        .updateAndGet(_ + (u -> c))
+                        .andThen(span(c.map(n => s"[$u=$n]"))),
+                    )
                   if keyed then component(u)(body) else component(body),
               ),
             ),
@@ -309,9 +313,11 @@ class HooksTest extends ComponentSuite:
       for
           shown <- Signal.initRef(true)
           refs  <- AtomicRef.init(Option.empty[SignalRef[Int]])
-          hook   = Signal.initRef(0).map(c =>
-                     refs.set(Some(c)).andThen(span(c.map(n => s"[hook=$n]"))),
-                   )
+          hook   = Signal
+                     .initRef(0)
+                     .map(c =>
+                       refs.set(Some(c)).andThen(span(c.map(n => s"[hook=$n]"))),
+                     )
           h     <- Headless.start(30, 5)(_ =>
                      div(when(shown)(div(component(hook), Box().ui))),
                    )

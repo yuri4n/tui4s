@@ -14,8 +14,8 @@ import kyo.UI.*
 import tui4s.{Tui, TuiApp}
 
 /** The Counter: a kyo-ui UI with one piece of state (a `SignalRef`), key
-  * handlers and two buttons. `+` and `-` change the count, Tab moves between the
-  * buttons, Enter and Space press them, `q` quits (and so does Ctrl-C).
+  * handlers and two buttons. `+` and `-` change the count, Tab moves between
+  * the buttons, Enter and Space press them, `q` quits (and so does Ctrl-C).
   */
 object Counter:
 

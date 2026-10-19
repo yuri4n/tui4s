@@ -17,14 +17,14 @@
   * an app without a terminal and sends it keys. Components come in two styles:
   * [[tui4s.Hooks]] (a component is a function with `Signal.initRef`,
   * `useEffect`, `useInterval`, ...; `component(key)` lets the runner mount it)
-  * and the class
-  * [[tui4s.Component]] (a `State` type member; the runner keeps the state under
-  * the position and the state key). A component in a `when` loses its state
-  * when it is hidden, and the fibers of the components and hooks end with the
-  * run. [[tui4s.TuiApp]] is the main class of an app: it prepares the JVM (the
-  * scheduler values of [[tui4s.spi.SchedulerDefaults]], the output capture),
-  * runs the UI with `Tui.run`, and gives the exit code (0 after a quit, 1 after
-  * a failure; 143 and 130 when `kill -TERM` and `kill -INT` stop the JVM).
+  * and the class [[tui4s.Component]] (a `State` type member; the runner keeps
+  * the state under the position and the state key). A component in a `when`
+  * loses its state when it is hidden, and the fibers of the components and
+  * hooks end with the run. [[tui4s.TuiApp]] is the main class of an app: it
+  * prepares the JVM (the scheduler values of [[tui4s.spi.SchedulerDefaults]],
+  * the output capture), runs the UI with `Tui.run`, and gives the exit code (0
+  * after a quit, 1 after a failure; 143 and 130 when `kill -TERM` and
+  * `kill -INT` stop the JVM).
   */
 // claude 2026-10-12: created (OS-13 part): the package Scaladoc; changed:
 // plain words instead of the pull request ids (review R1-4, R2-3); changed:

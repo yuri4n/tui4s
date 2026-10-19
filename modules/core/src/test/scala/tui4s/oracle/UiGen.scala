@@ -7,10 +7,10 @@ import kyo.test.prop.Gen
 import tui4s.internal.*
 
 /** Random kyo-ui trees for the oracle properties of the frame path (PF-a). A
-  * tree has elements, texts, fragments and the two kinds of regions
-  * (`Reactive` and `Foreach`). Each region has two contents: scene A shows the
-  * first one, scene B the second one. A step from scene A to scene B is a
-  * change of every region, as the runner sees it.
+  * tree has elements, texts, fragments and the two kinds of regions (`Reactive`
+  * and `Foreach`). Each region has two contents: scene A shows the first one,
+  * scene B the second one. A step from scene A to scene B is a change of every
+  * region, as the runner sees it.
   *
   * All generators are explicit values (no `Gen.derive`, no given `Gen`).
   */
@@ -24,7 +24,6 @@ object UiGen:
         case Frag(kids: List[Spec])
         case Reac(a: Spec, b: Spec)
         case Each(a: List[(String, Spec)], b: List[(String, Spec)])
-    end Spec
 
     /** A UI and the contents of its regions in scene A and in scene B. */
     final case class Built(
@@ -117,36 +116,37 @@ object UiGen:
             case 5 => Style.textAlign(_.center)
             case _ => Style.empty
         el match
-            case d: Div     => d.style(s)
-            case d: P       => d.style(s)
+            case d: Div                => d.style(s)
+            case d: P                  => d.style(s)
             case d: UI.Ast.SpanElement => d.style(s)
-            case d: Section => d.style(s)
-            case d: Ul      => d.style(s)
-            case other      => other
-        end match
+            case d: Section            => d.style(s)
+            case d: Ul                 => d.style(s)
+            case other                 => other
     end styled
 
     private def withKids(el: Element, cs: Chunk[UI]): UI = el match
-        case d: Div     => d.copy(children = cs)(using d.frame)
-        case d: P       => d.copy(children = cs)(using d.frame)
+        case d: Div                => d.copy(children = cs)(using d.frame)
+        case d: P                  => d.copy(children = cs)(using d.frame)
         case d: UI.Ast.SpanElement => d.copy(children = cs)(using d.frame)
-        case d: Section => d.copy(children = cs)(using d.frame)
-        case d: Ul      => d.copy(children = cs)(using d.frame)
-        case other      => other
+        case d: Section            => d.copy(children = cs)(using d.frame)
+        case d: Ul                 => d.copy(children = cs)(using d.frame)
+        case other                 => other
 
     /** Builds the UI of `s` at `path` and the contents of its regions. */
     def build(s: Spec, path: Loc)(using Frame): Built =
       s match
           case Spec.Txt(t)              => Built(UI.Ast.Text(t), Map.empty, Map.empty)
           case Spec.Box(tag, style, ks) =>
-            val built = ks.zipWithIndex.map((k, i) => build(k, path :+ i.toString))
+            val built =
+              ks.zipWithIndex.map((k, i) => build(k, path :+ i.toString))
             Built(
               withKids(styled(tag, style), Chunk.from(built.map(_.ui))),
               built.foldLeft(Map.empty[Loc, Content])(_ ++ _.a),
               built.foldLeft(Map.empty[Loc, Content])(_ ++ _.b),
             )
           case Spec.Frag(ks)            =>
-            val built = ks.zipWithIndex.map((k, i) => build(k, path :+ i.toString))
+            val built =
+              ks.zipWithIndex.map((k, i) => build(k, path :+ i.toString))
             Built(
               Fragment[UI](Chunk.from(built.map(_.ui))),
               built.foldLeft(Map.empty[Loc, Content])(_ ++ _.a),
@@ -170,9 +170,15 @@ object UiGen:
                 (_, _) => UI.Ast.Text(""),
               ),
               ia.foldLeft(Map.empty[Loc, Content])(_ ++ _._2.a)
-                .updated(path, Content.Many(ia.map((k, b) => (k, b.ui)).toVector)),
+                .updated(
+                  path,
+                  Content.Many(ia.map((k, b) => (k, b.ui)).toVector),
+                ),
               ib.foldLeft(Map.empty[Loc, Content])(_ ++ _._2.b)
-                .updated(path, Content.Many(ib.map((k, b) => (k, b.ui)).toVector)),
+                .updated(
+                  path,
+                  Content.Many(ib.map((k, b) => (k, b.ui)).toVector),
+                ),
             )
 
     /** A root element (at `Loc.root`) of at most `depth` levels, with its

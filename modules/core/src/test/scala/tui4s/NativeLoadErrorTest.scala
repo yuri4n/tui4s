@@ -116,7 +116,9 @@ class NativeLoadErrorTest extends Test[Any]:
         TuiError.NativeLoadFailed(io),
         TuiError.TerminalIO(io),
       )
-      assert(errors.forall(e => (e.getCause eq io) && (TuiError.causeOf(e) eq io)))
+      assert(
+        errors.forall(e => (e.getCause eq io) && (TuiError.causeOf(e) eq io)),
+      )
       assert(errors.forall(_.getStackTrace.isEmpty))
       assert(io.getStackTrace.nonEmpty)
     }

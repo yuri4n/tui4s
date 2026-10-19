@@ -629,7 +629,9 @@ class ComponentTest extends ComponentSuite:
           h   <- Headless.start(30, 4, options)(_ => slowApp(4.seconds))
           _   <- Fiber.initUnscoped(h.char('s'))
           _   <- Async.sleep(300.millis)
-          _   <- Fiber.initUnscoped(h.key(Keyboard.Char('c'), Modifiers(ctrl = true)))
+          _   <- Fiber.initUnscoped(
+                   h.key(Keyboard.Char('c'), Modifiers(ctrl = true)),
+                 )
           fin <- h.awaitEnd(1.second)
       yield assert(
         fin,

@@ -78,8 +78,8 @@ object Hooks:
           _   <- Fiber.init(stream.foreach(ref.set)).map(Tui4sTrack(_))
       yield ref
 
-    /** A signal folding `stream` into a state. The stream runs in a fiber
-      * while the enclosing `Scope` is open; the hook itself does not suspend.
+    /** A signal folding `stream` into a state. The stream runs in a fiber while
+      * the enclosing `Scope` is open; the hook itself does not suspend.
       *
       * {{{
       * def total(amounts: Stream[Int, Async]): UI < (Sync & Scope) =

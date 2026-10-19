@@ -28,16 +28,32 @@ class ScreenTest extends Test[Any]:
     // claude 2026-10-19: created (P1b, A5 d)
     "CellColor: RGB, a palette index, the 16 names, and Reset as unset" in {
       import jatatui.core.style.Color as JColor
-      assert(CellColor.of(JColor.Rgb(99, 102, 241)).contains(CellColor.Rgb(99, 102, 241)))
+      assert(
+        CellColor
+          .of(JColor.Rgb(99, 102, 241))
+          .contains(CellColor.Rgb(99, 102, 241)),
+      )
       assert(CellColor.of(JColor.Indexed(42)).contains(CellColor.Indexed(42)))
       assert(CellColor.of(JColor.LIGHT_BLUE).contains(CellColor.LightBlue))
       assert(CellColor.of(JColor.DARK_GRAY).contains(CellColor.DarkGray))
       assert(CellColor.of(JColor.RESET).isEmpty)
       val named = Seq(
-        JColor.BLACK, JColor.RED, JColor.GREEN, JColor.YELLOW, JColor.BLUE,
-        JColor.MAGENTA, JColor.CYAN, JColor.GRAY, JColor.DARK_GRAY,
-        JColor.LIGHT_RED, JColor.LIGHT_GREEN, JColor.LIGHT_YELLOW,
-        JColor.LIGHT_BLUE, JColor.LIGHT_MAGENTA, JColor.LIGHT_CYAN, JColor.WHITE,
+        JColor.BLACK,
+        JColor.RED,
+        JColor.GREEN,
+        JColor.YELLOW,
+        JColor.BLUE,
+        JColor.MAGENTA,
+        JColor.CYAN,
+        JColor.GRAY,
+        JColor.DARK_GRAY,
+        JColor.LIGHT_RED,
+        JColor.LIGHT_GREEN,
+        JColor.LIGHT_YELLOW,
+        JColor.LIGHT_BLUE,
+        JColor.LIGHT_MAGENTA,
+        JColor.LIGHT_CYAN,
+        JColor.WHITE,
       ).flatMap(CellColor.of)
       assert(named.distinct.size == 16)
     }

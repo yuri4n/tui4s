@@ -7,7 +7,6 @@ import tui4s.testkit.{Headless, Screen}
 
 class TabsSuite extends FunSuite:
 
-
     private def run[A](v: => A < (Async & Scope))(using Frame): A =
         import AllowUnsafe.embrace.danger
         KyoApp.Unsafe.runAndBlock(30.seconds)(v).getOrThrow
@@ -47,7 +46,10 @@ class TabsSuite extends FunSuite:
       val (initial, next, entered) = run {
         for
             h       <- Headless.start(40, 5)(_ =>
-                         new Tabs("One", "Two", "Three")(initialTab = -1, panel = panel).ui,
+                         new Tabs("One", "Two", "Three")(
+                           initialTab = -1,
+                           panel = panel,
+                         ).ui,
                        )
             initial <- h.screen
             _       <- h.key(Keyboard.ArrowRight)

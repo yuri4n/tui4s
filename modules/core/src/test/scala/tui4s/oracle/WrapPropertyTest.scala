@@ -4,12 +4,12 @@ import kyo.*
 import kyo.test.prop.{Gen, PropertyTest}
 import tui4s.internal.Layout
 
-/** F4: the wrap as one fold that carries the width. It must give the same
-  * lines as the old wrap ([[WrapOracle]]) for texts with spaces, double
-  * spaces, line breaks, wide characters, emoji, combining marks, lone
-  * surrogates and long tokens, at widths 1 to 120. The fold relies on the
-  * width additivity of jatatui's `Span.width` across a space and across a code
-  * point border; two more properties check it.
+/** F4: the wrap as one fold that carries the width. It must give the same lines
+  * as the old wrap ([[WrapOracle]]) for texts with spaces, double spaces, line
+  * breaks, wide characters, emoji, combining marks, lone surrogates and long
+  * tokens, at widths 1 to 120. The fold relies on the width additivity of
+  * jatatui's `Span.width` across a space and across a code point border; two
+  * more properties check it.
   */
 // claude 2026-10-19: created (PF-a, F4)
 class WrapPropertyTest extends PropertyTest[Any]:

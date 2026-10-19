@@ -13,7 +13,9 @@ class LaidWithoutPropertyTest extends PropertyTest[Any]:
     override protected def numSamples: Int = 200
 
     private def sameForEveryNode(laid: Laid): Boolean =
-      laid.nodes.keys.forall(p => laid.without(p) == LaidOracle.without(laid, p))
+      laid.nodes.keys.forall(p =>
+        laid.without(p) == LaidOracle.without(laid, p),
+      )
 
     "Laid.without equals the old filter" - {
       forAll(UiGen.built(5), UiGen.size) { (b, size) =>

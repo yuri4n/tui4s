@@ -306,11 +306,12 @@ private[tui4s] object Paint:
     ): Unit =
       laid.nodes.get(p).foreach { n =>
         n.kind match
-            case Kind.Screen                          =>
+            case Kind.Screen                         =>
               n.kids.foreach(k => paintNode(canvas, laid, env, k, n.rect))
             case _ if n.rect.intersect(clip).isEmpty => ()
-            case Kind.Txt(text, wrapped)              =>
-              val lines = Layout.textLines(n.props.text(text), n.rect.w, wrapped)
+            case Kind.Txt(text, wrapped)             =>
+              val lines =
+                Layout.textLines(n.props.text(text), n.rect.w, wrapped)
               val style = n.props.text.style
               val area  = n.rect.intersect(clip)
               visibleRows(n.rect, area).foreach { i =>
@@ -324,7 +325,7 @@ private[tui4s] object Paint:
                   discard(canvas.text(x, n.rect.y + i, line, style, area))
                 }
               }
-            case Kind.El(e)                           =>
+            case Kind.El(e)                          =>
               val area  = n.rect.intersect(clip)
               n.props.bg.foreach(bg => canvas.fillBg(n.rect, bg, clip))
               n.props.border

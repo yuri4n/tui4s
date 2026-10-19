@@ -33,8 +33,8 @@ end CellColor
 object CellColor:
     /** The colour of a jatatui cell. Reset (no colour set) is `None`. */
     private[tui4s] def of(c: JColor): Option[CellColor] = c match
-        case rgb: JColor.Rgb     => Some(Rgb(rgb.r, rgb.g, rgb.b))
-        case idx: JColor.Indexed => Some(Indexed(idx.i))
+        case rgb: JColor.Rgb        => Some(Rgb(rgb.r, rgb.g, rgb.b))
+        case idx: JColor.Indexed    => Some(Indexed(idx.i))
         case _: JColor.Black        => Some(Black)
         case _: JColor.Red          => Some(Red)
         case _: JColor.Green        => Some(Green)

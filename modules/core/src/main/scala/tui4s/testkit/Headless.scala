@@ -185,8 +185,7 @@ final class Headless private (
       * has `shift`), and waits for the frame of each key. A line break `\r\n`
       * is one Enter. A character outside the Basic Multilingual Plane (an
       * emoji) is one key `Keyboard.Unknown(<the character>)`, as kyo-ui's
-      * `Keyboard.fromString` gives it. The frames are in the order of the
-      * keys.
+      * `Keyboard.fromString` gives it. The frames are in the order of the keys.
       *
       * {{{
       * for

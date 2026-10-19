@@ -13,10 +13,10 @@ private[tui4s] object Loc:
     val screen: Loc = Vector.empty
     val root: Loc   = Vector("0")
 
-    /** The paths of `ps` that are not under another path of `ps`, in the
-      * order of `ps` (a duplicate stays). A path is under another path of `ps`
-      * when one of its proper prefixes is in `ps`. So the cost is O(n x h^2)
-      * for n paths of depth h, not O(n^2 x h) as for a compare of each pair.
+    /** The paths of `ps` that are not under another path of `ps`, in the order
+      * of `ps` (a duplicate stays). A path is under another path of `ps` when
+      * one of its proper prefixes is in `ps`. So the cost is O(n x h^2) for n
+      * paths of depth h, not O(n^2 x h) as for a compare of each pair.
       */
     // claude 2026-10-19: created (PF-a, F2): the filter of Paint and Runner
     def tops(ps: Vector[Loc]): Vector[Loc] =

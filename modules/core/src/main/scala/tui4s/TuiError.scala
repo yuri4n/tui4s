@@ -9,10 +9,10 @@ import scala.util.control.NoStackTrace
   * The errors of a run are in three groups:
   *   - Infrastructure: the four cases of `TuiError`. The terminal or the JVM
   *     failed. They come out of the run in `Abort[TuiError]`.
-  *   - Application failures: the app itself failed (the construction of the
-  *     UI fails, or `TuiApp.onExit` fails). Such a failure is not a
-  *     `TuiError`. It comes out of the run as it is, after the terminal is
-  *     restored. A handler that fails is logged, and the run goes on.
+  *   - Application failures: the app itself failed (the construction of the UI
+  *     fails, or `TuiApp.onExit` fails). Such a failure is not a `TuiError`. It
+  *     comes out of the run as it is, after the terminal is restored. A handler
+  *     that fails is logged, and the run goes on.
   *   - Panics: an exception that nobody expected. [[TuiApp]] catches it once,
   *     in its report: it prints the stack trace and gives the exit code 1.
   *

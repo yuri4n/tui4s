@@ -23,9 +23,9 @@ object Dashboard:
     /** The series: one tab for each. The tabs need a first label. */
     // claude 2026-10-19: changed: the first series and the others, for the
     // tabs (P1b, A5 g)
-    val firstSeries: String       = "CPU"
-    val otherSeries: Seq[String]  = Seq("Memory", "Network")
-    val series: Seq[String]       = firstSeries +: otherSeries
+    val firstSeries: String      = "CPU"
+    val otherSeries: Seq[String] = Seq("Memory", "Network")
+    val series: Seq[String]      = firstSeries +: otherSeries
 
     /** One sample of every series, and the last 40 samples of each. One ref, so
       * one tick is one atomic change.

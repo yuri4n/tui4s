@@ -4,8 +4,8 @@ import kyo.UI.Ast.Foreach
 import tui4s.internal.*
 
 /** The oracle of F8: `Mount.reconcile` with its `keysOf`, and the compare of
-  * the verify pass (`Runner.verifyRegion`, the `Foreach` case), as they were
-  * at commit 95bcf2a, copied without a change (only `private` is gone). Do not
+  * the verify pass (`Runner.verifyRegion`, the `Foreach` case), as they were at
+  * commit 95bcf2a, copied without a change (only `private` is gone). Do not
   * change them: the new code must give equal items and the same answer.
   */
 // claude 2026-10-19: created (PF-a, F8): a private copy of the old code
