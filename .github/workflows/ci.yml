@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [main]
+  # claude 2026-10-19: created: a manual run for a feature branch (D18: no pull requests; CI runs on demand)
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}

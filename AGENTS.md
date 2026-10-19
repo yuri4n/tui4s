@@ -428,6 +428,11 @@ tests then allow 1 split frame).
 - Property tests use kyo-test-prop (`PropertyTest[S]`, `Gen`, `Shrink`) under
   the kyo-test framework, with explicit `Gen` values. Do not use `Gen.derive`
   or a given `Gen` for a domain type.
+- The skills `functional-design` and `scala-functional-design` are the rules
+  of the rewrite. They are not in this repo. Install them from
+  <https://github.com/yuri4n/functional-design-skills> (a Claude Code plugin
+  marketplace), or copy its `skills/` directory into `~/.claude/skills`.
+  <!-- claude 2026-10-19: created this item (D19: the skills leave the repo) -->
 
 ## Dependencies and versions
 

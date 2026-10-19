@@ -46,6 +46,10 @@ docs/.env
 # Local agent scratch space (reports, probes, handoff notes)
 .work/
 
+# Claude Code skills live in github.com/yuri4n/functional-design-skills, not here
+# claude 2026-10-19: created (D19: the skills leave the repo)
+.claude/skills/
+
 # Nix / direnv
 .direnv/
 /result
