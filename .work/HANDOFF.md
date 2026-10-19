@@ -84,7 +84,7 @@
   maven-central must accept the tags use-v* and widgets-v*. Open: Kyo Signal.observe can miss a write and repairs
   within 1 s (documented); useProcess's blocking stdout read holds a scheduler thread; LocalStorage (JS) untested on
   Node (no window); Lines.split ends lines only at LF.
-- D25 (open, GitHub issue): artifact split runner/app/testkit + composite core; decide before L3.
+- D25 DECIDED (issue #17): artifact split runner/app/testkit + composite core, one agent, right after L2b, before L3.
 - NEXT: L2b tui4s-widgets (the catalog of realapp-web.json PART B; widgets may depend on use) + a gallery example;
   examples.widgets (TabsView) moves into the module.
 - (history) L1 ran in three workflows (cheap cadence: implementer + API/examples reviewer + fixer, Opus): L1a viewport scroll

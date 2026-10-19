@@ -311,7 +311,7 @@ The user answered the five launch questions (chat, 2026-10-19):
   in the ReleaseStack edge file) only as a second guard; no test needs it.
   Option: drop the copy, use `fiber.get`, and reword OS-34. Harmless as is.
 <!-- claude 2026-10-19: created D24 -->
-- D25 (2026-10-19, user, TO DISCUSS LATER; tracked as a GitHub issue): split
+- D25 (2026-10-19, user: DECIDED "do it before L3"; GitHub issue #17): split
   the artifacts in this repo into `tui4s-runner` (renderer + embedder +
   component model, `Tui.run`, `TuiOptions`, `Tui.size`, `spi`), `tui4s-app`
   (`TuiApp`), `tui4s-testkit` (`Headless`, `Screen`), and a composite
