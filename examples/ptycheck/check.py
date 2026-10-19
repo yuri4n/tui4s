@@ -373,12 +373,15 @@ if os.path.exists(classload):
 
     scala = n(lambda l: "scala3-library" in base(l) or "scala-library" in base(l))
     jatatui = n(lambda l: "jatatui" in base(l) or base(l).startswith("crossterm-"))
-    core = n(lambda l: "tui4s-core" in base(l) or "modules/core/target" in source(l))
+    # claude 2026-10-19: changed (D25): the classes of the split of the core, by artifact (the composite tui4s-core
+    # holds only tui4s.Core)
+    def tui4s(m):
+        return n(lambda l: base(l).find("tui4s-" + m) >= 0 or ("modules/" + m + "/target") in source(l))
     examples = n(lambda l: "tui4s-examples" in base(l) or re.search(r"examples/target/scala-[^/]+/classes", source(l)) is not None)
     print(f"INFO class-load (examples/target/bin/counter, start, first frame, q): {len(loaded)} classes;"
           f" JDK {jdk}; Scala {scala}; Kyo {jar('kyo-')}"
           f" (kyo-ui {jar('kyo-ui')}, kyo-http {jar('kyo-http')}, kyo-net {jar('kyo-net')}); jatatui {jatatui};"
-          f" tui4s core {core};"
+          f" tui4s runner {tui4s('runner')}, app {tui4s('app')}, testkit {tui4s('testkit')}, core {tui4s('core')};"
           f" examples {examples} ({classload})")
 else:
     print(f"INFO class-load: no {classload}")

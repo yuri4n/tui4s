@@ -13,20 +13,21 @@
 #
 # Usage: bash scripts/edge-check.sh (CI runs it; see AGENTS.md).
 # claude 2026-10-17: created (purity plan, phase P0)
+# claude 2026-10-19: changed: the edge files are in modules/runner (D25)
 set -euo pipefail
 
 CDPATH='' cd "$(dirname "$0")/.."
 
 edge=(
-  modules/core/src/main/scala/tui4s/internal/Canvas.scala
-  modules/core/src/main/scala/tui4s/internal/Crossterm.scala
-  modules/core/src/main/scala/tui4s/internal/LogSink.scala
-  modules/core/src/main/scala/tui4s/internal/OutputCapture.scala
-  modules/core/src/main/scala/tui4s/internal/ReleaseStack.scala
-  modules/core/src/main/scala/tui4s/internal/SchedulerProbe.scala
-  modules/core/src/main/scala/tui4s/internal/Session.scala
-  modules/core/src/main/scala/tui4s/internal/TerminalIO.scala
-  modules/core/src/main/scala/tui4s/internal/TuiLog.scala
+  modules/runner/src/main/scala/tui4s/internal/Canvas.scala
+  modules/runner/src/main/scala/tui4s/internal/Crossterm.scala
+  modules/runner/src/main/scala/tui4s/internal/LogSink.scala
+  modules/runner/src/main/scala/tui4s/internal/OutputCapture.scala
+  modules/runner/src/main/scala/tui4s/internal/ReleaseStack.scala
+  modules/runner/src/main/scala/tui4s/internal/SchedulerProbe.scala
+  modules/runner/src/main/scala/tui4s/internal/Session.scala
+  modules/runner/src/main/scala/tui4s/internal/TerminalIO.scala
+  modules/runner/src/main/scala/tui4s/internal/TuiLog.scala
 )
 
 is_edge() {

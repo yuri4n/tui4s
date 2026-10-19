@@ -20,8 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     # claude 2026-10-12: created: sbt-tpolecat CI mode, a warning fails the build (D-8)
     # claude 2026-10-13: changed: TUI4S_LOAD, the load flag of the glitch tests:
-    # modules/core/build.sbt gives the test JVM -Dtui4s.load=1, which allows 1
+    # runnerTestSettings (build.sbt) gives the test JVM -Dtui4s.load=1, which allows 1
     # split frame in 500 events on a loaded runner (gate 1 item 2; AGENTS.md)
+    # claude 2026-10-19: changed: runnerTestSettings, not modules/core/build.sbt (D25)
     env:
       SBT_TPOLECAT_CI: "1"
       TUI4S_LOAD: "1"
@@ -84,7 +85,8 @@ jobs:
     runs-on: ubuntu-latest
     # SBT_TPOLECAT_CI: the sbt step of run.sh (examples/launchers) compiles
     # with the CI flags, as the sbt job does. TUI4S_LOAD is for the glitch
-    # tests of the core, which this job does not run.
+    # tests of the core (the integration suites), which this job does not run.
+    # claude 2026-10-19: changed: the integration suites of the core (D25)
     env:
       SBT_TPOLECAT_CI: "1"
     steps:
