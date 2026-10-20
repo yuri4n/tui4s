@@ -1,10 +1,12 @@
 <!-- claude 2026-10-20: created (L6, ADR 0014) -->
 # Changelog
 
+<!-- claude 2026-10-20: changed: CONTRIBUTING.md names the versioning rules (ADR 0021) -->
 All notable changes to the published modules of tui4s are in this file. The
 format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each
 module has its own version and its own tag (`<module>-v<version>`); the
-versions follow early semantic versioning (AGENTS.md, "Compatibility").
+versions follow early semantic versioning (CONTRIBUTING.md, "Compatibility
+and versioning").
 
 The first release is planned as `0.1.0-RC1` for each module: a release
 candidate, because Kyo and kyo-ui are at 1.0.0-RC7. Nothing is published yet.

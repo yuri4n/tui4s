@@ -32,7 +32,7 @@ Accepted
 
 ## Alternatives considered
 
-- **A separate UI core repository.** Rejected: "There is no separate UI core repository" (AGENTS.md). tui4s owns the terminal rendering and its mount identity; the widgets stay plain kyo-ui. The reason for the repository choice is not recorded beyond that.
+- **A separate UI core repository.** Rejected: "There is no separate UI core repository" (CONTRIBUTING.md). tui4s owns the terminal rendering and its mount identity; the widgets stay plain kyo-ui. The reason for the repository choice is not recorded beyond that. <!-- claude 2026-10-20: changed: CONTRIBUTING.md, not AGENTS.md (ADR 0021) -->
 - **Widgets inside `tui4s-core`.** Rejected by D6 ("no dependency on core"). The notes do not state the reason. The obvious one: `tui4s-core` is JVM-only (the crossterm JNI), and a widget must also run on Scala.js.
 - **An own render engine for the web and the terminal.** Estimated at 6k to 12k lines (engine 3-5k, widgets 2-4k, web client 1-2k) and several months. Rejected for the hybrid: plain kyo-ui widgets, and units and a theme fixed instead.
 - **Model and event wrappers over Kyo signals.** Rejected by the user's experiments: no simpler call site.
@@ -49,5 +49,5 @@ Accepted
 ## References
 
 - Roadmap: 2.6, D6, D7, D8. Handoff: L2a, L2b.
-- AGENTS.md: "UI architecture and API design" (the use and widgets items).
+- CONTRIBUTING.md: "UI architecture and API design" (the use and widgets items). <!-- claude 2026-10-20: changed: CONTRIBUTING.md, not AGENTS.md (ADR 0021) -->
 - README: "Composables (tui4s-use)", "Widgets (tui4s-widgets)".

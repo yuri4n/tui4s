@@ -196,11 +196,12 @@ private[tui4s] object ReleaseStack:
             .defer {
               stop.run = Present(fiber)
               // The caller waits on a copy of the result, not on the run fiber
-              // (AGENTS.md: never join the run fiber from an interruptible
-              // wait). An interrupt of the caller ends this wait at once, and
-              // the releases of the brackets interrupt the run and restore the
-              // terminal. Kyo 1.0.0-RC7 also ends a join at once on an
-              // interrupt, so this copy is a second guard: no test needs it.
+              // (CONTRIBUTING.md: never join the run fiber from an
+              // interruptible wait). An interrupt of the caller ends this wait
+              // at once, and the releases of the brackets interrupt the run and
+              // restore the terminal. Kyo 1.0.0-RC7 also ends a join at once on
+              // an interrupt, so this copy is a second guard: no test needs it.
+              // claude 2026-10-20: changed: CONTRIBUTING.md (ADR 0021)
               val end = Promise.Unsafe.init[Unit, Abort[TuiError]]()
               fiber.unsafe.onComplete(end.completeDiscard)
               end.safe

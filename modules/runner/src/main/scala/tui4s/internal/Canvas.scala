@@ -28,9 +28,9 @@ import scala.jdk.CollectionConverters.*
   * cells of `back` that differ from `front`). Each one states its law.
   *
   * Threads: the runner fiber calls `write`, `diff`, `flush`, `resize` and
-  * `size`; one fiber draws (AGENTS.md). Another thread can call `read` and
-  * `cells` (the headless kit) and `close` (the release of the terminal, also
-  * from the JVM shutdown hook). The backend's monitor orders them: `diff`,
+  * `size`; one fiber draws (CONTRIBUTING.md). Another thread can call `read`
+  * and `cells` (the headless kit) and `close` (the release of the terminal,
+  * also from the JVM shutdown hook). The backend's monitor orders them: `diff`,
   * `flush`, `resize`, `read`, `cells` and `close` take it; `write` and `size`
   * do not (they touch only `back`). So:
   *   - `read` and `cells` never see a half of a frame: `diff` changes `front`
@@ -39,7 +39,8 @@ import scala.jdk.CollectionConverters.*
   *     the backend: `flush` and `resize` check `closed` under the monitor. The
   *     release restores the terminal only after the last frame.
   */
-// claude 2026-10-19: created (P5): the one Canvas seam
+// claude 2026-10-19: created (P5): the one Canvas seam; 2026-10-20: changed:
+// the Scaladoc names CONTRIBUTING.md (ADR 0021)
 private[tui4s] final class Canvas private (
     back: Buffer,
     front: Buffer,

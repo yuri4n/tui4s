@@ -6,7 +6,7 @@ navigation:
   icon: i-lucide-scroll-text
 ---
 
-<!-- claude 2026-10-20: created: the index of the decision records, with the routes of the site (L6); changed: the row of ADR 0015 (L6 loose ends); changed: the rows of ADR 0014 and 0020 (ADR 0020) -->
+<!-- claude 2026-10-20: created: the index of the decision records, with the routes of the site (L6); changed: the row of ADR 0015 (L6 loose ends); changed: the rows of ADR 0014 and 0020 (ADR 0020); created: the row of ADR 0021 (ADR 0021) -->
 
 Each record states one decision: the forces, the decision, the alternatives that lost, and the consequences. The ids in the references (D-1 to D-32, D1 to D25, S1 to S8, K29, RR N9) are the ids of the working notes of the project, which are not in the repository. The ADRs keep what a reader needs from them.
 
@@ -32,5 +32,6 @@ Each record states one decision: the forces, the decision, the alternatives that
 | [0018](/decisions/0018-pini4s-as-a-vendored-submodule) | pini4s is a vendored Git submodule | Accepted (one part proposed) | Optional keyed shared state in `vendor/pini4s`, used only by the examples; a published artifact later. |
 | [0019](/decisions/0019-upstream-kyo-issues-as-drafts) | Upstream issues are drafts that the user posts | Accepted | The session drafts upstream issues; the user posts them; each bug has a workaround with a named exit. |
 | [0020](/decisions/0020-release-from-the-actions-form) | Release from the Actions form | Accepted | One run of the form on `main` checks everything before the tag, and one approval publishes all its modules in order; `CHANGELOG.md` gives the notes. |
+| [0021](/decisions/0021-the-rulebook-is-contributing-md) | The rulebook is CONTRIBUTING.md | Accepted | `CONTRIBUTING.md` is the rulebook for humans and agents; `ARCHITECTURE.md` tells how the runner works; `AGENTS.md` is short and imports both. |
 
 Format: MADR-lite. Each record has the sections Status, Date, Context, Decision, Alternatives considered, Consequences and References. The text uses ASD-STE100. When a source does not record a reason, the record says "not recorded"; a reason that the record adds is marked PROPOSAL.

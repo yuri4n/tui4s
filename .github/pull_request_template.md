@@ -1,9 +1,9 @@
-<!-- claude 2026-10-20: changed (L6): a short template for all contributors; the rules of AGENTS.md as a checklist -->
+<!-- claude 2026-10-20: changed (L6): a short template for all contributors; the rules of AGENTS.md as a checklist; changed: the checks of CONTRIBUTING.md (ADR 0021) -->
 ## What changes
 
 <!-- One or two sentences: what works after the merge, and why. Link the issue. -->
 
-## Checks (AGENTS.md)
+## Checks (CONTRIBUTING.md)
 
 - [ ] `sbt fmt`, then `sbt check` (in CI mode: `SBT_TPOLECAT_CI=1`, no warning)
 - [ ] `bash scripts/version-order-test.sh`, `bash scripts/changelog-section-test.sh` and `bash scripts/edge-check.sh` <!-- claude 2026-10-20: changed: the changelog test (ADR 0020) -->

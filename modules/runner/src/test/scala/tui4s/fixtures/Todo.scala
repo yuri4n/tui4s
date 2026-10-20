@@ -192,7 +192,8 @@ object Todo:
         val count    = s.items.map(ts => s"${ts.count(!_.done)} open / ${ts.size}")
         // The result type is load-bearing: without it the match widens to
         // `Any`, and Kyo lifts the effects as plain values, so they never run
-        // (the lift trap; AGENTS.md "Rules for code").
+        // (the lift trap; CONTRIBUTING.md "Rules for code").
+        // claude 2026-10-20: changed: CONTRIBUTING.md (ADR 0021)
         val listKeys = (e: KeyboardEvent) =>
           (e.key match
               case Keyboard.ArrowUp | Keyboard.Char('k')   => move(s, -1)

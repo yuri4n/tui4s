@@ -49,4 +49,4 @@ Accepted
 - Decision log: second round; eighth round (D-19 yes).
 - Plan: D-18, D-19; gates.md G3 (S3), G4 (S4).
 - Upstream draft: kyo-kernel JMH in compile scope.
-- AGENTS.md: "Toolchain", "Dependencies and versions"; the rule on `private[kyo]` (RR N9).
+- CONTRIBUTING.md: "Toolchain", "Dependencies and versions"; the rule on `private[kyo]` (RR N9). <!-- claude 2026-10-20: changed: CONTRIBUTING.md, not AGENTS.md (ADR 0021) -->

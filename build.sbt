@@ -1,7 +1,8 @@
 // tui4s: a terminal runner for kyo-ui, in Scala 3.
 // claude 2026-10-12: changed this header: tui4s runs kyo-ui (line 1, core line)
 //
-// Published modules (each one has its own releases; see AGENTS.md):
+// Published modules (each one has its own releases; see CONTRIBUTING.md):
+// claude 2026-10-20: changed: CONTRIBUTING.md (ADR 0021)
 //   runner  -> io.github.yuri4n::tui4s-runner   (kyo-ui on Kyo + jatatui)
 //   app     -> io.github.yuri4n::tui4s-app      (TuiApp, on the runner)
 //   testkit -> io.github.yuri4n::tui4s-testkit  (Headless, on the runner)

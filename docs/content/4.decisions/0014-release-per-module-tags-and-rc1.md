@@ -58,4 +58,4 @@ Accepted. The removals of zio, cats and useSignal landed on 2026-10-20 (L6). The
 
 - Decision log: first, third and fourth rounds; sixth round (ZIO and Cats order); fifteenth round (D12).
 - Roadmap: D12, L6. Handoff: "INSTRUCTION (user, 2026-10-20)".
-- AGENTS.md: "Releasing", "Compatibility".
+- CONTRIBUTING.md: "Releasing", "Compatibility and versioning". <!-- claude 2026-10-20: changed: CONTRIBUTING.md, not AGENTS.md (ADR 0021) -->

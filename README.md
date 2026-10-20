@@ -1754,10 +1754,11 @@ The packages are the same in all the artifacts (`tui4s`, `tui4s.spi`,
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md). AGENTS.md
-has the commands, the code rules, and the release process for humans and for
-AI agents.
-<!-- claude 2026-10-20: changed (L6): CONTRIBUTING.md -->
+Read [CONTRIBUTING.md](CONTRIBUTING.md), the rulebook for humans and for AI
+agents: the commands, the code rules and the release process.
+[ARCHITECTURE.md](ARCHITECTURE.md) tells how the runner works.
+[AGENTS.md](AGENTS.md) adds the rules for AI agents only.
+<!-- claude 2026-10-20: changed (L6): CONTRIBUTING.md; changed: CONTRIBUTING.md is the rulebook, with ARCHITECTURE.md and AGENTS.md (ADR 0021) -->
 
 Run `git submodule update --init --recursive` after cloning to fetch the
 optional [pini4s](https://github.com/yuri4n/pini4s) example dependency under

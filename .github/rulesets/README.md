@@ -64,7 +64,7 @@ Enterprise plan.
   It is `false` here: with one maintainer and no approval rule, an extra
   approval would block a merge.
 - A tag with no GitHub release means: its publish is not complete. Re-run
-  the failed job of the release run (AGENTS.md, "Releasing"); do not delete
-  the tag. To delete a release tag all the same, set `release tags` to
+  the failed job of the release run (CONTRIBUTING.md, "Releasing"); do not
+  delete the tag. To delete a release tag all the same, set `release tags` to
   **Disabled**, delete the tag, then set it to **Active** again.
-  <!-- claude 2026-10-20: changed: this item: re-run before a deletion (ADR 0020) -->
+  <!-- claude 2026-10-20: changed: this item: re-run before a deletion (ADR 0020); changed: CONTRIBUTING.md (ADR 0021) -->

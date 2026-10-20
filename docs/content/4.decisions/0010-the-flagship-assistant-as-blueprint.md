@@ -40,7 +40,7 @@ Accepted
 
 ## Consequences
 
-- Good: the assistant is the reference for AGENTS.md ("Follow it for a new app") and for the docs.
+- Good: the assistant is the reference for CONTRIBUTING.md ("Follow it for a new app") and for the docs. <!-- claude 2026-10-20: changed: CONTRIBUTING.md, not AGENTS.md (ADR 0021) -->
 - Good: in-memory interpreters make 13 headless tests and 86 module tests possible with no network.
 - Bad: the server-side fallbacks change which model answers when a safety rule declines. This is an opt-in in `Wires.scala`; it needs a line in the docs ([#35](https://github.com/yuri4n/tui4s/issues/35)).
 - Bad: the OpenAI default model id is unchecked data; effort and thinking are not sent; the run log file has the umask mode.
@@ -49,5 +49,5 @@ Accepted
 ## References
 
 - Roadmap: 2.5, 2.6 (the handler trap), D3, D4. Handoff: L3 ("USER MUST KNOW").
-- AGENTS.md: "UI architecture and API design" (the assistant item).
+- CONTRIBUTING.md: "UI architecture and API design" (the assistant item). <!-- claude 2026-10-20: changed: CONTRIBUTING.md, not AGENTS.md (ADR 0021) -->
 - README: "A real app: the assistant".

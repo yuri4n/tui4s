@@ -52,4 +52,4 @@ Accepted
 
 - Roadmap: 2.4, D1, D2. Skill review amendments A1 to A11.
 - Handoff: P0 to P6 and "L0 DONE 2026-10-19". Decision log: D20, D23, D24 (open, [#46](https://github.com/yuri4n/tui4s/issues/46)).
-- AGENTS.md: "Purity", "Rules for code" (the release stack, the fiber gauge).
+- CONTRIBUTING.md: "Purity", "Rules for code" (the release stack, the fiber gauge). <!-- claude 2026-10-20: changed: CONTRIBUTING.md, not AGENTS.md (ADR 0021) -->

@@ -49,4 +49,4 @@ Accepted
 
 - Decision log: D25. Issue [#17](https://github.com/yuri4n/tui4s/issues/17) (closed). Spec section 9, Q6 (superseded).
 - Gate 1 answer 1 (the seal of `tui4s.internal`, 2026-10-13).
-- AGENTS.md: "What tui4s is" (the module table), "Compatibility", "Releasing".
+- ARCHITECTURE.md: "What tui4s is" (the module table). CONTRIBUTING.md: "Compatibility and versioning", "Releasing". <!-- claude 2026-10-20: changed: ARCHITECTURE.md and CONTRIBUTING.md, not AGENTS.md (ADR 0021) -->

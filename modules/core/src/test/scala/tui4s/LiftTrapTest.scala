@@ -10,10 +10,12 @@ import java.util.concurrent.atomic.AtomicInteger
   * handler value with no type compiles where kyo-ui expects `Any < Async`, but
   * its side effect is not in the effect: it runs once, when the value is built,
   * and never on the key. With the type `: Any < Async` (and the effect inside
-  * `Sync.defer`) it runs on each key. AGENTS.md "Rules for code" has the rule.
-  * When Kyo or kyo-ui closes the trap, this canary fails: then update the rule.
+  * `Sync.defer`) it runs on each key. The rule is in CONTRIBUTING.md, "Rules
+  * for code". When Kyo or kyo-ui closes the trap, this canary fails: then
+  * update the rule.
   */
-// claude 2026-10-13: created (C3, RR O5)
+// claude 2026-10-13: created (C3, RR O5); 2026-10-20: changed: the Scaladoc
+// names CONTRIBUTING.md (ADR 0021)
 class LiftTrapTest extends RunnerSuite:
 
     "an untyped handler val (a plain side effect) runs once at construction and never on the key; a typed one runs on each key" in {

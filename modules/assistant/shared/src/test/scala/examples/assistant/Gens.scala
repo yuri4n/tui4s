@@ -4,11 +4,12 @@ import kyo.*
 import kyo.test.prop.Gen
 
 /** The generators of the domain types: explicit `Gen` values (no derived and no
-  * given `Gen`, AGENTS.md "Purity"). A text joins pieces that test the edges of
-  * the formats: line breaks, a backslash, the escape of a line feed, wide
-  * characters and an emoji.
+  * given `Gen`, CONTRIBUTING.md "Purity"). A text joins pieces that test the
+  * edges of the formats: line breaks, a backslash, the escape of a line feed,
+  * wide characters and an emoji.
   */
-// claude 2026-10-19: created (L3)
+// claude 2026-10-19: created (L3); 2026-10-20: changed: the Scaladoc names
+// CONTRIBUTING.md (ADR 0021)
 object Gens:
     /** A number in 0 to `n - 1`. */
     def below(n: Int): Gen[Int] = Gen.int.map(i => Math.floorMod(i, n))

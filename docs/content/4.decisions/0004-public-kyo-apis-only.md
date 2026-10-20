@@ -47,4 +47,4 @@ Accepted
 
 - Review item RR N9 (runner report); the C3 rule; L1b (2026-10-19).
 - Upstream drafts: kyo-ui scroll-into-view; kyo-ui change notice ([ADR 0019](/decisions/0019-upstream-kyo-issues-as-drafts)).
-- AGENTS.md: "UI architecture and API design" ("Use only Kyo's public APIs"); "Rules for code" (the RR N9 item).
+- CONTRIBUTING.md: "UI architecture and API design" ("Use only Kyo's public APIs"); "Rules for code" (the RR N9 item). <!-- claude 2026-10-20: changed: CONTRIBUTING.md, not AGENTS.md (ADR 0021) -->

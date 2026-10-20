@@ -56,5 +56,5 @@ Accepted. It changes the trigger of [ADR 0014](/decisions/0014-release-per-modul
 ## References
 
 - `.github/workflows/release.yml`, `scripts/release.sh`, `scripts/release-lib.sh`, `scripts/changelog-section.sh`, `project/ModuleVersioning.scala`.
-- AGENTS.md: "Releasing", "Branch and tag rules". `.github/rulesets/README.md`: "The environment of the release".
+- CONTRIBUTING.md: "Releasing", "Branch and tag rules". `.github/rulesets/README.md`: "The environment of the release". <!-- claude 2026-10-20: changed: CONTRIBUTING.md, not AGENTS.md (ADR 0021) -->
 - [ADR 0014](/decisions/0014-release-per-module-tags-and-rc1).

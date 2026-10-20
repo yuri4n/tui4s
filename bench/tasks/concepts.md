@@ -6,9 +6,10 @@ implementation: an API type or function of the stack, a rule of its model, or
 a language feature that the task needs and a beginner of the language does not
 know. The language basics (a function, a loop, a string) are not concepts.
 
+<!-- claude 2026-10-20: changed: CONTRIBUTING.md (ADR 0021) -->
 **This count is the judgment of one reader** (the author of the
 implementations), not a measurement. A reviewer of each ecosystem checks it
-before the numbers are published (see `AGENTS.md`, "Benchmarks").
+before the numbers are published (see `CONTRIBUTING.md`, "Benchmarks").
 
 | Stack | counter | dashboard |
 | ----- | ------: | --------: |
