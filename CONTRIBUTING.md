@@ -26,7 +26,7 @@ The full rules: [Toolchain](#toolchain).
 
 ### Check a change
 
-<!-- claude 2026-10-20: changed: the release rules line; created: the changelog line (ADR 0020) -->
+<!-- claude 2026-10-20: changed: the release rules line; created: the changelog line (ADR 0020); changed: the link to the full rules (ADR 0021) -->
 ```sh
 sbt fmt                                # format
 sbt check                              # format, compile, lint, test, compatibility
@@ -57,7 +57,7 @@ The full rules: [Docs](#docs).
 
 ### Record a change for the release notes
 
-<!-- claude 2026-10-20: created: this section (ADR 0020) -->
+<!-- claude 2026-10-20: created: this section (ADR 0020); changed: the links to Releasing and to the versioning (ADR 0021) -->
 `CHANGELOG.md` is the one source of the release notes. A pull request that
 changes a published module adds a line under `## [Unreleased]`, in the
 subsection `### tui4s-<module>` of that module. The maintainer releases from
@@ -694,7 +694,7 @@ request, and the release runs `<m>/versionCheck`.
 
 ### How to choose the next version of a module
 
-<!-- claude 2026-10-20: created: this procedure (ADR 0021) -->
+<!-- claude 2026-10-20: created: this procedure (ADR 0021); changed: step 4, what the checks stop and what they do not (review fix) -->
 1. Read the section `## [Unreleased]` of `CHANGELOG.md`: the subsection
    `### tui4s-<module>` tells what changed in the module since its last
    release.
@@ -705,11 +705,14 @@ request, and the release runs `<m>/versionCheck`.
    can add features, and a minor can break the API.
 3. Keep a qualifier (`RC<n>`, for example `0.1.0-RC1`) while Kyo and kyo-ui
    are release candidates.
-4. The form checks the number before a tag exists: the job `prepare`
-   compares the version with the last tag of each module, and it runs
-   `<m>/versionCheck` ("Releasing", step 3). A wrong number stops the run
-   with no tag and no publish, so it costs nothing. A dry run shows the
-   result.
+4. The job `prepare` checks the number before a tag exists ("Releasing",
+   step 3). The run stops when the version is not greater than the last tag
+   of a module, or when it is a smaller bump than `versionPolicyIntention`
+   allows (`<m>/versionCheck`). A module with no tag has no last release, so
+   its first release has no version order check. Nothing stops a number that
+   is too large or that has no qualifier, and you cannot remove a published
+   version. Do a dry run, and read its table (the module, the tag, the last
+   release) in the summary of the run before the real run.
 5. A coordinated release of all the modules uses one version for all of
    them: select `all` in the form. A module that moves at its own pace
    releases alone, with its own version.

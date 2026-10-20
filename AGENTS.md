@@ -1,6 +1,6 @@
 # tui4s: rules for AI agents
 
-<!-- claude 2026-10-20: changed: this file is short; the rules moved to CONTRIBUTING.md, how tui4s works to ARCHITECTURE.md (ADR 0021) -->
+<!-- claude 2026-10-20: changed: this paragraph, the two imports and their note: the rules moved to CONTRIBUTING.md, how tui4s works to ARCHITECTURE.md (ADR 0021) -->
 This file is for AI agents that work on tui4s.
 [CONTRIBUTING.md](CONTRIBUTING.md) is the rulebook, for humans and for agents.
 [ARCHITECTURE.md](ARCHITECTURE.md) tells how the runner works. Read both
@@ -15,7 +15,7 @@ two files above. Another agent reads the two files itself.
 
 ## Rules for agents only
 
-<!-- claude 2026-10-20: created: this section (ADR 0021) -->
+<!-- claude 2026-10-20: created: this section (ADR 0021); changed: the sbt item, vendor/pini4s is not a separate root (review fix) -->
 - Mark each unit that you create or change, at the smallest unit: a list
   item, a paragraph, a table row, a function, a step. A mark gives the date,
   `created` or `changed`, and what changed:
@@ -31,7 +31,8 @@ two files above. Another agent reads the two files itself.
 - Never start a terminal UI in your own shell. Only the PTY kit
   (`examples/ptycheck`) runs one.
 - Run one sbt process at a time in each build root. The root of the
-  repository and `bench/` are two build roots (`vendor/pini4s` is a third).
+  repository and `bench/` are two build roots. The root build also compiles
+  `vendor/pini4s`, and `bench/run.sh` runs the root build first.
 - A release publishes a public artifact to Maven Central. You can start a
   dry run at any time: `scripts/release.sh <module|all> <version> --dry-run`.
   A real release needs a human: start it only when a human asks for it in
