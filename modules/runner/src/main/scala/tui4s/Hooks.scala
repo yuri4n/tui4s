@@ -15,7 +15,8 @@ import tui4s.internal.{ComponentSpec, Tui4sTrack}
   *     yield div(span(label), span(count.map(_.toString)), button("+").onClick(count.updateAndGet(_ + 1)))
   * }}}
   *
-  * A piece of state is a Kyo `SignalRef`: `Signal.initRef(initial)`.
+  * A piece of state is a Kyo `SignalRef`: `Signal.initRef(initial)`, or
+  * [[tui4s.initSig]], its short name.
   *
   * At the top of an app, sequence the components in a `for`: they run once, and
   * their effects live as long as the `Scope` of the app. Inside a reactive part
@@ -34,7 +35,8 @@ import tui4s.internal.{ComponentSpec, Tui4sTrack}
 // claude 2026-10-13: changed (C4): the Scaladoc of the final shape (the two
 // styles, the mount, the pending frame, the fibers end with the run)
 // claude 2026-10-19: changed: the Scaladoc names Sync & Scope (P1b, A5 e);
-// 2026-10-20: changed: the deprecated useSignal is removed (ADR 0014)
+// 2026-10-20: changed: the deprecated useSignal is removed (ADR 0014);
+// initSig, the short name of Signal.initRef (D26)
 object Hooks:
 
     /** A signal holding the last value of `stream` (`initial` before the first

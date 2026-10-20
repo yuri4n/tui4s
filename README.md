@@ -91,16 +91,18 @@ of Kyo or of the JDK can need more entries. See ADR 0015.
 <!-- claude 2026-10-13: changed this section (T2, OS-48 part): the hooks Counter with its TuiApp main, and its test; the two code blocks are the text of the example files (ReadmeSuite checks them) -->
 <!-- claude 2026-10-17: changed the imports of the first code block (scalafix OrganizeImports changed them in Counter.scala) -->
 <!-- claude 2026-10-19: changed: the Counter uses Signal.initRef, not the deprecated useSignal (P1b, A5 f) -->
+<!-- claude 2026-10-20: changed: the Counter uses initSig, the short name of Signal.initRef (D26) -->
 The smallest app: the Counter example
 (`examples/src/main/scala/examples/counter/Counter.scala`). The UI is plain
-kyo-ui with one piece of state (a `SignalRef` from `Signal.initRef`);
+kyo-ui with one piece of state (a `SignalRef` from `initSig`, the short name
+of `Signal.initRef`);
 `object CounterApp extends TuiApp` is its main class. `+` and `-` change the count, `q` and Ctrl-C quit:
 
 <!-- from: examples/src/main/scala/examples/counter/Counter.scala#quickstart -->
 ```scala
 import kyo.*
 import kyo.UI.*
-import tui4s.{Tui, TuiApp}
+import tui4s.{Tui, TuiApp, initSig}
 
 /** The Counter: a kyo-ui UI with one piece of state (a `SignalRef`), key
   * handlers and two buttons. `+` and `-` change the count, Tab moves between
@@ -110,7 +112,7 @@ object Counter:
 
     /** The Counter UI; `quit` ends the run. */
     def ui(quit: Unit < Sync): UI < Sync =
-      Signal.initRef(0).map(count => view(count, quit))
+      initSig(0).map(count => view(count, quit))
 
     /** The Counter view over a count that the caller owns. */
     def view(count: SignalRef[Int], quit: Unit < Sync): UI =

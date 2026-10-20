@@ -69,6 +69,17 @@ class HooksTest extends ComponentSuite:
       end for
     }
 
+    // claude 2026-10-20: created: initSig, the short name of Signal.initRef
+    // (D26)
+    "initSig: the same as Signal.initRef: get gives the initial value, and a set is read back" in {
+      for
+          s <- initSig(1)
+          a <- s.get
+          _ <- s.set(2)
+          b <- s.get
+      yield assert(a == 1 && b == 2, s"get gave $a, then $b")
+    }
+
     "useHold: the initial value until the stream's first element, then the last element" in {
       for
           ch  <- Channel.initUnscoped[Int](16)

@@ -27,6 +27,8 @@ candidate, because Kyo and kyo-ui are at 1.0.0-RC7. Nothing is published yet.
 - Added: components in two styles: hooks (`Hooks`: `useHold`, `useFold`,
   `useEffect`, `useInterval`, `component(key)(body)`) and the class
   `Component`, with a state that a parent render keeps.
+- Added: `tui4s.initSig(initial)`, the short name of `Signal.initRef`.
+  <!-- claude 2026-10-20: created: initSig (D26) -->
 - Added: `TuiOptions` (a log file, the focus, the timeouts) and `TuiError`.
   Output to stdout and stderr during a run is kept and printed after the
   restore.

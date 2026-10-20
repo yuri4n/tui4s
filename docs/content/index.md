@@ -45,7 +45,7 @@ description: This is the complete Counter example. The UI is plain kyo-ui, and `
 ```scala [Counter.scala]
 import kyo.*
 import kyo.UI.*
-import tui4s.{Tui, TuiApp}
+import tui4s.{Tui, TuiApp, initSig}
 
 /** The Counter: a kyo-ui UI with one piece of state (a `SignalRef`), key
   * handlers and two buttons. `+` and `-` change the count, Tab moves between
@@ -55,7 +55,7 @@ object Counter:
 
     /** The Counter UI; `quit` ends the run. */
     def ui(quit: Unit < Sync): UI < Sync =
-      Signal.initRef(0).map(count => view(count, quit))
+      initSig(0).map(count => view(count, quit))
 
     /** The Counter view over a count that the caller owns. */
     def view(count: SignalRef[Int], quit: Unit < Sync): UI =

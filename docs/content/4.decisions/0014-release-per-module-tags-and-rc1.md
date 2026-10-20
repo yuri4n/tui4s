@@ -4,6 +4,7 @@ description: "Each module has its own version and tag; the first release is 0.1.
 ---
 
 <!-- claude 2026-10-20: created: ADR 0014 in the docs site (L6) -->
+<!-- claude 2026-10-20: changed: initSig, the short name of Signal.initRef (D26) -->
 
 ## Status
 
@@ -31,7 +32,7 @@ Accepted. The removals of zio, cats and useSignal landed on 2026-10-20 (L6).
 - An agent runs `--dry-run` at any time, but needs a human's approval in the chat to push a tag, and never uses `--yes` on its own.
 - A human adds each tag pattern to the GitHub environment `maven-central` (`runner-v*`, `app-v*`, `testkit-v*`, `core-v*`, `use-v*`, `widgets-v*`).
 - NEW (2026-10-20): the empty `zio` and `cats` modules leave the build, the release script, the workflow and the docs before the first release. They come back as modules when they exist (issues [#18](https://github.com/yuri4n/tui4s/issues/18) and [#19](https://github.com/yuri4n/tui4s/issues/19)).
-- NEW (2026-10-20): the deprecated `useSignal` is removed before 0.1.
+- NEW (2026-10-20): the deprecated hook `useSignal` is removed before 0.1. The state primitive gets the short name `tui4s.initSig(initial)` in the runner's package (user decision of 2026-10-20). The name folds `Signal.initRef` into one word, so there is one thing to remember, and it still reads as Kyo's own name. It is a primitive with no lifetime, so it is not a hook. A terminal app gets it with tui4s-core alone and `import tui4s.{Tui, TuiApp, initSig}`; shared cross-platform code calls `Signal.initRef`.
 
 ## Alternatives considered
 
@@ -40,6 +41,7 @@ Accepted. The removals of zio, cats and useSignal landed on 2026-10-20 (L6).
 - **Keep the zio and cats placeholders as "planned".** Rejected: a placeholder module in the build, the release script and the docs helps nobody and overclaims.
 - **Publish empty zio and cats artifacts.** Rejected by D12 ("no empty zio/cats artifacts").
 - **Keep `useSignal` deprecated for one release.** Rejected: no released user exists, and a deprecated alias in a first release is clutter.
+- **Another name for the state primitive:** `ref`, `sig`, `signal`, `createSignal`, `initRef`, or a `useSignal` in `tui4s.Hooks` that is not deprecated. Rejected by the user (2026-10-20) for `initSig`. `ref` is the usual name of a local `SignalRef` value, and it reads as Vue's type.
 - **Release without a human gate.** Rejected: a public artifact cannot be removed.
 
 ## Consequences

@@ -8,10 +8,12 @@ package examples.counter
 // two region lines, and ReadmeSuite checks that they are the same.
 // claude 2026-10-19: changed: Signal.initRef, not the deprecated useSignal
 // (P1b, A5 f)
+// claude 2026-10-20: changed: initSig, the short name of Signal.initRef
+// (D26)
 // region: quickstart
 import kyo.*
 import kyo.UI.*
-import tui4s.{Tui, TuiApp}
+import tui4s.{Tui, TuiApp, initSig}
 
 /** The Counter: a kyo-ui UI with one piece of state (a `SignalRef`), key
   * handlers and two buttons. `+` and `-` change the count, Tab moves between
@@ -21,7 +23,7 @@ object Counter:
 
     /** The Counter UI; `quit` ends the run. */
     def ui(quit: Unit < Sync): UI < Sync =
-      Signal.initRef(0).map(count => view(count, quit))
+      initSig(0).map(count => view(count, quit))
 
     /** The Counter view over a count that the caller owns. */
     def view(count: SignalRef[Int], quit: Unit < Sync): UI =

@@ -27,7 +27,10 @@ class NameClashTest extends RunnerSuite:
       val copy: Screen        = Screen(Vector(""), Vector(Vector(style)), None)
       // claude 2026-10-19: changed: maxLength, the extension of tui4s (L1c)
       val ui: UI              = div(span("x"), input.maxLength(3))
+      // claude 2026-10-20: changed: initSig, the short name of Signal.initRef
+      // (D26)
       for
+          _ <- initSig(0)
           h <- Headless.start(10, 2, options)(_ => ui)
           s <- h.screen
           _  = assertScreen(s, "x")
