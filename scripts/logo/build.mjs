@@ -55,7 +55,7 @@ const COLORS = {
   // The background of the icons and of the OG image: the dark background of
   // the docs site (Nuxt UI --ui-bg in dark mode with the neutral colour zinc,
   // docs/app/app.config.ts: zinc-900). Also the theme colour of the manifest
-  // and of docs/nuxt.config.ts (theme-color): change both.
+  // and of docs/nuxt.config.ts (theme-color): `--check` compares the two.
   brand: '#18181b',
 };
 
@@ -321,6 +321,10 @@ function check(lines) {
     const show = (s) => (s ? s.map(([w, h]) => `${w}x${h}`).join(', ') : 'not a PNG or ICO image');
     if (show(sizes) !== show(expected)) problems.push(`${path}: ${show(sizes)}, not ${show(expected)}`);
   }
+  // claude 2026-10-20: created (review): the theme colour of the site is a copy of COLORS.brand
+  const nuxtConfig = readFileSync(join(root, 'docs/nuxt.config.ts'), 'utf8');
+  if (!nuxtConfig.includes(`{ name: 'theme-color', content: '${COLORS.brand}' }`))
+    problems.push(`docs/nuxt.config.ts: theme-color is not ${COLORS.brand} (COLORS.brand of this script)`);
   if (problems.length > 0) {
     for (const p of problems) console.error(`logo: ${p}`);
     console.error('logo: run node scripts/logo/build.mjs and commit the outputs');

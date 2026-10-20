@@ -24,12 +24,12 @@ export default defineNuxtConfig({
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
         { rel: 'manifest', href: '/site.webmanifest' },
       ],
+      // claude 2026-10-20: changed (review): no og:image here. nuxt-og-image sets it on each page, from the
+      // front matter and site.url. The theme colour is a copy of COLORS.brand: scripts/logo/build.mjs --check compares them.
       meta: [
         { name: 'theme-color', content: '#18181b' },
-        { property: 'og:image', content: `${siteUrl}/og-image.png` },
         { property: 'og:image:width', content: '1200' },
         { property: 'og:image:height', content: '630' },
-        { name: 'twitter:image', content: `${siteUrl}/og-image.png` },
         { name: 'twitter:card', content: 'summary_large_image' },
       ],
     },
@@ -37,6 +37,9 @@ export default defineNuxtConfig({
 
   site: {
     name: 'tui4s',
+    // claude 2026-10-20: created (review): the absolute URL of the preview images. This config value
+    // beats VERCEL_URL (the host of one deployment); NUXT_SITE_URL still overrides it.
+    url: siteUrl,
   },
 
   content: {
