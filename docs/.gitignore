@@ -27,3 +27,7 @@ logs
 # Temp files
 *.tgz
 .tmp
+
+# claude 2026-10-20: created (L5): public/demo holds the built web demo
+# (scripts/docs-demo.sh). It is committed: do not ignore it.
+!public/demo/
