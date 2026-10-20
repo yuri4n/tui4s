@@ -14,15 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger
 // claude 2026-10-13: created (C4)
 class HooksTest extends ComponentSuite:
 
-    /** The deprecated `useSignal`, for its own leaf below: the one use of it in
-      * the build.
-      */
-    // claude 2026-10-19: created (P1b, A5 f)
-    @scala.annotation.nowarn("cat=deprecation")
-    private def deprecatedUseSignal(initial: Int)(using
-        Frame,
-    ): SignalRef[Int] < Sync = useSignal(initial)
-
     /** True when the screen shows all `texts`, in this order. */
     def inOrder(texts: String*)(s: Screen): Boolean =
         val at = texts.map(s.text.indexOf(_))
@@ -48,11 +39,13 @@ class HooksTest extends ComponentSuite:
       )
     }
 
-    "useSignal: the initial value on the screen; a handler's write and an outside write reach it" in {
+    // claude 2026-10-20: changed: Signal.initRef, not the removed useSignal
+    // (ADR 0014)
+    "Signal.initRef: the initial value on the screen; a handler's write and an outside write reach it" in {
       for
           box <- AtomicRef.init(Option.empty[SignalRef[Int]])
           h   <- Headless.start(30, 3)(_ =>
-                   deprecatedUseSignal(5).map { c =>
+                   Signal.initRef(5).map { c =>
                      box
                        .set(Some(c))
                        .andThen(

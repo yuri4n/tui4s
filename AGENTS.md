@@ -71,8 +71,7 @@ headless test kit `tui4s.testkit.Headless` runs an app without a terminal: a
 test sends keys (`press`, `key`, `char`, `typeText`, `paste`) or writes the
 app's `SignalRef`s, and reads `testkit.Screen`. Components come in two styles.
 Hooks (`tui4s.Hooks`): a component is a function that returns `UI < Sync` or
-`UI < (Sync & Scope)`, with `Signal.initRef` (a piece of state; the old
-`useSignal` only renames it and is deprecated), `useHold`, `useFold`,
+`UI < (Sync & Scope)`, with `Signal.initRef` (a piece of state), `useHold`, `useFold`,
 `useEffect` and `useInterval` (these four start a fiber, but they do not
 suspend: they need `Sync & Scope`, not `Async`); a component whose body waits returns
 `UI < (Async & Scope)`; `component(key)(body)` is a node that the runner mounts:
@@ -96,7 +95,7 @@ sealed.
 <!-- claude 2026-10-13: changed these lines: Tui.run in the real terminal (T1) -->
 <!-- claude 2026-10-13: changed these lines: the two component styles, the state key, `when`, the pending frame (C4) -->
 <!-- claude 2026-10-19: changed: the hooks need Sync & Scope (P1b, A5 e) -->
-<!-- claude 2026-10-19: changed: Signal.initRef, useSignal is deprecated (P1b, A5 f) -->
+<!-- claude 2026-10-19: changed: Signal.initRef, useSignal is deprecated (P1b, A5 f); 2026-10-20: changed: useSignal is removed (ADR 0014) -->
 <!-- claude 2026-10-19: changed: the textarea and the inputs (L1c) -->
 An element with `position` absolute or fixed is a layer out of the flex
 flow. kyo-ui's `overlay` and `dropdown` are layers too. The offsets of a

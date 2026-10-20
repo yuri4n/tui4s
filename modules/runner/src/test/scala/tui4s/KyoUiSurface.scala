@@ -29,8 +29,9 @@ import scala.io.Source
   * `Mount` copy (C3). One line per item, `kind<TAB>name<TAB>detail`, the same
   * format as the spike S3 guard.
   */
-// claude 2026-10-12: created (from .work/spikes/s3-drift/guard/Guard.scala);
-// changed: the C2 part (ast.fields, bound.case, signal.method)
+// claude 2026-10-12: created (from the guard of spike S3: ADR 0003, ADR 0004);
+// changed: the C2 part (ast.fields, bound.case, signal.method); 2026-10-20:
+// changed: the ADRs, not a path of the working notes
 // claude 2026-10-13: changed: the C3 part (attrs.field, ui.member, event.fields,
 // keyboard.case, pin, rule, js)
 object KyoUiSurface:

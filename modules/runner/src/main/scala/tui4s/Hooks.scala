@@ -33,27 +33,9 @@ import tui4s.internal.{ComponentSpec, Tui4sTrack}
   */
 // claude 2026-10-13: changed (C4): the Scaladoc of the final shape (the two
 // styles, the mount, the pending frame, the fibers end with the run)
-// claude 2026-10-19: changed: the Scaladoc names Sync & Scope (P1b, A5 e)
+// claude 2026-10-19: changed: the Scaladoc names Sync & Scope (P1b, A5 e);
+// 2026-10-20: changed: the deprecated useSignal is removed (ADR 0014)
 object Hooks:
-
-    /** A piece of state: `Signal.initRef`. Deprecated: it only renames Kyo's
-      * `Signal.initRef`, so call that.
-      *
-      * {{{
-      * for count <- Signal.initRef(0) // not useSignal(0)
-      * yield span(count.map(_.toString))
-      * }}}
-      */
-    // claude 2026-10-19: changed: deprecated, Signal.initRef replaces it (P1b,
-    // A5 f)
-    @deprecated(
-      "use Signal.initRef(initial): useSignal only renames it",
-      "0.1.0",
-    )
-    def useSignal[A](
-        initial: A,
-    )(using CanEqual[A, A], Frame): SignalRef[A] < Sync =
-      Signal.initRef(initial)
 
     /** A signal holding the last value of `stream` (`initial` before the first
       * one). The stream runs in a fiber while the enclosing `Scope` is open;

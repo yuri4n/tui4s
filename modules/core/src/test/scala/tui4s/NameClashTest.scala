@@ -39,8 +39,7 @@ class NameClashTest extends RunnerSuite:
     }
     // claude 2026-10-13: created (C4): the hooks and the Component class with
     // the same imports and `import tui4s.Hooks.*`
-    // claude 2026-10-19: changed: useHold and useFold, not the deprecated
-    // useSignal (P1b, A5 f)
+    // claude 2026-10-19: changed: useHold and useFold (P1b, A5 f)
     "the same imports and tui4s.Hooks.*: the hooks and Component" in {
       final class Box extends Component:
           type State = Int

@@ -111,8 +111,8 @@ class HeadlessTest extends RunnerSuite:
     // claude 2026-10-13: changed (C3): 1000 writes, not 300. The reader keeps
     // the scheduler busy, so each settle runs to its max (100 ms): 300 writes
     // (about 350 ms) gave 3 or 4 frames, and the check "more than 3 distinct
-    // values" failed in 3 of 5 runs on the C2 code (.work/impl/
-    // c3-torn-compare.log). 1000 writes give about 10 frames.
+    // values" failed in 3 of 5 runs on the C2 code. 1000 writes give about
+    // 10 frames. 2026-10-20: changed: no path of the working notes
     "screen is never a torn frame: a read during a flush sees one value on every row" in {
       Knobs.let(Knobs(flushSeam = 100.micros)) {
         for

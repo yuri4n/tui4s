@@ -4,13 +4,14 @@ import kyo.*
 import kyo.UI.*
 import tui4s.testkit.Headless
 
-/** The K29 measurement (RC-30; `.work/spikes/s2-r1r2/probes/ObserveBound.scala`
-  * is the model): the bytes that one watcher keeps per value change, (1) with
-  * `Signal.observe` (the prototype's watcher, Kyo 1.0.0-RC7), (2) with the
-  * runner's own loop inside a headless run (one Reactive region), (3) with a
-  * bare `currentWith`/`nextWith` loop. The writes come every 200 us.
+/** The K29 measurement (ADR 0005; issue #8): the bytes that one watcher keeps
+  * per value change, (1) with `Signal.observe` (the prototype's watcher, Kyo
+  * 1.0.0-RC7), (2) with the runner's own loop inside a headless run (one
+  * Reactive region), (3) with a bare `currentWith`/`nextWith` loop. The writes
+  * come every 200 us.
   */
-// claude 2026-10-12: created
+// claude 2026-10-12: created; 2026-10-20: changed: the Scaladoc cites ADR 0005
+// and issue #8, not a path of the working notes
 class ObserveLeakProbe extends StressSuite:
 
     /** `n` writes with `write`, then `settle`; the used heap per write. */

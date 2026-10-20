@@ -8,7 +8,7 @@ package.
 
 | App            | Main class                                 | Script                              | What it shows |
 | -------------- | ------------------------------------------ | ----------------------------------- | ------------- |
-| Counter        | `examples.counter.CounterApp`              | `examples/target/bin/counter`       | The smallest app: a kyo-ui UI with one hook (`useSignal`), key handlers, buttons; a `TuiApp` main (README "Quick start"). |
+| Counter        | `examples.counter.CounterApp`              | `examples/target/bin/counter`       | The smallest app: a kyo-ui UI with one piece of state (`Signal.initRef`), key handlers, buttons; a `TuiApp` main (README "Quick start"). |
 | Counter (KyoApp) | `examples.counterkyo.CounterKyoApp`      | `examples/target/bin/counterkyo`    | The same UI with a main of its own: a `KyoApp` that calls `Tui.run` and gives the UI the quit value. |
 | Two counters   | `examples.twocounters.TwoCountersApp`      | `examples/target/bin/twocounters`   | A counter is a function that allocates its own state: two counters count on their own. |
 | Counter styles | `examples.counterstyles.CounterStylesApp`  | `examples/target/bin/counterstyles` | Both component styles side by side: hook counters that the runner mounts (`component`, inside a `when`: `h` hides them and they lose their state) and `Component` counters. Their colours are custom properties of the stylesheet of the app (`Stylesheet.vars`, `Style.Color.variable`). |
@@ -22,8 +22,11 @@ package.
 | Widgets        | none (a library)                           | none                                | The terminal `Tabs` component adapter of `tui4s.widgets.Tabs` in `examples.widgets`. |
 | Native recipes | none (a library)                           | none                                | Five things that need no composable, each in one or two lines of native Kyo: a toggle, a counter, an interval, a timer that pauses (`Signal.observe`), a derived value (README "You may not need a composable"). |
 | Recipes        | none (a library)                           | none                                | One small UI for each other composable of tui4s-use: a search (`debounced`, `useAsync`), a progress (`throttled`), an autosave (`useDebouncedFn`), a streamed answer (`useStreamText`), a long list (`useSelection`, `useScrollWindow`), a delete that asks (`useDialog`), a setting that stays (`usePersisted`), the output of a program (`useProcess`). README "More composables, one recipe each". |
+| State          | none (a library)                           | none                                | The seven examples of the section "State and events with Kyo" below (`examples.state`): native bindings, tabs that own their state, controlled tabs, the portable construction effect, `Emit` in a callback, an ordinary store with `Env` and `Layer`, and a keyed store of pini4s. |
 
 <!-- claude 2026-10-19: changed the Printing row: the test aid --fail-on-f -->
+<!-- claude 2026-10-20: changed the Counter row: Signal.initRef, not the removed useSignal (ADR 0014) -->
+<!-- claude 2026-10-20: created the State row -->
 <!-- claude 2026-10-19: created the Forms row (L1c) -->
 <!-- claude 2026-10-19: changed the rows of Todo and Dashboard: the composables of tui4s-use; created the rows of the Native recipes and of the Recipes (L2a, L2a review) -->
 <!-- claude 2026-10-19: changed: the Widgets row and the Tabs examples of the section below; Tabs is in tui4s-widgets and takes a Model (L2b); created the Gallery row (L2b) -->
@@ -77,15 +80,18 @@ token limit, show a note in the transcript. A stream that gives no data for
 
 ## State and events with Kyo
 
+<!-- claude 2026-10-20: changed: the examples of this section are compiled sources in examples.state; each Scala block is a region -->
+
 Use the Kyo primitives directly. A `SignalRef[A]` owns a mutable value; its
 `Signal[A]` interface supplies reactive reads. Derive values with `map` or
 `combineLatest`, pass signals to kyo-ui, and update references from typed
-callbacks. The examples below are independent objects that can be copied into
-the examples project. `tui4s.widgets.Tabs` is in the published module
+callbacks. The examples below are independent objects in the package
+`examples.state` of the examples project. `tui4s.widgets.Tabs` is in the published module
 tui4s-widgets; `examples.widgets.Tabs` is its tui4s adapter in this project.
 
 ### Native state and input bindings
 
+<!-- from: examples/src/main/scala/examples/state/NativeState.scala#native-state -->
 ```scala
 import kyo.*
 import kyo.UI.*
@@ -104,6 +110,7 @@ object NativeStateExample:
         p(lastEdit.map(value => s"Last edit: $value")),
         enabled.render(value => span(if value then "Enabled" else "Disabled")),
       )
+end NativeStateExample
 ```
 
 `.value(name)` and `.checked(enabled)` already provide two-way binding: typing
@@ -124,10 +131,11 @@ The Dashboard passes labels and a panel function to `Tabs`. Tabs owns the
 selected index, handles keys and button presses, and gives the selected index
 to the panel. The Dashboard owns its metrics, pause flag, and logs.
 
+<!-- from: examples/src/main/scala/examples/state/OwnedTabs.scala#owned-tabs -->
 ```scala
+import examples.widgets.Tabs
 import kyo.*
 import kyo.UI.*
-import examples.widgets.Tabs
 
 object OwnedTabsExample:
     def ui: UI =
@@ -146,10 +154,11 @@ calling `onChange(index)`.
 
 The parent can own the selection instead:
 
+<!-- from: examples/src/main/scala/examples/state/ControlledTabs.scala#controlled-tabs -->
 ```scala
+import examples.widgets.Tabs
 import kyo.*
 import kyo.UI.*
-import examples.widgets.Tabs
 import tui4s.widgets.Model
 
 object ControlledTabsExample:
@@ -158,13 +167,13 @@ object ControlledTabsExample:
         div(
           new Tabs("CPU", "Memory", "Network")(
             selected = Model.Controlled(selected),
-            onChange = next =>
-              if next == 2 then () else selected.set(next),
+            onChange = next => if next == 2 then () else selected.set(next),
             panel = index => p(s"Selected metric: $index"),
           ).ui,
           button("Select Network externally").onClick(selected.set(2)),
         )
       }
+end ControlledTabsExample
 ```
 
 With `Model.Controlled(signal)`, Tabs renders that signal and sends requests
@@ -188,6 +197,7 @@ binding does. A change to the tab that shows already runs nothing.
 `tui4s.widgets.Tabs` contains the widget behavior using public Kyo APIs only.
 Its `ui` method returns an allocation effect, `UI < Sync`:
 
+<!-- from: examples/src/main/scala/examples/state/PortableTabs.scala#portable-tabs -->
 ```scala
 import kyo.*
 import kyo.UI.*
@@ -223,10 +233,11 @@ A change callback is often enough. For reusable logic that emits a typed event,
 Kyo already supplies `Emit`: define an enum, emit values, and handle them with
 `Emit.runForeach`. Handle the event effect **inside the callback execution**:
 
+<!-- from: examples/src/main/scala/examples/state/EmittedTabs.scala#emitted-tabs -->
 ```scala
+import examples.widgets.Tabs
 import kyo.*
 import kyo.UI.*
-import examples.widgets.Tabs
 
 object EmittedTabsExample:
     enum Event:
@@ -242,12 +253,13 @@ object EmittedTabsExample:
 
         div(
           new Tabs("Overview", "Details")(
-            onChange = index =>
-              Emit.runForeach[Event](selectionChanged(index))(record),
+            onChange =
+              index => Emit.runForeach[Event](selectionChanged(index))(record),
           ).ui,
           p(changes.map(values => s"Selections: ${values.mkString(", ")}")),
         )
       }
+end EmittedTabsExample
 ```
 
 `selectionChanged` retains `Emit[Event]` in its type. The callback handles it
@@ -268,15 +280,16 @@ An ordinary class can group signals, derived values, and actions. Kyo `Env`
 provides a dependency; `Layer` can construct a shared dependency graph. Neither
 requires a new store abstraction:
 
+<!-- from: examples/src/main/scala/examples/state/OrdinaryStore.scala#ordinary-store -->
 ```scala
+import examples.widgets.Tabs
 import kyo.*
 import kyo.UI.*
-import examples.widgets.Tabs
 import tui4s.widgets.Model
 
 object OrdinaryStoreExample:
     final class DashboardStore(val selected: SignalRef[Int]):
-        val summary: Signal[String] = selected.map(index => s"Metric $index")
+        val summary: Signal[String]         = selected.map(index => s"Metric $index")
         def select(index: Int): Unit < Sync = selected.set(index)
 
     def store: DashboardStore < Sync =
@@ -295,8 +308,9 @@ object OrdinaryStoreExample:
 
     def ui: UI < Sync = store.map(dashboard => Env.run(dashboard)(view))
 
-    val layer = Layer(store)
+    val layer                  = Layer(store)
     def uiWithLayer: UI < Sync = Memo.run(Env.runLayer(layer)(view))
+end OrdinaryStoreExample
 ```
 
 The callback captures the resolved `dashboard` object, so it can use that
@@ -308,11 +322,12 @@ Use [pini4s](../vendor/pini4s/README.md) when components explicitly need the
 Nuxt-style `useState("key")(initial)` lookup. It returns the same Kyo
 `SignalRef` for a key in one application-owned `StateStore`:
 
+<!-- from: examples/src/main/scala/examples/state/KeyedStore.scala#keyed-store -->
 ```scala
+import examples.widgets.Tabs
 import kyo.*
 import kyo.UI.*
 import pini4s.*
-import examples.widgets.Tabs
 import tui4s.widgets.Model
 
 object KeyedStoreExample:
@@ -331,6 +346,7 @@ object KeyedStoreExample:
             second <- tabs
         yield div(first, second)
       }
+end KeyedStoreExample
 ```
 
 These two tab components share selection because they use the same key and
@@ -465,9 +481,11 @@ that writes a signal of the app waits for the screen with
 the root `README.md` and of the pages of the docs site (`docs/content`) that
 have a `<!-- from: <path>#<region> -->` line above them are the same text as
 the source files (a region is the lines between `// region: <name>` and
-`// endregion: <name>`). In the docs pages, each Scala block must have that
-line. The Scala blocks of this file are not checked.
-<!-- claude 2026-10-20: changed: MarkdownRegionsSuite, the docs pages; this file is not checked (L5) -->
+`// endregion: <name>`). In the docs pages and in this file, each Scala
+block must have that line: the Scala blocks of this file are regions of the
+sources in `examples/src/main/scala/examples/state`, and `StateSuite` runs
+them on `Headless`.
+<!-- claude 2026-10-20: changed: MarkdownRegionsSuite, the docs pages (L5); this file is checked too, its Scala blocks are regions of examples.state -->
 
 ## Real-terminal checklist
 

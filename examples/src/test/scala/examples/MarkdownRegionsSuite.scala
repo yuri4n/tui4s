@@ -7,8 +7,9 @@ import java.nio.file.{Files, Path, Paths}
 import scala.jdk.CollectionConverters.*
 
 /** The Markdown files show code of the examples, and this suite checks that it
-  * is the same text as the source files (OS-48). The files: `README.md` and
-  * each `.md` file under `docs/content` (the pages of the docs site).
+  * is the same text as the source files (OS-48). The files: `README.md`,
+  * `examples/README.md` and each `.md` file under `docs/content` (the pages of
+  * the docs site).
   *
   * The marking: a line `<!-- from: <path> -->` or `<!-- from: <path>#<region>
   * -->` directly above a fenced code block marks that block. `<path>` is
@@ -16,15 +17,16 @@ import scala.jdk.CollectionConverters.*
   * be the whole file. With it, the block must be the lines of the region: in
   * the file, the lines between `// region: <region>` and `// endregion:
   * <region>` (the two region lines are not part of it). In `README.md`, a block
-  * without a marker is not checked. In the docs pages, each Scala block (a
-  * fence of three or more backticks or tildes, indented or not, whose info
-  * string starts with `scala` in any case) must have a marker; a shell, YAML or
-  * `sbt` block has none.
+  * without a marker is not checked. In the docs pages and in
+  * `examples/README.md`, each Scala block (a fence of three or more backticks
+  * or tildes, indented or not, whose info string starts with `scala` in any
+  * case) must have a marker; a shell, YAML or `sbt` block has none.
   */
 // claude 2026-10-13: created (T2, OS-48 part)
 // claude 2026-10-20: changed (L5): ReadmeSuite becomes MarkdownRegionsSuite;
 // it also checks the pages of the docs site; each failure names the Markdown
-// file and the line (L5 review)
+// file and the line (L5 review); 2026-10-20: changed: examples/README.md has
+// the rule of the docs pages
 class MarkdownRegionsSuite extends FunSuite:
     import MarkdownRegionsSuite.*
 
@@ -94,6 +96,22 @@ class MarkdownRegionsSuite extends FunSuite:
       check("README.md", found)
     }
 
+    /** Fails on each Scala block of `text` with no marker line. */
+    private def allMarked(name: String, text: Vector[String]): Unit =
+      unmarkedScala(text).foreach(n =>
+        fail(s"$name line $n: a Scala block with no '<!-- from: ... -->' line"),
+      )
+
+    test(
+      "examples/README.md: each Scala block is marked, and each marked block is the same text as its source",
+    ) {
+      val text  = lines(root.resolve("examples/README.md"))
+      allMarked("examples/README.md", text)
+      val found = blocks(text)
+      assert(found.size >= 7, s"expected the seven state examples: $found")
+      check("examples/README.md", found)
+    }
+
     test(
       "docs/content: each Scala block is marked, and each marked block is the same text as its source",
     ) {
@@ -101,11 +119,7 @@ class MarkdownRegionsSuite extends FunSuite:
       val counts = pages.map { p =>
         val name  = root.relativize(p).toString
         val text  = lines(p)
-        unmarkedScala(text).foreach(n =>
-          fail(
-            s"$name line $n: a Scala block with no '<!-- from: ... -->' line",
-          ),
-        )
+        allMarked(name, text)
         val found = blocks(text)
         check(name, found)
         found.size
