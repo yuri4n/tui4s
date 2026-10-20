@@ -8,8 +8,10 @@ module has its own version and its own tag (`<module>-v<version>`); the
 versions follow early semantic versioning (CONTRIBUTING.md, "Compatibility
 and versioning").
 
-The first release is planned as `0.1.0-RC1` for each module: a release
-candidate, because Kyo and kyo-ui are at 1.0.0-RC7. Nothing is published yet.
+<!-- claude 2026-10-20: changed: the first release is on Maven Central (After a release) -->
+The first release is `0.1.0-RC1` for each module (2026-10-20): a release
+candidate, because Kyo and kyo-ui are at 1.0.0-RC7. The six modules are on
+Maven Central, and each one has its GitHub release.
 
 <!-- claude 2026-10-20: created: the release headings and the release notes (ADR 0020) -->
 This file is the one source of the release notes. Before a release, its pull
@@ -18,6 +20,9 @@ that heading, each module of the release has its subsection
 `### tui4s-<module>`. The release workflow gives the text of that subsection
 to the GitHub release of the module (`scripts/changelog-section.sh`). The
 workflow stops before it creates a tag when a subsection is missing.
+
+## [Unreleased]
+<!-- claude 2026-10-20: created: after the release of 0.1.0-RC1 (After a release, step 2) -->
 
 ## [0.1.0-RC1] - 2026-10-20
 <!-- claude 2026-10-20: changed: the heading of the first release (Releasing, step 1) -->

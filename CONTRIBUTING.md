@@ -729,7 +729,7 @@ request, and the release runs `<m>/versionCheck`.
 
 ### After a release
 
-<!-- claude 2026-10-20: created: this procedure (ADR 0021) -->
+<!-- claude 2026-10-20: created: this procedure (ADR 0021); 2026-10-20: changed: step 4, the version in the docs -->
 Open one pull request after a release:
 
 1. In `CHANGELOG.md`, check the heading of the released version,
@@ -741,6 +741,10 @@ Open one pull request after a release:
    subsection of that module.
 3. Set `versionPolicyIntention` of each released module back to
    `Compatibility.BinaryCompatible` in `modules/<m>/compat.sbt`.
+4. Put the released version in the dependency lines of the docs, where
+   `grep -rn 'io.github.yuri4n" %%' README.md docs/content` finds them: the
+   status line and the dependency lines of `README.md`, the installation
+   page, and the composables and widgets pages of the docs site.
 
 ## Releasing
 
