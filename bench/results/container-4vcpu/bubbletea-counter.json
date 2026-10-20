@@ -3,7 +3,7 @@
   "added": 12,
   "built": true,
   "changed": 13,
-  "passed": 11,
+  "passed": 12,
   "removed": 1,
   "steps": [
    {
@@ -14,6 +14,11 @@
    {
     "detail": "",
     "ok": true,
+    "step": "modes"
+   },
+   {
+    "detail": "",
+    "ok": true,
     "step": "plus 1"
    },
    {
@@ -62,10 +67,10 @@
     "step": "quit"
    }
   ],
-  "total": 11
+  "total": 12
  },
  "conformance": {
-  "passed": 11,
+  "passed": 12,
   "steps": [
    {
     "detail": "",
@@ -75,6 +80,11 @@
    {
     "detail": "",
     "ok": true,
+    "step": "modes"
+   },
+   {
+    "detail": "",
+    "ok": true,
     "step": "plus 1"
    },
    {
@@ -123,7 +133,7 @@
     "step": "quit"
    }
   ],
-  "total": 11
+  "total": 12
  },
  "machine": "container-4vcpu",
  "perf": {
@@ -194,6 +204,8 @@
   },
   "kill-mid-frame": {
    "alt_screen": "left",
+   "bytes_after_kill": 57,
+   "bytes_before_kill": 51,
    "cooked": true,
    "cursor": "visible",
    "exit": 0,
@@ -202,7 +214,8 @@
    "outcome": "ended",
    "pass": true,
    "restored": true,
-   "seconds": 0.02
+   "seconds": 0.03,
+   "shown_at_kill": "Count: 30"
   },
   "quit": {
    "alt_screen": "left",

@@ -3,7 +3,7 @@
   "added": 15,
   "built": true,
   "changed": 16,
-  "passed": 11,
+  "passed": 12,
   "removed": 1,
   "steps": [
    {
@@ -14,6 +14,11 @@
    {
     "detail": "",
     "ok": true,
+    "step": "modes"
+   },
+   {
+    "detail": "",
+    "ok": true,
     "step": "plus 1"
    },
    {
@@ -62,10 +67,10 @@
     "step": "quit"
    }
   ],
-  "total": 11
+  "total": 12
  },
  "conformance": {
-  "passed": 11,
+  "passed": 12,
   "steps": [
    {
     "detail": "",
@@ -75,6 +80,11 @@
    {
     "detail": "",
     "ok": true,
+    "step": "modes"
+   },
+   {
+    "detail": "",
+    "ok": true,
     "step": "plus 1"
    },
    {
@@ -123,7 +133,7 @@
     "step": "quit"
    }
   ],
-  "total": 11
+  "total": 12
  },
  "machine": "container-4vcpu",
  "perf": {
@@ -175,6 +185,7 @@
    "cooked": true,
    "cursor": "visible",
    "exit": 0,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
@@ -193,20 +204,25 @@
   },
   "kill-mid-frame": {
    "alt_screen": "left",
+   "bytes_after_kill": 78,
+   "bytes_before_kill": 32,
    "cooked": true,
    "cursor": "visible",
    "exit": 0,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
    "restored": true,
-   "seconds": 0.0
+   "seconds": 0.0,
+   "shown_at_kill": "Count: 1"
   },
   "quit": {
    "alt_screen": "left",
    "cooked": true,
    "cursor": "visible",
    "exit": 0,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
@@ -218,6 +234,7 @@
    "cooked": true,
    "cursor": "visible",
    "exit": 0,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
@@ -229,6 +246,7 @@
    "cooked": true,
    "cursor": "visible",
    "exit": 0,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,

@@ -12,6 +12,11 @@
     "step": "start"
    },
    {
+    "detail": "alt_screen missing",
+    "ok": false,
+    "step": "modes"
+   },
+   {
     "detail": "",
     "ok": true,
     "step": "plus 1"
@@ -62,7 +67,7 @@
     "step": "quit"
    }
   ],
-  "total": 11
+  "total": 12
  },
  "conformance": {
   "passed": 9,
@@ -71,6 +76,11 @@
     "detail": "row 29: '+/- or Up/Down change the count, q quits' (want ''); row 30: '' (want '+/- or Up/Down change the count, q quits')",
     "ok": false,
     "step": "start"
+   },
+   {
+    "detail": "alt_screen missing",
+    "ok": false,
+    "step": "modes"
    },
    {
     "detail": "",
@@ -123,7 +133,7 @@
     "step": "quit"
    }
   ],
-  "total": 11
+  "total": 12
  },
  "machine": "container-4vcpu",
  "perf": {
@@ -175,11 +185,12 @@
    "cooked": true,
    "cursor": "visible",
    "exit": 130,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
    "restored": true,
-   "seconds": 0.36
+   "seconds": 0.37
   },
   "failure": {
    "alt_screen": "never-entered",
@@ -193,20 +204,25 @@
   },
   "kill-mid-frame": {
    "alt_screen": "never-entered",
+   "bytes_after_kill": 218,
+   "bytes_before_kill": 3,
    "cooked": true,
    "cursor": "visible",
    "exit": 143,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
    "restored": true,
-   "seconds": 0.03
+   "seconds": 0.42,
+   "shown_at_kill": "Count: 0"
   },
   "quit": {
    "alt_screen": "never-entered",
    "cooked": true,
    "cursor": "visible",
    "exit": 0,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
@@ -218,22 +234,24 @@
    "cooked": true,
    "cursor": "visible",
    "exit": 130,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
    "restored": true,
-   "seconds": 0.37
+   "seconds": 0.36
   },
   "sigterm": {
    "alt_screen": "never-entered",
    "cooked": true,
    "cursor": "visible",
    "exit": 143,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
    "restored": true,
-   "seconds": 0.36
+   "seconds": 0.37
   }
  }
 }

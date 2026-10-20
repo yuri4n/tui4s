@@ -10,7 +10,7 @@
   },
   "wrong-thread": {
    "outcome": "silent-wrong-behaviour",
-   "detail": "every step that passes without the mutant passes with it"
+   "detail": "every step that passes without the mutant passes with it; the class has no defuse probe. Note: it works here, but Textual asks for call_from_thread."
   },
   "no-resize": {
    "outcome": "n/a",
@@ -26,7 +26,7 @@
   },
   "leaked-timer": {
    "outcome": "test-or-oracle-catches",
-   "detail": "quit: exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [889], 'restored': False}; failure probe: error-screen+hung exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored"
+   "detail": "quit: exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [17186], 'restored': False}; failure probe: error-screen+hung exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored"
   },
   "non-exhaustive-key": {
    "outcome": "n/a",
@@ -34,7 +34,7 @@
   },
   "null-read": {
    "outcome": "runtime-crash",
-   "detail": "exit 1 during the key script; plus 3: no 'Count: 3' on row 3 in 1.5 s: \u2502 \u2502        \u2502   \u2502   'dark'                       \u2502                                      ; minus: no 'Count: 2' on row 3 in 1.5 s: \u2502 \u2502        \u2502   \u2502   'dark'                       \u2502                                      ; up: no 'Count: 3' on row 3 in 1.5 s: \u2502 \u2502        \u2502   \u2502   'dark'                       \u2502                                      ; down: no 'Count: 2' on row 3 in 1.5 s: \u2502 \u2502        \u2502   \u2502   'dark'                       \u2502                           "
+   "detail": "exit 1 during the key script; plus 3: no 'Count: 3' on row 3 in 1.5 s: \u2502 \u2502        \u2502   \u2502   'focus'                      \u2502                                      ; minus: no 'Count: 2' on row 3 in 1.5 s: \u2502 \u2502        \u2502   \u2502   'focus'                      \u2502                                      ; up: no 'Count: 3' on row 3 in 1.5 s: \u2502 \u2502        \u2502   \u2502   'focus'                      \u2502                                      ; down: no 'Count: 2' on row 3 in 1.5 s: \u2502 \u2502        \u2502   \u2502   'focus'                      \u2502                           "
   },
   "stale-closure": {
    "outcome": "n/a",
@@ -46,7 +46,7 @@
   },
   "stdout-write": {
    "outcome": "defused",
-   "detail": "Textual captures print() while the app runs"
+   "detail": "probe: the text 'count N' never reaches the terminal. Note: Textual captures print() while the app runs."
   },
   "missing-binding": {
    "outcome": "test-or-oracle-catches",
@@ -54,7 +54,7 @@
   },
   "lost-update": {
    "outcome": "defused",
-   "detail": "Textual handles one message at a time and awaits its action"
+   "detail": "probe: 20 '+' in one write and 20 writes with no wait give 'Count: 40'. Note: Textual handles one message at a time and awaits its action."
   }
  }
 }

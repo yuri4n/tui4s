@@ -27,7 +27,7 @@
     "step": "backspace"
    },
    {
-    "detail": "",
+    "detail": "exit=0 restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored': True}",
     "ok": true,
     "step": "quit (Ctrl-C)"
    }
@@ -35,12 +35,22 @@
   "total": 5
  },
  "conformance": {
-  "passed": 14,
+  "passed": 16,
   "steps": [
    {
     "detail": "",
     "ok": true,
     "step": "start"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "modes"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "layout"
    },
    {
     "detail": "",
@@ -88,12 +98,12 @@
     "step": "tab to list"
    },
    {
-    "detail": "T 8->28 (+20), samples=76, wrong=[]",
+    "detail": "T 9->29 (+20), samples=77, wrong=[]",
     "ok": true,
     "step": "ticks"
    },
    {
-    "detail": "clock=03:28:58",
+    "detail": "clock=04:39:36",
     "ok": true,
     "step": "clock"
    },
@@ -108,7 +118,7 @@
     "step": "quit"
    }
   ],
-  "total": 14
+  "total": 16
  },
  "machine": "container-4vcpu",
  "perf": {
@@ -175,11 +185,12 @@
    "cooked": true,
    "cursor": "visible",
    "exit": 0,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
    "restored": true,
-   "seconds": 0.06
+   "seconds": 0.07
   },
   "failure": {
    "alt_screen": "left",
@@ -193,31 +204,37 @@
   },
   "kill-mid-frame": {
    "alt_screen": "left",
+   "bytes_after_kill": 10270,
+   "bytes_before_kill": 4095,
    "cooked": true,
    "cursor": "visible",
    "exit": -15,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
    "restored": true,
-   "seconds": 0.07
+   "seconds": 0.04,
+   "shown_at_kill": null
   },
   "quit": {
    "alt_screen": "left",
    "cooked": true,
    "cursor": "visible",
    "exit": 0,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
    "restored": true,
-   "seconds": 0.06
+   "seconds": 0.11
   },
   "sigint": {
    "alt_screen": "left",
    "cooked": true,
    "cursor": "visible",
    "exit": -2,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
@@ -229,11 +246,12 @@
    "cooked": true,
    "cursor": "visible",
    "exit": -15,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
    "restored": true,
-   "seconds": 0.04
+   "seconds": 0.02
   }
  }
 }

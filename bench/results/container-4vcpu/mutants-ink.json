@@ -26,7 +26,7 @@
   },
   "leaked-timer": {
    "outcome": "test-or-oracle-catches",
-   "detail": "quit: exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [7368], 'restored': False}"
+   "detail": "quit: exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [18250], 'restored': False}"
   },
   "non-exhaustive-key": {
    "outcome": "n/a",
@@ -45,8 +45,8 @@
    "detail": "ink sizes are cells or percent strings, and the counter has no size to mix up"
   },
   "stdout-write": {
-   "outcome": "defused",
-   "detail": "ink patches console.log while it renders (patchConsole) and does not write it over the frame"
+   "outcome": "silent-wrong-behaviour",
+   "detail": "every step of the oracle passes, and the probe sees the bug: the text 'count N' reaches the screen of the UI (byte 396 of 6393). Note: ink patches console.log while it renders (patchConsole)."
   },
   "missing-binding": {
    "outcome": "test-or-oracle-catches",

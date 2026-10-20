@@ -3,11 +3,11 @@
   "added": 32,
   "built": true,
   "changed": 47,
-  "passed": 3,
+  "passed": 4,
   "removed": 15,
   "steps": [
    {
-    "detail": "status bar not on the last row; Dashboard                                                                                   03:45:15 | \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500*Items*\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510 \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500Load\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510 | \u2502 Filter:                                        \u2502 \u2502 Ticks: 4                                 ",
+    "detail": "status bar not on the last row; Dashboard                                                                                   04:51:23 | \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500*Items*\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510 \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500Load\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510 | \u2502 Filter:                                        \u2502 \u2502 Ticks: 4                                 ",
     "ok": false,
     "step": "start"
    },
@@ -27,20 +27,30 @@
     "step": "backspace"
    },
    {
-    "detail": "",
-    "ok": false,
+    "detail": "exit=130 restore={'cooked': True, 'alt_screen': 'never-entered', 'cursor': 'visible', 'orphans': [], 'restored': True}",
+    "ok": true,
     "step": "quit (Ctrl-C)"
    }
   ],
   "total": 5
  },
  "conformance": {
-  "passed": 12,
+  "passed": 13,
   "steps": [
    {
-    "detail": "status bar not on the last row; Dashboard                                                                                   03:29:21 | \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500*Items*\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510 \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500Load\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510 | \u2502 > Item 0001                                    \u2502 \u2502 Ticks: 4                                 ",
+    "detail": "status bar not on the last row; Dashboard                                                                                   04:49:50 | \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500*Items*\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510 \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500Load\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510 | \u2502 > Item 0001                                    \u2502 \u2502 Ticks: 4                                 ",
     "ok": false,
     "step": "start"
+   },
+   {
+    "detail": "alt_screen missing",
+    "ok": false,
+    "step": "modes"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "layout"
    },
    {
     "detail": "",
@@ -93,12 +103,12 @@
     "step": "ticks"
    },
    {
-    "detail": "clock=03:29:24",
+    "detail": "clock=04:49:52",
     "ok": true,
     "step": "clock"
    },
    {
-    "detail": "\u2502   Item 0007                                    \u2502",
+    "detail": "'Ticks:' at column None, not right of C/2 = 40 marked=None \u2502   Item 0018                                    \u2502 \u2502",
     "ok": false,
     "step": "resize 80x24"
    },
@@ -108,7 +118,7 @@
     "step": "quit"
    }
   ],
-  "total": 14
+  "total": 16
  },
  "machine": "container-4vcpu",
  "perf": {
@@ -175,6 +185,7 @@
    "cooked": true,
    "cursor": "visible",
    "exit": 130,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
@@ -193,20 +204,25 @@
   },
   "kill-mid-frame": {
    "alt_screen": "never-entered",
+   "bytes_after_kill": 3680,
+   "bytes_before_kill": 3,
    "cooked": true,
    "cursor": "visible",
    "exit": 143,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
    "restored": true,
-   "seconds": 0.02
+   "seconds": 0.06,
+   "shown_at_kill": "Selected 0001"
   },
   "quit": {
    "alt_screen": "never-entered",
    "cooked": true,
    "cursor": "visible",
    "exit": 0,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
@@ -218,17 +234,19 @@
    "cooked": true,
    "cursor": "visible",
    "exit": 130,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
    "restored": true,
-   "seconds": 0.33
+   "seconds": 0.36
   },
   "sigterm": {
    "alt_screen": "never-entered",
    "cooked": true,
    "cursor": "visible",
    "exit": 143,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,

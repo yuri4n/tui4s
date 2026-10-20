@@ -10,11 +10,11 @@
   },
   "wrong-thread": {
    "outcome": "compile-error",
-   "detail": "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n   |                     |\n   |                     `terminal` escapes the function body here\n   |                     argument requires that `'1` must outlive `'static`\n\nSome errors have detailed explanations: E0382, E0521.\nFor more information about an error, try `rustc --explain E0382`.\nerror: could not compile `counter` (bin \"counter\") due to 2 previous errors\n"
+   "detail": "error[E0382]: borrow of moved value: `terminal`\n--> counter/src/main.rs:25:9\nerror[E0521]: borrowed data escapes outside of function\n--> counter/src/main.rs:41:21\nerror: could not compile `counter` (bin \"counter\") due to 2 previous errors"
   },
   "no-resize": {
    "outcome": "runtime-crash",
-   "detail": "exit 101 during the key script; resize 80x24: thread 'main' (31030) panicked at /root/.cargo/registry/src/index.crates.io-1949 | cf8c6b5b557f/ratatui-core-0.1.2/src/b"
+   "detail": "exit 101 during the key script; resize 80x24: thread 'main' (14481) panicked at /root/.cargo/registry/src/index.crates.io-1949 | cf8c6b5b557f/ratatui-core-0.1.2/src/b"
   },
   "off-by-one": {
    "outcome": "test-or-oracle-catches",
@@ -25,16 +25,16 @@
    "detail": "plus 1: no 'Count: 1' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 2: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; plus 3: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the count, q quits; burst +++++: no 'Count: 7' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change"
   },
   "leaked-timer": {
-   "outcome": "defused",
-   "detail": "the process ends when main returns; the thread ends with it"
+   "outcome": "silent-wrong-behaviour",
+   "detail": "every step that passes without the mutant passes with it; the class has no defuse probe. Note: the thread ends with the process when main returns."
   },
   "non-exhaustive-key": {
    "outcome": "compile-error",
-   "detail": "lp: ensure that all possible cases are being handled by adding a match arm with a wildcard pattern as shown, or multiple match arms\n     |\n  39 ~                 KeyCode::Char('-') | KeyCode::Down => count -= 1,\n  40 ~                 _ => todo!(),\n     |\n\nFor more information about this error, try `rustc --explain E0004`.\nerror: could not compile `counter` (bin \"counter\") due to 1 previous error\n"
+   "detail": "error[E0004]: non-exhaustive patterns: `KeyCode::Backspace`, `KeyCode::Enter`, `KeyCode::Left` and 21 more not covered\n--> counter/src/main.rs:34:19\n--> /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crossterm-0.29.0/src/event.rs:1226:1\nerror: could not compile `counter` (bin \"counter\") due to 1 previous error"
   },
   "null-read": {
    "outcome": "runtime-crash",
-   "detail": "exit 101 during the key script; plus 3: no 'Count: 3' on row 3 in 1.5 s: thread 'main' (31233) panicked at counter/src/main.rs:57:45: | called `Option::unwrap(); minus: no 'Count: 2' on row 3 in 1.5 s: thread 'main' (31233) panicked at counter/src/main.rs:57:45: | called `Option::unwrap(); up: no 'Count: 3' on row 3 in 1.5 s: thread 'main' (31233) panicked at counter/src/main.rs:57:45: | called `Option::unwrap(); down: no 'Count: 2' on row 3 in 1.5 s: thread 'main' (31233) panicked at counter/src/main.rs:57:45: | called `Optio"
+   "detail": "exit 101 during the key script; plus 3: no 'Count: 3' on row 3 in 1.5 s: thread 'main' (14669) panicked at counter/src/main.rs:57:45: | called `Option::unwrap(); minus: no 'Count: 2' on row 3 in 1.5 s: thread 'main' (14669) panicked at counter/src/main.rs:57:45: | called `Option::unwrap(); up: no 'Count: 3' on row 3 in 1.5 s: thread 'main' (14669) panicked at counter/src/main.rs:57:45: | called `Option::unwrap(); down: no 'Count: 2' on row 3 in 1.5 s: thread 'main' (14669) panicked at counter/src/main.rs:57:45: | called `Optio"
   },
   "stale-closure": {
    "outcome": "test-or-oracle-catches",

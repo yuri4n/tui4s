@@ -1,60 +1,62 @@
 {
  "stack": "tamboui",
  "machine": "container-4vcpu",
- "baseline_failed": [],
+ "baseline_failed": [
+  "failure probe"
+ ],
  "rebuilt": true,
  "classes": {
   "no-restore-on-exception": {
-   "outcome": "n/a",
-   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+   "outcome": "not-written",
+   "detail": "no patch for this stack"
   },
   "wrong-thread": {
-   "outcome": "n/a",
-   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+   "outcome": "not-written",
+   "detail": "no patch for this stack"
   },
   "no-resize": {
-   "outcome": "n/a",
-   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+   "outcome": "not-written",
+   "detail": "no patch for this stack"
   },
   "off-by-one": {
-   "outcome": "n/a",
-   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+   "outcome": "not-written",
+   "detail": "no patch for this stack"
   },
   "blocking-handler": {
-   "outcome": "n/a",
-   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+   "outcome": "not-written",
+   "detail": "no patch for this stack"
   },
   "leaked-timer": {
-   "outcome": "n/a",
-   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+   "outcome": "not-written",
+   "detail": "no patch for this stack"
   },
   "non-exhaustive-key": {
-   "outcome": "n/a",
-   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+   "outcome": "not-written",
+   "detail": "no patch for this stack"
   },
   "null-read": {
-   "outcome": "n/a",
-   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+   "outcome": "not-written",
+   "detail": "no patch for this stack"
   },
   "stale-closure": {
-   "outcome": "n/a",
-   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+   "outcome": "not-written",
+   "detail": "no patch for this stack"
   },
   "wrong-unit": {
-   "outcome": "n/a",
-   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+   "outcome": "not-written",
+   "detail": "no patch for this stack"
   },
   "stdout-write": {
-   "outcome": "n/a",
-   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+   "outcome": "not-written",
+   "detail": "no patch for this stack"
   },
   "missing-binding": {
-   "outcome": "n/a",
-   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+   "outcome": "not-written",
+   "detail": "no patch for this stack"
   },
   "lost-update": {
-   "outcome": "n/a",
-   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+   "outcome": "not-written",
+   "detail": "no patch for this stack"
   }
  }
 }

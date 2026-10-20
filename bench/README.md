@@ -29,15 +29,16 @@ The five tasks of stage 2 are in [tasks/README.md](tasks/README.md).
 | [ink](impl/ink) | Node.js 22 | ink 8.0.0, React 19.3.1 | esbuild for the JSX |
 
 Dropped or reduced in stage 1: TamboUI as a .NET stack (it is a Java stack
-here); the mutants of TamboUI (13 classes, not written); 4 mutant classes of
-Textual, 4 of ink and 6 of layoutz (not applicable, with the reason in
-`harness/mutants.py`).
+here); the mutants of TamboUI (13 classes, not written); 1 mutant class of
+tui4s, 2 of bubbletea, 4 of Textual, 4 of ink and 6 of layoutz (not
+applicable, with the reason in `harness/mutants.py`).
+<!-- claude 2026-10-20: changed: the n/a classes of tui4s and bubbletea (review fix) -->
 
 ## Run it
 
 ```
 bench/run.sh            # full: publish tui4s locally, build all, measure, write the tables
-bench/run.sh ci         # the CI smoke: build all, conformance, resilience, mutants, one perf run
+bench/run.sh ci         # the CI smoke: build all, conformance, resilience, mutants, one perf run, the check
 ```
 
 `run.sh` needs JDK 25 and sbt, Rust, Go, Python 3, Node.js 22 with pnpm, and
@@ -82,14 +83,14 @@ oracle of the change).
 <!-- report:begin expressiveness -->
 | Stack | counter concepts | change lines | change oracle | dashboard concepts | change lines | change oracle |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| tui4s | 11 | 7 | 11/11 | 23 | 33 | 5/5 |
-| jatatui-plain | 9 | 12 | 11/11 | 18 | 44 | 5/5 |
-| TamboUI | 9 | 12 | 11/11 | 17 | 52 | 5/5 |
-| layoutz | 8 | 9 | 9/11 | 16 | 47 | 3/5 |
-| ratatui | 10 | 16 | 11/11 | 19 | 53 | 5/5 |
-| bubbletea | 9 | 13 | 11/11 | 17 | 51 | 5/5 |
-| Textual | 11 | 10 | 11/11 | 22 | 37 | 5/5 |
-| ink | 9 | 7 | 11/11 | 16 | 28 | 5/5 |
+| tui4s | 11 | 7 | 12/12 | 23 | 33 | 5/5 |
+| jatatui-plain | 9 | 12 | 12/12 | 18 | 44 | 5/5 |
+| TamboUI | 9 | 12 | 12/12 | 17 | 52 | 5/5 |
+| layoutz | 8 | 9 | 9/12 | 16 | 47 | 4/5 |
+| ratatui | 10 | 16 | 12/12 | 19 | 53 | 5/5 |
+| bubbletea | 9 | 13 | 12/12 | 17 | 51 | 5/5 |
+| Textual | 11 | 10 | 12/12 | 22 | 39 | 5/5 |
+| ink | 9 | 7 | 12/12 | 16 | 28 | 5/5 |
 <!-- report:end expressiveness -->
 
 ## Correctness
@@ -97,19 +98,28 @@ oracle of the change).
 ### Conformance to the specification
 
 The steps of the key script of each task (the screen oracle of
-`harness/oracle.py`).
+`harness/oracle.py`), and two more steps. `modes` checks raw mode, the
+alternate screen and a hidden cursor while the program runs. `layout` (the
+dashboard) checks the clock at the right end of row 1, the list panel in the
+left C/2 columns, the load panel right of it, and `Item 0001` as the first
+visible row. The PageDown, PageUp and ArrowUp steps also check the viewport
+rule (the minimum scroll). The resize step also checks the marker and the
+panels at the new width. The oracle does not check these rules of the
+specification: the styles (free), the bar of the gauge, the sparkline, and
+the local time of the clock (the harness sets `TZ=UTC`).
+<!-- claude 2026-10-20: changed: the steps modes and layout, and the rules that the oracle does not check (review fix) -->
 
 <!-- report:begin conformance -->
 | Stack | counter steps | counter failed | dashboard steps | dashboard failed |
 | --- | ---: | ---: | ---: | ---: |
-| tui4s | 11/11 |  | 14/14 |  |
-| jatatui-plain | 11/11 |  | 14/14 |  |
-| TamboUI | 11/11 |  | 14/14 |  |
-| layoutz | 9/11 | start, resize 80x24 | 12/14 | start, resize 80x24 |
-| ratatui | 11/11 |  | 14/14 |  |
-| bubbletea | 11/11 |  | 14/14 |  |
-| Textual | 11/11 |  | 14/14 |  |
-| ink | 11/11 |  | 14/14 |  |
+| tui4s | 12/12 |  | 16/16 |  |
+| jatatui-plain | 12/12 |  | 16/16 |  |
+| TamboUI | 12/12 |  | 16/16 |  |
+| layoutz | 9/12 | start, modes, resize 80x24 | 13/16 | start, modes, resize 80x24 |
+| ratatui | 12/12 |  | 16/16 |  |
+| bubbletea | 12/12 |  | 16/16 |  |
+| Textual | 12/12 |  | 16/16 |  |
+| ink | 12/12 |  | 16/16 |  |
 <!-- report:end conformance -->
 
 ### Resource management: the restore contract
@@ -117,93 +127,128 @@ The steps of the key script of each task (the screen oracle of
 After each way to end the program, the terminal is not in raw mode (the
 termios flags of the PTY), the alternate screen was left, the cursor is
 visible, and no process of the program stays alive (`counter.md`, "Restore
-contract"). "failure" is the key Ctrl-X, which throws in the key handler:
-"ended" (the program ends), "contained" (the runtime catches it and the keys
-work), "error-screen" (the runtime catches it and shows an error screen).
+contract"). "failure" is the key Ctrl-X, which throws in the key handler.
+`counter.md` accepts two outcomes: "ended" (the program ends with a non-zero
+exit code) and "contained" (the runtime catches the failure and the next keys
+work). "error-screen" (the runtime catches it, and the next key has no
+effect) is not one of them, and the row fails. "kill-mid-frame" sends a burst
+of 30 keys and sends SIGTERM when the first byte of output after the burst
+arrives; the cell gives the bytes that arrived before the kill.
+<!-- claude 2026-10-20: changed: the failure outcomes and the kill of kill-mid-frame (review fixes) -->
 
 <!-- report:begin resilience -->
 | Stack, task | quit | ctrl-c | sigterm | sigint | failure | kill-mid-frame |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| tui4s counter | ok (exit 0) | ok (exit 0) | ok (exit 143) | ok (exit 130) | ok (contained) | ok (exit 143) |
-| tui4s dashboard | ok (exit 0) | ok (exit 0) | ok (exit 143) | ok (exit 130) | ok (contained) | ok (exit 143) |
-| jatatui-plain counter | ok (exit 0) | ok (exit 0) | ok (exit 143) | ok (exit 130) | ok (ended) | ok (exit 143) |
-| jatatui-plain dashboard | ok (exit 0) | ok (exit 0) | ok (exit 143) | ok (exit 130) | ok (ended) | ok (exit 143) |
-| TamboUI counter | ok (exit 0) | ok (exit 0) | ok (exit 143) | ok (exit 130) | ok (error-screen) | ok (exit 143) |
-| TamboUI dashboard | ok (exit 0) | ok (exit 0) | ok (exit 143) | ok (exit 130) | ok (error-screen) | ok (exit 143) |
-| layoutz counter | ok (exit 0, no alt screen) | ok (exit 130, no alt screen) | ok (exit 143, no alt screen) | ok (exit 130, no alt screen) | ok (contained, no alt screen) | ok (exit 143, no alt screen) |
-| layoutz dashboard | ok (exit 0, no alt screen) | ok (exit 130, no alt screen) | ok (exit 143, no alt screen) | ok (exit 130, no alt screen) | ok (contained, no alt screen) | ok (exit 143, no alt screen) |
-| ratatui counter | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (ended) | ok (exit 0) |
-| ratatui dashboard | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (ended) | ok (exit 0) |
-| bubbletea counter | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (exit 1) | ok (ended) | ok (exit 0) |
-| bubbletea dashboard | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (exit 1) | ok (ended) | ok (exit 0) |
-| Textual counter | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (ended) | ok (exit 0) |
-| Textual dashboard | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (ended) | ok (exit 0) |
-| ink counter | ok (exit 0) | ok (exit 0) | ok (exit -15) | ok (exit -2) | ok (ended) | ok (exit -15) |
-| ink dashboard | ok (exit 0) | ok (exit 0) | ok (exit -15) | ok (exit -2) | ok (ended) | ok (exit -15) |
+| tui4s counter | ok (exit 0) | ok (exit 0) | ok (exit 143) | ok (exit 130) | ok (contained) | ok (exit 143, kill after 32 B) |
+| tui4s dashboard | ok (exit 0) | ok (exit 0) | ok (exit 143) | ok (exit 130) | ok (contained) | ok (exit 143, kill after 79 B) |
+| jatatui-plain counter | ok (exit 0) | ok (exit 0) | ok (exit 143) | ok (exit 130) | ok (ended) | ok (exit 143, kill after 32 B) |
+| jatatui-plain dashboard | ok (exit 0) | ok (exit 0) | ok (exit 143) | ok (exit 130) | ok (ended) | ok (exit 143, kill after 87 B) |
+| TamboUI counter | ok (exit 0) | ok (exit 0) | ok (exit 143) | ok (exit 130) | FAIL (error-screen) | ok (exit 143, kill after 31 B) |
+| TamboUI dashboard | ok (exit 0) | ok (exit 0) | ok (exit 143) | ok (exit 130) | FAIL (error-screen) | ok (exit 143, kill after 302 B) |
+| layoutz counter | ok (exit 0, no alt screen) | ok (exit 130, no alt screen) | ok (exit 143, no alt screen) | ok (exit 130, no alt screen) | ok (contained, no alt screen) | ok (exit 143, kill after 3 B, no alt screen) |
+| layoutz dashboard | ok (exit 0, no alt screen) | ok (exit 130, no alt screen) | ok (exit 143, no alt screen) | ok (exit 130, no alt screen) | ok (contained, no alt screen) | ok (exit 143, kill after 3 B, no alt screen) |
+| ratatui counter | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (ended) | ok (exit 0, kill after 32 B) |
+| ratatui dashboard | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (ended) | ok (exit 0, kill after 48 B) |
+| bubbletea counter | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (exit 1) | ok (ended) | ok (exit 0, kill after 51 B) |
+| bubbletea dashboard | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (exit 1) | ok (ended) | ok (exit 0, kill after 4095 B) |
+| Textual counter | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (ended) | ok (exit 0, kill after 3571 B) |
+| Textual dashboard | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (ended) | ok (exit 0, kill after 4095 B) |
+| ink counter | ok (exit 0) | ok (exit 0) | ok (exit -15) | ok (exit -2) | ok (ended) | ok (exit -15, kill after 369 B) |
+| ink dashboard | ok (exit 0) | ok (exit 0) | ok (exit -15) | ok (exit -2) | ok (ended) | ok (exit -15, kill after 4095 B) |
 <!-- report:end resilience -->
 
 ### Mutants
 
 13 bug classes ([mutants/classes.md](mutants/classes.md)), one small mutant
 of the counter per class and stack. The outcome is what finds the bug first:
-the compiler, a crash, the oracle of the harness, or nothing.
+the compiler, a crash, the oracle of the harness, or nothing. A mutant that
+passes the oracle is "defused" only when the defuse probe of its class (the
+same for every stack, in `mutants/classes.md`) shows that the bug has no
+effect; else it is "silent".
+<!-- claude 2026-10-20: changed: the rule of defused (review fix) -->
 
 <!-- report:begin mutants -->
-| Stack | compile-error | runtime-crash | test-or-oracle-catches | defused | silent-wrong-behaviour | n/a | mutants run |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| tui4s | 0 | 1 | 6 | 4 | 0 | 2 | 11 |
-| jatatui-plain | 1 | 1 | 11 | 0 | 0 | 0 | 13 |
-| TamboUI | 0 | 0 | 0 | 0 | 0 | 13 | 0 |
-| layoutz | 0 | 0 | 5 | 0 | 2 | 6 | 7 |
-| ratatui | 2 | 2 | 8 | 1 | 0 | 0 | 13 |
-| bubbletea | 0 | 1 | 9 | 1 | 0 | 2 | 11 |
-| Textual | 0 | 2 | 4 | 2 | 1 | 4 | 9 |
-| ink | 0 | 1 | 7 | 1 | 0 | 4 | 9 |
+| Stack | compile-error | runtime-crash | test-or-oracle-catches | defused | silent-wrong-behaviour | n/a | not-written | mutants run |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| tui4s | 0 | 1 | 7 | 2 | 2 | 1 | 0 | 12 |
+| jatatui-plain | 1 | 1 | 11 | 0 | 0 | 0 | 0 | 13 |
+| TamboUI | 0 | 0 | 0 | 0 | 0 | 0 | 13 | 0 |
+| layoutz | 0 | 0 | 5 | 0 | 2 | 6 | 0 | 7 |
+| ratatui | 2 | 2 | 8 | 0 | 1 | 0 | 0 | 13 |
+| bubbletea | 0 | 1 | 9 | 0 | 1 | 2 | 0 | 11 |
+| Textual | 0 | 2 | 4 | 2 | 1 | 4 | 0 | 9 |
+| ink | 0 | 1 | 7 | 0 | 1 | 4 | 0 | 9 |
 <!-- report:end mutants -->
 
 <!-- report:begin mutant-matrix -->
 | Stack | no-restore-on-exception | wrong-thread | no-resize | off-by-one | blocking-handler | leaked-timer | non-exhaustive-key | null-read | stale-closure | wrong-unit | stdout-write | missing-binding | lost-update |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| tui4s | n/a | n/a | defused | oracle | oracle | oracle | defused | crash | oracle | defused | defused | oracle | oracle |
+| tui4s | n/a | SILENT | SILENT | oracle | oracle | oracle | defused | crash | oracle | oracle | defused | oracle | oracle |
 | jatatui-plain | oracle | oracle | oracle | oracle | oracle | oracle | compile | crash | oracle | oracle | oracle | oracle | oracle |
-| TamboUI | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| TamboUI | not written | not written | not written | not written | not written | not written | not written | not written | not written | not written | not written | not written | not written |
 | layoutz | n/a | n/a | n/a | SILENT | oracle | oracle | oracle | oracle | n/a | n/a | SILENT | oracle | n/a |
-| ratatui | oracle | compile | crash | oracle | oracle | defused | compile | crash | oracle | oracle | oracle | oracle | oracle |
-| bubbletea | oracle | oracle | oracle | oracle | oracle | defused | n/a | crash | n/a | oracle | oracle | oracle | oracle |
+| ratatui | oracle | compile | crash | oracle | oracle | SILENT | compile | crash | oracle | oracle | oracle | oracle | oracle |
+| bubbletea | oracle | oracle | oracle | oracle | oracle | SILENT | n/a | crash | n/a | oracle | oracle | oracle | oracle |
 | Textual | n/a | SILENT | n/a | oracle | oracle | oracle | n/a | crash | n/a | crash | defused | oracle | defused |
-| ink | n/a | n/a | oracle | oracle | oracle | oracle | n/a | crash | oracle | n/a | defused | oracle | oracle |
+| ink | n/a | n/a | oracle | oracle | oracle | oracle | n/a | crash | oracle | n/a | SILENT | oracle | oracle |
 <!-- report:end mutant-matrix -->
 
 ## What stage 1 found
 
-- **Conformance.** Seven stacks pass every step of both key scripts. layoutz
-  fails the start (its last row stays free) and the resize (it has no size
-  events): see `impl/layoutz/README.md`.
+<!-- claude 2026-10-20: changed: the findings from the results of the review fixes -->
+- **Conformance.** Seven stacks pass every step of both key scripts, with the
+  modes, the layout and the viewport rule. layoutz fails the start (its last
+  row stays free), the modes (it never enters the alternate screen) and the
+  resize (it has no size events): see `impl/layoutz/README.md`.
 - **Keys in one read.** bubbletea and ink give the keys of one read (`+++++`)
   to the program as one message. A handler that compares the message with
   `+` loses keys; their counters split the message (the `lost-update` mutants
   of both stacks remove that split, and the oracle catches them).
-- **Signals.** Every stack restores the terminal in the six rows of the
-  restore contract on this machine. tui4s, TamboUI, bubbletea, ink and layoutz
-  do it with no code of the app. jatatui-plain needs a shutdown hook, ratatui
-  needs `signal-hook`, and Textual needs a handler on the asyncio loop; that
-  code counts in their compactness.
+- **Signals.** Every stack restores the terminal after quit, Ctrl-C, SIGTERM,
+  SIGINT and a SIGTERM during the frames of a burst of keys, on this machine.
+  tui4s, TamboUI, bubbletea, ink and layoutz do it with no code of the app.
+  jatatui-plain needs a shutdown hook, ratatui needs `signal-hook`, and
+  Textual needs a handler on the asyncio loop; that code counts in their
+  compactness.
 - **The forced failure.** tui4s and layoutz contain an exception of a key
-  handler and go on; TamboUI shows an error screen; the other stacks end the
-  program and restore the terminal.
+  handler and go on; the other stacks except TamboUI end the program and
+  restore the terminal. TamboUI shows an error screen, and the next keys have
+  no effect: this is not an outcome of `counter.md`, so its failure rows fail.
 - **Mutants.** In every stack the oracle, a crash or the compiler finds most
-  mutants. tui4s defuses four (the capture of stdout, the `MatchError` of a
-  handler, two fixed root heights) and has no silent mutant; the compiler
-  catches one in jatatui-plain and two in ratatui (a match that is not
-  exhaustive; in ratatui also a draw from another thread). The silent ones: a
-  state change from another thread in Textual (it works here, but Textual asks
-  for `call_from_thread`), and in layoutz a write to stdout (the next frame
-  overwrites it) and an off-by-one row (its start step already fails).
-- **tui4s.** The gaps that the bench shows are in the open issues of the
-  bench report: the start time and the memory of the JVM stack, an idle CPU of
-  about 5 %, `ListView.virtual` with a fixed height (the dashboard mounts a new
-  list for each terminal height), the fixed page of `useSelection`, and an
-  exception in a view that ends the run (the `null-read` mutant).
+  mutants. The compiler catches one in jatatui-plain and two in ratatui (a
+  match that is not exhaustive; in ratatui also a draw from another thread).
+  The probes defuse two in tui4s (the capture of stdout, the `MatchError` of
+  a handler) and two in Textual (the capture of `print()`, one message at a
+  time). The silent ones: in tui4s a count written from a raw thread (it
+  works, because a `SignalRef` is atomic) and a root with the height of the
+  start (the probe sees the help row on row 30 of 40 after a resize to a
+  larger terminal); a count written from a thread in Textual (it works here,
+  but Textual asks for `call_from_thread`); a leaked timer in ratatui and
+  bubbletea (it ends with the process); a write to stdout in ink and in
+  layoutz (the text reaches the screen of the UI, and the next frame hides
+  it); and an off-by-one row in layoutz (its start step already fails).
+- **tui4s.** See "Open issues of tui4s" below.
+
+## Open issues of tui4s
+
+<!-- claude 2026-10-20: created: the open issues of tui4s that the bench shows (review fix: the old bullet named a report that is not in the repository) -->
+The numbers are from [PERFORMANCE.md](PERFORMANCE.md) (the build container,
+noisy; read them as orders of magnitude).
+
+- **Start.** The first frame comes after about 1.2 s (counter) and 1.6 s
+  (dashboard). jatatui-plain, on the same JVM and the same jatatui jars, needs
+  about 0.2 s and 0.3 s.
+- **Memory and size.** The RSS is about 130 MB (counter) and 200 MB
+  (dashboard), and the jars are 38.5 MB (jatatui-plain: 2 MB).
+- **CPU.** About 5 % of one CPU when the counter is idle (the other stacks:
+  0 % to 2 %), and about 20 % with the 100 ms timer of the dashboard
+  (jatatui-plain: about 5 %).
+- **Widgets.** `ListView.virtual` takes a fixed height, so the dashboard
+  mounts a new list for each terminal height; `useSelection` takes a fixed
+  page, so PageDown after a resize moves by the old page.
+- **Failures.** An exception in a view ends the run (the `null-read` mutant),
+  and an exception in a key handler is contained. This difference is not
+  decided or documented yet.
 
 ## Layout of this directory
 

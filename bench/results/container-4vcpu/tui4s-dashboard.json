@@ -27,7 +27,7 @@
     "step": "backspace"
    },
    {
-    "detail": "",
+    "detail": "exit=0 restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored': True}",
     "ok": true,
     "step": "quit (Ctrl-C)"
    }
@@ -35,12 +35,22 @@
   "total": 5
  },
  "conformance": {
-  "passed": 14,
+  "passed": 16,
   "steps": [
    {
     "detail": "",
     "ok": true,
     "step": "start"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "modes"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "layout"
    },
    {
     "detail": "",
@@ -88,12 +98,12 @@
     "step": "tab to list"
    },
    {
-    "detail": "T 13->33 (+20), samples=77, wrong=[]",
+    "detail": "T 13->33 (+20), samples=76, wrong=[]",
     "ok": true,
     "step": "ticks"
    },
    {
-    "detail": "clock=03:29:33",
+    "detail": "clock=04:42:56",
     "ok": true,
     "step": "clock"
    },
@@ -108,7 +118,7 @@
     "step": "quit"
    }
   ],
-  "total": 14
+  "total": 16
  },
  "machine": "container-4vcpu",
  "perf": {
@@ -175,6 +185,7 @@
    "cooked": true,
    "cursor": "visible",
    "exit": 0,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
@@ -193,20 +204,25 @@
   },
   "kill-mid-frame": {
    "alt_screen": "left",
+   "bytes_after_kill": 22,
+   "bytes_before_kill": 79,
    "cooked": true,
    "cursor": "visible",
    "exit": 143,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
    "restored": true,
-   "seconds": 0.06
+   "seconds": 0.08,
+   "shown_at_kill": "Selected 0001"
   },
   "quit": {
    "alt_screen": "left",
    "cooked": true,
    "cursor": "visible",
    "exit": 0,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
@@ -218,6 +234,7 @@
    "cooked": true,
    "cursor": "visible",
    "exit": 130,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,
@@ -229,6 +246,7 @@
    "cooked": true,
    "cursor": "visible",
    "exit": 143,
+   "note": "",
    "orphans": [],
    "outcome": "ended",
    "pass": true,

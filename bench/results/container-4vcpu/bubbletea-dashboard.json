@@ -27,7 +27,7 @@
     "step": "backspace"
    },
    {
-    "detail": "",
+    "detail": "exit=0 restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored': True}",
     "ok": true,
     "step": "quit (Ctrl-C)"
    }
@@ -35,12 +35,22 @@
   "total": 5
  },
  "conformance": {
-  "passed": 14,
+  "passed": 16,
   "steps": [
    {
     "detail": "",
     "ok": true,
     "step": "start"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "modes"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "layout"
    },
    {
     "detail": "",
@@ -93,7 +103,7 @@
     "step": "ticks"
    },
    {
-    "detail": "clock=03:28:46",
+    "detail": "clock=04:35:57",
     "ok": true,
     "step": "clock"
    },
@@ -108,7 +118,7 @@
     "step": "quit"
    }
   ],
-  "total": 14
+  "total": 16
  },
  "machine": "container-4vcpu",
  "perf": {
@@ -194,6 +204,8 @@
   },
   "kill-mid-frame": {
    "alt_screen": "left",
+   "bytes_after_kill": 4278,
+   "bytes_before_kill": 4095,
    "cooked": true,
    "cursor": "visible",
    "exit": 0,
@@ -202,7 +214,8 @@
    "outcome": "ended",
    "pass": true,
    "restored": true,
-   "seconds": 0.02
+   "seconds": 0.03,
+   "shown_at_kill": "Selected 0029"
   },
   "quit": {
    "alt_screen": "left",

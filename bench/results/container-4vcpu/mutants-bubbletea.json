@@ -25,8 +25,8 @@
    "detail": "plus 1: no 'Count: 1' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 2: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 3: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; minus: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the c"
   },
   "leaked-timer": {
-   "outcome": "defused",
-   "detail": "the process ends when main returns; the goroutine ends with it"
+   "outcome": "silent-wrong-behaviour",
+   "detail": "every step that passes without the mutant passes with it; the class has no defuse probe. Note: the goroutine ends with the process when main returns."
   },
   "non-exhaustive-key": {
    "outcome": "n/a",

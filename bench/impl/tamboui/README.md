@@ -30,3 +30,6 @@ bench/impl/tamboui/run.sh dashboard
 - The forced failure (Ctrl-X): the runner catches the exception of the
   handler and shows an error screen; the keys then go to that screen, and `q`
   ends the program with code 0. The harness records this as "error-screen".
+  It is not one of the two outcomes of `counter.md` ("ended" or "contained"),
+  so the failure rows of TamboUI fail.
+  <!-- claude 2026-10-20: changed: the error screen fails the failure row (review fix) -->

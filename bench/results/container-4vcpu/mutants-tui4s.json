@@ -9,12 +9,12 @@
    "detail": "the runner owns the restore (a release stack and a shutdown hook); a key handler has no way to skip it"
   },
   "wrong-thread": {
-   "outcome": "n/a",
-   "detail": "only the runner draws, and a SignalRef is safe to write from any fiber or thread"
+   "outcome": "silent-wrong-behaviour",
+   "detail": "every step that passes without the mutant passes with it; the class has no defuse probe. Note: a SignalRef is an atomic reference, and the runner draws the change on its own fiber."
   },
   "no-resize": {
-   "outcome": "defused",
-   "detail": "the screen is a flex column: a root that is taller than the screen shrinks to it, so the last row stays on the screen after a resize"
+   "outcome": "silent-wrong-behaviour",
+   "detail": "every step of the oracle passes, and the probe sees the bug: at 120x40: row 30: '+/- or Up/Down change the count, q quits' (want ''); row 40: '' (want '+/- or Up/Down change the count, q quits')."
   },
   "off-by-one": {
    "outcome": "test-or-oracle-catches",
@@ -26,11 +26,11 @@
   },
   "leaked-timer": {
    "outcome": "test-or-oracle-catches",
-   "detail": "quit: exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [5995], 'restored': False}; failure probe: contained+hung exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored': "
+   "detail": "quit: exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [22046], 'restored': False}; failure probe: contained+hung exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored': "
   },
   "non-exhaustive-key": {
    "outcome": "defused",
-   "detail": "the runner catches the MatchError of the handler, logs it and goes on"
+   "detail": "probe: after x, z, Home, Delete, F1 and F5, the next '+' gives 'Count: 1'. Note: the runner catches the MatchError of the handler, logs it and goes on."
   },
   "null-read": {
    "outcome": "runtime-crash",
@@ -41,12 +41,12 @@
    "detail": "plus 2: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; plus 3: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; minus: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: -1 | +/- or Up/Down change the count, q quits; up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; down: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: -1 | +/- or Up/Down change the c"
   },
   "wrong-unit": {
-   "outcome": "defused",
-   "detail": "the screen is a flex column: a root of 100 rows shrinks to the screen, so the last row stays on the screen"
+   "outcome": "test-or-oracle-catches",
+   "detail": "start: row 2: 'Count: 0' (want ''); row 3: '' (want 'Count: 0'); plus 1: no 'Count: 1' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; plus 2: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the count, q quits; plus 3: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 3 | +/- or Up/Down change the count, q quits; minus: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the count, q quits; up: no 'Count: 3' on"
   },
   "stdout-write": {
    "outcome": "defused",
-   "detail": "TuiApp captures stdout while the UI runs and prints it after the restore"
+   "detail": "probe: the text 'count N' reaches the terminal only after the UI left the alternate screen. Note: TuiApp captures stdout while the UI runs and prints it after the restore."
   },
   "missing-binding": {
    "outcome": "test-or-oracle-catches",
@@ -54,7 +54,7 @@
   },
   "lost-update": {
    "outcome": "test-or-oracle-catches",
-   "detail": "burst +++++: no 'Count: 7' on row 3 in 1.5 s: Counter | Count: 3 | +/- or Up/Down change the count, q quits; unbound x: row 3: 'Count: 3' (want 'Count: 7'); resize 80x24: Counter | Count: 3 | +/- or Up/Down change the count, q quits"
+   "detail": "burst +++++: no 'Count: 7' on row 3 in 1.5 s: Counter | Count: 4 | +/- or Up/Down change the count, q quits; unbound x: row 3: 'Count: 4' (want 'Count: 7'); resize 80x24: Counter | Count: 4 | +/- or Up/Down change the count, q quits"
   }
  }
 }

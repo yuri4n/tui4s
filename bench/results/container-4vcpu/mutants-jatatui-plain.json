@@ -10,7 +10,7 @@
   },
   "wrong-thread": {
    "outcome": "test-or-oracle-catches",
-   "detail": "burst +++++: row 30: '+/- or Up/Down change the count,nqqquitsintts:' (want '+/- or Up/Down change the count, q quits'); unbound x: row 30: '+/- or Up/Down change the count,nqqquitsintts:' (want '+/- or Up/Down change the count, q quits')"
+   "detail": "plus 1: row 1: '' (want 'Counter'); row 3: '' (want 'Count: 1'); row 30: '' (want '+/- or Up/Down change the count, q quits'); plus 2: no 'Count: 2' on row 3 in 1.5 s: Counter | Count:u2/D:er | +/-/orrUp/DownDchangentheecount,nqtquits; plus 3: no 'Count: 3' on row 3 in 1.5 s: Counter | Count:u3/D:er | +/-/orrUp/DownDchangentheecount,nqtquits; minus: no 'Count: 2' on row 3 in 1.5 s: Counter | Count:u2/D:er | +/-/orrUp/DownDchangentheecount,nqtquits; up: no 'Count: 3' on row 3 in 1.5 s: Counter | "
   },
   "no-resize": {
    "outcome": "test-or-oracle-catches",
@@ -26,11 +26,11 @@
   },
   "leaked-timer": {
    "outcome": "test-or-oracle-catches",
-   "detail": "quit: exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [29785], 'restored': False}; failure probe: error-screen+hung exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored"
+   "detail": "quit: exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [24919], 'restored': False}; failure probe: error-screen+hung exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored"
   },
   "non-exhaustive-key": {
    "outcome": "compile-error",
-   "detail": "[error] impl/jatatui-plain/counter/Counter.java:46:17: the switch statement does not cover all possible input values (the log of the run kept only sbt warnings; the error was read again by hand from the same build)"
+   "detail": "[error] /home/user/tui4s-l5-bench/bench/impl/jatatui-plain/counter/Counter.java:46:17: the switch statement does not cover all possible input values\n[error] switch (key.code()) {\n[error]                   case KeyCode.Char(var c) when ctrl && c == 'c' -> running = false;\n[error]                   case KeyCode.Char(var c) when ctrl && c == 'x' ->\n[error]                       throw new IllegalStateException(\"forced failure (Ctrl-X)\");\n[error]                   case KeyCode.Char(var c) when c == 'q' -> running = false;\n[error]                   case KeyCode.Char(var c) when c == '+' -> count++;\n"
   },
   "null-read": {
    "outcome": "runtime-crash",

@@ -32,8 +32,10 @@ the run records its `java -version`.
 
 **Status: not deployed from the build container.** The container reached AWS
 (STS answered), but it rejected the credentials of the container
-(`InvalidClientTokenId`). Nothing was created. The fix stage deploys once,
-after the review of these safety rails.
+(`InvalidClientTokenId`), in the build stage and again in the fix stage
+(2026-10-20). Nothing was created. Deploy from a machine with valid
+credentials, after the commit is pushed.
+<!-- claude 2026-10-20: changed: the second check of the credentials (fix stage) -->
 
 ## Cost
 
