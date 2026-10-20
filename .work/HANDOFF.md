@@ -247,6 +247,13 @@
   the release; optional: #51 AWS run, post the upstream drafts. Open decisions: D24 keep (#46); first-take keep;
   D16 narrowed (ADR 0015).
   <!-- claude 2026-10-20: created this item -->
+- VERCEL 2026-10-20: the user imported the project (root docs) on main 56047cd; the deploy was skipped, not
+  failed: docs/vercel.json (Docus scaffold) had ignoreCommand `git diff --quiet HEAD^ HEAD -- .`, and 56047cd
+  touched no file of docs/. The same rule skips a fast-forward of main whose last commit is outside docs/.
+  Fixed on chore/cleanup-7p2rll: the command compares VERCEL_GIT_PREVIOUS_SHA (last successful deployment;
+  empty on the first) with HEAD; docs.yml and AGENTS.md state the rule. After the ff to main, the push
+  builds (empty variable). ci 39451527566 GREEN on 56047cd (the four-system flake).
+  <!-- claude 2026-10-20: created this item -->
 - MAIN MERGED by the user (cd6a877..20cd3de, then ..9de789a). Their Intel Mac (x86_64-darwin) had no devShell:
   9de789a added the system; nixpkgs 26.11 dropped x86_64-darwin, so the user's own Oct 16 edit (pushed as
   wip/local-oct16 def5d6a: nixpkgs input = nixpkgs-26.05-darwin, nixpkgs-current = the pinned commit, README
