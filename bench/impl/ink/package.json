@@ -1,0 +1,19 @@
+{
+  "name": "bench-ink",
+  "private": true,
+  "type": "module",
+  "description": "The ink implementations of the bench tasks (bench/tasks).",
+  "scripts": {
+    "build": "esbuild counter/app.jsx dashboard/app.jsx --bundle --platform=node --format=esm --packages=external --jsx=automatic --outdir=dist --log-level=warning",
+    "fmt": "prettier --write counter dashboard",
+    "fmt:check": "prettier --check counter dashboard"
+  },
+  "dependencies": {
+    "ink": "8.0.0",
+    "react": "19.3.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "prettier": "3.9.10"
+  }
+}

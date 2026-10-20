@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Runs one task in the current terminal: run.sh counter|dashboard.
+# claude 2026-10-20: created (L5)
+set -euo pipefail
+here=$(cd "$(dirname "$0")" && pwd)
+case "${1:-}" in
+  counter | dashboard) PYTHONDONTWRITEBYTECODE=1 exec "$here/.venv/bin/python" "$here/$1/app.py" ;;
+  *) echo "usage: run.sh counter|dashboard" >&2; exit 2 ;;
+esac

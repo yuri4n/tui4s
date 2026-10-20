@@ -66,7 +66,7 @@ The contract applies in each of these cases:
 | ---- | ------------------------- | ------------- |
 | quit | the key `q` | 0 |
 | Ctrl-C | the key Ctrl-C (byte 0x03) | 0 or 130 |
-| SIGTERM | `kill -TERM <pid>` | 143, or the end by signal 15 |
+| SIGTERM | `kill -TERM <pid>` | 0 or 143, or the end by signal 15 |
 | SIGINT | `kill -INT <pid>` | 0 or 130, or the end by signal 2 |
 | failure | the key Ctrl-X (byte 0x18) | see "Failure" |
 | kill mid-frame | a burst of keys, and SIGTERM in the same millisecond | as SIGTERM |

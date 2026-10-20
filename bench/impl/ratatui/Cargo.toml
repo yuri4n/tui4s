@@ -1,0 +1,12 @@
+# The ratatui implementations of the bench: one workspace, one binary per task.
+# claude 2026-10-20: created (L5)
+[workspace]
+members = ["counter", "dashboard"]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+publish = false
+
+[profile.release]
+strip = true
