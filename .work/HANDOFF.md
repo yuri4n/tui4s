@@ -236,6 +236,16 @@
   macOS has no XDG fallback: ~/Library/Application Support/tui4s/assistant). 20cd3de pushed: run.sh/aot-train/cast.py
   give the apps a fresh home + XDG vars + -Duser.home via JAVA_OPTS; both local PTY passes green. ci re-dispatched on
   20cd3de (watcher a579a006...). When green: the gate message (task #29).
+  <!-- claude 2026-10-20: created this item -->
+- FINAL STATE 2026-10-20: chore/cleanup-7p2rll at 20cd3de; ci run 39448431802 GREEN (sbt, nix, terminal ubuntu +
+  macos with AOT, web); bench GREEN (39445536529 on 0e97b78; no bench change since); docs GREEN (39442227535); native
+  GREEN (39442239365). Issues #18-#51 open as the roadmap; PR #7 closed. The program L0-L6 is complete. HUMAN GATE
+  (the session's git credentials push only this branch: no main, no tags, no deletions): (1) ff-merge to main; (2)
+  private vulnerability reporting on; (3) Vercel project tui4s (root docs); (4) maven-central env: 4 secrets + 6 tag
+  patterns; (5) import .github/rulesets; (6) scripts/release.sh runner, app, testkit, core, use, widgets at
+  0.1.0-RC1 (one at a time); (7) delete the stale branches (.work/stale-branches.txt); (8) delete wip/handoff after
+  the release; optional: #51 AWS run, post the upstream drafts. Open decisions: D24 keep (#46); first-take keep;
+  D16 narrowed (ADR 0015).
   <!-- claude 2026-10-20: created this item --> History: the user asked "why
   useSignal gone?"; picked `signal(0)` from a choice (signal, createSignal, sig, useSignal); then "signal() should be
   a primitive, not a hook" (a hook is mount-bound; creating a signal has no lifetime, and the runner is terminal-only),
