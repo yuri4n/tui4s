@@ -1,0 +1,12 @@
+--- a/impl/tui4s/counter/Counter.scala
++++ b/impl/tui4s/counter/Counter.scala
+@@ -9,5 +9,8 @@
+     for count <- Signal.initRef(0)
+     yield
+-      def add(n: Int): Unit < Sync = count.updateAndGet(_ + n).unit
++      def add(n: Int): Unit < Sync = Sync.defer {
++        import AllowUnsafe.embrace.danger
++        Thread(() => Sync.Unsafe.evalOrThrow(count.updateAndGet(_ + n).unit)).start()
++      }
+       div
+         .style(_.height(100.pct))

@@ -111,6 +111,8 @@ def blocks(machine):
                 v = rz.get(c, {})
                 mark = "ok" if v.get("pass") else "FAIL"
                 extra = v.get("outcome") if c == "failure" else f"exit {v.get('exit')}"
+                if c == "kill-mid-frame" and "bytes_before_kill" in v:
+                    extra += f", kill after {v['bytes_before_kill']} B"  # claude 2026-10-20: changed: the bytes (review fix)
                 if v.get("alt_screen") == "never-entered":
                     extra += ", no alt screen"
                 cells.append(f"{mark} ({extra})")
@@ -118,7 +120,9 @@ def blocks(machine):
     out["resilience"] = table(["Stack, task"] + cols, rows)
 
     rows = []
-    kinds = ["compile-error", "runtime-crash", "test-or-oracle-catches", "defused", "silent-wrong-behaviour", "n/a"]
+    # claude 2026-10-20: changed: a column for the mutants that are not written (review fix)
+    kinds = ["compile-error", "runtime-crash", "test-or-oracle-catches", "defused", "silent-wrong-behaviour", "n/a",
+             "not-written"]
     for s in st.ORDER:
         m = load(os.path.join(res, f"mutants-{s}.json"))
         if not m:
@@ -126,7 +130,8 @@ def blocks(machine):
         counts = {k: 0 for k in kinds}
         for v in m["classes"].values():
             counts[v["outcome"]] = counts.get(v["outcome"], 0) + 1
-        rows.append([NAMES[s]] + [counts.get(k, 0) for k in kinds] + [sum(counts.values()) - counts["n/a"]])
+        rows.append([NAMES[s]] + [counts.get(k, 0) for k in kinds]
+                    + [sum(counts.values()) - counts["n/a"] - counts["not-written"]])
     out["mutants"] = table(["Stack"] + kinds + ["mutants run"], rows)
 
     rows = []
@@ -137,7 +142,7 @@ def blocks(machine):
             continue
         classes = classes or list(m["classes"])
         short = {"compile-error": "compile", "runtime-crash": "crash", "test-or-oracle-catches": "oracle",
-                 "defused": "defused", "silent-wrong-behaviour": "SILENT", "n/a": "n/a"}
+                 "defused": "defused", "silent-wrong-behaviour": "SILENT", "n/a": "n/a", "not-written": "not written"}
         rows.append([NAMES[s]] + [short.get(m["classes"][c]["outcome"], m["classes"][c]["outcome"]) for c in classes])
     if classes:
         out["mutant-matrix"] = table(["Stack"] + classes, rows)

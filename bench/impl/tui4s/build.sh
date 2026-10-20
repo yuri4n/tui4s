@@ -3,7 +3,7 @@
 # They are projects of the bench sbt build (bench/build.sbt); the tui4s
 # artifacts come from the local Ivy repository (bench/run.sh publishes them).
 # Set SBT="sbt --client" to reuse an sbt server.
-# claude 2026-10-20: created (L5)
+# claude 2026-10-20: created: the build script of the tui4s stack (L5)
 set -euo pipefail
 bench=$(cd "$(dirname "$0")/../.." && pwd)
 case "${1:-all}" in

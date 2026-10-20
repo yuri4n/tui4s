@@ -1,5 +1,5 @@
 """The stacks of the bench: their language, their source files per task, and their build artifacts."""
-# claude 2026-10-20: created (L5)
+# claude 2026-10-20: created: the stacks of the bench harness (L5)
 
 import glob
 import os

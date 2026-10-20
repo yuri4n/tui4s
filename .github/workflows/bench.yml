@@ -1,10 +1,14 @@
 # The bench of tui4s (bench/, decision D10). Six parallel jobs build the
 # implementations of their stacks and run bench/run.sh in "ci" mode on them
 # (the conformance oracle, the resilience suite, the change request, the
-# mutant suite, one short perf run); one job checks the formatting of all the
-# stacks. The results are an artifact of the run; they are not published (a
-# shared CI runner is not a bench machine).
-# claude 2026-10-20: created (L5)
+# mutant suite, one short perf run) and the check of the results ("check" of
+# bench/harness/bench.py: a step that fails and is not a known failure, or a
+# mutant outcome that differs from the reference machine, fails the job); one
+# job checks the formatting of all the stacks. The results are an artifact of
+# the run; they are not published (a shared CI runner is not a bench machine).
+# A push that changes only the tui4s modules runs only the tui4s group.
+# claude 2026-10-20: created: the CI job of the bench (L5), with the check gate, the tui4s modules in the paths
+# and Rust 1.97.0 (review fixes)
 name: bench
 
 on:
@@ -13,6 +17,9 @@ on:
     paths:
       - "bench/**"
       - ".github/workflows/bench.yml"
+      - "modules/**"
+      - "project/**"
+      - "build.sbt"
 
 permissions:
   contents: read
@@ -56,7 +63,7 @@ jobs:
           java-version: 25 # Kyo 1.0.0-RC7 needs JDK 25
           cache: sbt
       - uses: sbt/setup-sbt@v1
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.97.0
         with:
           components: rustfmt
       - uses: Swatinem/rust-cache@v2
@@ -80,7 +87,15 @@ jobs:
           cache: pnpm
           cache-dependency-path: bench/impl/ink/pnpm-lock.yaml
       - name: Bench (ci mode)
-        run: bench/run.sh ci
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = push ] && [ "${{ matrix.group }}" != tui4s ]; then
+            changed=$(git diff --name-only "${{ github.event.before }}" "$GITHUB_SHA" 2>/dev/null) || changed=bench/
+            if ! echo "$changed" | grep -qE '^(bench/|\.github/workflows/bench\.yml)'; then
+              echo "Only the tui4s modules changed; the group ${{ matrix.group }} does not use them."
+              exit 0
+            fi
+          fi
+          bench/run.sh ci
       - name: Keep the results
         if: always()
         uses: actions/upload-artifact@v7
@@ -101,7 +116,7 @@ jobs:
           java-version: 25
           cache: sbt
       - uses: sbt/setup-sbt@v1
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.97.0
         with:
           components: rustfmt
       - uses: actions/setup-go@v6

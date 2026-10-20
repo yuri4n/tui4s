@@ -373,10 +373,12 @@ and after a change of the frame path, and give both numbers.
 <!-- claude 2026-10-20: created this section (L5) -->
 - The bench (`bench/`, decision D10) compares tui4s with seven other stacks on
   tasks with an exact specification (`bench/tasks/`). It has its own sbt build
-  and its own CI job (`.github/workflows/bench.yml`), so it does not change a
-  published module; its headline is compactness, expressiveness, correctness
-  and resource management, and its performance numbers are on their own page
-  (`bench/PERFORMANCE.md`).
+  and its own CI job (`.github/workflows/bench.yml`). It does not change a
+  published module. Its main results are compactness, expressiveness,
+  correctness and resource management. The performance numbers are on a
+  separate page (`bench/PERFORMANCE.md`). The CI job fails when a step fails
+  that is not a known failure (`EXPECTED` in `bench/harness/bench.py`).
+  <!-- claude 2026-10-20: changed: this item in short sentences, and the check of the CI job (review fixes) -->
 - Every number states its machine (`bench/results/<machine>/machine.json`). An
   implementation in another stack gets a review by a person of that ecosystem
   before the numbers are published. Pending: ratatui, bubbletea, Textual, ink,

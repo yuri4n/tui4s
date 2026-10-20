@@ -1,0 +1,5 @@
+# claude 2026-10-20: created: the Rust version of the ratatui stack (review fix: the README says 1.97.0)
+[toolchain]
+channel = "1.97.0"
+components = ["rustfmt"]
+profile = "minimal"

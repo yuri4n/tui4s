@@ -27,6 +27,14 @@ def step(name, ok, detail=""):
     return {"step": name, "ok": bool(ok), "detail": detail}
 
 
+# claude 2026-10-20: created: the step of the terminal modes (review fix)
+def modes_step(s):
+    """counter.md and dashboard.md, "Terminal modes": raw mode, the alternate screen and a hidden cursor."""
+    m = s.modes()
+    ok = m["raw"] and m["alt_screen"] and m["cursor_hidden"]
+    return step("modes", ok, "" if ok else ", ".join(k for k, v in m.items() if not v) + " missing")
+
+
 def screen_dump(s, rows=None):
     lines = s.lines()
     if rows:
@@ -65,6 +73,7 @@ def counter_script(s, v2=False, start_timeout=30.0, step_timeout=1.5):
     time.sleep(0.3)
     ok, why = counter_shape(s, 0, v2)
     steps.append(step("start", ok, why))
+    steps.append(modes_step(s))
     strict = ok  # a layout that fails at the start is reported once; the next steps check the effects
     count = 0
 
@@ -154,6 +163,38 @@ def load_values(s):
     return t, p
 
 
+# claude 2026-10-20: created: the visible items and the places of the panels (review fix: more rules of the spec)
+def item_rows(s):
+    """The numbers of the visible items, from the top."""
+    return [int(m.group(1)) for m in (ITEM.search(line) for line in s.lines()) if m]
+
+
+def panels_bad(s):
+    """The list panel is in the left C/2 columns and the load panel right of it (dashboard.md, "Body")."""
+    half, bad = s.cols // 2, []
+    wide = [m.end() for m in (ITEM.search(line) for line in s.lines()) if m and m.end() > half]
+    if wide:
+        bad.append(f"an item ends at column {wide[0]}, right of C/2 = {half}")
+    ticks = [line.find("Ticks:") for line in s.lines() if "Ticks:" in line]
+    if not ticks or ticks[0] < half:
+        bad.append(f"'Ticks:' at column {ticks[0] + 1 if ticks else None}, not right of C/2 = {half}")
+    return bad
+
+
+def dashboard_layout(s):
+    """The places of dashboard.md, "Screen": the clock at the right end of row 1, the two panels, and Item 0001
+    as the first visible row."""
+    bad = []
+    row1 = s.row(1).rstrip()
+    if CLOCK.search(row1) is None or len(row1) != s.cols:
+        bad.append(f"the clock does not end at column {s.cols} of row 1 (the row ends at column {len(row1)})")
+    bad += panels_bad(s)
+    items = item_rows(s)
+    if not items or items[0] != 1:
+        bad.append(f"the first visible item is {items[0] if items else None}, not 1")
+    return step("layout", not bad, "; ".join(bad))
+
+
 def selected_is(n, total=1000, focus=None):
     def pred(s):
         st = status(s)
@@ -180,19 +221,30 @@ def dashboard_script(s, start_timeout=30.0, step_timeout=1.5):
     steps = [first]
     if ns is None:
         return steps, None
+    steps += [modes_step(s), dashboard_layout(s)]
 
-    def expect_sel(name, n, focus="list", data=None):
+    # claude 2026-10-20: changed: the viewport rule (the minimum scroll) on PageDown, PageUp and ArrowUp (review fix)
+    def expect_sel(name, n, focus="list", data=None, first_row=None, last_row=None):
         if data is not None:
             s.send(data)
-        hit = s.expect(lambda x: selected_is(n, focus=focus)(x) and marked(x) == n, step_timeout)
-        steps.append(step(name, hit is not None, "" if hit else f"status={status(s)} marked={marked(s)}"))
+
+        def seen(x):
+            rows = item_rows(x)
+            return (selected_is(n, focus=focus)(x) and marked(x) == n and bool(rows)
+                    and (first_row is None or rows[0] == first_row) and (last_row is None or rows[-1] == last_row))
+
+        hit = s.expect(seen, step_timeout)
+        rows = item_rows(s)
+        view = f"{rows[0]}..{rows[-1]}" if rows else "none"
+        steps.append(step(name, hit is not None, "" if hit else f"status={status(s)} marked={marked(s)} "
+                          f"visible={view} (want first={first_row} last={last_row})"))
 
     for i in range(3):
         expect_sel(f"down {i + 1}", i + 2, data="down")
     page = visible_items(s)
-    expect_sel(f"pgdn (page {page})", min(1000, 4 + page), data="pgdn")
-    expect_sel("pgup", 4, data="pgup")
-    expect_sel("up", 3, data="up")
+    expect_sel(f"pgdn (page {page})", min(1000, 4 + page), data="pgdn", last_row=min(1000, 4 + page))
+    expect_sel("pgup", 4, data="pgup", first_row=4)
+    expect_sel("up", 3, data="up", first_row=3)
     s.send("tab")
     hit = s.expect(selected_is(3, focus="load"), step_timeout)
     steps.append(step("tab to load", hit is not None, "" if hit else f"status={status(s)}"))
@@ -229,8 +281,10 @@ def dashboard_script(s, start_timeout=30.0, step_timeout=1.5):
     steps.append(step("clock", c0 is not None and hit is not None, f"clock={c0}"))
 
     s.resize(24, 80)
-    hit = s.expect(lambda x: STATUS.search(x.row(24)) is not None and selected_is(3)(x), step_timeout)
-    steps.append(step("resize 80x24", hit is not None, "" if hit else screen_dump(s, [0, 23])))
+    hit = s.expect(lambda x: STATUS.search(x.row(24)) is not None and selected_is(3)(x) and marked(x) == 3
+                   and not panels_bad(x), step_timeout)
+    steps.append(step("resize 80x24", hit is not None, "" if hit else
+                      "; ".join(panels_bad(s)) + f" marked={marked(s)} " + screen_dump(s, [0, 23])))
     return steps, ns
 
 
@@ -255,6 +309,12 @@ def quit_and_restore(s, key="q"):
     code = s.wait(2.5)
     rep = s.restore_report(members)
     return code, rep
+
+
+# claude 2026-10-20: created: the two correct outcomes of counter.md, "Failure" (review fix: error-screen fails)
+def failure_ok(outcome, code, rep):
+    """The program ended with a non-zero exit code, or the runtime contained the failure; the restore holds."""
+    return rep["restored"] and (outcome == "contained" or (outcome == "ended" and code not in (0, None)))
 
 
 def failure_probe(s, live_key="+", check=None):

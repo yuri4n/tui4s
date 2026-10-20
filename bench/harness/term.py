@@ -293,6 +293,17 @@ class Session:
         except subprocess.TimeoutExpired:
             return None
 
+    # claude 2026-10-20: created: the terminal modes while the program runs (review fix: the oracle checks them)
+    def modes(self):
+        """The terminal modes while the program runs (counter.md, "Terminal modes")."""
+        with self.lock:
+            lflag = termios.tcgetattr(self.slave)[3]
+            return {
+                "raw": not (lflag & (termios.ICANON | termios.ECHO)),
+                "alt_screen": bool(self.screen.in_alt),
+                "cursor_hidden": not self.screen.cursor_shown,
+            }
+
     def restore_report(self, members_before):
         """The restore contract after the end of the program (counter.md, "Restore contract")."""
         time.sleep(0.15)  # the last bytes reach the reader

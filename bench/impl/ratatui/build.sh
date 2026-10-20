@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Builds the ratatui implementations (release mode): build.sh [counter|dashboard].
-# claude 2026-10-20: created (L5)
+# claude 2026-10-20: created: the build script of the ratatui stack (L5)
 set -euo pipefail
 cd "$(dirname "$0")"
 case "${1:-all}" in

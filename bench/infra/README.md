@@ -21,8 +21,14 @@ The user data of the instance (`user-data.sh`):
 3. clones the repository at the commit that you give, and runs
    `bench/run.sh full`;
 4. uploads `bench/results/<machine>/*.json` and its log to
-   `s3://<bucket>/<machine>/<commit>/`;
+   `s3://<bucket>/<machine>/<commit>/` when the script ends (the EXIT trap,
+   also after a failure or a TERM signal), and once at 85 minutes with an
+   object `PARTIAL`, so a run that reaches the bound keeps its results;
 5. shuts down, and so terminates the instance (also when a step fails).
+
+The JDK is the latest Temurin 25 GA build of the day of the run; the log of
+the run records its `java -version`.
+<!-- claude 2026-10-20: changed: the upload from the EXIT trap and at 85 minutes; the JDK build (review fixes) -->
 
 **Status: not deployed from the build container.** The container reached AWS
 (STS answered), but it rejected the credentials of the container

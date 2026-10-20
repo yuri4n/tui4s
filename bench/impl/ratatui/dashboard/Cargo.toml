@@ -1,3 +1,4 @@
+# claude 2026-10-20: created: the dashboard crate of the ratatui stack (L5)
 [package]
 name = "dashboard"
 version = "0.1.0"

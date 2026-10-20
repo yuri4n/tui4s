@@ -7,7 +7,8 @@
 #   full     (default) everything, 3 perf runs, then the tables of README.md
 #            and PERFORMANCE.md
 #   ci       the CI smoke: build, conformance, resilience, mutants, change,
-#            one short perf run; no tables (the results are not published)
+#            one short perf run, then the check of the results (harness
+#            "check"); no tables (the results are not published)
 #   build    publish tui4s locally and build the implementations only
 #   measure  measure only (the implementations are built)
 #   report   the tables only, from bench/results/$BENCH_MACHINE
@@ -17,7 +18,7 @@
 # sbt command (default "sbt --client": one sbt server for the bench build, shut
 # down at the end). Needs JDK 25, sbt, cargo, go, python3, node 22 and pnpm,
 # patch.
-# claude 2026-10-20: created (L5)
+# claude 2026-10-20: created: the run script of the bench (L5)
 set -uo pipefail
 bench=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$bench/.." && pwd)
@@ -40,22 +41,30 @@ check_java() {
     fi
 }
 
+# claude 2026-10-20: changed: the version of each of the six modules, and a
+# reload of the bench build after the publish (review fixes)
 publish() {
     # One sbt process in the root build: publish the six artifacts and print
-    # their version (dynver: like 0.1.0+N-<sha>-SNAPSHOT).
+    # their version (dynver: like 0.1.0+N-<sha>-SNAPSHOT). The bench build
+    # uses one version for all of them, so they must be equal.
     step "publishLocal of the tui4s artifacts (root build)"
-    local log="$bench/results/publish.log" version
+    local log="$bench/results/publish.log" version m
+    local modules="runner app testkit core useJVM widgetsJVM" prints=()
+    for m in $modules; do prints+=("print $m/version"); done
     mkdir -p "$bench/results"
     (cd "$root" && sbt -Dsbt.supershell=false runner/publishLocal app/publishLocal testkit/publishLocal \
-        core/publishLocal useJVM/publishLocal widgetsJVM/publishLocal \
-        'print runner/version' 'print widgetsJVM/version') >"$log" 2>&1 || {
+        core/publishLocal useJVM/publishLocal widgetsJVM/publishLocal "${prints[@]}") >"$log" 2>&1 || {
         tail -n 40 "$log"; step "publishLocal failed"; exit 1; }
-    version=$(grep -E '^[0-9]+\.[0-9]+\.[0-9]+' "$log" | tail -n 2 | sort -u)
-    if [ "$(echo "$version" | wc -l)" -ne 1 ]; then
-        step "the modules have different versions: $version"; exit 1
+    version=$(grep -E '^[0-9]+\.[0-9]+\.[0-9]+' "$log" | tail -n 6)
+    if [ "$(echo "$version" | wc -l)" -ne 6 ] || [ "$(echo "$version" | sort -u | wc -l)" -ne 1 ]; then
+        step "the six modules do not have one version: $(echo $version)"; exit 1
     fi
+    version=$(echo "$version" | head -n 1)
     echo "$version" >"$bench/tui4s.version"
     step "tui4s version $version"
+    # A running sbt server of the bench build read tui4s.version when it
+    # loaded: load the build again, so it uses the new version.
+    if [ "$SBT" != "sbt" ]; then (cd "$bench" && $SBT reload >/dev/null) || exit 1; jvm=1; fi
 }
 
 has() { case ",$stacks," in *",$1,"*) return 0 ;; *) return 1 ;; esac; }
@@ -117,6 +126,7 @@ case "$mode" in
         $harness perf --stacks "$stacks" --quick || status=1
         $harness change --stacks "$stacks" || status=1
         $harness mutants --stacks "$stacks" || status=1
+        $harness check --stacks "$stacks" || status=1
         ;;
     report) report || status=1 ;;
 esac

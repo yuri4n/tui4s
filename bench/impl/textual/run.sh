@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs one task in the current terminal: run.sh counter|dashboard.
-# claude 2026-10-20: created (L5)
+# claude 2026-10-20: created: the start script of the textual stack (L5)
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 case "${1:-}" in

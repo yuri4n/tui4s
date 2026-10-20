@@ -1,3 +1,4 @@
+// claude 2026-10-20: created: the Go module of the bubbletea stack (L5)
 module bench/bubbletea
 
 go 1.24.7

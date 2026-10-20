@@ -1,5 +1,5 @@
 # The ratatui implementations of the bench: one workspace, one binary per task.
-# claude 2026-10-20: created (L5)
+# claude 2026-10-20: created: the Cargo workspace of the ratatui stack (L5)
 [workspace]
 members = ["counter", "dashboard"]
 resolver = "3"

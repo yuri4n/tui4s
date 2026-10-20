@@ -1,7 +1,7 @@
 """The bench harness: performance, conformance, resilience, the change request and the mutants, in a PTY.
 
 Usage: python3 bench/harness/bench.py <command> [--stacks a,b] [--tasks counter,dashboard] [--runs N] [--quick]
-Commands: perf, conformance, resilience, change, mutants, all, machine, peek <stack> <task> [keys...]
+Commands: perf, conformance, resilience, change, mutants, all, machine, check, peek <stack> <task> [keys...]
 
 Results go to bench/results/<machine>/<stack>-<task>.json (one section per command) and
 bench/results/<machine>/mutants-<stack>.json. The machine is $BENCH_MACHINE (default: local-<n>cpu). The programs
@@ -15,15 +15,18 @@ screen.
 
 import argparse
 import datetime
+import difflib
 import json
 import os
 import platform
+import re
 import signal
 import statistics
 import subprocess
 import sys
 import time
 
+import compact
 import oracle
 import stacks as st
 from term import BENCH, Session
@@ -260,8 +263,8 @@ def resilience_row(stack, task, row):
         t0 = time.monotonic()
         if row == "failure":
             outcome, code, rep = oracle.failure_probe(s, live, check)
-            ok = rep["restored"] and not outcome.endswith("hung") and (outcome != "ended" or code != 0)
-            return {"pass": ok, "outcome": outcome, "exit": code, **rep}
+            return {"pass": oracle.failure_ok(outcome, code, rep), "outcome": outcome, "exit": code, **rep}
+        kill = {}
         if row == "quit":
             s.send("q")
         elif row == "ctrl-c":
@@ -271,8 +274,26 @@ def resilience_row(stack, task, row):
         elif row == "sigint":
             s.signal(signal.SIGINT)
         elif row == "kill-mid-frame":
+            # claude 2026-10-20: changed: the SIGTERM goes out from the reader thread on the first chunk of output
+            # after the burst, so it lands while the frames of the burst are written (review fix)
+            with s.lock:
+                n0 = len(s.raw)
+
+            def on_chunk(ns, sess):
+                if not kill and len(sess.raw) > n0:
+                    os.kill(sess.pid, signal.SIGTERM)
+                    kill["bytes_before_kill"] = len(sess.raw) - n0
+                    kill["shown_at_kill"] = shown(sess, task)
+
+            s.watch = on_chunk
             s.send(("+" if task == "counter" else "\x1b[B") * 30)
-            s.signal(signal.SIGTERM)
+            deadline = time.monotonic() + 2.0
+            while not kill and time.monotonic() < deadline:
+                time.sleep(0.002)
+            s.watch = None
+            if not kill:
+                s.signal(signal.SIGTERM)
+                kill.update(bytes_before_kill=0, shown_at_kill=shown(s, task))
         code = s.wait(2.5)
         took = round(time.monotonic() - t0, 2)
         if code is None:
@@ -283,9 +304,20 @@ def resilience_row(stack, task, row):
         # The exit code decides only for quit; for the other rows it is a note (counter.md, "Restore contract").
         ok = rep["restored"] and (row != "quit" or code == 0)
         note = "" if code in ACCEPT[row] else f"exit code {code} is not in {ACCEPT[row]}"
-        return {"pass": ok, "outcome": "ended", "exit": code, "seconds": took, "note": note, **rep}
+        if kill:
+            kill["bytes_after_kill"] = len(s.raw) - n0 - kill["bytes_before_kill"]
+        return {"pass": ok, "outcome": "ended", "exit": code, "seconds": took, "note": note, **kill, **rep}
     finally:
         s.close()
+
+
+def shown(s, task):
+    """The state on the screen: the count (counter) or the selected item (dashboard), 30 keys after the burst."""
+    if task == "counter":
+        m = re.search(r"Count: (-?\d+)", s.row(3))
+        return f"Count: {m.group(1)}" if m else None
+    st_ = oracle.status(s)
+    return f"Selected {st_[0]:04d}" if st_ else None
 
 
 def resilience(args):
@@ -310,32 +342,44 @@ def patch(path, reverse=False):
     return subprocess.run(cmd, capture_output=True, text=True)
 
 
+# claude 2026-10-20: changed: keep the diagnostics of the compiler (review fix: javac errors were lost)
+COMPILER = re.compile(r"\.(java|scala|rs|go|py|jsx?|tsx?):\d+|^error(\[E\d+\])?:|\[error\]|SyntaxError|TypeError")
+
+
 def build(stack, task):
+    """(ok, the diagnostics of the compiler, else the last lines of the output)."""
     env = dict(os.environ)
     env.setdefault("SBT", "sbt --client")
     r = subprocess.run([os.path.join(st.stack_dir(stack), "build.sh"), task], capture_output=True, text=True,
                        env=env, timeout=900)
-    out = r.stdout + r.stderr
-    errors = [l for l in out.splitlines() if "error" in l.lower() and "WARNING" not in l]
-    return r.returncode == 0, ("\n".join(errors[:12]) or out[-2000:])
+    lines = (r.stdout + "\n" + r.stderr).splitlines()
+    diags = [l.strip() for l in lines if COMPILER.search(l) and "warn" not in l.lower()]
+    return r.returncode == 0, ("\n".join(diags[:12]) or "\n".join(lines[-30:]))
 
 
-def changed_lines(path):
-    """The added and removed lines of a patch, without blank lines and comment lines."""
+# claude 2026-10-20: changed: count on the sources without comments, by the lexer of the language (review fix: a
+# Python string with '#' is code)
+def code_lines(stack, path):
+    """The lines of a source without comments and blank lines (the rules of compact.py)."""
+    with open(path, encoding="utf-8") as f:
+        src = f.read()
+    code = compact.strip_python(src) if st.STACKS[stack]["language"] == "python" else compact.strip_c_like(src)
+    return [l.strip() for l in code.splitlines() if l.strip()]
+
+
+def changed_lines(before, after):
+    """The added and removed lines between two lists of code lines."""
     add = rem = 0
-    with open(path) as f:
-        for line in f:
-            if line.startswith(("+++", "---")):
-                continue
-            if line[:1] in "+-":
-                body = line[1:].strip()
-                if not body or body.startswith(("//", "#", "/*", "*")):
-                    continue
-                if line[0] == "+":
-                    add += 1
-                else:
-                    rem += 1
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, before, after, autojunk=False).get_opcodes():
+        if tag != "equal":
+            rem += i2 - i1
+            add += j2 - j1
     return add, rem
+
+
+def patched_files(path):
+    with open(path) as f:
+        return [os.path.join(BENCH, l[6:].strip()) for l in f if l.startswith("+++ b/")]
 
 
 def change(args):
@@ -344,14 +388,19 @@ def change(args):
             p = os.path.join(st.stack_dir(stack), task, "change.patch")
             if not os.path.exists(p):
                 continue
-            add, rem = changed_lines(p)
-            res = {"added": add, "removed": rem, "changed": add + rem}
+            files = patched_files(p)
+            before = {f: code_lines(stack, f) for f in files}
             r = patch(p)
             if r.returncode != 0:
-                res.update(applied=False, detail=r.stdout + r.stderr)
+                res = {"applied": False, "detail": r.stdout + r.stderr}
                 update(result_path(stack, task), "change", res)
                 log(f"change {stack} {task}: patch does not apply")
                 continue
+            add = rem = 0
+            for f in files:
+                a, b = changed_lines(before[f], code_lines(stack, f))
+                add, rem = add + a, rem + b
+            res = {"added": add, "removed": rem, "changed": add + rem}
             try:
                 ok, out = build(stack, task)
                 res["built"] = ok
@@ -391,7 +440,8 @@ def change(args):
 def mutant_run(stack):
     """The counter key script, then the failure probe, on the built counter.
 
-    Returns (crash, steps): crash is a text when the program died before the script ended, else None.
+    Returns (crash, steps, raw): crash is a text when the program died before the script ended, else None; raw is
+    the output of the key script run (the stdout-write probe reads it).
     """
     s = session(stack, "counter")
     try:
@@ -399,12 +449,13 @@ def mutant_run(stack):
         if first is None:
             code = s.wait(0.1)
             if code is not None and code != 0:
-                return f"exit {code} before the first frame", steps
-            return None, steps
+                return f"exit {code} before the first frame", steps, bytes(s.raw)
+            return None, steps, bytes(s.raw)
         if s.proc.poll() is not None:
-            return f"exit {s.proc.returncode} during the key script", steps
+            return f"exit {s.proc.returncode} during the key script", steps, bytes(s.raw)
         q, code, rep = oracle.counter_quit(s)
         steps.append(q)
+        raw = bytes(s.raw)
     finally:
         s.close()
     s = session(stack, "counter")
@@ -412,14 +463,126 @@ def mutant_run(stack):
         if s.expect(lambda x: "Count: 0" in x.text(), 20) is not None:
             time.sleep(0.3)
             outcome, code, rep = oracle.failure_probe(s, "+", oracle.count_on_row3(1))
-            steps.append(oracle.step("failure probe", rep["restored"] and not outcome.endswith("hung"),
+            steps.append(oracle.step("failure probe", oracle.failure_ok(outcome, code, rep),
                                      f"{outcome} exit={code} restore={rep}"))
     finally:
         s.close()
-    return None, steps
+    return None, steps, raw
 
 
-def classify(stack, cls, crash, steps, baseline):
+# -- the defuse probes (mutants/classes.md, "Outcomes")
+# claude 2026-10-20: created: the mechanical rule of "defused" (review fix: no outcome comes from a list that was
+# written after the results)
+#
+# A mutant that passes every step of the oracle is "defused" only when the probe of its class shows that the bug
+# has no effect on the user. A class with no probe, or a probe that sees the bug, gives "silent-wrong-behaviour".
+# The probes are the same for every stack, and they run only on a mutant that passes the oracle.
+
+MARK = re.compile(rb"count -?\d+")  # what each stdout-write mutant prints ("count 3"); the screen shows "Count: 3"
+ALT = re.compile(rb"\x1b\[\?(?:1049|1047|47)([hl])")
+
+
+def probe_stdout(stack, raw):
+    """The text of the write never reaches the screen of the UI (the alternate screen, or the main screen of a
+    stack that never enters the alternate screen)."""
+    switches = [(m.start(), m.group(1) == b"h") for m in ALT.finditer(raw)]
+    never = not any(on for _, on in switches)
+    seen = []
+    for m in MARK.finditer(raw):
+        ui = never
+        for pos, on in switches:
+            if pos > m.start():
+                break
+            ui = on
+        seen.append((m.start(), ui))
+    on_ui = [pos for pos, ui in seen if ui]
+    if on_ui:
+        return False, f"the text 'count N' reaches the screen of the UI (byte {on_ui[0]} of {len(raw)})"
+    if seen:
+        return True, "the text 'count N' reaches the terminal only after the UI left the alternate screen"
+    return True, "the text 'count N' never reaches the terminal"
+
+
+def counter_session(stack):
+    s = session(stack, "counter")
+    if s.expect(lambda x: "Count: 0" in x.text(), 20) is None:
+        s.close()
+        return None
+    time.sleep(0.3)
+    return s
+
+
+def probe_layout(stack, raw):
+    """The screen of counter.md at four sizes: 100x30 (the start), then 120x40, 80x24 and 50x12."""
+    s = counter_session(stack)
+    if s is None:
+        return False, "no first frame"
+    try:
+        for rows, cols in ((30, 100), (40, 120), (24, 80), (12, 50)):
+            if (rows, cols) != (30, 100):
+                s.resize(rows, cols)
+                s.expect(lambda x: x.row(-1).rstrip() == oracle.HELP and x.row(3).rstrip() == "Count: 0", 1.5)
+                time.sleep(0.3)
+            ok, why = oracle.counter_shape(s, 0, False)
+            if not ok:
+                return False, f"at {cols}x{rows}: {why}"
+        return True, "the screen is right at 100x30, 120x40, 80x24 and 50x12"
+    finally:
+        s.close()
+
+
+UNBOUND = ("x", "z", "\x1b[H", "\x1b[3~", "\x1bOP", "\x1b[15~")  # x, z, Home, Delete, F1, F5
+
+
+def probe_keys(stack, raw):
+    """After six keys that are not bound, the program runs and the next '+' has its effect."""
+    s = counter_session(stack)
+    if s is None:
+        return False, "no first frame"
+    try:
+        for k in UNBOUND:
+            s.send(k)
+            time.sleep(0.15)
+        if s.proc.poll() is not None:
+            return False, f"exit {s.proc.returncode} after the keys that are not bound"
+        s.send("+")
+        if s.expect(oracle.count_on_row3(1), 1.5) is None:
+            return False, f"no 'Count: 1' after '+': {oracle.screen_dump(s)}"
+        ok, why = oracle.counter_shape(s, 1, False)
+        return ok, "after x, z, Home, Delete, F1 and F5, the next '+' gives 'Count: 1'" if ok else why
+    finally:
+        s.close()
+
+
+def probe_updates(stack, raw):
+    """20 '+' in one write, then 20 writes of '+' with no wait: 'Count: 40'."""
+    s = counter_session(stack)
+    if s is None:
+        return False, "no first frame"
+    try:
+        s.send("+" * 20)
+        if s.expect(oracle.count_on_row3(20), 3.0) is None:
+            return False, f"20 '+' in one write: {s.row(3).strip()!r}"
+        for _ in range(20):
+            s.send("+")
+        if s.expect(oracle.count_on_row3(40), 3.0) is None:
+            return False, f"20 writes of '+' after 'Count: 20': {s.row(3).strip()!r}"
+        return True, "20 '+' in one write and 20 writes with no wait give 'Count: 40'"
+    finally:
+        s.close()
+
+
+PROBES = {
+    "stdout-write": probe_stdout,
+    "no-resize": probe_layout,
+    "wrong-unit": probe_layout,
+    "off-by-one": probe_layout,
+    "non-exhaustive-key": probe_keys,
+    "lost-update": probe_updates,
+}
+
+
+def classify(stack, cls, crash, steps, baseline, raw):
     """compile errors are found before; here: runtime-crash, test-or-oracle-catches, defused or silent."""
     import mutants as mu
     failed = {x["step"] for x in steps if not x["ok"]}
@@ -429,9 +592,16 @@ def classify(stack, cls, crash, steps, baseline):
         return "runtime-crash", crash + ("; " + detail if detail else "")
     if new:
         return "test-or-oracle-catches", detail
-    if cls in mu.defused(stack):
-        return "defused", mu.defused(stack)[cls]
-    return "silent-wrong-behaviour", "every step that passes without the mutant passes with it"
+    note = mu.notes(stack).get(cls)
+    note = f" Note: {note}." if note else ""
+    probe = PROBES.get(cls)
+    if probe is None:
+        return "silent-wrong-behaviour", "every step that passes without the mutant passes with it; the class " \
+                                         "has no defuse probe." + note
+    harmless, why = probe(stack, raw)
+    if harmless:
+        return "defused", f"probe: {why}." + note
+    return "silent-wrong-behaviour", f"every step of the oracle passes, and the probe sees the bug: {why}." + note
 
 
 def mutants(args):
@@ -439,7 +609,7 @@ def mutants(args):
     for stack in args.stacks:
         table = {}
         na = mu.not_applicable(stack)
-        crash, steps = mutant_run(stack)
+        crash, steps, _ = mutant_run(stack)
         baseline = {x["step"] for x in steps if not x["ok"]}
         log(f"mutant {stack} baseline: failed steps {sorted(baseline) or 'none'}" + (f", crash {crash}" if crash else ""))
         for cls in mu.CLASSES:
@@ -458,10 +628,10 @@ def mutants(args):
             try:
                 ok, out = build(stack, "counter")
                 if not ok:
-                    table[cls] = {"outcome": "compile-error", "detail": out[-400:]}
+                    table[cls] = {"outcome": "compile-error", "detail": out[:600]}
                 else:
-                    c, st_ = mutant_run(stack)
-                    outcome, detail = classify(stack, cls, c, st_, baseline)
+                    c, st_, raw = mutant_run(stack)
+                    outcome, detail = classify(stack, cls, c, st_, baseline, raw)
                     table[cls] = {"outcome": outcome, "detail": detail}
             finally:
                 patch(p, reverse=True)
@@ -472,6 +642,70 @@ def mutants(args):
             json.dump({"stack": stack, "machine": MACHINE, "baseline_failed": sorted(baseline), "rebuilt": ok,
                        "classes": table}, f, indent=1)
             f.write("\n")
+
+
+# -- check (the gate of the CI job)
+# claude 2026-10-20: created: the check of the results against the known failures and the reference mutants
+# (review fix: the CI job failed only on a build failure)
+
+# The failures that the bench knows, with the reason: (stack, task, section, step or row).
+EXPECTED = {
+    ("layoutz", "counter", "conformance", "start"): "layoutz cannot use the last row",
+    ("layoutz", "counter", "conformance", "modes"): "layoutz never enters the alternate screen",
+    ("layoutz", "counter", "conformance", "resize 80x24"): "layoutz has no resize event",
+    ("layoutz", "dashboard", "conformance", "start"): "layoutz cannot use the last row",
+    ("layoutz", "dashboard", "conformance", "modes"): "layoutz never enters the alternate screen",
+    ("layoutz", "dashboard", "conformance", "resize 80x24"): "layoutz has no resize event",
+    ("layoutz", "counter", "change", "start"): "the start step of the counter fails without the change",
+    ("layoutz", "counter", "change", "modes"): "the modes step of the counter fails without the change",
+    ("layoutz", "counter", "change", "resize 80x24"): "the resize step of the counter fails without the change",
+    ("layoutz", "dashboard", "change", "start"): "the start step of the dashboard fails without the change",
+    ("tamboui", "counter", "resilience", "failure"): "TamboUI shows an error screen, and the keys stop working",
+    ("tamboui", "dashboard", "resilience", "failure"): "TamboUI shows an error screen, and the keys stop working",
+}
+REFERENCE = os.environ.get("BENCH_REFERENCE", "container-4vcpu")
+
+
+def check(args):
+    """Exits 1 when a step fails that EXPECTED does not list, a section is missing, or a mutant outcome differs
+    from the reference machine."""
+    errors = []
+    for stack in args.stacks:
+        for task in args.tasks:
+            data = load_json(result_path(stack, task))
+            for section in ("conformance", "resilience", "change"):
+                sec = data.get(section)
+                if sec is None:
+                    if section != "change" or os.path.exists(os.path.join(st.stack_dir(stack), task, "change.patch")):
+                        errors.append(f"{stack} {task} {section}: no result")
+                    continue
+                if section == "resilience":
+                    failed = [row for row, v in sec.items() if not v.get("pass")]
+                elif sec.get("applied") is False or sec.get("built") is False:
+                    failed = ["(the patch does not apply or build)"]
+                else:
+                    failed = [x["step"] for x in sec.get("steps", []) if not x["ok"]]
+                for name in failed:
+                    if (stack, task, section, name) not in EXPECTED:
+                        errors.append(f"{stack} {task} {section}: {name} fails")
+        m = load_json(os.path.join(RESULTS, f"mutants-{stack}.json"))
+        if not m:
+            errors.append(f"{stack} mutants: no result")
+            continue
+        ref = {} if REFERENCE == MACHINE else load_json(os.path.join(BENCH, "results", REFERENCE,
+                                                                     f"mutants-{stack}.json"))
+        if not m.get("rebuilt"):
+            errors.append(f"{stack} mutants: the counter was not built again after the mutants")
+        for cls, v in m["classes"].items():
+            if v["outcome"] == "patch-error":
+                errors.append(f"{stack} mutant {cls}: the patch does not apply")
+            want = ref.get("classes", {}).get(cls, {}).get("outcome")
+            if want is not None and v["outcome"] != want:
+                errors.append(f"{stack} mutant {cls}: {v['outcome']}, the reference {REFERENCE} has {want}")
+    for e in errors:
+        log("check:", e)
+    log(f"check: {len(errors)} unexpected results" if errors else "check: all results as expected")
+    return 1 if errors else 0
 
 
 # -- peek (a debugging aid: print the screen after each key)
@@ -496,7 +730,8 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] == "peek":
         return peek(sys.argv[2:])
     ap = argparse.ArgumentParser()
-    ap.add_argument("command", choices=["perf", "conformance", "resilience", "change", "mutants", "all", "machine"])
+    ap.add_argument("command", choices=["perf", "conformance", "resilience", "change", "mutants", "all", "machine",
+                                        "check"])
     ap.add_argument("--stacks", default=",".join(st.ORDER))
     ap.add_argument("--tasks", default=",".join(st.TASKS))
     ap.add_argument("--runs", type=int, default=3)
@@ -508,6 +743,8 @@ def main():
     args.tasks = [x for x in args.tasks.split(",") if x]
     if args.quick:
         args.runs, args.keys, args.idle = 1, 10, 2.0
+    if args.command == "check":
+        sys.exit(check(args))
     machine()
     if args.command in ("conformance", "all"):
         conformance(args)

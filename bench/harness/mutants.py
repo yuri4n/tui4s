@@ -1,8 +1,8 @@
 """The bug classes of the mutant suite (bench/mutants/classes.md) and, per stack, the classes that do not apply.
 
 A patch bench/mutants/<stack>/<class>.patch is one small mutant of the counter. A class in NOT_APPLICABLE has no
-patch, with the reason. A class in DEFUSED has a patch, and the stack makes the bug harmless (the program stays
-correct): when the oracle passes such a mutant, the outcome is "defused", not "silent-wrong-behaviour".
+patch, with the reason. A class with no patch and no entry here is "not-written". NOTES gives an explanation of a
+result; it never decides the outcome: the defuse probes of harness/bench.py (PROBES) decide "defused".
 """
 # claude 2026-10-20: created (L5): the classes of the mutant suite
 
@@ -26,7 +26,6 @@ NOT_APPLICABLE = {
     "tui4s": {
         "no-restore-on-exception": "the runner owns the restore (a release stack and a shutdown hook); "
         "a key handler has no way to skip it",
-        "wrong-thread": "only the runner draws, and a SignalRef is safe to write from any fiber or thread",
     },
     "jatatui-plain": {},
     "ratatui": {},
@@ -57,26 +56,24 @@ NOT_APPLICABLE = {
         "stale-closure": "update gets the current state as a value (Elm architecture)",
         "lost-update": "the runtime applies each message under its lock, one at a time",
     },
-    "tamboui": {c: "not written in stage 1 (the program asks for the full suite on four stacks only)" for c in CLASSES},
 }
 
-DEFUSED = {
+# claude 2026-10-20: changed: notes only (review fix: the old DEFUSED list decided the outcome after the results)
+NOTES = {
     "tui4s": {
         "stdout-write": "TuiApp captures stdout while the UI runs and prints it after the restore",
         "non-exhaustive-key": "the runner catches the MatchError of the handler, logs it and goes on",
-        "no-resize": "the screen is a flex column: a root that is taller than the screen shrinks to it, so the "
-        "last row stays on the screen after a resize",
-        "wrong-unit": "the screen is a flex column: a root of 100 rows shrinks to the screen, so the last row "
-        "stays on the screen",
+        "wrong-thread": "a SignalRef is an atomic reference, and the runner draws the change on its own fiber",
     },
-    "ratatui": {"leaked-timer": "the process ends when main returns; the thread ends with it"},
-    "bubbletea": {"leaked-timer": "the process ends when main returns; the goroutine ends with it"},
+    "ratatui": {"leaked-timer": "the thread ends with the process when main returns"},
+    "bubbletea": {"leaked-timer": "the goroutine ends with the process when main returns"},
     "textual": {
         "stdout-write": "Textual captures print() while the app runs",
         "lost-update": "Textual handles one message at a time and awaits its action",
+        "wrong-thread": "it works here, but Textual asks for call_from_thread",
     },
-    "ink": {"stdout-write": "ink patches console.log while it renders (patchConsole) and does not write it over "
-            "the frame"},
+    "ink": {"stdout-write": "ink patches console.log while it renders (patchConsole)"},
+    "layoutz": {"stdout-write": "the next frame (at most 50 ms later) overwrites the text"},
 }
 
 
@@ -84,5 +81,5 @@ def not_applicable(stack):
     return NOT_APPLICABLE.get(stack, {})
 
 
-def defused(stack):
-    return DEFUSED.get(stack, {})
+def notes(stack):
+    return NOTES.get(stack, {})

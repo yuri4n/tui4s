@@ -3,11 +3,11 @@
 // reads the tui4s artifacts from the local Ivy repository, so no published
 // module of the root build changes. bench/run.sh publishes them first and
 // writes their version into bench/tui4s.version.
-// claude 2026-10-20: created (L5)
+// claude 2026-10-20: created: the bench build of the JVM stacks (L5)
 
 // The version of the tui4s artifacts: the system property `tui4s.version`,
 // else the file bench/tui4s.version.
-// claude 2026-10-20: created (L5)
+// claude 2026-10-20: created: the version of the tui4s artifacts (L5)
 val tui4sVersion: String =
   sys.props
     .get("tui4s.version")
@@ -31,7 +31,7 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 // The settings of one task: its sources are the files in its directory (no
 // src/main/scala), it stages its jars (sbt-native-packager), and the JVM flags
 // are in the run.sh of the stack.
-// claude 2026-10-20: created (L5)
+// claude 2026-10-20: created: the settings of one task (L5)
 def task(dir: String, main: String): Seq[Setting[_]] = Seq(
   Compile / scalaSource := baseDirectory.value,
   Compile / javaSource := baseDirectory.value,
@@ -45,7 +45,7 @@ def task(dir: String, main: String): Seq[Setting[_]] = Seq(
 )
 
 // A Java task: no Scala library on its class path.
-// claude 2026-10-20: created (L5)
+// claude 2026-10-20: created: the settings of a Java task (L5)
 val javaOnly: Seq[Setting[_]] = Seq(
   crossPaths := false,
   autoScalaLibrary := false
@@ -126,7 +126,7 @@ lazy val tambouiDashboard = project
 
 // google-java-format for the Java implementations: `sbt javafmt` formats them
 // in place, `sbt javafmtCheck` fails when one is not formatted.
-// claude 2026-10-20: created (L5)
+// claude 2026-10-20: created: the formatter of the Java sources (L5)
 lazy val javafmt = project
   .in(file("project/javafmt"))
   .settings(
