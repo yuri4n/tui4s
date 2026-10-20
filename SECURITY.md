@@ -1,15 +1,15 @@
-<!-- claude 2026-10-20: created (L6, ADR 0014); changed: the e-mail address of the POM is the second path (review fix) -->
+<!-- claude 2026-10-20: created (L6, ADR 0014); changed: the e-mail address of the POM is the first path, because the private vulnerability reporting of the repository is off today (L6 loose ends) -->
 # Security policy
 
 ## Report a problem
 
 Do not open a public issue for a security problem. Report it privately:
 
-1. Use the private vulnerability reporting of this repository: the tab
-   **Security**, then **Report a vulnerability**
-   (<https://github.com/yuri4n/tui4s/security/advisories/new>).
-2. If that form is not available, send an e-mail to the maintainer at
-   <oss.juli@pm.me> (the developer address in the POM of each artifact).
+1. Send an e-mail to the maintainer at <oss.juli@pm.me> (the developer
+   address in the POM of each artifact).
+2. When the private vulnerability reporting of this repository is turned on,
+   you can also use it: the tab **Security**, then **Report a
+   vulnerability** (<https://github.com/yuri4n/tui4s/security/advisories/new>).
 
 Give the version (the artifact and its version, or the commit), the JDK, the
 operating system and the terminal, the steps that show the problem, and what

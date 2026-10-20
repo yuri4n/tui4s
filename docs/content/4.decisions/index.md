@@ -6,7 +6,7 @@ navigation:
   icon: i-lucide-scroll-text
 ---
 
-<!-- claude 2026-10-20: created: the index of the decision records, with the routes of the site (L6) -->
+<!-- claude 2026-10-20: created: the index of the decision records, with the routes of the site (L6); changed: the row of ADR 0015 (L6 loose ends) -->
 
 Each record states one decision: the forces, the decision, the alternatives that lost, and the consequences. The ids in the references (D-1 to D-32, D1 to D25, S1 to S8, K29, RR N9) are the ids of the working notes of the project, which are not in the repository. The ADRs keep what a reader needs from them.
 
@@ -26,7 +26,7 @@ Each record states one decision: the forces, the decision, the alternatives that
 | [0012](/decisions/0012-documentation-is-example-first) | The documentation is example-first | Accepted | Every public API has a compiled example; doc blocks are tested regions; Docus on Vercel; no PRs in the program. |
 | [0013](/decisions/0013-benchmarks-in-repo-with-own-build) | Benchmarks in the repository, with their own build | Accepted | `bench/` has its own build; the headline is compactness, expressiveness, correctness and resources; performance on its own page. |
 | [0014](/decisions/0014-release-per-module-tags-and-rc1) | Release per module, by tag, as 0.1.0-RC1 | Accepted | One tag per module, 0.1.0-RC1 while Kyo is RC, a human approves each tag; zio, cats and `useSignal` go before 0.1. |
-| [0015](/decisions/0015-packaging-aot-cache-and-native-image) | Packaging: the AOT cache by default, native-image as an option | Accepted | Launchers ship the AOT cache and flags; the runner carries native-image metadata; a GraalVM CE smoke job in CI. |
+| [0015](/decisions/0015-packaging-aot-cache-and-native-image) | Packaging: the AOT cache in the start scripts, native-image as an option | Accepted | Start scripts have the flags and use the AOT cache after one run of `bin/aot-train`; the runner carries native-image metadata; a GraalVM CE smoke job in CI. |
 | [0016](/decisions/0016-process-lean-mode-and-agent-roles) | Process: lean mode and agent roles | Accepted | Implementer, one reviewer, fixer; a skeptic only for concurrency and restore code; the notes leave the repository. |
 | [0017](/decisions/0017-deferred-templates-mouse-and-kitty) | Deferred: templates, mouse, the kitty keyboard protocol and Windows | Accepted (deferred) | No template interpolator, no mouse, no kitty flags and no supported Windows port in 0.1. |
 | [0018](/decisions/0018-pini4s-as-a-vendored-submodule) | pini4s is a vendored Git submodule | Accepted (one part proposed) | Optional keyed shared state in `vendor/pini4s`, used only by the examples; a published artifact later. |

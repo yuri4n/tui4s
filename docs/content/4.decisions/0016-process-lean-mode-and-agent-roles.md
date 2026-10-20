@@ -3,7 +3,7 @@ title: "0016. Process: lean mode and agent roles"
 description: "The session steers and agents do the work in a small shape (implementer, one reviewer, fixer); a skeptic reviews only concurrency and terminal-restore code; the working notes are not part of the product."
 ---
 
-<!-- claude 2026-10-20: created: ADR 0016 in the docs site (L6) -->
+<!-- claude 2026-10-20: created: ADR 0016 in the docs site (L6); changed: the line of the PR template matches the short template (L6 loose ends) -->
 
 ## Status
 
@@ -45,7 +45,7 @@ Accepted
 - Good: the ADRs give a reader the "why" without the agent notes.
 - Bad: one reviewer can miss what three reviewers and their skeptics find.
 - Bad: the code holds about 1,800 `// claude <date>` marks in 280 files. They are history, not documentation; a cleanup decision is open.
-- Bad: the PR template of the program had one section for each rule P-1 to P-14 of the plan, and it named a notes path. An outside contributor needs a short template.
+- Bad: the PR template of the program had one section for each rule P-1 to P-14 of the plan, and it named a notes path. An outside contributor needs a short template. L6 replaced it: `.github/pull_request_template.md` has "What changes" and a checklist of the checks of AGENTS.md.
 
 ## References
 
