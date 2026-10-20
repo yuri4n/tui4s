@@ -211,7 +211,20 @@
   (an alias of `Signal.initRef`, akin to Vue's `ref()`, returns `SignalRef`) as a top-level def in the RUNNER's
   package `tui4s` (a terminal app gets it with tui4s-core alone and `import tui4s.{Tui, TuiApp, initSig}`); shared
   cross-platform code calls `Signal.initRef`. Lost: `ref` (the usual local name; reads as Vue's type), `sig`,
-  `signal`, `createSignal`, `initRef`, `useSignal`. History: the user asked "why
+  `signal`, `createSignal`, `initRef`, `useSignal`.
+- L6 PUSHED 16422f3 (2026-10-20): the second finalizer verified everything (707 kyo-test, 133 munit, 0 warnings,
+  Scaladoc, docs build, bench ci for tui4s/tamboui/tui4s-aot/ink with zero drift, dry runs runner+use OK, web smoke
+  13/13, PTY 164/164 with AOT caches 509-862 ms, worktrees pruned) and added initSig (16422f3). CI dispatched on it:
+  ci, docs, bench, native (a watcher agent reports). PR #7 CLOSED with a comment (rulesets landed in de7f703).
+  Branch deletion from the container is REFUSED (git push --delete: HTTP 403, the credentials push only the
+  designated branch; no MCP tool deletes a branch): HUMAN STEP, tips in .work/stale-branches.txt:
+  `git push origin --delete archive/kyoui-02-regions-2026-10-14 archive/kyoui-03-input-2026-10-14
+  archive/kyoui-04-terminal-2026-10-14 archive/kyoui-05-components-2026-10-14 archive/kyoui-06-app-examples-2026-10-14
+  chore/claude-rules chore/cleanup claude/epic-bohr-eflkfz docs/docus feat/cats feat/zio feat/core-1-model-view
+  feat/core-2-engine feat/core-3-terminal feat/kyo-state-nix-tooling` (keep first-take, main, chore/cleanup-7p2rll;
+  wip/handoff after the release). Lost local spike branch spike/sbt-port (4cdeebd, spike S6; findings are in
+  AGENTS.md).
+  <!-- claude 2026-10-20: created this item --> History: the user asked "why
   useSignal gone?"; picked `signal(0)` from a choice (signal, createSignal, sig, useSignal); then "signal() should be
   a primitive, not a hook" (a hook is mount-bound; creating a signal has no lifetime, and the runner is terminal-only),
   so NOT in tui4s.Hooks; then "put a method called `ref`, alias of Signal.initRef, same as Vue". The finalizer adds it
