@@ -155,6 +155,16 @@
   project after the push (D11). If the orchestrator is interrupted: check the workflow state and the two worktrees
   before anything else (lesson of L3).
   <!-- claude 2026-10-20: created this item -->
+- INSTRUCTION (user, 2026-10-20, while L5 ran): "finish to completion. a finished product ready for use from the
+  public. take the decisions that are most cost effective and record the why and the alternatives contemplated
+  (adrs?). take care to completion of what we've been talking about. When done, cleanup PRs issues and branches.
+  Docs and stale code. TODOS, planned features and so on." Plan: L5 (running) -> ADR set drafted in parallel (Opus,
+  scratchpad/adr) -> L5b + L6 + cleanup as one workflow (AOT launchers, native-image metadata + GraalVM CE smoke,
+  release checklist, remove the empty zio/cats modules and the deprecated useSignal, ADRs into the docs site, planned
+  features as GitHub issues, SECURITY.md/CHANGELOG, macOS in the PTY job) -> stale branches deleted (shas recorded),
+  PR #7 closed or folded, wip/handoff and docs/docus deleted last -> final human gate in ONE message: ff-merge to main
+  and the release tags (AGENTS.md: a tag needs human approval; maven-central tag patterns are a human step).
+  <!-- claude 2026-10-20: created this item -->
 - (history) L4 ran as 3 agents: the standalone Scala.js build of the assistant (D5), Theme (D8) in tui4s-widgets rendered to
   one Stylesheet for both platforms, JS interpreters (fetch SSE, localStorage key with a warning), units em/pct.
 - (history) L3 ran as 3 agents: shared crossProject (domain + UI, kyo-ui/use/widgets only), tui main
