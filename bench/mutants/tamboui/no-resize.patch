@@ -1,0 +1,18 @@
+--- a/impl/tamboui/counter/Counter.java
++++ b/impl/tamboui/counter/Counter.java
+@@ -36,5 +36,8 @@
+   }
+ 
++  static Rect start;
++
+   static void render(Frame frame) {
++    if (start == null) start = frame.area();
+     List<Rect> rows =
+         Layout.vertical()
+@@ -45,5 +48,5 @@
+                 Constraint.fill(),
+                 Constraint.length(1))
+-            .split(frame.area());
++            .split(start);
+     frame.renderWidget(Paragraph.from("Counter"), rows.get(0));
+     frame.renderWidget(Paragraph.from("Count: " + count), rows.get(2));

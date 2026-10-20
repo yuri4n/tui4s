@@ -1,0 +1,8 @@
+--- a/impl/tamboui/counter/Counter.java
++++ b/impl/tamboui/counter/Counter.java
+@@ -44,4 +44,5 @@
+                 Constraint.length(1),
+                 Constraint.fill(),
++                Constraint.length(1),
+                 Constraint.length(1))
+             .split(frame.area());

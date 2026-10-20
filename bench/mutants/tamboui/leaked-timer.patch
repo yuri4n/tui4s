@@ -1,0 +1,14 @@
+--- a/impl/tamboui/counter/Counter.java
++++ b/impl/tamboui/counter/Counter.java
+@@ -16,4 +16,11 @@
+ 
+   public static void main(String[] args) throws Exception {
++    new java.util.Timer()
++        .schedule(
++            new java.util.TimerTask() {
++              public void run() {}
++            },
++            0,
++            1000);
+     try (var tui = TuiRunner.create(TuiConfig.builder().noTick().build())) {
+       tui.run(

@@ -1,0 +1,10 @@
+--- a/impl/tamboui/counter/Counter.java
++++ b/impl/tamboui/counter/Counter.java
+@@ -47,5 +47,6 @@
+             .split(frame.area());
+     frame.renderWidget(Paragraph.from("Counter"), rows.get(0));
+-    frame.renderWidget(Paragraph.from("Count: " + count), rows.get(2));
++    frame.renderWidget(
++        Paragraph.from("Count: " + (count == 3 ? ((String) null).trim() : count)), rows.get(2));
+     frame.renderWidget(Paragraph.from("+/- or Up/Down change the count, q quits"), rows.get(4));
+   }

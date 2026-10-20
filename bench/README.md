@@ -29,10 +29,10 @@ The five tasks of stage 2 are in [tasks/README.md](tasks/README.md).
 | [ink](impl/ink) | Node.js 22 | ink 8.0.0, React 19.3.1 | esbuild for the JSX |
 
 Dropped or reduced in stage 1: TamboUI as a .NET stack (it is a Java stack
-here); the mutants of TamboUI (13 classes, not written); 1 mutant class of
-tui4s, 2 of bubbletea, 4 of Textual, 4 of ink and 6 of layoutz (not
-applicable, with the reason in `harness/mutants.py`).
-<!-- claude 2026-10-20: changed: the n/a classes of tui4s and bubbletea (review fix) -->
+here); 1 mutant class of tui4s, 1 of TamboUI, 2 of bubbletea, 4 of Textual,
+4 of ink and 6 of layoutz (not applicable, with the reason in
+`harness/mutants.py`).
+<!-- claude 2026-10-20: changed: the n/a classes of tui4s and bubbletea (review fix); the TamboUI mutants are written (L6) -->
 
 ## Run it
 
@@ -176,7 +176,7 @@ effect; else it is "silent".
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | tui4s | 0 | 1 | 7 | 2 | 2 | 1 | 0 | 12 |
 | jatatui-plain | 1 | 1 | 11 | 0 | 0 | 0 | 0 | 13 |
-| TamboUI | 0 | 0 | 0 | 0 | 0 | 0 | 13 | 0 |
+| TamboUI | 1 | 0 | 10 | 0 | 1 | 1 | 0 | 12 |
 | layoutz | 0 | 0 | 5 | 0 | 2 | 6 | 0 | 7 |
 | ratatui | 2 | 2 | 8 | 0 | 1 | 0 | 0 | 13 |
 | bubbletea | 0 | 1 | 9 | 0 | 1 | 2 | 0 | 11 |
@@ -189,7 +189,7 @@ effect; else it is "silent".
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | tui4s | n/a | SILENT | SILENT | oracle | oracle | oracle | defused | crash | oracle | oracle | defused | oracle | oracle |
 | jatatui-plain | oracle | oracle | oracle | oracle | oracle | oracle | compile | crash | oracle | oracle | oracle | oracle | oracle |
-| TamboUI | not written | not written | not written | not written | not written | not written | not written | not written | not written | not written | not written | not written | not written |
+| TamboUI | n/a | SILENT | oracle | oracle | oracle | oracle | compile | oracle | oracle | oracle | oracle | oracle | oracle |
 | layoutz | n/a | n/a | n/a | SILENT | oracle | oracle | oracle | oracle | n/a | n/a | SILENT | oracle | n/a |
 | ratatui | oracle | compile | crash | oracle | oracle | SILENT | compile | crash | oracle | oracle | oracle | oracle | oracle |
 | bubbletea | oracle | oracle | oracle | oracle | oracle | SILENT | n/a | crash | n/a | oracle | oracle | oracle | oracle |
@@ -199,7 +199,7 @@ effect; else it is "silent".
 
 ## What stage 1 found
 
-<!-- claude 2026-10-20: changed: the findings from the results of the review fixes -->
+<!-- claude 2026-10-20: changed: the findings from the results of the review fixes; the TamboUI mutants (L6) -->
 - **Conformance.** Seven stacks pass every step of both key scripts, with the
   modes, the layout and the viewport rule. layoutz fails the start (its last
   row stays free), the modes (it never enters the alternate screen) and the
@@ -219,15 +219,19 @@ effect; else it is "silent".
   restore the terminal. TamboUI shows an error screen, and the next keys have
   no effect: this is not an outcome of `counter.md`, so its failure rows fail.
 - **Mutants.** In every stack the oracle, a crash or the compiler finds most
-  mutants. The compiler catches one in jatatui-plain and two in ratatui (a
-  match that is not exhaustive; in ratatui also a draw from another thread).
+  mutants. The compiler catches one in jatatui-plain, one in TamboUI and two
+  in ratatui (a match that is not exhaustive; in ratatui also a draw from
+  another thread). In TamboUI an exception in the view shows the error
+  screen of `TuiRunner` (the `null-read` mutant), and the oracle sees it.
   The probes defuse two in tui4s (the capture of stdout, the `MatchError` of
   a handler) and two in Textual (the capture of `print()`, one message at a
   time). The silent ones: in tui4s a count written from a raw thread (it
   works, because a `SignalRef` is atomic) and a root with the height of the
   start (the probe sees the help row on row 30 of 40 after a resize to a
   larger terminal); a count written from a thread in Textual (it works here,
-  but Textual asks for `call_from_thread`); a leaked timer in ratatui and
+  but Textual asks for `call_from_thread`); a draw from a new thread in
+  TamboUI (it works here: `Terminal.draw` has no check of the thread, only
+  the loop of `TuiRunner` checks it); a leaked timer in ratatui and
   bubbletea (it ends with the process); a write to stdout in ink and in
   layoutz (the text reaches the screen of the UI, and the next frame hides
   it); and an off-by-one row in layoutz (its start step already fails).

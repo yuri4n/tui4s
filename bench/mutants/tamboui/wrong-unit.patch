@@ -1,0 +1,9 @@
+--- a/impl/tamboui/counter/Counter.java
++++ b/impl/tamboui/counter/Counter.java
+@@ -41,5 +41,5 @@
+             .constraints(
+                 Constraint.length(1),
+-                Constraint.length(1),
++                Constraint.percentage(1),
+                 Constraint.length(1),
+                 Constraint.fill(),

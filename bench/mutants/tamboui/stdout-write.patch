@@ -1,0 +1,12 @@
+--- a/impl/tamboui/counter/Counter.java
++++ b/impl/tamboui/counter/Counter.java
+@@ -27,5 +27,8 @@
+               throw new IllegalStateException("forced failure (Ctrl-X)");
+             }
+-            if (key.isChar('+') || key.isUp()) count++;
++            if (key.isChar('+') || key.isUp()) {
++              count++;
++              System.out.println("count " + count);
++            }
+             else if (key.isChar('-') || key.isDown()) count--;
+             else return false;

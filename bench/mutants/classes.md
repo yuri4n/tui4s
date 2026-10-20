@@ -58,13 +58,13 @@ oracle is `silent-wrong-behaviour`.
 
 ## Coverage
 
-The four stacks of the full suite are tui4s, ratatui, bubbletea and
-jatatui-plain. Textual, ink and layoutz have the classes that fit in stage 1
-(9, 9 and 7 patches). TamboUI has no mutants in stage 1: its 13 classes are
-`not-written`. The results are in
+The five stacks of the full suite are tui4s, ratatui, bubbletea,
+jatatui-plain and TamboUI (12 patches; `no-restore-on-exception` is n/a).
+Textual, ink and layoutz have the classes that fit in stage 1 (9, 9 and 7
+patches). The results are in
 `bench/results/<machine>/mutants-<stack>.json`, and the table is in
 `bench/README.md`.
-<!-- claude 2026-10-20: changed: the TamboUI classes are not-written (review fix) -->
+<!-- claude 2026-10-20: changed: the TamboUI classes are not-written (review fix); the TamboUI patches (L6) -->
 
 The oracle reads the screen, the exit code and the terminal modes. It does not
 read the logs, the memory or the threads of a program that ended: a mutant that
@@ -85,6 +85,19 @@ only wastes a resource until the process ends is "silent" (the class
   run of the effect (`AllowUnsafe`, `Sync.Unsafe.evalOrThrow`), as the Textual
   mutant writes it from `threading.Thread`.
   <!-- claude 2026-10-20: created: the note of the tui4s wrong-thread mutant (review fix) -->
+- TamboUI `non-exhaustive-key`: the handler becomes a switch expression on
+  `key.code()` with cases for `UP`, `DOWN` and `CHAR` only. javac rejects a
+  switch expression on an enum that does not cover each constant.
+- TamboUI `wrong-thread` draws from a new thread with `TuiRunner.draw`.
+  `Terminal.draw` does not check the thread (only the loop of `TuiRunner`
+  does), and the frame shows the right count, so the mutant is silent.
+- TamboUI `null-read`: `TuiRunner` catches the exception of the renderer and
+  shows its error screen. The program does not end, so the outcome is the
+  oracle (a wrong screen), not a crash.
+- TamboUI `lost-update` reads the count, then writes it 5 ms later on the
+  scheduler of the runner through `runOnRenderThread`, as the Textual
+  mutant awaits between the read and the write.
+  <!-- claude 2026-10-20: created: the four notes of the TamboUI mutants (L6) -->
 - layoutz `off-by-one`: the program without the mutant already fails the start
   step (it cannot use the last row), so the oracle cannot see a row that moves
   one more row up.

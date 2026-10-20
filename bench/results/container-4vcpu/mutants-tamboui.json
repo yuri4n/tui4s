@@ -7,56 +7,56 @@
  "rebuilt": true,
  "classes": {
   "no-restore-on-exception": {
-   "outcome": "not-written",
-   "detail": "no patch for this stack"
+   "outcome": "n/a",
+   "detail": "TuiRunner.run catches each exception of a key handler (catch Throwable), shows its error screen and keeps the terminal; its close and its shutdown hook restore the terminal. To lose the restore, a program must leave run for a loop of its own and also turn off the shutdown hook: two choices, not one bug"
   },
   "wrong-thread": {
-   "outcome": "not-written",
-   "detail": "no patch for this stack"
+   "outcome": "silent-wrong-behaviour",
+   "detail": "every step that passes without the mutant passes with it; the class has no defuse probe."
   },
   "no-resize": {
-   "outcome": "not-written",
-   "detail": "no patch for this stack"
+   "outcome": "test-or-oracle-catches",
+   "detail": "resize 80x24: Counter | Count: 7"
   },
   "off-by-one": {
-   "outcome": "not-written",
-   "detail": "no patch for this stack"
+   "outcome": "test-or-oracle-catches",
+   "detail": "start: row 29: '+/- or Up/Down change the count, q quits' (want ''); row 30: '' (want '+/- or Up/Down change the count, q quits; resize 80x24: Counter | Count: 7 | +/- or Up/Down change the count, q quits"
   },
   "blocking-handler": {
-   "outcome": "not-written",
-   "detail": "no patch for this stack"
+   "outcome": "test-or-oracle-catches",
+   "detail": "plus 1: no 'Count: 1' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 2: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 3: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; minus: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the c"
   },
   "leaked-timer": {
-   "outcome": "not-written",
-   "detail": "no patch for this stack"
+   "outcome": "test-or-oracle-catches",
+   "detail": "quit: exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [7875], 'restored': False}"
   },
   "non-exhaustive-key": {
-   "outcome": "not-written",
-   "detail": "no patch for this stack"
+   "outcome": "compile-error",
+   "detail": "[error] /home/user/tui4s-l6-docs/bench/impl/tamboui/counter/Counter.java:30:17: the switch expression does not cover all possible input values\n[error] switch (key.code()) {\n[error]                   case UP -> 1;\n[error]                   case DOWN -> -1;\n[error]                   case CHAR -> key.isChar('+') ? 1 : key.isChar('-') ? -1 : 0;\n[error]                 }\n[error]                 ^\n[error] (tambouiCounter / Compile / compileIncremental) javac returned non-zero exit code"
   },
   "null-read": {
-   "outcome": "not-written",
-   "detail": "no patch for this stack"
+   "outcome": "test-or-oracle-catches",
+   "detail": "plus 3: no 'Count: 3' on row 3 in 1.5 s: \u256d ERROR \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500; minus: no 'Count: 2' on row 3 in 1.5 s: \u256d ERROR \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500; up: no 'Count: 3' on row 3 in 1.5 s: \u256d ERROR \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500; down: no 'Count: 2' on row 3 in 1.5 s: \u256d ERROR \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
   },
   "stale-closure": {
-   "outcome": "not-written",
-   "detail": "no patch for this stack"
+   "outcome": "test-or-oracle-catches",
+   "detail": "plus 1: no 'Count: 1' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 2: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 3: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; minus: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the c"
   },
   "wrong-unit": {
-   "outcome": "not-written",
-   "detail": "no patch for this stack"
+   "outcome": "test-or-oracle-catches",
+   "detail": "start: row 2: 'Count: 0' (want ''); row 3: '' (want 'Count: 0'); plus 1: no 'Count: 1' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; plus 2: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the count, q quits; plus 3: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 3 | +/- or Up/Down change the count, q quits; minus: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the count, q quits; up: no 'Count: 3' on"
   },
   "stdout-write": {
-   "outcome": "not-written",
-   "detail": "no patch for this stack"
+   "outcome": "test-or-oracle-catches",
+   "detail": "plus 1: no 'Count: 1' on row 3 in 1.5 s: Count: 0 | 1 | +/- or Up/Down change the count, q quitscount 1; plus 2: no 'Count: 2' on row 3 in 1.5 s: Count: 0 | 2count 2 | +/- or Up/Down change the count, q quitscount 1; plus 3: no 'Count: 3' on row 3 in 1.5 s: Count: 0 | 3count 3 | +/- or Up/Down change the count, q quitscount 1; minus: no 'Count: 2' on row 3 in 1.5 s: Count: 0 | 2count 3 | +/- or Up/Down change the count, q quitscount 1; up: no 'Count: 3' on row 3 in 1.5 s: Count: 0 | 3count 3 | +"
   },
   "missing-binding": {
-   "outcome": "not-written",
-   "detail": "no patch for this stack"
+   "outcome": "test-or-oracle-catches",
+   "detail": "up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the count, q quits; burst +++++: no 'Count: 7' on row 3 in 1.5 s: Counter | Count: 6 | +/- or Up/Down change the count, q quits; unbound x: row 3: 'Count: 6' (want 'Count: 7'); resize 80x24: Counter | Count: 6 | +/- or Up/Down change the count, q quits"
   },
   "lost-update": {
-   "outcome": "not-written",
-   "detail": "no patch for this stack"
+   "outcome": "test-or-oracle-catches",
+   "detail": "burst +++++: no 'Count: 7' on row 3 in 1.5 s: Counter | Count: 3 | +/- or Up/Down change the count, q quits; unbound x: row 3: 'Count: 3' (want 'Count: 7'); resize 80x24: Counter | Count: 3 | +/- or Up/Down change the count, q quits"
   }
  }
 }

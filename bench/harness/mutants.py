@@ -28,6 +28,13 @@ NOT_APPLICABLE = {
         "a key handler has no way to skip it",
     },
     "jatatui-plain": {},
+    # claude 2026-10-20: created: the TamboUI entry (L6): 12 patches, one class n/a
+    "tamboui": {
+        "no-restore-on-exception": "TuiRunner.run catches each exception of a key handler (catch Throwable), shows "
+        "its error screen and keeps the terminal; its close and its shutdown hook restore the terminal. To lose the "
+        "restore, a program must leave run for a loop of its own and also turn off the shutdown hook: two choices, "
+        "not one bug",
+    },
     "ratatui": {},
     "bubbletea": {
         "non-exhaustive-key": "a Go switch on the key string needs no default; an unmatched key does nothing",

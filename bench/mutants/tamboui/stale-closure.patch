@@ -1,0 +1,20 @@
+--- a/impl/tamboui/counter/Counter.java
++++ b/impl/tamboui/counter/Counter.java
+@@ -16,4 +16,5 @@
+ 
+   public static void main(String[] args) throws Exception {
++    int shown = count;
+     try (var tui = TuiRunner.create(TuiConfig.builder().noTick().build())) {
+       tui.run(
+@@ -32,9 +33,9 @@
+             return true;
+           },
+-          Counter::render);
++          frame -> render(frame, shown));
+     }
+   }
+ 
+-  static void render(Frame frame) {
++  static void render(Frame frame, int count) {
+     List<Rect> rows =
+         Layout.vertical()
