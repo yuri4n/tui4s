@@ -141,7 +141,20 @@
   human approval). Human steps pending: maven-central tag patterns (runner-v*, app-v*, testkit-v*, use-v*,
   widgets-v*); D24 default keep; the Anthropic server-side fallbacks opt-in in Wires.scala (user must know).
 - RULE (user, 2026-10-19): after L4 lands, STOP: report it, do not start L5, wait for the user (they will /compact).
-  L4 landed; waiting.
+  L4 landed; the user compacted and said "continue" (2026-10-20). CI #57 green on e41fd0f.
+- L5 LAUNCHED 2026-10-20: workflow wf_2faf0e7d-df6 (script tui4s-l5-wf_2faf0e7d-df6.js), 7 Opus agents: two streams
+  in worktrees (/home/user/tui4s-l5-docs on l5/docs: the Docus scaffold copied from origin/docs/docus, example-first
+  pages whose Scala blocks are checked regions (MarkdownRegionsSuite), asciinema casts from the PTY kit, the web demo
+  in an iframe; /home/user/tui4s-l5-bench on l5/bench: bench/ with its own sbt build on the publishLocal artifacts,
+  tasks counter + dashboard in tui4s, jatatui-plain, ratatui, bubbletea, textual, ink, layoutz (TamboUI only if dotnet
+  installs), a PTY harness, the resilience suite, the 13-class mutant suite, compactness/expressiveness, the honest
+  PERFORMANCE page, bench/infra with alchemy (us-east-1, no inbound, IMDSv2, shutdown -h +90, terminate on shutdown,
+  results to S3; the fix stage deploys ONCE after the review and destroys + verifies), bench.yml); each stream
+  implement -> review -> fix; one finalizer merges (ff, linear), fills the docs bench table, runs the one full check +
+  docs build + bench smoke + PTY, pushes, triggers ci.yml/docs.yml/bench.yml. The orchestrator creates the Vercel
+  project after the push (D11). If the orchestrator is interrupted: check the workflow state and the two worktrees
+  before anything else (lesson of L3).
+  <!-- claude 2026-10-20: created this item -->
 - (history) L4 ran as 3 agents: the standalone Scala.js build of the assistant (D5), Theme (D8) in tui4s-widgets rendered to
   one Stylesheet for both platforms, JS interpreters (fetch SSE, localStorage key with a warning), units em/pct.
 - (history) L3 ran as 3 agents: shared crossProject (domain + UI, kyo-ui/use/widgets only), tui main
