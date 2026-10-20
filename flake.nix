@@ -1,19 +1,23 @@
 {
   description = "tui4s development tools: JDK 25, pinned sbt, and terminal tests";
 
-  # Keep this input aligned with vendor/pini4s/flake.nix and both lockfiles.
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/319e4cebef10cbb636c6ea392137b52ad105336a";
+  # Keep these inputs aligned with vendor/pini4s/flake.nix and both lockfiles.
+  # nix develop also uses the input named nixpkgs to find Bash. It must
+  # support Intel macOS, which nixpkgs 26.11 dropped.
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-26.05-darwin";
+  inputs.nixpkgs-current.url = "github:NixOS/nixpkgs/319e4cebef10cbb636c6ea392137b52ad105336a";
 
-  outputs = { nixpkgs, ... }:
+  outputs = { nixpkgs, nixpkgs-current, ... }:
     let
-      # claude 2026-10-20: changed: x86_64-darwin too (the maintainer's Mac evaluates as x86_64-darwin)
       systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
-      forAllSystems = nixpkgs.lib.genAttrs systems;
+      forAllSystems = nixpkgs-current.lib.genAttrs systems;
     in
     {
       devShells = forAllSystems (system:
         let
-          pkgs = import nixpkgs { inherit system; };
+          pkgs = import
+            (if system == "x86_64-darwin" then nixpkgs else nixpkgs-current)
+            { inherit system; };
           jdk = pkgs.temurin-bin-25;
         in
         {
