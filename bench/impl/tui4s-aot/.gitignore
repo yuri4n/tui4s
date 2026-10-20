@@ -1,0 +1,3 @@
+# The trained AOT caches (build.sh): about 40 MB each, made per machine.
+*.aot
+*.aot.part

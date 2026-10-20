@@ -1,0 +1,112 @@
+{
+ "conformance": {
+  "passed": 12,
+  "steps": [
+   {
+    "detail": "",
+    "ok": true,
+    "step": "start"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "modes"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 1"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 2"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 3"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "minus"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "up"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "burst +++++"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "unbound x"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "resize 80x24"
+   },
+   {
+    "detail": "exit=0 restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored': True}",
+    "ok": true,
+    "step": "quit"
+   }
+  ],
+  "total": 12
+ },
+ "machine": "container-4vcpu",
+ "perf": {
+  "artifact": "the jars of the staged app and its AOT cache (no JDK)",
+  "artifact_mb": 75.4,
+  "cpu_pct": 4.6,
+  "date": "2026-10-20T12:41:19Z",
+  "first_frame_ms": 444.4,
+  "first_key_ms": 31.51,
+  "key_median_ms": 5.43,
+  "key_p90_ms": 7.64,
+  "rss_mb": 114.6,
+  "runs": [
+   {
+    "cpu_pct": 4.4,
+    "exit": 0,
+    "first_frame_ms": 444.4,
+    "first_key_ms": 31.51,
+    "key_median_ms": 5.52,
+    "key_p90_ms": 7.49,
+    "rss_mb": 114.6
+   },
+   {
+    "cpu_pct": 4.99,
+    "exit": 0,
+    "first_frame_ms": 394.63,
+    "first_key_ms": 27.45,
+    "key_median_ms": 5.2,
+    "key_p90_ms": 7.64,
+    "rss_mb": 114.5
+   },
+   {
+    "cpu_pct": 4.6,
+    "exit": 0,
+    "first_frame_ms": 484.62,
+    "first_key_ms": 34.07,
+    "key_median_ms": 5.43,
+    "key_p90_ms": 9.01,
+    "rss_mb": 114.9
+   }
+  ],
+  "tick_gap_p50_ms": null,
+  "tick_gap_p90_ms": null,
+  "ticks_skipped_pct": null
+ }
+}

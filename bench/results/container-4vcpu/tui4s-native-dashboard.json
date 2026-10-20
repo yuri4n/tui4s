@@ -1,0 +1,147 @@
+{
+ "conformance": {
+  "passed": 16,
+  "steps": [
+   {
+    "detail": "",
+    "ok": true,
+    "step": "start"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "modes"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "layout"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down 1"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down 2"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down 3"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "pgdn (page 25)"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "pgup"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "up"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "tab to load"
+   },
+   {
+    "detail": "status=(3, 1000, 'load')",
+    "ok": true,
+    "step": "down on load"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "tab to list"
+   },
+   {
+    "detail": "T 6->27 (+21), samples=77, wrong=[]",
+    "ok": true,
+    "step": "ticks"
+   },
+   {
+    "detail": "clock=12:40:51",
+    "ok": true,
+    "step": "clock"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "resize 80x24"
+   },
+   {
+    "detail": "exit=0 restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored': True}",
+    "ok": true,
+    "step": "quit"
+   }
+  ],
+  "total": 16
+ },
+ "machine": "container-4vcpu",
+ "perf": {
+  "artifact": "the native binary (GraalVM native-image; no JDK)",
+  "artifact_mb": 31.66,
+  "cpu_pct": 6.4,
+  "date": "2026-10-20T12:42:39Z",
+  "first_frame_ms": 48.74,
+  "first_key_ms": 7.92,
+  "key_median_ms": 6.46,
+  "key_p90_ms": 9.63,
+  "rss_mb": 79.5,
+  "runs": [
+   {
+    "cpu_pct": 6.6,
+    "exit": 0,
+    "first_frame_ms": 49.25,
+    "first_key_ms": 7.88,
+    "key_median_ms": 6.46,
+    "key_p90_ms": 8.46,
+    "rss_mb": 77.8,
+    "tick_gap_max_ms": 106.6,
+    "tick_gap_p50_ms": 100.4,
+    "tick_gap_p90_ms": 101.2,
+    "ticks_seen": 49,
+    "ticks_skipped_pct": 0.0
+   },
+   {
+    "cpu_pct": 6.4,
+    "exit": 0,
+    "first_frame_ms": 48.74,
+    "first_key_ms": 7.92,
+    "key_median_ms": 6.35,
+    "key_p90_ms": 9.63,
+    "rss_mb": 79.5,
+    "tick_gap_max_ms": 108.5,
+    "tick_gap_p50_ms": 100.6,
+    "tick_gap_p90_ms": 101.6,
+    "ticks_seen": 49,
+    "ticks_skipped_pct": 0.0
+   },
+   {
+    "cpu_pct": 6.4,
+    "exit": 0,
+    "first_frame_ms": 43.85,
+    "first_key_ms": 8.58,
+    "key_median_ms": 6.73,
+    "key_p90_ms": 11.07,
+    "rss_mb": 79.5,
+    "tick_gap_max_ms": 132.6,
+    "tick_gap_p50_ms": 100.5,
+    "tick_gap_p90_ms": 102.4,
+    "ticks_seen": 49,
+    "ticks_skipped_pct": 0.0
+   }
+  ],
+  "tick_gap_p50_ms": 100.5,
+  "tick_gap_p90_ms": 101.6,
+  "ticks_skipped_pct": 0.0
+ }
+}

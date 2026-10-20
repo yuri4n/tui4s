@@ -32,6 +32,17 @@ STACKS = {
 }
 ORDER = ["tui4s", "jatatui-plain", "tamboui", "layoutz", "ratatui", "bubbletea", "textual", "ink"]
 
+# The start modes of tui4s (ADR 0015): the same program as the stack tui4s (its sources and its jars), started
+# another way. Only the perf rows measure them; they are not in ORDER, so the tables of compactness, conformance,
+# change and mutants have no second tui4s row. tui4s-aot: the JDK 25 AOT cache and the start flags of the
+# examples (impl/tui4s-aot/build.sh trains the cache). tui4s-native: a GraalVM native image
+# (impl/tui4s-native/build.sh).
+# claude 2026-10-20: created (L5b): the AOT and native modes of tui4s
+_TUI4S_SOURCES = {"counter": ["../tui4s/counter/Counter.scala"], "dashboard": ["../tui4s/dashboard/Dashboard.scala"]}
+STACKS["tui4s-aot"] = {"language": "scala", "kind": "jvm-aot", "variant_of": "tui4s", "sources": _TUI4S_SOURCES}
+STACKS["tui4s-native"] = {"language": "scala", "kind": "native-image", "variant_of": "tui4s", "sources": _TUI4S_SOURCES}
+MODES = ["tui4s-aot", "tui4s-native"]
+
 
 def stack_dir(stack):
     return os.path.join(IMPL, stack)
@@ -60,6 +71,12 @@ def artifact(stack, task):
     if kind == "jvm":
         lib = os.path.join(d, task, "target", "universal", "stage", "lib")
         return du(lib), "the jars of the staged app (the app and its dependencies; no JDK)"
+    # claude 2026-10-20: created (L5b): the artifacts of the AOT and native modes
+    if kind == "jvm-aot":
+        lib = os.path.join(stack_dir("tui4s"), task, "target", "universal", "stage", "lib")
+        return du(lib) + du(os.path.join(d, f"{task}.aot")), "the jars of the staged app and its AOT cache (no JDK)"
+    if kind == "native-image":
+        return du(os.path.join(d, "out", task)), "the native binary (GraalVM native-image; no JDK)"
     if stack == "ratatui":
         return du(os.path.join(d, "target", "release", task)), "the release binary (stripped)"
     if stack == "bubbletea":
