@@ -207,6 +207,12 @@
   repo: HUMAN STEP (Settings > Code security). Then: trigger CI (ci, docs, bench, native), close PR #7, delete the
   stale remote branches with `git push origin --delete` (no MCP tool), the gate message.
   <!-- claude 2026-10-20: created this item -->
+- D26 (user, 2026-10-20, chat): the state hook comes back as `signal(initial)` in `tui4s.Hooks`, a plain, not
+  deprecated alias of `Signal.initRef` (the user asked "why useSignal gone?", then picked `signal(0)` over
+  createSignal, sig and useSignal). Fallback if NameClashTest finds a kyo-ui `signal`: `createSignal`. The finalizer
+  adds it (Hooks.scala + Scaladoc, HooksTest leaf, README region, docs components page, AGENTS.md hooks sentence,
+  ADR 0014 wording: useSignal removed, signal added).
+  <!-- claude 2026-10-20: created this item -->
 - (history) L4 ran as 3 agents: the standalone Scala.js build of the assistant (D5), Theme (D8) in tui4s-widgets rendered to
   one Stylesheet for both platforms, JS interpreters (fetch SSE, localStorage key with a warning), units em/pct.
 - (history) L3 ran as 3 agents: shared crossProject (domain + UI, kyo-ui/use/widgets only), tui main
