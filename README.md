@@ -29,6 +29,13 @@ the Scaladoc of `tui4s.Hooks` and `tui4s.Component`.
 <!-- claude 2026-10-13: created these lines (C4): the two component styles -->
 <!-- claude 2026-10-19: changed: Signal.initRef, not the deprecated useSignal (P1b, A5 f) -->
 
+## Documentation
+
+<!-- claude 2026-10-20: created this section (L5) -->
+[The docs site](docs/) is a guide: each page leads with an example, and a
+test checks that each of its Scala blocks is the text of the source. It has
+the terminal casts of the examples and the web assistant as a demo.
+
 ## Development setup
 
 With [Nix](https://nixos.org/download/) installed and flakes enabled:

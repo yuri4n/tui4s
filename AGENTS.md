@@ -31,7 +31,7 @@ issue #17). All the artifacts use the same packages (`tui4s`,
 | `modules/assistant` | `assistant` (`assistantJVM`, `assistantJS`) | none | kyo-ui (the flagship example app: its domain, services, store and UI in `shared`, the interpreters of the JVM in `jvm` and of the browser in `js`) | none | no |
 | `examples`      | `examples` | none                             | -                                       | none             | no        |
 | `examples/web`  | `assistantWeb` | none                         | kyo-ui (the assistant on the web: a Scala.js app of static files from `modules/assistant`; `scripts/web-build.sh` builds `dist/assistant`) | none | no |
-| `docs`          | none       | none (Nuxt Docus site)           | -                                       | none             | no        |
+| `docs`          | none       | none (Nuxt Docus site)           | - (the docs site: a guide whose pages lead with examples; `pnpm run build` in `docs` builds it; `MarkdownRegionsSuite` checks each of its Scala blocks; the section "Docs" below) | none | no |
 <!-- claude 2026-10-19: created the row of examples/web; changed: the js part of the assistant (L4) -->
 <!-- claude 2026-10-19: created the rows of use and widgets (L2a); changed: the widgets row (L2b) -->
 <!-- claude 2026-10-19: changed: the rows runner, app, testkit and the composite core (D25) -->
@@ -302,6 +302,9 @@ nothing.
 | `examples/ptycheck/run.sh`           | Runs the real-terminal checklist in a pseudo-terminal (CI job `terminal`). |
 | `bash scripts/web-build.sh`          | Links the web assistant (`assistantWeb/fullLinkJS`) and writes `dist/assistant` (index.html, main.js). With an sbt server, set `SBT="sbt --client"`. |
 | `node scripts/web-smoke.mjs`         | Runs the web assistant from `dist/assistant` in headless Chromium (Playwright): a send, the streamed reply, Esc, the look switch. |
+| `pnpm install --frozen-lockfile && pnpm run build` (in `docs`) | Builds the docs site into `docs/.output`, with `llms.txt`, `llms-full.txt` and `raw/<page>.md`. Set `NUXT_TELEMETRY_DISABLED=1`. The build fetches nothing from the network. `pnpm run preview` serves the result. |
+| `bash scripts/docs-casts.sh`         | Builds the launchers and records the terminal casts of the docs site (`docs/public/casts/<app>.cast`), each app in a pseudo-terminal of its own (`examples/ptycheck/cast.py`). |
+| `bash scripts/docs-demo.sh`          | Copies `dist/assistant` (run `scripts/web-build.sh` first) to `docs/public/demo/assistant`, the web demo of the docs site. |
 <!-- claude 2026-10-19: created the rows of use/test and useJS/compile; changed: Node.js in the shell (L2a); gallery in the app list (L2b) -->
 <!-- claude 2026-10-19: changed: the rows runner/test and core/test (D25) -->
 <!-- claude 2026-10-19: changed: assistant in the app list (L3) -->
@@ -632,6 +635,29 @@ and after a change of the frame path, and give both numbers.
   <https://github.com/yuri4n/functional-design-skills> (a Claude Code plugin
   marketplace), or copy its `skills/` directory into `~/.claude/skills`.
   <!-- claude 2026-10-19: created this item (D19: the skills leave the repo) -->
+
+## Docs
+
+<!-- claude 2026-10-20: created this section (L5) -->
+- The docs site is `docs/` (Nuxt Docus). Each page leads with a usage
+  example (D17). Write the pages in ASD-STE100, short. Do not claim more than
+  the code does: `zio` and `cats` are planned modules, there is no mouse
+  input, and Windows is experimental.
+- Each Scala block of a page in `docs/content` is the text of a region of a
+  source file. The line `<!-- from: <path>#<region> -->` is directly above
+  the block, one for each block, as in `README.md`. `MarkdownRegionsSuite`
+  (in `examples/test`) checks each block, and it fails on a Scala block with
+  no such line. A shell, text, YAML or `sbt` block has no line. To show new
+  code, add a region to the source file (the two comment lines; no change of
+  behaviour), then copy its text into the page.
+- The casts (`docs/public/casts`) and the web demo
+  (`docs/public/demo/assistant`) are generated files. After a change to an
+  example that a cast shows, run `scripts/docs-casts.sh`. After a change to
+  the assistant, run `scripts/web-build.sh` and `scripts/docs-demo.sh`.
+  Commit the results.
+- The build fetches nothing from the network: no font provider is on, and
+  each icon is in the client bundle. Put a new icon in
+  `icon.clientBundle.icons` of `docs/nuxt.config.ts`.
 
 ## Dependencies and versions
 
