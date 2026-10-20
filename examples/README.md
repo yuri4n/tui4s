@@ -403,8 +403,29 @@ sbt examples/Universal/packageBin
 
 The archive is under `examples/target/universal/`. Keep its `bin`, `lib`, and
 `conf` directories together. It contains scripts and JARs; the receiving
-machine must provide JDK 25. No JDK is bundled, and this task does not produce
-a GraalVM native binary.
+machine must provide JDK 25. No JDK is bundled. `scripts/native-image.sh`
+builds a GraalVM native binary of one example (see "A native binary" below).
+
+### A faster start: the AOT cache
+
+After you unpack the archive (or stage it), run once:
+
+```sh
+bin/aot-train            # in the unpacked archive
+examples/target/bin/aot-train   # after sbt examples/launchers
+```
+
+`aot-train` starts each app in a pseudo-terminal of its own, sends real keys,
+quits, and keeps the JDK 25 AOT cache of the app in `aot/<app>.aot` (about
+40 MB each, about 9 s each; it needs `python3`). A start script then uses the
+cache when the same JDK made it (`aot/<app>.jdk` keeps the text of
+`java -version`); else it starts as before. Train again after a change of
+the JDK or of the jars. On a 4-CPU Linux machine (PTY 100x30, median of 10),
+the first frame of the Counter came after 511 ms to 526 ms with the cache, and
+after 1,118 ms to 1,144 ms with the start scripts of before; the memory (RSS)
+went from about 150 MB to 104 MB. The Dashboard: 584 ms to 631 ms, not
+1,344 ms to 1,351 ms (ADR 0015).
+<!-- claude 2026-10-20: created this section (L5b, ADR 0015) -->
 
 The existing start-script interface remains available:
 
@@ -432,6 +453,9 @@ Both launch paths start an app in its own JVM, using `$JAVA_HOME/bin/java` or
 - `--sun-misc-unsafe-memory-access=allow`: Kyo and Scala use
   `sun.misc.Unsafe`.
 - `-Xss16m`: Kyo's deep stacks.
+- `-XX:TieredStopAtLevel=1` and `-XX:+UseSerialGC`: a faster start and less
+  memory (ADR 0015).
+  <!-- claude 2026-10-20: created this item (L5b) -->
 - `-Dkyo.scheduler.cycleIntervalNs=10000000`,
   `-Dkyo.scheduler.blockingMonitorIntervalNs=20000000`,
   `-Dkyo.scheduler.blockingMonitorMinIntervalNs=20000000` and

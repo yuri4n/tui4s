@@ -393,11 +393,18 @@ lazy val examples = project
     // --illegal-native-access=deny the app stops with NativeAccessDenied).
     // --sun-misc-unsafe-memory-access: Kyo and Scala use sun.misc.Unsafe.
     // -Xss16m: Kyo's deep stacks, as in the prototype runs.
+    // -XX:TieredStopAtLevel=1 and -XX:+UseSerialGC: a faster start and less
+    // memory for a terminal app (ADR 0015: with the AOT cache, the first frame
+    // of the Counter came at 361 ms, not 521 ms, and the RSS was 94 MB, not
+    // 113 MB). The bench rows tui4s-aot measure the keys and the CPU with them.
     // claude 2026-10-13: changed: where the warning goes (seen in a PTY)
+    // claude 2026-10-20: changed (L5b, ADR 0015): the two start flags
     run / javaOptions ++= Seq(
       "--enable-native-access=ALL-UNNAMED",
       "--sun-misc-unsafe-memory-access=allow",
       "-Xss16m",
+      "-XX:TieredStopAtLevel=1",
+      "-XX:+UseSerialGC",
     ),
     // The tui4s scheduler values (D-17 c), as JVM flags: Kyo reads them once,
     // when its scheduler starts. With them the runner gives fewer split
@@ -434,8 +441,12 @@ lazy val examples = project
   // Native-packager owns the portable jar layout and Bash/Windows scripts.
   // No default main: it generates a launcher for each discovered example.
   // Keep package names (counter, dashboard, ...) in the distribution.
+  // The Bash scripts use the AOT cache of the app when `bin/aot-train`
+  // (src/universal/bin) made it with the same JDK (ADR 0015).
+  // claude 2026-10-20: changed (L5b, ADR 0015): the AOT cache in the scripts
   .settings(
     Compile / mainClass     := None,
+    bashScriptExtraDefines ++= ExamplePackaging.aotDefines,
     Universal / javaOptions := (run / javaOptions).value.map("-J" + _),
     Universal / mappings    := ExamplePackaging.mappings(
       (Universal / mappings).value,

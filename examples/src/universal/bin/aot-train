@@ -1,0 +1,150 @@
+#!/usr/bin/env python3
+# Makes the JDK 25 AOT cache of each example of this distribution (ADR 0015).
+# It starts each start script of this bin directory in a pseudo-terminal of
+# its own (python3 pty: your terminal does not change), sends real keys, so
+# that the frame path is in the cache, and quits. The JVM writes the cache
+# when the app exits (-XX:AOTCacheOutput, one step). The start scripts use a
+# cache only when it exists and the same JDK made it: the file
+# aot/<app>.jdk keeps the text of `java -version`. Run it again after a
+# change of the JDK or of the jars. It takes about 5 s per app.
+# Usage: bin/aot-train [app ...]   (no app: all the apps of this directory)
+# The apps get only the variables of KEEP_ENV and run in a temporary
+# directory (also their HOME): no key, no proxy, no file of yours.
+# claude 2026-10-20: created (L5b, ADR 0015): the training of the AOT caches
+import os
+import pty
+import select
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+
+BIN = os.path.dirname(os.path.abspath(__file__))
+AOT = os.path.join(os.path.dirname(BIN), "aot")
+ENTER_ALT = b"\x1b[?1049h"
+TAB, CR, ESC, CTRL_C = "\t", "\r", "\x1b", "\x03"
+UP, DOWN, RIGHT, LEFT = "\x1b[A", "\x1b[B", "\x1b[C", "\x1b[D"
+KEEP_ENV = ("PATH", "JAVA_HOME", "LANG", "LC_ALL", "LC_CTYPE", "TZ")
+
+# The workload of each app: its arguments and its keys. An app that is not
+# here gets DEFAULT. Each run ends with Ctrl-C (a quit in every tui4s app).
+DEFAULT = ([], ["+", "+", "-", TAB, CR, " ", TAB, DOWN, UP, RIGHT, LEFT, CR])
+APPS = {
+    "todo": (["todos.txt"], list("buy milk") + [CR, TAB, DOWN, UP, " ", "\x1a", ESC]),
+    "dashboard": ([], ["p", "p", RIGHT, RIGHT, "?", ESC, LEFT, TAB, DOWN, "q"]),
+    "forms": ([], list("Ada") + [TAB] + list("secret") + [TAB, UP, TAB, RIGHT, TAB, " ", TAB, DOWN, CR, ESC]),
+    "gallery": ([], [DOWN, DOWN, DOWN, "\x14", DOWN, "\x10", ESC]),
+    "assistant": (["--fake"], list("hi") + [CR, "", ""]),
+    "printing": ([], ["+", "+", "-"]),
+}
+
+
+def java():
+    home = os.environ.get("JAVA_HOME")
+    if home and os.access(os.path.join(home, "bin", "java"), os.X_OK):
+        return os.path.join(home, "bin", "java")
+    return shutil.which("java") or "java"
+
+
+def apps():
+    out = []
+    for name in sorted(os.listdir(BIN)):
+        path = os.path.join(BIN, name)
+        if name == "aot-train" or name.endswith(".bat") or not os.access(path, os.X_OK):
+            continue
+        with open(path, "rb") as f:
+            if b"app_mainclass" in f.read():
+                out.append(name)
+    return out
+
+
+def train(app, env, jdk):
+    args, keys = APPS.get(app, DEFAULT)
+    cache = os.path.join(AOT, app + ".aot")
+    for old in (cache, os.path.join(AOT, app + ".jdk")):
+        if os.path.exists(old):
+            os.remove(old)
+    part = cache + ".part"
+    with tempfile.TemporaryDirectory(prefix=f"tui4s-aot-{app}-") as work:
+        run_env = dict(env, HOME=work, XDG_DATA_HOME=work, XDG_CONFIG_HOME=work)
+        pid, fd = pty.fork()
+        if pid == 0:
+            os.chdir(work)
+            os.execve(os.path.join(BIN, app),
+                      [app, f"-J-XX:AOTCacheOutput={part}", "--"] + args, run_env)
+        seen = b""
+
+        def pump(seconds):
+            nonlocal seen
+            end = time.monotonic() + seconds
+            while time.monotonic() < end:
+                r, _, _ = select.select([fd], [], [], 0.05)
+                if r:
+                    try:
+                        data = os.read(fd, 65536)
+                    except OSError:
+                        return False
+                    if not data:
+                        return False
+                    seen = (seen + data)[-100000:]
+            return True
+
+        deadline = time.monotonic() + 60
+        while ENTER_ALT not in seen:
+            if time.monotonic() > deadline or not pump(0.2):
+                os.kill(pid, signal.SIGKILL)
+                os.waitpid(pid, 0)
+                return f"no first frame in 60 s"
+        pump(1.5)
+        for k in keys + [CTRL_C]:
+            if k:
+                os.write(fd, k.encode())
+            pump(0.3 if k else 1.5)
+        end = time.monotonic() + 60
+        status = None
+        while time.monotonic() < end:
+            done, st = os.waitpid(pid, os.WNOHANG)
+            if done == pid:
+                status = st
+                break
+            pump(0.2)
+        if status is None:
+            os.kill(pid, signal.SIGTERM)
+            os.waitpid(pid, 0)
+        os.close(fd)
+    if not os.path.isfile(part) or os.path.getsize(part) < 1_000_000:
+        if os.path.exists(part):
+            os.remove(part)
+        return "the JVM wrote no cache"
+    os.replace(part, cache)
+    with open(os.path.join(AOT, app + ".jdk"), "w") as f:
+        f.write(jdk)
+    return None
+
+
+def main():
+    names = sys.argv[1:] or apps()
+    env = {k: v for k, v in os.environ.items() if k in KEEP_ENV}
+    env.update(TERM="xterm-256color")
+    jdk = subprocess.run([java(), "-version"], env=env, capture_output=True, text=True).stderr
+    if "version \"" not in jdk or int(jdk.split("version \"")[1].split(".")[0].split("\"")[0]) < 25:
+        sys.exit(f"aot-train: {java()} is not JDK 25 or later: the AOT cache needs JDK 25")
+    os.makedirs(AOT, exist_ok=True)
+    failed = 0
+    for app in names:
+        t0 = time.monotonic()
+        problem = train(app, env, jdk)
+        if problem:
+            failed += 1
+            print(f"aot-train: {app}: FAILED: {problem}")
+        else:
+            size = os.path.getsize(os.path.join(AOT, app + ".aot")) / 1e6
+            print(f"aot-train: {app}: {size:.1f} MB in {time.monotonic() - t0:.1f} s")
+    print(f"aot-train: caches in {AOT}")
+    sys.exit(1 if failed else 0)
+
+
+if __name__ == "__main__":
+    main()

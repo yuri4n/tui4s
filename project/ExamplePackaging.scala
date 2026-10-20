@@ -43,7 +43,33 @@ object ExamplePackaging {
     }
   }
 
+  /** The lines that the start scripts of the distribution run before the JVM
+    * starts (`bashScriptExtraDefines`): the JDK 25 AOT cache of the app (ADR
+    * 0015). `bin/aot-train` writes `aot/<app>.aot` and, next to it,
+    * `aot/<app>.jdk` with the text of `java -version`. A script uses the cache
+    * only when both files exist and the text of its own `java -version` is the
+    * same; else it starts as without a cache. With the cache it skips the
+    * version check of native-packager: the same JDK 25 made the cache. The JVM
+    * checks the cache too (the jars, their times); `-Xlog:aot=off` keeps the
+    * lines of a rejected cache out of the terminal, and the start goes on
+    * without it.
+    */
+  // claude 2026-10-20: created (L5b, ADR 0015): the AOT cache in the start
+  // scripts
+  val aotDefines: Seq[String] = Seq(
+    "# tui4s: the JDK 25 AOT cache of this app, when bin/aot-train made it with this JDK (ADR 0015)",
+    """tui4s_aot="${app_home}/../aot/$(basename "$real_script_path")"""",
+    """if [[ -f "$tui4s_aot.aot" && -f "$tui4s_aot.jdk" ]] &&""",
+    """  [[ "$(env -u JAVA_TOOL_OPTIONS -u JDK_JAVA_OPTIONS -u _JAVA_OPTIONS "$(get_java_cmd)" -version 2>&1)" == "$(cat "$tui4s_aot.jdk")" ]]; then""",
+    """  addJava "-XX:AOTCache=$tui4s_aot.aot"""",
+    """  addJava "-Xlog:aot=off"""",
+    "  no_version_check=1",
+    "fi",
+  )
+
   /** Preserve the developer/PTY paths and forward every argument to the app. */
+  // claude 2026-10-20: changed (L5b, ADR 0015): also the forwarder
+  // `aot-train` of the training script of the distribution
   def launchers(
       staged: File,
       target: File,
@@ -75,6 +101,27 @@ object ExamplePackaging {
       if (!file.setExecutable(true))
         sys.error(s"Cannot make launcher executable: $file")
       file
-    }
+    } :+ forwarder(staged, bin, "aot-train")
+  }
+
+  /** `bin/<name>` that runs the staged `bin/<name>` with all its arguments. */
+  private def forwarder(staged: File, bin: File, name: String): File = {
+    val script   = staged / "bin" / name
+    if (!script.isFile) sys.error(s"Packaged script is missing: $script")
+    val relative = bin.toPath.toAbsolutePath
+      .relativize(script.toPath.toAbsolutePath)
+      .toString
+      .replace(java.io.File.separatorChar, '/')
+    val file     = bin / name
+    IO.write(
+      file,
+      s"""#!/bin/sh
+         |# Written by sbt examples/launchers: the training of the AOT caches.
+         |exec "$$(dirname "$$0")"/'${relative.replace("'", "'\\''")}' "$$@"
+         |""".stripMargin,
+    )
+    if (!file.setExecutable(true))
+      sys.error(s"Cannot make launcher executable: $file")
+    file
   }
 }
