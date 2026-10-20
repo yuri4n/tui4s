@@ -50,6 +50,28 @@ proc pump {ms} {
     }
 }
 
+# Read (and so log) the output until the streamed reply of the assistant has
+# ended: the status bar shows the spinner ("streaming"), then "ready" again.
+# The status bar writes the reply's token count before "ready". A slow machine
+# streams for longer than a fixed pump (the macOS runner of CI), so this waits
+# for the end, at most ms milliseconds, then pumps 500 ms more: the screen at
+# the next mark is the first screen after the end of the reply. Returns the
+# milliseconds from the call to "ready", or -1 when the bound came first.
+# claude 2026-10-20: created: the wait for the end of the streamed reply
+proc await_reply {ms} {
+    set t0 [clock milliseconds]
+    set end [expr {$t0 + $ms}]
+    foreach text {streaming ready} {
+        set left [expr {max(1, ($end - [clock milliseconds] + 999) / 1000)}]
+        set seen 0
+        expect -timeout $left -ex $text { set seen 1 } timeout {}
+        if {!$seen} { pump 500; return -1 }
+    }
+    set took [expr {[clock milliseconds] - $t0}]
+    pump 500
+    return $took
+}
+
 proc stty_save {name when} {
     global work
     send "stty -a > $work/stty-$name-$when.txt; echo STTY_\$((6*7))SAVED\r"
@@ -393,7 +415,15 @@ mark "assistant-start"
 run_app "XDG_DATA_HOME=$work XDG_CONFIG_HOME=$work $bin/assistant --fake"
 if {[first_frame "assistant" "Chats"]} {
     pump 500
-    mark "assistant-hi"; send "hi"; pump 300; send "\r"; pump 3000
+    # claude 2026-10-20: changed: wait for the end of the streamed reply (at
+    # most 20 s), not a fixed 3 s pump; an INFO line gives the time
+    mark "assistant-hi"; send "hi"; pump 300; send "\r"
+    set took [await_reply 20000]
+    if {$took >= 0} {
+        lappend results "INFO assistant: the streamed reply ended $took ms after Enter"
+    } else {
+        lappend results "INFO assistant: the streamed reply did not end within 20 s after Enter"
+    }
     mark "assistant-q"; send "\x11"
 }
 back_at_prompt "assistant"
