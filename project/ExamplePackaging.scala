@@ -52,8 +52,8 @@ object ExamplePackaging {
     * version check of native-packager: the same JDK 25 made the cache. The JVM
     * checks the cache too (the jars, their times); `-Xlog:aot=off` keeps the
     * lines of a rejected cache out of the terminal, and the start goes on
-    * without it. A script that gets `-java-home` uses no cache: the check
-    * reads the JVM of `JAVA_HOME` or `PATH`, not the JVM of `-java-home`.
+    * without it. A script that gets `-java-home` uses no cache: the check reads
+    * the JVM of `JAVA_HOME` or `PATH`, not the JVM of `-java-home`.
     */
   // claude 2026-10-20: created (L5b, ADR 0015): the AOT cache in the start
   // scripts; changed: no cache with -java-home (review fix)
