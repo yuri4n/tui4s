@@ -19,7 +19,8 @@ that heading, each module of the release has its subsection
 to the GitHub release of the module (`scripts/changelog-section.sh`). The
 workflow stops before it creates a tag when a subsection is missing.
 
-## [Unreleased]
+## [0.1.0-RC1] - 2026-10-20
+<!-- claude 2026-10-20: changed: the heading of the first release (Releasing, step 1) -->
 
 ### tui4s-runner
 
