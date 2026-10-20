@@ -193,6 +193,20 @@
   AFTER: trigger CI; close PR #7 (comment names the rulesets commit); delete the stale remote branches (CLEANUP.md
   list; not first-take, not main; wip/handoff last); the gate message (ff to main, tags, maven-central, Vercel).
   <!-- claude 2026-10-20: created this item -->
+- L6 workflow DONE 2026-10-20 (7 agents): release stream 9 commits (zio/cats + useSignal removed; examples/README
+  blocks compiled in examples.state + StateSuite; AOT: bin/aot-train + start-script contract, counter 1,118 -> 511 ms,
+  RSS 159 -> 104 MB; native-image metadata + scripts/native-image.sh + native.yml; GraalVM CE 25.0.1 ran HERE:
+  native counter 25 ms / 40 MB; bench stacks tui4s-aot, tui4s-native; SECURITY/CHANGELOG/CONTRIBUTING, issue forms,
+  rulesets, Scaladoc step, macOS matrix (jar has darwin dylibs), web job; dry runs OK for runner and use), docs stream
+  4 commits (ADRs as docs/content/4.decisions, project pages, overclaims gone, TamboUI 12 mutants + 1 n/a). Merged
+  linearly to 914995d LOCAL; the finalizer was then locked out of Bash (classifier, after an rm -rf of ignored
+  target dirs). CI on 246e8a4: ci green (#58), docs green, bench.yml FAILED (post-job cache paths of unused
+  toolchains; ink: None status crash in oracle.py, a timing step of the change oracle, a machine-dependent mutant
+  outcome). A one-agent finalizer (a2f46b84...) now: bench CI fixes, report.py, packaging docs page, ADR 0015 shipped
+  numbers, SECURITY order, full verification, worktree prune, push. Private vulnerability reporting is OFF on the
+  repo: HUMAN STEP (Settings > Code security). Then: trigger CI (ci, docs, bench, native), close PR #7, delete the
+  stale remote branches with `git push origin --delete` (no MCP tool), the gate message.
+  <!-- claude 2026-10-20: created this item -->
 - (history) L4 ran as 3 agents: the standalone Scala.js build of the assistant (D5), Theme (D8) in tui4s-widgets rendered to
   one Stylesheet for both platforms, JS interpreters (fetch SSE, localStorage key with a warning), units em/pct.
 - (history) L3 ran as 3 agents: shared crossProject (domain + UI, kyo-ui/use/widgets only), tui main
