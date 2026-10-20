@@ -13,7 +13,9 @@
 # a cache with no message after a training that passed.
 # Usage: bin/aot-train [app ...]   (no app: all the apps of this directory)
 # The apps get only the variables of KEEP_ENV and run in a temporary
-# directory (also their HOME): no key, no proxy, no file of yours.
+# directory (also their HOME, their XDG directories and their JVM property
+# user.home): no key, no proxy, no file of yours.
+# claude 2026-10-20: changed: the XDG directories and user.home
 # claude 2026-10-20: created (L5b, ADR 0015): the training of the AOT caches;
 # changed: the check of each new cache (review fix)
 import os
@@ -111,7 +113,12 @@ def train(app, env, jdk):
             os.remove(old)
     part = cache + ".part"
     with tempfile.TemporaryDirectory(prefix=f"tui4s-aot-{app}-") as work:
-        run_env = dict(env, HOME=work, XDG_DATA_HOME=work, XDG_CONFIG_HOME=work)
+        # claude 2026-10-20: changed: also the other XDG variables and
+        # user.home (JAVA_OPTS): the JVM takes user.home from the user
+        # database, not from HOME, and on macOS the assistant keeps its chats
+        # under user.home
+        run_env = dict(env, HOME=work, XDG_DATA_HOME=work, XDG_CONFIG_HOME=work,
+                       XDG_STATE_HOME=work, XDG_CACHE_HOME=work, JAVA_OPTS=f"-Duser.home={work}")
         pid, fd = pty.fork()
         if pid == 0:
             os.chdir(work)

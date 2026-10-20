@@ -54,6 +54,21 @@ echo "ptycheck: java $java_bin (Java $java_major)"
 # and the examples need no network: the runs of the apps do not get them. sbt
 # above keeps them (it may need the proxy).
 unset JAVA_TOOL_OPTIONS JDK_JAVA_OPTIONS
+# A fresh home for the apps of this pass: a new empty directory under the
+# work dir is HOME and each XDG base directory, and JAVA_OPTS of the start
+# scripts sets the JVM property user.home to it. The JVM takes user.home from
+# the user database, not from HOME, and on macOS the assistant keeps its chats
+# under user.home (Library/Application Support): with no fresh home, a pass
+# shows the chats of an earlier pass or of bin/aot-train. sbt above keeps the
+# real HOME (its caches).
+# claude 2026-10-20: changed: a fresh home for each pass of the kit
+home=$(mktemp -d "$work/home.XXXXXX") && home=$(cd "$home" && pwd) || exit 1
+case "$home" in
+    *[[:space:]]*) echo "ptycheck: the home of the apps has a space (JAVA_OPTS cannot hold it): $home"; exit 1 ;;
+esac
+export HOME="$home" XDG_CONFIG_HOME="$home" XDG_DATA_HOME="$home" XDG_STATE_HOME="$home" XDG_CACHE_HOME="$home"
+export JAVA_OPTS="${JAVA_OPTS:+$JAVA_OPTS }-Duser.home=$home"
+echo "ptycheck: home=$home"
 # check.py imports vt.py: no bytecode files in the source tree.
 export PYTHONDONTWRITEBYTECODE=1
 status=0

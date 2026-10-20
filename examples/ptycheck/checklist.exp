@@ -408,11 +408,13 @@ stty_compare "gallery"
 
 # ---- Assistant (--fake, the scripted provider: no network, no key): the
 # first screen, type hi, Enter (the reply streams), then Ctrl-Q. Its files
-# and its log go to the work dir (XDG_DATA_HOME, XDG_CONFIG_HOME).
+# and its log go to the fresh home of the pass (run.sh: HOME, the XDG
+# variables and user.home), so its first screen has no chat.
 # claude 2026-10-19: created (L3)
+# claude 2026-10-20: changed: the fresh home of run.sh, not the work dir
 stty_save assistant before
 mark "assistant-start"
-run_app "XDG_DATA_HOME=$work XDG_CONFIG_HOME=$work $bin/assistant --fake"
+run_app "$bin/assistant --fake"
 if {[first_frame "assistant" "Chats"]} {
     pump 500
     # claude 2026-10-20: changed: wait for the end of the streamed reply (at
@@ -433,7 +435,8 @@ stty_compare "assistant"
 # first frame, q), counted by check.py from -Xlog:class+load. No PASS row.
 file delete -force "$work/classload.log"
 mark "classload-start"
-run_app "JAVA_OPTS=-Xlog:class+load:file=$work/classload.log $bin/counter"
+# claude 2026-10-20: changed: keep JAVA_OPTS of run.sh (user.home)
+run_app "JAVA_OPTS=\"\$JAVA_OPTS -Xlog:class+load:file=$work/classload.log\" $bin/counter"
 if {[ready_quiet "class-load run" "Count:"]} { send "q" }
 expect {
     -re {EXIT=([0-9]+)} {

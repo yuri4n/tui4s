@@ -143,7 +143,11 @@ def run_in(bin_dir, app, script, work):
     env = {k: v for k, v in os.environ.items() if k in KEEP_ENV}
     cols, rows = script.get("size", (COLS, ROWS))
     env.update(TERM="xterm-256color", COLUMNS=str(cols), LINES=str(rows),
-               HOME=work, XDG_DATA_HOME=work, XDG_CONFIG_HOME=work)
+               HOME=work, XDG_DATA_HOME=work, XDG_CONFIG_HOME=work,
+               # claude 2026-10-20: changed: also the other XDG variables and
+               # user.home (JAVA_OPTS): the JVM takes user.home from the user
+               # database, not from HOME
+               XDG_STATE_HOME=work, XDG_CACHE_HOME=work, JAVA_OPTS=f"-Duser.home={work}")
     pid, fd = pty.fork()
     if pid == 0:
         os.chdir(work)
