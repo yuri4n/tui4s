@@ -91,8 +91,12 @@ only wastes a resource until the process ends is "silent" (the class
   <!-- claude 2026-10-20: created: the note of the TamboUI non-exhaustive-key mutant (L6) -->
 - TamboUI `wrong-thread` draws from a new thread with `TuiRunner.draw`.
   `Terminal.draw` does not check the thread (only the loop of `TuiRunner`
-  does), and the frame shows the right count, so the mutant is silent.
+  does), and the frame shows the right count, so the mutant is silent in the
+  reference run. In other runs (on the GitHub runner, and also on the
+  reference machine) the race can show, and the oracle sees it: the outcome
+  depends on timing (`TIMING` in `harness/mutants.py`).
   <!-- claude 2026-10-20: created: the note of the TamboUI wrong-thread mutant (L6) -->
+  <!-- claude 2026-10-20: changed: the outcome depends on timing (CI fix) -->
 - TamboUI `null-read`: `TuiRunner` catches the exception of the renderer and
   shows its error screen. The program does not end, so the outcome is the
   oracle (a wrong screen), not a crash.

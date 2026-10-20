@@ -100,6 +100,13 @@ TIMING = {
         "stdout-write": ({"silent-wrong-behaviour", "test-or-oracle-catches"},
                          "the console.log text lands between two frames or inside the frame that the oracle reads"),
     },
+    # claude 2026-10-20: changed: TamboUI wrong-thread (CI fix: the GitHub runner gave "oracle", this machine gives
+    # "silent")
+    "tamboui": {
+        "wrong-thread": ({"silent-wrong-behaviour", "test-or-oracle-catches"},
+                         "Terminal.draw has no thread check; whether the race shows depends on the scheduling of "
+                         "the machine"),
+    },
 }
 
 

@@ -168,12 +168,12 @@ of the counter per class and stack. The outcome is what finds the bug first:
 the compiler, a crash, the oracle of the harness, or nothing. A mutant that
 passes the oracle is "defused" only when the defuse probe of its class (the
 same for every stack, in `mutants/classes.md`) shows that the bug has no
-effect; else it is "silent". The outcome of three mutants depends on timing
+effect; else it is "silent". The outcome of four mutants depends on timing
 (the mutant races with the program): the matrix shows the outcome on this
 machine with a `*`, and the check of the CI job accepts each outcome of their
 set (`TIMING` in `harness/mutants.py`). Each other outcome must be the same
 on every machine.
-<!-- claude 2026-10-20: changed: the rule of defused (review fix); the timing-dependent mutants (CI fix) -->
+<!-- claude 2026-10-20: changed: the rule of defused (review fix); the timing-dependent mutants (CI fix); four with TamboUI wrong-thread (CI fix) -->
 
 <!-- report:begin mutants -->
 | Stack | compile-error | runtime-crash | test-or-oracle-catches | defused | silent-wrong-behaviour | n/a | not-written | mutants run |
@@ -193,7 +193,7 @@ on every machine.
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | tui4s | n/a | SILENT \* | SILENT | oracle | oracle | oracle | defused | crash | oracle | oracle | defused | oracle | oracle \* |
 | jatatui-plain | oracle | oracle | oracle | oracle | oracle | oracle | compile | crash | oracle | oracle | oracle | oracle | oracle |
-| TamboUI | n/a | SILENT | oracle | oracle | oracle | oracle | compile | oracle | oracle | oracle | oracle | oracle | oracle |
+| TamboUI | n/a | SILENT \* | oracle | oracle | oracle | oracle | compile | oracle | oracle | oracle | oracle | oracle | oracle |
 | layoutz | n/a | n/a | n/a | SILENT | oracle | oracle | oracle | oracle | n/a | n/a | SILENT | oracle | n/a |
 | ratatui | oracle | compile | crash | oracle | oracle | SILENT | compile | crash | oracle | oracle | oracle | oracle | oracle |
 | bubbletea | oracle | oracle | oracle | oracle | oracle | SILENT | n/a | crash | n/a | oracle | oracle | oracle | oracle |
@@ -203,6 +203,8 @@ on every machine.
 \* tui4s wrong-thread: timing-dependent: also oracle on other machines (the write comes from a thread of its own, after the key step; on a loaded machine its frame can wait for the repair tick (1 s), and the oracle waits 1.5 s).
 
 \* tui4s lost-update: timing-dependent: also defused, SILENT on other machines (each '+' reads the count and writes it 5 ms later; a key step that takes more than 5 ms loses no update).
+
+\* TamboUI wrong-thread: timing-dependent: also oracle on other machines (Terminal.draw has no thread check; whether the race shows depends on the scheduling of the machine).
 
 \* ink stdout-write: timing-dependent: also oracle on other machines (the console.log text lands between two frames or inside the frame that the oracle reads).
 <!-- report:end mutant-matrix -->
