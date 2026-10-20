@@ -83,6 +83,30 @@ NOTES = {
     "layoutz": {"stdout-write": "the next frame (at most 50 ms later) overwrites the text"},
 }
 
+# claude 2026-10-20: created: the mutants whose outcome depends on timing (CI fix: the GitHub runner gave "oracle"
+# for ink stdout-write, this machine gives "silent"). The check of the CI job accepts each outcome of the set; the
+# tables show the outcome of the reference machine and mark the cell. Only a mutant that races with the program
+# goes here: a mutant with one outcome on every machine keeps the exact check.
+TIMING = {
+    "tui4s": {
+        "wrong-thread": ({"silent-wrong-behaviour", "test-or-oracle-catches"},
+                         "the write comes from a thread of its own, after the key step; on a loaded machine its "
+                         "frame can wait for the repair tick (1 s), and the oracle waits 1.5 s"),
+        "lost-update": ({"test-or-oracle-catches", "silent-wrong-behaviour", "defused"},
+                        "each '+' reads the count and writes it 5 ms later; a key step that takes more than 5 ms "
+                        "loses no update"),
+    },
+    "ink": {
+        "stdout-write": ({"silent-wrong-behaviour", "test-or-oracle-catches"},
+                         "the console.log text lands between two frames or inside the frame that the oracle reads"),
+    },
+}
+
+
+def timing(stack):
+    """{class: (the outcomes that the check accepts, the reason)} of the mutants whose outcome depends on timing."""
+    return TIMING.get(stack, {})
+
 
 def not_applicable(stack):
     return NOT_APPLICABLE.get(stack, {})

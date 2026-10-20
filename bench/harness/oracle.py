@@ -77,11 +77,18 @@ def counter_script(s, v2=False, start_timeout=30.0, step_timeout=1.5):
     strict = ok  # a layout that fails at the start is reported once; the next steps check the effects
     count = 0
 
+    # claude 2026-10-20: changed: the step waits for the whole screen of the spec, not only for row 3 (CI fix: a
+    # frame that comes in two reads gave row 3 of the new frame and row 4 of the old one: "plus 3" of the ink
+    # change request failed on the GitHub runner)
     def key(name, data, delta, settle=0.0):
         nonlocal count
         count += delta
         s.send(data)
-        hit = s.expect(count_on_row3(count), step_timeout)
+        want = count
+        hit = s.expect(lambda x: count_on_row3(want)(x) and (not strict or counter_shape(x, want, v2)[0]),
+                       step_timeout)
+        if hit is None and count_on_row3(want)(s):
+            hit = 0  # row 3 is right; the shape check below gives the reason of the failure
         if settle:
             time.sleep(settle)
         good, why2 = counter_shape(s, count, v2) if strict else (True, "")
@@ -184,14 +191,21 @@ def panels_bad(s):
 def dashboard_layout(s):
     """The places of dashboard.md, "Screen": the clock at the right end of row 1, the two panels, and Item 0001
     as the first visible row."""
-    bad = []
-    row1 = s.row(1).rstrip()
-    if CLOCK.search(row1) is None or len(row1) != s.cols:
-        bad.append(f"the clock does not end at column {s.cols} of row 1 (the row ends at column {len(row1)})")
-    bad += panels_bad(s)
-    items = item_rows(s)
-    if not items or items[0] != 1:
-        bad.append(f"the first visible item is {items[0] if items else None}, not 1")
+    def layout_bad(x):
+        bad = []
+        row1 = x.row(1).rstrip()
+        if CLOCK.search(row1) is None or len(row1) != x.cols:
+            bad.append(f"the clock does not end at column {x.cols} of row 1 (the row ends at column {len(row1)})")
+        bad += panels_bad(x)
+        items = item_rows(x)
+        if not items or items[0] != 1:
+            bad.append(f"the first visible item is {items[0] if items else None}, not 1")
+        return bad
+
+    # claude 2026-10-20: changed: wait up to 1.5 s for a frame that is complete (CI fix: the ticks redraw the
+    # screen, and a frame can come in two reads)
+    s.expect(lambda x: not layout_bad(x), 1.5)
+    bad = layout_bad(s)
     return step("layout", not bad, "; ".join(bad))
 
 
@@ -209,9 +223,17 @@ def dashboard_start(s, start_timeout=30.0, total=1000):
     if ns is None:
         return step("start", False, "no first screen in %.0f s: %s" % (start_timeout, screen_dump(s))), None
     time.sleep(0.3)
-    top = " ".join(s.lines()[:4])
+
+    # claude 2026-10-20: changed: wait for the whole start screen, and no status bar is a failed step, not a
+    # TypeError (CI fix: on the GitHub runner, ink was between two reads of a frame, and status() gave None)
+    def start_ok(x):
+        top = " ".join(x.lines()[:4])
+        st_ = status(x)
+        return (x.row(1).startswith("Dashboard") and "Items" in top and "Load" in top and st_ is not None
+                and st_[2] == "list" and STATUS.search(x.row(-1)) is not None)
+
+    ok = s.expect(start_ok, 1.5) is not None
     on_last = STATUS.search(s.row(-1)) is not None
-    ok = s.row(1).startswith("Dashboard") and "Items" in top and "Load" in top and status(s)[2] == "list" and on_last
     why = "" if ok else ("status bar not on the last row; " if not on_last else "") + screen_dump(s, range(0, 4))
     return step("start", ok, why), ns
 
@@ -250,6 +272,8 @@ def dashboard_script(s, start_timeout=30.0, step_timeout=1.5):
     steps.append(step("tab to load", hit is not None, "" if hit else f"status={status(s)}"))
     s.send("down")
     time.sleep(0.3)
+    # claude 2026-10-20: changed: a frame between two reads has no status bar; wait for one (CI fix)
+    s.expect(lambda x: status(x) is not None, step_timeout)
     st = status(s)
     steps.append(step("down on load", st is not None and st[0] == 3, f"status={st}"))
     s.send("tab")

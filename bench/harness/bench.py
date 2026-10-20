@@ -608,6 +608,10 @@ def classify(stack, cls, crash, steps, baseline, raw):
 def mutants(args):
     import mutants as mu
     for stack in args.stacks:
+        # claude 2026-10-20: changed: a start mode of tui4s has the code of the tui4s stack: no mutants of its own
+        if st.STACKS[stack].get("variant_of"):
+            log(f"mutant {stack}: a start mode of {st.STACKS[stack]['variant_of']}; its mutants are those of that stack")
+            continue
         table = {}
         na = mu.not_applicable(stack)
         crash, steps, _ = mutant_run(stack)
@@ -670,6 +674,7 @@ REFERENCE = os.environ.get("BENCH_REFERENCE", "container-4vcpu")
 def check(args):
     """Exits 1 when a step fails that EXPECTED does not list, a section is missing, or a mutant outcome differs
     from the reference machine."""
+    import mutants as mu
     errors = []
     for stack in args.stacks:
         for task in args.tasks:
@@ -689,6 +694,8 @@ def check(args):
                 for name in failed:
                     if (stack, task, section, name) not in EXPECTED:
                         errors.append(f"{stack} {task} {section}: {name} fails")
+        if st.STACKS[stack].get("variant_of"):
+            continue  # claude 2026-10-20: changed: a start mode has no mutants of its own
         m = load_json(os.path.join(RESULTS, f"mutants-{stack}.json"))
         if not m:
             errors.append(f"{stack} mutants: no result")
@@ -701,8 +708,12 @@ def check(args):
             if v["outcome"] == "patch-error":
                 errors.append(f"{stack} mutant {cls}: the patch does not apply")
             want = ref.get("classes", {}).get(cls, {}).get("outcome")
-            if want is not None and v["outcome"] != want:
+            # claude 2026-10-20: changed: a mutant whose outcome depends on timing has a set of outcomes (CI fix)
+            accept, why = mu.timing(stack).get(cls, (set(), ""))
+            if want is not None and v["outcome"] != want and v["outcome"] not in accept:
                 errors.append(f"{stack} mutant {cls}: {v['outcome']}, the reference {REFERENCE} has {want}")
+            elif want is not None and v["outcome"] != want:
+                log(f"check: {stack} mutant {cls}: {v['outcome']} (the reference has {want}; timing: {why})")
     for e in errors:
         log("check:", e)
     log(f"check: {len(errors)} unexpected results" if errors else "check: all results as expected")

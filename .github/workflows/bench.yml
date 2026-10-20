@@ -9,6 +9,9 @@
 # A push that changes only the tui4s modules runs only the tui4s group.
 # claude 2026-10-20: created: the CI job of the bench (L5), with the check gate, the tui4s modules in the paths
 # and Rust 1.97.0 (review fixes)
+# claude 2026-10-20: changed: each group sets up only its toolchains (matrix "tools"), and the test of the
+# changed paths comes first: a toolchain that a job does not use has no cache to save, and its post step failed
+# the job (run 39419224749); pnpm/action-setup@v6 and actions/setup-node@v7, as in docs.yml (Node 24)
 name: bench
 
 on:
@@ -40,18 +43,26 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # tools: the toolchains that the stacks of the group use (jvm, rust, go, python, node). The harness
+          # uses the python3 of the runner image (the standard library only).
           - group: tui4s
             stacks: tui4s
+            tools: jvm
           - group: jatatui-plain
             stacks: jatatui-plain
+            tools: jvm
           - group: layoutz and TamboUI
             stacks: layoutz,tamboui
+            tools: jvm
           - group: ratatui
             stacks: ratatui
+            tools: rust
           - group: bubbletea and Textual
             stacks: bubbletea,textual
+            tools: go python
           - group: ink
             stacks: ink
+            tools: node
     env:
       BENCH_MACHINE: github-ubuntu-24.04
       BENCH_STACKS: ${{ matrix.stacks }}
@@ -60,47 +71,65 @@ jobs:
         with:
           fetch-depth: 0 # dynver reads the tags and the history (the tui4s version)
           submodules: recursive
+      # A push that changes only the tui4s modules runs only the tui4s group. This test comes before the
+      # toolchains: a job that stops here sets up nothing, so no post step looks for a cache.
+      - name: Changed paths
+        id: changes
+        env:
+          BEFORE: ${{ github.event.before }}
+          GROUP: ${{ matrix.group }}
+        run: |
+          run=true
+          if [ "$GITHUB_EVENT_NAME" = push ] && [ "$GROUP" != tui4s ]; then
+            changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" 2>/dev/null) || changed=bench/
+            if ! echo "$changed" | grep -qE '^(bench/|\.github/workflows/bench\.yml)'; then
+              echo "Only the tui4s modules changed; the group $GROUP does not use them."
+              run=false
+            fi
+          fi
+          echo "run=$run" >>"$GITHUB_OUTPUT"
       - uses: actions/setup-java@v6
+        if: steps.changes.outputs.run == 'true' && contains(matrix.tools, 'jvm')
         with:
           distribution: temurin
           java-version: 25 # Kyo 1.0.0-RC7 needs JDK 25
           cache: sbt
       - uses: sbt/setup-sbt@v1
+        if: steps.changes.outputs.run == 'true' && contains(matrix.tools, 'jvm')
       - uses: dtolnay/rust-toolchain@1.97.0
+        if: steps.changes.outputs.run == 'true' && contains(matrix.tools, 'rust')
         with:
           components: rustfmt
       - uses: Swatinem/rust-cache@v2
+        if: steps.changes.outputs.run == 'true' && contains(matrix.tools, 'rust')
         with:
           workspaces: bench/impl/ratatui
       - uses: actions/setup-go@v6
+        if: steps.changes.outputs.run == 'true' && contains(matrix.tools, 'go')
         with:
           go-version: "1.24.7"
           cache-dependency-path: bench/impl/bubbletea/go.sum
       - uses: actions/setup-python@v6
+        if: steps.changes.outputs.run == 'true' && contains(matrix.tools, 'python')
         with:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: bench/impl/textual/requirements.lock
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
+        if: steps.changes.outputs.run == 'true' && contains(matrix.tools, 'node')
         with:
           version: 10.28.0
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
+        if: steps.changes.outputs.run == 'true' && contains(matrix.tools, 'node')
         with:
           node-version: "22"
           cache: pnpm
           cache-dependency-path: bench/impl/ink/pnpm-lock.yaml
       - name: Bench (ci mode)
-        run: |
-          if [ "$GITHUB_EVENT_NAME" = push ] && [ "${{ matrix.group }}" != tui4s ]; then
-            changed=$(git diff --name-only "${{ github.event.before }}" "$GITHUB_SHA" 2>/dev/null) || changed=bench/
-            if ! echo "$changed" | grep -qE '^(bench/|\.github/workflows/bench\.yml)'; then
-              echo "Only the tui4s modules changed; the group ${{ matrix.group }} does not use them."
-              exit 0
-            fi
-          fi
-          bench/run.sh ci
+        if: steps.changes.outputs.run == 'true'
+        run: bench/run.sh ci
       - name: Keep the results
-        if: always()
+        if: always() && steps.changes.outputs.run == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: bench-results-${{ strategy.job-index }}
@@ -122,13 +151,15 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.97.0
         with:
           components: rustfmt
+      # No cache input: a cache directory that the job does not fill fails the post step of its action.
       - uses: actions/setup-go@v6
         with:
           go-version: "1.24.7"
-      - uses: pnpm/action-setup@v4
+          cache: false
+      - uses: pnpm/action-setup@v6
         with:
           version: 10.28.0
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - name: scalafmt and google-java-format (the bench build)

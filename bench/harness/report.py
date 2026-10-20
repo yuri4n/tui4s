@@ -11,6 +11,7 @@ import os
 import re
 import sys
 
+import mutants as mu
 import stacks as st
 from term import BENCH
 
@@ -140,16 +141,29 @@ def blocks(machine):
 
     rows = []
     classes = None
+    # claude 2026-10-20: changed: a "*" on the cell of a mutant whose outcome depends on timing, and a note under
+    # the table with the other outcomes (CI fix)
+    timed = []
+    short = {"compile-error": "compile", "runtime-crash": "crash", "test-or-oracle-catches": "oracle",
+             "defused": "defused", "silent-wrong-behaviour": "SILENT", "n/a": "n/a", "not-written": "not written"}
     for s in st.ORDER:
         m = load(os.path.join(res, f"mutants-{s}.json"))
         if not m:
             continue
         classes = classes or list(m["classes"])
-        short = {"compile-error": "compile", "runtime-crash": "crash", "test-or-oracle-catches": "oracle",
-                 "defused": "defused", "silent-wrong-behaviour": "SILENT", "n/a": "n/a", "not-written": "not written"}
-        rows.append([NAMES[s]] + [short.get(m["classes"][c]["outcome"], m["classes"][c]["outcome"]) for c in classes])
+        row = [NAMES[s]]
+        for c in classes:
+            here = m["classes"][c]["outcome"]
+            cell = short.get(here, here)
+            if c in mu.timing(s):
+                accept, why = mu.timing(s)[c]
+                also = ", ".join(short.get(o, o) for o in sorted(accept - {here}))
+                timed.append(f"\\* {NAMES[s]} {c}: timing-dependent: also {also} on other machines ({why}).")
+                cell += " \\*"
+            row.append(cell)
+        rows.append(row)
     if classes:
-        out["mutant-matrix"] = table(["Stack"] + classes, rows)
+        out["mutant-matrix"] = table(["Stack"] + classes, rows) + ("\n\n" + "\n\n".join(timed) if timed else "")
 
     for t in st.TASKS:
         rows = []

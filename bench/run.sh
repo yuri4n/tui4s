@@ -81,7 +81,8 @@ build() {
         step "build: the JVM stacks (one sbt server): $targets"
         (cd "$bench" && $SBT -Dsbt.supershell=false "$targets") || status=1
     fi
-    for s in ratatui bubbletea textual ink; do
+    # claude 2026-10-20: changed: the start modes of tui4s too (they need the build of the tui4s stack)
+    for s in ratatui bubbletea textual ink tui4s-aot tui4s-native; do
         has "$s" || continue
         step "build: $s"
         "$bench/impl/$s/build.sh" || status=1
