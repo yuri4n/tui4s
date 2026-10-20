@@ -24,8 +24,6 @@ issue #17). All the artifacts use the same packages (`tui4s`,
 | `modules/app`   | `app`      | `io.github.yuri4n::tui4s-app`    | kyo-ui (`TuiApp`, on tui4s-runner)      | `app-v<semver>`  | yes       |
 | `modules/testkit` | `testkit` | `io.github.yuri4n::tui4s-testkit` | kyo-ui (`tui4s.testkit.Headless`, on tui4s-runner) | `testkit-v<semver>` | yes |
 | `modules/core`  | `core`     | `io.github.yuri4n::tui4s-core`   | kyo-ui (the composite: it depends on tui4s-runner, tui4s-app and tui4s-testkit; its jar holds only the object `tui4s.Core`; its test sources are the integration suites) | `core-v<semver>` | yes |
-| `modules/zio`   | `zio`      | `io.github.yuri4n::tui4s-zio`    | a ZIO DSL over kyo-ui (planned)         | `zio-v<semver>`  | yes       |
-| `modules/cats`  | `cats`     | `io.github.yuri4n::tui4s-cats`   | a Cats Effect DSL over kyo-ui (planned) | `cats-v<semver>` | yes       |
 | `modules/use`   | `use` (`useJVM`, `useJS`) | `io.github.yuri4n::tui4s-use` (JVM and Scala.js) | kyo-ui (composables) | `use-v<semver>` | yes |
 | `modules/widgets` | `widgets` (`widgetsJVM`, `widgetsJS`) | `io.github.yuri4n::tui4s-widgets` (JVM and Scala.js) | kyo-ui (widgets, on tui4s-use) | `widgets-v<semver>` | yes |
 | `modules/assistant` | `assistant` (`assistantJVM`, `assistantJS`) | none | kyo-ui (the flagship example app: its domain, services, store and UI in `shared`, the interpreters of the JVM in `jvm` and of the browser in `js`) | none | no |
@@ -39,11 +37,12 @@ issue #17). All the artifacts use the same packages (`tui4s`,
 <!-- claude 2026-10-19: created the row of the assistant (L3) -->
 <!-- claude 2026-10-20: changed: the row of docs (L5) -->
 <!-- claude 2026-10-20: created the row of bench (L5) -->
+<!-- claude 2026-10-20: changed: the rows of zio and cats are removed (ADR 0014; ZIO and Cats Effect are issues #18 and #19) -->
 
-<!-- claude 2026-10-19: changed: the runner, not the core; zio and cats depend on the runner (D25) -->
-The runner uses Kyo and kyo-ui (both at `Versions.kyo`). The `zio` and `cats`
-modules depend on the runner. They will let ZIO and Cats Effect users write
-tui4s apps without Kyo types in their code. Today the runner renders a kyo-ui
+<!-- claude 2026-10-19: changed: the runner, not the core (D25); 2026-10-20: changed: no zio and cats modules (ADR 0014) -->
+The runner uses Kyo and kyo-ui (both at `Versions.kyo`). A ZIO and a Cats
+Effect integration are planned (issues #18 and #19); no module holds them
+yet. The runner renders a kyo-ui
 value to cells
 (`tui4s.internal.Layout`, `tui4s.internal.Paint`) and follows its signals: a
 `Signal`, a `Foreach` or a bound `SignalRef` drives a region of the screen,
@@ -663,11 +662,11 @@ and after a change of the frame path, and give both numbers.
 
 ## Docs
 
-<!-- claude 2026-10-20: created this section (L5) -->
+<!-- claude 2026-10-20: created this section (L5); changed: no zio and cats modules (ADR 0014) -->
 - The docs site is `docs/` (Nuxt Docus). Each page leads with a usage
   example (D17). Write the pages in ASD-STE100, short. Do not claim more than
-  the code does: `zio` and `cats` are planned modules, there is no mouse
-  input, and Windows is experimental.
+  the code does: there is no ZIO or Cats Effect integration (issues #18 and
+  #19), there is no mouse input, and Windows is experimental.
 - Each Scala block of a page in `docs/content` is the text of a region of a
   source file. The line `<!-- from: <path>#<region> -->` is directly above
   the block, one for each block, as in `README.md`. `MarkdownRegionsSuite`
@@ -688,10 +687,9 @@ and after a change of the frame path, and give both numbers.
 
 - `project/Versions.scala` holds the versions that more than one module uses
   (Scala, Kyo, jatatui, munit, tasty-query). tasty-query is there because the
-  runner and core tests use it now (`KyoUiSurfaceTest`, `PublicApiTest`) and
-  the zio and cats coverage tests will use it later.
+  runner and core tests use it (`KyoUiSurfaceTest`, `PublicApiTest`).
   <!-- claude 2026-10-12: changed: tasty-query named, with the reason (review R1-3, R2-5) -->
-  <!-- claude 2026-10-19: changed: the runner and core tests (D25) -->
+  <!-- claude 2026-10-19: changed: the runner and core tests (D25); 2026-10-20: changed: no zio and cats coverage tests (ADR 0014) -->
 - Each published module watches its own `modules/<m>` directory, the root
   `build.sbt` and the `project` directory. A change in the root `build.sbt` or
   in `project` marks all modules as unreleased.
@@ -711,9 +709,9 @@ rules are early-semver:
   `0.y+1`).
 
 The package `tui4s.internal` is sealed: each of its top-level definitions is
-`private[tui4s]`, so users and Scaladoc do not see it (tui4s-app,
-tui4s-testkit and the `zio` and `cats` modules are other jars in the package
-`tui4s`, and they keep the access: `private[tui4s]` works across jars).
+`private[tui4s]`, so users and Scaladoc do not see it (tui4s-app and
+tui4s-testkit are other jars in the package `tui4s`, and they keep the
+access: `private[tui4s]` works across jars).
 `PublicApiTest` (in `modules/core`) checks the seal in the classes of the four
 jars of the split (runner, app, testkit, core), and also that no public
 signature of `tui4s`, `tui4s.spi` or `tui4s.testkit` names an internal type;
@@ -722,7 +720,7 @@ the compiler does not check this. `private[tui4s]` is public in the bytecode: Mi
 a change there can break binary compatibility as a change of the public API
 does.
 <!-- claude 2026-10-13: created this paragraph (C3, gate 1 item 1, RC-36) -->
-<!-- claude 2026-10-19: changed: the seal across the jars of the split (D25) -->
+<!-- claude 2026-10-19: changed: the seal across the jars of the split (D25); 2026-10-20: changed: no zio and cats (ADR 0014) -->
 
 If a pull request breaks binary compatibility, set the intention of that module
 to `Compatibility.None` in the same pull request. After the release, set it back
@@ -752,10 +750,10 @@ coursier (and thus sbt) puts `M` below `alpha` and `beta`. Thus, do not release
 an `M` version after an `alpha` or `beta` of the same `x.y.z`.
 
 <!-- claude 2026-10-19: changed: `use` before `widgets` (L2b review) -->
-<!-- claude 2026-10-19: changed: the order runner, app, testkit, core (D25) -->
+<!-- claude 2026-10-19: changed: the order runner, app, testkit, core (D25); 2026-10-20: changed: no zio and cats (ADR 0014) -->
 If the script says that an inter-project dependency is unreleased, release that
 module first: `runner`, then `app` and `testkit`, then `core` (the composite of
-the three), before `zio` and `cats`; `use` before `widgets`.
+the three); `use` before `widgets`.
 `scripts/release.sh` lists the modules in this order (`MODULES`). Wait until its
 release run is complete, then try again. Push only one release tag at a time:
 GitHub ignores a push of more than three tags.
@@ -770,14 +768,13 @@ verifies `io.github.yuri4n`), make a user token, make a GPG key, and put its
 public key on a key server. Then add these secrets to the GitHub environment
 `maven-central`: `PGP_SECRET`, `PGP_PASSPHRASE`, `SONATYPE_USERNAME`,
 `SONATYPE_PASSWORD`. The environment accepts only the tags `runner-v*`,
-`app-v*`, `testkit-v*`, `core-v*`, `zio-v*`, `cats-v*`, `use-v*` and
-`widgets-v*`. A human adds each tag pattern in the settings of the
+`app-v*`, `testkit-v*`, `core-v*`, `use-v*` and `widgets-v*`. A human adds each tag pattern in the settings of the
 environment (Settings, Environments, `maven-central`, the deployment tags)
 before the first release of its module. The patterns `runner-v*`, `app-v*`
 and `testkit-v*` are new (D25): add them before the first release of the
 runner.
 <!-- claude 2026-10-19: changed: use-v* and widgets-v* (L2a); a human adds them to the environment -->
-<!-- claude 2026-10-19: changed: runner-v*, app-v* and testkit-v* (D25); a human adds them to the environment -->
+<!-- claude 2026-10-19: changed: runner-v*, app-v* and testkit-v* (D25); a human adds them to the environment; 2026-10-20: changed: no zio-v* and cats-v* (ADR 0014) -->
 
 | Error message                                          | Cause and fix                                                       |
 | ------------------------------------------------------ | ------------------------------------------------------------------- |

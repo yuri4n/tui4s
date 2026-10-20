@@ -7,11 +7,11 @@
 //   testkit -> io.github.yuri4n::tui4s-testkit  (Headless, on the runner)
 //   core    -> io.github.yuri4n::tui4s-core     (runner + app + testkit)
 // claude 2026-10-19: changed: the four modules of the split of the core (D25)
-//   zio  -> io.github.yuri4n::tui4s-zio   (ZIO integration)
-//   cats -> io.github.yuri4n::tui4s-cats  (Cats Effect integration)
 //   use     -> io.github.yuri4n::tui4s-use      (composables; JVM and JS)
 //   widgets -> io.github.yuri4n::tui4s-widgets  (widgets; JVM and JS)
-// claude 2026-10-19: changed: the two cross-built modules (L2a)
+// claude 2026-10-19: changed: the two cross-built modules (L2a); 2026-10-20:
+// changed: the empty zio and cats modules are removed (ADR 0014, issues #18,
+// #19)
 // ModuleVersioning and sbt-ci-release set `version` and `publishTo`. Never set
 // them here.
 
@@ -169,7 +169,8 @@ def module(id: String, watch: Seq[String] = Seq.empty): Project =
     .settings(name := s"tui4s-$id")
 
 // claude 2026-10-19: changed: the cross-built modules (L2a); the four modules
-// of the split of the core (D25); the assistant (L3); the web app (L4)
+// of the split of the core (D25); the assistant (L3); the web app (L4);
+// 2026-10-20: changed: no zio and cats (ADR 0014)
 lazy val root = project
   .in(file("."))
   .aggregate(
@@ -177,8 +178,6 @@ lazy val root = project
     app,
     testkit,
     core,
-    zio,
-    cats,
     use,
     widgets,
     assistant,
@@ -210,9 +209,6 @@ lazy val core    = module(
 )
   .dependsOn(runner % "compile->compile;test->test", app, testkit)
   .settings(runnerTestSettings)
-// claude 2026-10-19: changed: zio and cats depend on the runner (D25)
-lazy val zio     = module("zio").dependsOn(runner)
-lazy val cats    = module("cats").dependsOn(runner)
 
 /** A published module in `modules/<id>` for the JVM and for Scala.js, with no
   * dependency on the core: plain kyo-ui code (D6). The sources are in
@@ -363,11 +359,11 @@ lazy val launchers =
   taskKey[Seq[File]]("Writes a start script for each example in target/bin")
 
 // The sample apps use the terminal runner and optional stores.
-// The zio and cats modules are empty in this version.
 // claude 2026-10-19: changed: core, the composables and the widgets; no
 // `run / connectInput`; the JVM flags of a real run; munit tests; the
 // launchers task (T1, L2a); the assistant (L3); the test sources of the
-// assistant: its interpreters in memory and its gate (L3 review)
+// assistant: its interpreters in memory and its gate (L3 review); 2026-10-20:
+// changed: the line about the empty zio and cats modules is removed
 lazy val examples = project
   .in(file("examples"))
   .dependsOn(
@@ -469,10 +465,10 @@ addCommandAlias(
   "; scalafmtCheckAll; scalafmtSbtCheck; Test/compile; scalafixAll --check; test; versionPolicyCheck",
 )
 // claude 2026-10-19: changed: use and widgets (L2a); runner, app and testkit
-// (D25)
+// (D25); 2026-10-20: changed: no zio and cats (ADR 0014)
 addCommandAlias(
   "versions",
-  "; show runner/version; show app/version; show testkit/version; show core/version; show zio/version; show cats/version; show useJVM/version; show widgetsJVM/version",
+  "; show runner/version; show app/version; show testkit/version; show core/version; show useJVM/version; show widgetsJVM/version",
 )
 
 /** The assistant on the web (L4, D5): a standalone Scala.js app from the shared

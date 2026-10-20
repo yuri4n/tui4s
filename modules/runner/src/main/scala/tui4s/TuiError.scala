@@ -3,8 +3,9 @@ package tui4s
 import scala.util.control.NoStackTrace
 
 /** Why a run in the real terminal failed ([[Tui.run]]). Kyo-free; it extends
-  * `Exception`, so that a `KyoApp` main shows it and the ZIO and Cats Effect
-  * modules can use it as their error type unchanged.
+  * `Exception`, so that a `KyoApp` main shows it and a ZIO or Cats Effect
+  * integration (planned: issues #18 and #19) can use it as its error type
+  * unchanged.
   *
   * The errors of a run are in three groups:
   *   - Infrastructure: the four cases of `TuiError`. The terminal or the JVM
@@ -27,7 +28,8 @@ import scala.util.control.NoStackTrace
 // without the cases of dropped features (AppFailed, SourceFailed)
 // claude 2026-10-19: changed: a non-null cause, NoStackTrace, the taxonomy in
 // the Scaladoc (P1b, A4)
-// claude 2026-10-19: changed: TuiApp is in tui4s-app (D25)
+// claude 2026-10-19: changed: TuiApp is in tui4s-app (D25); 2026-10-20:
+// changed: the ZIO and Cats Effect integrations are issues, not modules
 enum TuiError(message: String, cause: Throwable)
     extends Exception(message, cause)
     with NoStackTrace:

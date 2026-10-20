@@ -6,7 +6,7 @@ import tui4s.Tui
 
 /** The Counter with a main of its own: a plain `KyoApp` whose `main` calls
   * `Tui.run`, which gives the UI the quit value. Use this form when the app
-  * already has a main (a `KyoApp`, a ZIO or Cats Effect main later); a
+  * already has a main (a `KyoApp`; ZIO and Cats Effect: issues #18, #19); a
   * [[tui4s.TuiApp]] (see `examples.counter.CounterApp`) is the shorter form.
   *
   * A main of its own gives the tui4s scheduler values as JVM flags (`TuiApp`
@@ -26,7 +26,8 @@ import tui4s.Tui
 // claude 2026-10-13: created (T1, RC-33 part; the lesson of the review thread
 // CounterApp.scala:8 of PR 5: the Scaladoc names the launchers, not sbt run)
 // claude 2026-10-13: changed (T2, RC-33): moved from examples.counter (one
-// main per package: the script `counter` now starts the TuiApp CounterApp)
+// main per package: the script `counter` now starts the TuiApp CounterApp);
+// 2026-10-20: changed: the ZIO and Cats Effect issues in the Scaladoc
 // claude 2026-10-20: created the region below (L5): the docs page "The
 // terminal contract" shows it
 // region: main

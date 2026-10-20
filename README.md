@@ -2,12 +2,14 @@
 
 A terminal runner for [kyo-ui](https://github.com/getkyo/kyo), in Scala 3.
 
-<!-- claude 2026-10-12: changed these lines: tui4s runs kyo-ui values (C1) -->
+<!-- claude 2026-10-12: changed these lines: tui4s runs kyo-ui values (C1); 2026-10-20: changed: ZIO and Cats Effect are issues (ADR 0014) -->
 A kyo-ui value describes the screen; tui4s lays it out in terminal cells and
 paints it with [jatatui](https://github.com/oyvindberg/jatatui), a Java port of
 [ratatui](https://ratatui.rs). The core runs on [Kyo](https://getkyo.io).
-Integrations for [ZIO](https://zio.dev) and
-[Cats Effect](https://typelevel.org/cats-effect/) are planned.
+A [ZIO](https://zio.dev) and a
+[Cats Effect](https://typelevel.org/cats-effect/) integration are not in this
+version; issues [#18](https://github.com/yuri4n/tui4s/issues/18) and
+[#19](https://github.com/yuri4n/tui4s/issues/19) track them.
 
 > **Status:** under construction, first usable version. A tui4s app is a
 > kyo-ui UI and a `TuiApp` main class: `Tui.run` runs the UI in the real
@@ -1703,12 +1705,10 @@ Each module is released on its own, with its own version.
 | `io.github.yuri4n::tui4s-runner` | The terminal runner for kyo-ui: `Tui.run`, the components (`Hooks`, `Component`), the screen types. The base of the others. |
 | `io.github.yuri4n::tui4s-app`    | `TuiApp`, the main class of an app, on tui4s-runner. |
 | `io.github.yuri4n::tui4s-testkit` | `tui4s.testkit.Headless`, the headless test kit, on tui4s-runner. |
-| `io.github.yuri4n::tui4s-zio`    | ZIO users (planned).                   |
-| `io.github.yuri4n::tui4s-cats`   | Cats Effect users (planned).           |
 | `io.github.yuri4n::tui4s-use`    | Composables over Kyo signals, for the JVM and Scala.js. It does not need tui4s-core. |
 | `io.github.yuri4n::tui4s-widgets` | Widgets for the JVM and Scala.js, on tui4s-use. It does not need tui4s-core. |
 <!-- claude 2026-10-19: created the two rows above (L2a); changed: the widgets row (L2b) -->
-<!-- claude 2026-10-19: changed: the rows of the split of the core: runner, app, testkit (D25) -->
+<!-- claude 2026-10-19: changed: the rows of the split of the core: runner, app, testkit (D25); 2026-10-20: changed: the rows of zio and cats are removed (ADR 0014) -->
 
 An app uses tui4s-core:
 
