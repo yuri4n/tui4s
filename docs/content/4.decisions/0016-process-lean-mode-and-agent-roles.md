@@ -30,7 +30,7 @@ Accepted
 - Changed text carries a mark `// claude <date>: created|changed (<phase>)`. For code that a phase rewrites, the history moves to the commit text (D2 a).
 - AGENTS.md and the docs use ASD-STE100 (Simplified Technical English).
 - The skills left the repository (D19). The source of truth is <https://github.com/yuri4n/functional-design-skills>.
-- The notes are not part of the product. The working notes (the `.work` directory and the branch `wip/handoff`) leave the repository when these records are published; the decision log of the notes is summarized here.
+- The notes are not part of the product. The working notes (the `.work` directory and the branch `wip/handoff`) leave the repository when these records are published. These records summarize the decision log of the notes.
 
 ## Alternatives considered
 
@@ -45,7 +45,7 @@ Accepted
 - Good: the ADRs give a reader the "why" without the agent notes.
 - Bad: one reviewer can miss what three reviewers and their skeptics find.
 - Bad: the code holds about 1,800 `// claude <date>` marks in 280 files. They are history, not documentation; a cleanup decision is open.
-- Bad: the PR template still names the plan's P-1 to P-14 rules and a notes path.
+- Bad: the PR template of the program had one section for each rule P-1 to P-14 of the plan, and it named a notes path. An outside contributor needs a short template.
 
 ## References
 

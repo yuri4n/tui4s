@@ -9,7 +9,7 @@ description: "Every public API ships with a compiled example; README and docs co
 
 Accepted. The docs site landed on 2026-10-20 (L5).
 
-The Vercel project is a human step (the session's connector could not create it); the docs workflow (`.github/workflows/docs.yml`) builds the site on each push to `main` that changes `docs/`, on each pull request and on demand.
+The Vercel project is a human step: the session's connector could not create it. The docs workflow (`.github/workflows/docs.yml`) builds the site on each push to `main` and each pull request that changes `docs/`, and on demand.
 
 ## Date
 

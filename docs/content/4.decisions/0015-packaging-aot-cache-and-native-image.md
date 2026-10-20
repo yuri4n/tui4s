@@ -7,7 +7,16 @@ description: "The JVM launchers ship the JDK 25 AOT cache and the startup flags 
 
 ## Status
 
-Accepted (2026-10-20). The AOT launchers, the native-image metadata and the GraalVM CE smoke job landed on 2026-10-20 (L5b). The numbers below are the measurements of the spike of 2026-10-17.
+Accepted (2026-10-20). This work landed on 2026-10-20 (L5b):
+
+- the AOT cache in the start scripts of the examples;
+- the native-image metadata of `tui4s-runner`;
+- the script `scripts/native-image.sh`;
+- the smoke job `.github/workflows/native.yml` on GraalVM CE.
+
+A local build with GraalVM CE 25 made the native Counter. The first run of the smoke job is in CI.
+
+The numbers below are the measurements of the spike of 2026-10-17.
 
 ## Date
 
@@ -39,7 +48,6 @@ First frame from process start, PTY 100x30, median of 15 runs, 4 vCPU Linux:
 - CI has a smoke job on GraalVM Community Edition that builds one native image and runs it in a PTY.
 - The kitty keyboard protocol flags stay deferred ([ADR 0017](/decisions/0017-deferred-templates-mouse-and-kitty)).
 - This narrows D16: native-image is no longer the release format per platform.
-- The per-platform native binaries of the earlier plan are deferred. tui4s is a library, so a native binary belongs to an app, and each app builds its own. native-image cannot cross-compile, so each OS and CPU needs its own CI runner and a long build, and only Linux has a PTY check ([ADR 0017](/decisions/0017-deferred-templates-mouse-and-kitty)).
 
 ## Alternatives considered
 

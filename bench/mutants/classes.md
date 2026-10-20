@@ -88,16 +88,19 @@ only wastes a resource until the process ends is "silent" (the class
 - TamboUI `non-exhaustive-key`: the handler becomes a switch expression on
   `key.code()` with cases for `UP`, `DOWN` and `CHAR` only. javac rejects a
   switch expression on an enum that does not cover each constant.
+  <!-- claude 2026-10-20: created: the note of the TamboUI non-exhaustive-key mutant (L6) -->
 - TamboUI `wrong-thread` draws from a new thread with `TuiRunner.draw`.
   `Terminal.draw` does not check the thread (only the loop of `TuiRunner`
   does), and the frame shows the right count, so the mutant is silent.
+  <!-- claude 2026-10-20: created: the note of the TamboUI wrong-thread mutant (L6) -->
 - TamboUI `null-read`: `TuiRunner` catches the exception of the renderer and
   shows its error screen. The program does not end, so the outcome is the
   oracle (a wrong screen), not a crash.
+  <!-- claude 2026-10-20: created: the note of the TamboUI null-read mutant (L6) -->
 - TamboUI `lost-update` reads the count, then writes it 5 ms later on the
   scheduler of the runner through `runOnRenderThread`, as the Textual
   mutant awaits between the read and the write.
-  <!-- claude 2026-10-20: created: the four notes of the TamboUI mutants (L6) -->
+  <!-- claude 2026-10-20: created: the note of the TamboUI lost-update mutant (L6) -->
 - layoutz `off-by-one`: the program without the mutant already fails the start
   step (it cannot use the last row), so the oracle cannot see a row that moves
   one more row up.
