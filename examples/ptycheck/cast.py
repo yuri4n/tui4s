@@ -120,15 +120,27 @@ SCRIPTS = {
 }
 
 
+# The variables of the environment that an app gets from this script. The
+# app gets no other variable (no credential, no key, no proxy).
+KEEP_ENV = ("PATH", "JAVA_HOME", "LANG", "LC_ALL", "LC_CTYPE", "TZ")
+
+
 def record(bin_dir, app, script):
-    """The events of one run of `app`: (seconds, text), from the first frame."""
-    work = tempfile.mkdtemp(prefix=f"tui4s-cast-{app}-")
+    """The events of one run of `app`: (seconds, text), from the first frame.
+    The app runs in a temporary directory (also its HOME), which is removed
+    after the run."""
+    with tempfile.TemporaryDirectory(prefix=f"tui4s-cast-{app}-") as work:
+        return run_in(bin_dir, app, script, work)
+
+
+def run_in(bin_dir, app, script, work):
+    """One run of `app` in the directory `work`, with the variables of
+    KEEP_ENV only."""
     if "file" in script:
         name, text = script["file"]
         with open(os.path.join(work, name), "w", encoding="utf-8") as f:
             f.write(text)
-    env = {k: v for k, v in os.environ.items()
-           if k not in ("JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS")}
+    env = {k: v for k, v in os.environ.items() if k in KEEP_ENV}
     cols, rows = script.get("size", (COLS, ROWS))
     env.update(TERM="xterm-256color", COLUMNS=str(cols), LINES=str(rows),
                HOME=work, XDG_DATA_HOME=work, XDG_CONFIG_HOME=work)

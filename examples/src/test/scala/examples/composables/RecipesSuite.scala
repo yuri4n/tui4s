@@ -13,6 +13,9 @@ import tui4s.use.Storage
 // claude 2026-10-19: created (L2a review: an example for each composable)
 class RecipesSuite extends FunSuite:
 
+    // claude 2026-10-20: created the region below (L5): the docs page
+    // "Testing" shows it, with the helpers run and start (L5 review)
+    // region: testing
     /** Runs `v` to its end on the Kyo scheduler (at most 60 s). */
     private def run[A](v: => A < (Async & Scope))(using Frame): A =
         import AllowUnsafe.embrace.danger
@@ -23,9 +26,6 @@ class RecipesSuite extends FunSuite:
     ): Headless < (Async & Scope) =
       Headless.start(60, 10)(_ => ui)
 
-    // claude 2026-10-20: created the region below (L5): the docs page
-    // "Testing" shows it
-    // region: testing
     /** Waits until the screen shows `text`, at most 10 s. */
     private def shows(h: Headless, text: String)(using Frame): Boolean < Async =
       h.awaitScreen(_.contains(text), 10.seconds)

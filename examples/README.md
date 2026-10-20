@@ -462,12 +462,12 @@ The tests do not need a terminal. They run the apps on
 screen after them, the Todo file, the Dashboard with short periods. A test
 that writes a signal of the app waits for the screen with
 `Headless.awaitScreen`. `MarkdownRegionsSuite` checks that the code blocks of
-`README.md`, of this file and of the pages of the docs site (`docs/content`)
-that have a `<!-- from: <path>#<region> -->` line above them are the same text
-as the source files (a region is the lines between `// region: <name>` and
+the root `README.md` and of the pages of the docs site (`docs/content`) that
+have a `<!-- from: <path>#<region> -->` line above them are the same text as
+the source files (a region is the lines between `// region: <name>` and
 `// endregion: <name>`). In the docs pages, each Scala block must have that
-line.
-<!-- claude 2026-10-20: changed: MarkdownRegionsSuite, the docs pages (L5) -->
+line. The Scala blocks of this file are not checked.
+<!-- claude 2026-10-20: changed: MarkdownRegionsSuite, the docs pages; this file is not checked (L5) -->
 
 ## Real-terminal checklist
 

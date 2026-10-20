@@ -30,7 +30,7 @@ jobs:
       NUXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v7
-      # claude 2026-10-20: changed: the pnpm version is the packageManager field of docs/package.json (no version input here)
+      # The pnpm version is the packageManager field of docs/package.json (no version input here).
       - uses: pnpm/action-setup@v6
         with:
           package_json_file: docs/package.json

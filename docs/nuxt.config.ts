@@ -61,10 +61,10 @@ export default defineNuxtConfig({
         ],
       },
     ],
-    // claude 2026-10-20: changed: the notes for kyo-ui and the split artifacts; ZIO and Cats Effect are planned (L5)
+    // claude 2026-10-20: changed: the notes for kyo-ui and the split artifacts; ZIO and Cats Effect are planned; no version is published (L5)
     notes: [
       'tui4s runs a kyo-ui value in the terminal, in Scala 3. kyo-ui is the UI DSL; tui4s has no DSL of its own. It paints with jatatui, a Java port of ratatui.',
-      'An app uses tui4s-core (tui4s-runner, tui4s-app and tui4s-testkit in one dependency). tui4s-use (composables) and tui4s-widgets (widgets) build for the JVM and Scala.js. Each module has its own version.',
+      'No version of tui4s is published yet. An app uses tui4s-core (tui4s-runner, tui4s-app and tui4s-testkit in one dependency). tui4s-use (composables) and tui4s-widgets (widgets) build for the JVM and Scala.js. Each module has its own version.',
       'tui4s-zio and tui4s-cats are planned modules. They are not published. Mouse input is not supported. Windows is experimental.',
       'tui4s needs JDK 25, because Kyo 1.0.0-RC7 needs it.',
       'Every Scala block of this documentation is the text of a region of a source file of the repository, and a test checks it.',

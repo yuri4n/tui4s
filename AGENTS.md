@@ -31,11 +31,12 @@ issue #17). All the artifacts use the same packages (`tui4s`,
 | `modules/assistant` | `assistant` (`assistantJVM`, `assistantJS`) | none | kyo-ui (the flagship example app: its domain, services, store and UI in `shared`, the interpreters of the JVM in `jvm` and of the browser in `js`) | none | no |
 | `examples`      | `examples` | none                             | -                                       | none             | no        |
 | `examples/web`  | `assistantWeb` | none                         | kyo-ui (the assistant on the web: a Scala.js app of static files from `modules/assistant`; `scripts/web-build.sh` builds `dist/assistant`) | none | no |
-| `docs`          | none       | none (Nuxt Docus site)           | - (the docs site: a guide whose pages lead with examples; `pnpm run build` in `docs` builds it; `MarkdownRegionsSuite` checks each of its Scala blocks; the section "Docs" below) | none | no |
+| `docs`          | none       | none (Nuxt Docus site: a guide whose pages lead with examples; `pnpm run build` in `docs` builds it; `MarkdownRegionsSuite` checks each of its Scala blocks; the section "Docs" below) | - | none | no |
 <!-- claude 2026-10-19: created the row of examples/web; changed: the js part of the assistant (L4) -->
 <!-- claude 2026-10-19: created the rows of use and widgets (L2a); changed: the widgets row (L2b) -->
 <!-- claude 2026-10-19: changed: the rows runner, app, testkit and the composite core (D25) -->
 <!-- claude 2026-10-19: created the row of the assistant (L3) -->
+<!-- claude 2026-10-20: changed: the row of docs (L5) -->
 
 <!-- claude 2026-10-19: changed: the runner, not the core; zio and cats depend on the runner (D25) -->
 The runner uses Kyo and kyo-ui (both at `Versions.kyo`). The `zio` and `cats`
@@ -304,11 +305,12 @@ nothing.
 | `node scripts/web-smoke.mjs`         | Runs the web assistant from `dist/assistant` in headless Chromium (Playwright): a send, the streamed reply, Esc, the look switch. |
 | `pnpm install --frozen-lockfile && pnpm run build` (in `docs`) | Builds the docs site into `docs/.output`, with `llms.txt`, `llms-full.txt` and `raw/<page>.md`. Set `NUXT_TELEMETRY_DISABLED=1`. The build fetches nothing from the network. `pnpm run preview` serves the result. |
 | `bash scripts/docs-casts.sh`         | Builds the launchers and records the terminal casts of the docs site (`docs/public/casts/<app>.cast`), each app in a pseudo-terminal of its own (`examples/ptycheck/cast.py`). |
-| `bash scripts/docs-demo.sh`          | Copies `dist/assistant` (run `scripts/web-build.sh` first) to `docs/public/demo/assistant`, the web demo of the docs site. |
+| `bash scripts/docs-demo.sh`          | Copies `dist/assistant` (run `scripts/web-build.sh` first) to `docs/public/demo/assistant`, the web demo of the docs site. The page opens it with `?demo`: only the fake provider, and a storage in memory. |
 <!-- claude 2026-10-19: created the rows of use/test and useJS/compile; changed: Node.js in the shell (L2a); gallery in the app list (L2b) -->
 <!-- claude 2026-10-19: changed: the rows runner/test and core/test (D25) -->
 <!-- claude 2026-10-19: changed: assistant in the app list (L3) -->
 <!-- claude 2026-10-19: created the rows of the web build and the web smoke test (L4) -->
+<!-- claude 2026-10-20: created the rows of the docs build, docs-casts.sh and docs-demo.sh (L5) -->
 
 A test suite lives in the lowest module whose main classpath it needs: a
 suite that needs only the runner is in `modules/runner/src/test`; a suite

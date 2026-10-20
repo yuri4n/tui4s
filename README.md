@@ -1617,26 +1617,28 @@ APIs: `UIWindow`, `UI.runMount`):
 <!-- from: examples/web/src/main/scala/examples/assistant/AssistantWebApp.scala#web -->
 ```scala
     run {
-      val keys   = AssistantWeb.keys
       val screen =
         UIWindow.size.map((w, h) => Surface.cells(w, h, Theme.web.font.size))
       for
-          _  <- UI.runStylesheet(Look.stylesheet(Look.Web))
-          ui <- Memo.run(
-                  Env.runLayer(
-                    AssistantWeb.storage,
-                    Layer(keys: Secrets),
-                    Wiring.conversations,
-                    AssistantWeb.log,
-                    Wiring.providers(
-                      AssistantWeb.live,
-                      FakeProvider.make(),
-                      StartMode.Detect,
-                    ),
-                    AssistantWeb.surface(keys),
-                  )(AssistantUi.run(StartMode.Detect, Kyo.unit, screen)),
-                )
-          _  <- UI.runMount(ui, "#app")
+          mode    <- AssistantWeb.mode
+          storage <- AssistantWeb.storage(mode)
+          keys     = AssistantWeb.keys(storage)
+          _       <- UI.runStylesheet(Look.stylesheet(Look.Web))
+          ui      <- Memo.run(
+                       Env.runLayer(
+                         Layer(storage),
+                         Layer(keys: Secrets),
+                         Wiring.conversations,
+                         AssistantWeb.log,
+                         Wiring.providers(
+                           AssistantWeb.live,
+                           FakeProvider.make(),
+                           mode,
+                         ),
+                         AssistantWeb.surface(keys),
+                       )(AssistantUi.run(mode, Kyo.unit, screen)),
+                     )
+          _       <- UI.runMount(ui, "#app")
       yield ()
       end for
     }
@@ -1659,7 +1661,10 @@ node scripts/web-smoke.mjs                        # the smoke test (Playwright a
 Then open <http://localhost:8000>. With no key, the provider is the fake one
 (no network). To use a real provider, open the settings (Alt-,), paste your
 key in the field of the provider, and push Keep. The page loads again with
-that provider.
+that provider. With `?demo` (<http://localhost:8000/?demo>), the page reads
+no key, uses only the fake provider and keeps its storage in memory: the docs
+site embeds it so.
+<!-- claude 2026-10-20: changed: the parameter ?demo (L5 review) -->
 
 <!-- claude 2026-10-19: changed (L4 review): extensions, the origin, the unbound field, the chords of each system, the rename prompt -->
 **Your key stays in this browser. Extensions and anyone with this profile
