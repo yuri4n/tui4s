@@ -1,6 +1,8 @@
 # tui4s
 
 A terminal runner for [kyo-ui](https://github.com/getkyo/kyo), in Scala 3.
+The documentation is at <https://tui4s.yuri4n.dev>.
+<!-- claude 2026-10-20: created: the link to the docs site -->
 
 <!-- claude 2026-10-12: changed these lines: tui4s runs kyo-ui values (C1); 2026-10-20: changed: ZIO and Cats Effect are issues (ADR 0014) -->
 A kyo-ui value describes the screen; tui4s lays it out in terminal cells and

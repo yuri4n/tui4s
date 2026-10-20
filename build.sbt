@@ -22,7 +22,8 @@ import org.typelevel.scalacoptions.ScalacOptions
 import sbtcrossproject.CrossProject
 
 ThisBuild / organization      := "io.github.yuri4n"
-ThisBuild / homepage          := Some(url("https://github.com/yuri4n/tui4s"))
+// claude 2026-10-20: changed: the homepage is the docs site; scmInfo stays the repository
+ThisBuild / homepage          := Some(url("https://tui4s.yuri4n.dev"))
 ThisBuild / licenses          := List(License.Apache2)
 ThisBuild / developers        := List(
   Developer(
