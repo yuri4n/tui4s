@@ -165,6 +165,11 @@
   PR #7 closed or folded, wip/handoff and docs/docus deleted last -> final human gate in ONE message: ff-merge to main
   and the release tags (AGENTS.md: a tag needs human approval; maven-central tag patterns are a human step).
   <!-- claude 2026-10-20: created this item -->
+- FACT (2026-10-20): TamboUI is a JAVA library (Champeau, Andersen; github.com/tamboui/tamboui; GraalVM native), not
+  .NET. The L5 bench brief said "only if dotnet installs" (a slip). If the bench stream dropped it, the follow-up
+  workflow adds it as the JVM peer. ADR drafts are in scratchpad/adr (19 ADRs, PLANNED-FEATURES.md with 34 issue
+  blocks, CLEANUP.md with branch shas). `first-take` is the user's own branch: do not delete (HANDOFF 2026-10-01).
+  <!-- claude 2026-10-20: created this item -->
 - (history) L4 ran as 3 agents: the standalone Scala.js build of the assistant (D5), Theme (D8) in tui4s-widgets rendered to
   one Stylesheet for both platforms, JS interpreters (fetch SSE, localStorage key with a warning), units em/pct.
 - (history) L3 ran as 3 agents: shared crossProject (domain + UI, kyo-ui/use/widgets only), tui main
