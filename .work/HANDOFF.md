@@ -224,6 +224,12 @@
   feat/core-2-engine feat/core-3-terminal feat/kyo-state-nix-tooling` (keep first-take, main, chore/cleanup-7p2rll;
   wip/handoff after the release). Lost local spike branch spike/sbt-port (4cdeebd, spike S6; findings are in
   AGENTS.md).
+  <!-- claude 2026-10-20: created this item -->
+- CI on 16422f3: ci run 39442222575 FAILED only on the macOS PTY row "assistant: hi, Enter: the streamed reply" (the
+  screen was read while still streaming; ubuntu green, sbt/web/nix green); docs 39442227535 green; native
+  39442239365 GREEN (GraalVM CE smoke on GitHub); bench 39442233726 FAILED only on tamboui wrong-thread (caught on
+  GitHub, silent here: timing-dependent). A fix agent (a39bf266...) makes the PTY row wait for the end of the
+  stream and adds tamboui wrong-thread to the timing-dependent set, then pushes; then re-dispatch ci + bench.
   <!-- claude 2026-10-20: created this item --> History: the user asked "why
   useSignal gone?"; picked `signal(0)` from a choice (signal, createSignal, sig, useSignal); then "signal() should be
   a primitive, not a hook" (a hook is mount-bound; creating a signal has no lifetime, and the runner is terminal-only),
