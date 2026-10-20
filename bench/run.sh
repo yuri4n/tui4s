@@ -69,16 +69,17 @@ publish() {
 
 has() { case ",$stacks," in *",$1,"*) return 0 ;; *) return 1 ;; esac; }
 
+# claude 2026-10-20: changed: the sbt commands as one argument with ";" between them (sbt --client reads its
+# arguments as one command line)
 build() {
-    local targets=""
-    has tui4s && targets="$targets tui4sCounter/stage tui4sDashboard/stage"
-    has jatatui-plain && targets="$targets jatatuiCounter/stage jatatuiDashboard/stage"
-    has tamboui && targets="$targets tambouiCounter/stage tambouiDashboard/stage"
-    has layoutz && targets="$targets layoutzCounter/stage layoutzDashboard/stage"
+    local targets="" s
+    for s in tui4s:tui4s jatatui-plain:jatatui tamboui:tamboui layoutz:layoutz; do
+        has "${s%%:*}" && targets="${targets:+$targets; }${s#*:}Counter/stage; ${s#*:}Dashboard/stage"
+    done
     if [ -n "$targets" ]; then
         jvm=1
-        step "build: the JVM stacks (one sbt server):$targets"
-        (cd "$bench" && $SBT -Dsbt.supershell=false $targets) || status=1
+        step "build: the JVM stacks (one sbt server): $targets"
+        (cd "$bench" && $SBT -Dsbt.supershell=false "$targets") || status=1
     fi
     for s in ratatui bubbletea textual ink; do
         has "$s" || continue

@@ -9,8 +9,10 @@ bench=$(cd "$(dirname "$0")/../.." && pwd)
 case "${1:-all}" in
   counter) targets="jatatuiCounter/stage" ;;
   dashboard) targets="jatatuiDashboard/stage" ;;
-  all) targets="jatatuiCounter/stage jatatuiDashboard/stage" ;;
+  all) targets="jatatuiCounter/stage; jatatuiDashboard/stage" ;;
   *) echo "usage: build.sh [counter|dashboard]" >&2; exit 2 ;;
 esac
 cd "$bench"
-${SBT:-sbt} -Dsbt.supershell=false $targets
+# claude 2026-10-20: changed: one argument with ";" between the commands (sbt --client reads its
+# arguments as one command line)
+${SBT:-sbt} -Dsbt.supershell=false "$targets"

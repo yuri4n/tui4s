@@ -360,11 +360,12 @@ def build(stack, task):
 # claude 2026-10-20: changed: count on the sources without comments, by the lexer of the language (review fix: a
 # Python string with '#' is code)
 def code_lines(stack, path):
-    """The lines of a source without comments and blank lines (the rules of compact.py)."""
+    """The lines of a source without comments and blank lines (the rules of compact.py). The indent stays: a line
+    that moves into a block is a changed line, as in the patch."""
     with open(path, encoding="utf-8") as f:
         src = f.read()
     code = compact.strip_python(src) if st.STACKS[stack]["language"] == "python" else compact.strip_c_like(src)
-    return [l.strip() for l in code.splitlines() if l.strip()]
+    return [l.rstrip() for l in code.splitlines() if l.strip()]
 
 
 def changed_lines(before, after):

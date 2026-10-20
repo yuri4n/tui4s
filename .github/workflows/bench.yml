@@ -32,7 +32,10 @@ jobs:
   bench:
     name: Bench ${{ matrix.group }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 30 # the budget is about 20 minutes per group
+    # The budget is about 20 minutes per group. bench/run.sh ci on the 4-vCPU build container, warm caches
+    # (2026-10-20): tui4s 4.5 min, jatatui-plain 2.9, layoutz and TamboUI 3.7, ratatui 2.2, bubbletea and
+    # Textual 3.6, ink 1.8. A cold runner adds the toolchains and the downloads; not measured on GitHub yet.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
