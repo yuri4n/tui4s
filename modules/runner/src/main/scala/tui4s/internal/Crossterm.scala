@@ -65,7 +65,8 @@ private[tui4s] trait Crossterm:
       * can be null); the input thread drops it.
       */
     // claude 2026-10-13: changed (T1, strict flags: the Java boundary rule of
-    // AGENTS.md): the result can be null
+    // CONTRIBUTING.md): the result can be null
+    // claude 2026-10-20: changed: CONTRIBUTING.md (ADR 0021)
     def read(): CEvent | Null
 
     /** The jatatui backend that draws through this terminal. */

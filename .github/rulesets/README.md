@@ -21,7 +21,7 @@ given either: a bypass applies to a full ruleset, so it would also skip CI.
 
 ## The environment of the release
 
-<!-- claude 2026-10-20: created: this section (ADR 0020) -->
+<!-- claude 2026-10-20: created: this section (ADR 0020); changed (review): self-review off -->
 The release starts from the Actions form on `main`, and its job `publish`
 uses the environment `maven-central`. A ruleset does not configure an
 environment. Set it once by hand in **Settings > Environments >
@@ -31,7 +31,8 @@ environment. Set it once by hand in **Settings > Environments >
   policy must allow `main`. The tag patterns (`runner-v*` and the others) of
   the old release are not necessary.
 - Required reviewers: the maintainer. GitHub asks the maintainer to approve
-  each deployment: one approval for all the modules of a run.
+  each deployment: one approval for all the modules of a run. Leave
+  "Prevent self-review" off: the maintainer starts the run and approves it.
 - Environment secrets: `PGP_SECRET`, `PGP_PASSPHRASE`, `SONATYPE_USERNAME`,
   `SONATYPE_PASSWORD`.
 

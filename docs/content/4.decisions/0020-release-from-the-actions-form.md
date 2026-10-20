@@ -51,6 +51,8 @@ Accepted. It changes the trigger of [ADR 0014](/decisions/0014-release-per-modul
 - Bad: a failed publish leaves a tag with no GitHub release. Re-run the failed job. A new run stops on the tags that exist.
 - Bad: Central can show a new version on `repo1.maven.org` some minutes after it accepts the upload. A re-run in that time publishes again, and Central refuses it. Wait, then re-run.
 - Bad: the job `publish` builds each module again after `clean` (one sbt run for each module), so a release of all the modules takes longer than one sbt run.
+- Bad: a re-run uses the workflow and the scripts of the commit of the run. A fix of `release.yml` or of a script cannot help a re-run: the next version takes it.
+  <!-- claude 2026-10-20: changed (review): this item -->
 - Bad: the environment `maven-central` needs a one-time manual setup (the branch `main`, the reviewer, the four secrets). A ruleset file cannot hold it.
 
 ## References

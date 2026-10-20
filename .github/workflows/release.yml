@@ -207,7 +207,8 @@ jobs:
     needs: prepare
     if: ${{ !inputs.dry_run }}
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    # claude 2026-10-20: changed: 360 (review): an "all" run does six ci-release builds and six waits for Central
+    timeout-minutes: 360
     # Holds the secrets. Its deployment policy allows only the branch main,
     # and its required reviewer (the maintainer) approves the run.
     environment: maven-central
@@ -284,13 +285,15 @@ jobs:
                 CI_SONATYPE_RELEASE="; project $m; sonaRelease" \
                 sbt -v ci-release
             fi
-            # 4. The GitHub release: the notes of CHANGELOG.md, then the
-            # generated notes since the last release of the module.
+            # 4. The GitHub release: the notes of CHANGELOG.md, then, when the
+            # module has a previous release, the notes that GitHub generates
+            # since it. A first release has only the notes of CHANGELOG.md.
+            # claude 2026-10-20: changed (review): the generated notes only after a first release
             notes=$(mktemp)
             bash scripts/changelog-section.sh "$m" "$VERSION" >"$notes"
             prev=$(release_latest_before "$m" "$VERSION")
-            args=(--title "tui4s-$m $VERSION" --verify-tag --notes-file "$notes" --generate-notes)
-            if [[ -n $prev ]]; then args+=(--notes-start-tag "$m-v$prev"); fi
+            args=(--title "tui4s-$m $VERSION" --verify-tag --notes-file "$notes")
+            if [[ -n $prev ]]; then args+=(--generate-notes --notes-start-tag "$m-v$prev"); fi
             if [[ $VERSION == *-* ]]; then args+=(--prerelease); fi
             gh release create "$tag" "${args[@]}"
             echo "- tui4s-$m $VERSION: on Maven Central, GitHub release \`$tag\`" >>"$GITHUB_STEP_SUMMARY"

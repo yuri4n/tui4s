@@ -15,7 +15,7 @@ two files above. Another agent reads the two files itself.
 
 ## Rules for agents only
 
-<!-- claude 2026-10-20: created: this section (ADR 0021); changed: the sbt item, vendor/pini4s is not a separate root (review fix) -->
+<!-- claude 2026-10-20: created: this section (ADR 0021); changed: the sbt item, vendor/pini4s is not a separate root (review fix); changed: one sbt process in the repository, the trailer exception (review) -->
 - Mark each unit that you create or change, at the smallest unit: a list
   item, a paragraph, a table row, a function, a step. A mark gives the date,
   `created` or `changed`, and what changed:
@@ -30,9 +30,9 @@ two files above. Another agent reads the two files itself.
   where the text comes from, and the moved blocks keep their marks.
 - Never start a terminal UI in your own shell. Only the PTY kit
   (`examples/ptycheck`) runs one.
-- Run one sbt process at a time in each build root. The root of the
-  repository and `bench/` are two build roots. The root build also compiles
-  `vendor/pini4s`, and `bench/run.sh` runs the root build first.
+- Run only one sbt process in the repository at a time, also across its
+  build roots: the root build also compiles `vendor/pini4s`, and
+  `bench/run.sh` runs the root build before the build of `bench/`.
 - A release publishes a public artifact to Maven Central. You can start a
   dry run at any time: `scripts/release.sh <module|all> <version> --dry-run`.
   A real release needs a human: start it only when a human asks for it in
@@ -41,7 +41,9 @@ two files above. Another agent reads the two files itself.
   around that gate.
 - Never force-push. Never rewrite history that is pushed (no rebase and no
   amend of a pushed commit).
-- Never write the name of a model in a file, a commit or a docs page.
+- Never write the name of a model in a file, a commit message or a docs
+  page. The attribution trailer of a commit (`Co-Authored-By`) is the one
+  exception.
 - Write all prose in ASD-STE100: short sentences, one idea in each, the
   active voice.
 - A change of behaviour updates ARCHITECTURE.md in the same pull request. A
