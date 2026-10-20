@@ -15,20 +15,27 @@ import java.util.concurrent.atomic.AtomicReference
 // clock with wall-clock waits (L2a review)
 object Controlled:
 
+    /** The wall-clock bound of a wait for a fence, a value or a step. It only
+      * stops a test that is stuck: on a loaded CI runner (2 CPUs, the Scala.js
+      * linker in the same sbt process) a fiber can wait seconds for its step.
+      */
+    // claude 2026-10-20: created: one bound of 30 s (TimeTest failed at 5 s under load on CI)
+    val bound: Duration = 30.seconds
+
     /** Waits until at least `n` sleeps on the controlled clock are armed and
-      * not done, at most 5 s of wall-clock time. True when they are.
+      * not done, at most `bound` of wall-clock time. True when they are.
       */
     def fence(ctl: Clock.TimeControl, n: Int)(using Frame): Boolean < Async =
       Clock.let(Clock.live)(
         Abort
-          .run[Timeout](Async.timeout(5.seconds)(ctl.awaitPendingSleepers(n)))
+          .run[Timeout](Async.timeout(bound)(ctl.awaitPendingSleepers(n))) // claude 2026-10-20: changed: bound
           .map(_.isSuccess),
       )
 
     /** On the live clock: waits until `p` holds for the value of `s`, at most
       * `timeout` (a read every 5 ms). True when it holds.
       */
-    def eventually[A](s: Signal[A], timeout: Duration = 5.seconds)(
+    def eventually[A](s: Signal[A], timeout: Duration = bound)( // claude 2026-10-20: changed: bound
         p: A => Boolean,
     )(using Frame): Boolean < Async =
       poll(timeout)(s.current.map(p))
@@ -76,9 +83,12 @@ final class Steps[S, A](rule: Pacing.Rule[S, A]):
     def entries(using Frame): Chunk[Steps.Entry[A]] < Sync =
       Sync.defer(log.get.nn)
 
-    /** Waits until there are `n` steps (at most 5 s); true when there are. */
+    /** Waits until there are `n` steps (at most `Controlled.bound`); true when
+      * there are.
+      */
+    // claude 2026-10-20: changed: the bound
     def await(n: Int)(using Frame): Boolean < Async =
-      Controlled.poll(5.seconds)(entries.map(_.size >= n))
+      Controlled.poll(Controlled.bound)(entries.map(_.size >= n))
 end Steps
 
 object Steps:
