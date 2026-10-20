@@ -1,5 +1,21 @@
 # tui4s
 
+<!-- logo: assets/logo/tui4s.txt -->
+```
+       _      _                   _           _                  _       
+      /\ \   /\_\                /\ \     _  /\ \               / /\     
+      \_\ \ / / /         _      \ \ \   /\_\\ \ \             / /  \    
+      /\__ \\ \ \__      /\_\    /\ \_\ / / / \ \ \           / / /\ \__ 
+     / /_ \ \\ \___\    / / /   / /\/_// / /   \ \ \         / / /\ \___\
+    / / /\ \ \\__  /   / / /   / / /   \ \ \____\ \ \        \ \ \ \/___/
+   / / /  \/_// / /   / / /   / / /     \ \________\ \        \ \ \      
+  / / /      / / /   / / /   / / /       \/________/\ \   _    \ \ \     
+ / / /      / / /___/ / /___/ / /__                \ \ \ /_/\__/ / /     
+/_/ /      / / /____\/ //\__\/_/___\                \ \_\\ \/___/ /      
+\_\/       \/_________/ \/_________/                 \/_/ \_____\/       
+```
+<!-- claude 2026-10-20: created: the logotype; scripts/logo/build.mjs writes this block from assets/logo/tui4s.txt (ADR 0022) -->
+
 A terminal runner for [kyo-ui](https://github.com/getkyo/kyo), in Scala 3.
 The documentation is at <https://tui4s.yuri4n.dev>.
 <!-- claude 2026-10-20: created: the link to the docs site -->
