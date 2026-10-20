@@ -246,6 +246,12 @@
   0.1.0-RC1 (one at a time); (7) delete the stale branches (.work/stale-branches.txt); (8) delete wip/handoff after
   the release; optional: #51 AWS run, post the upstream drafts. Open decisions: D24 keep (#46); first-take keep;
   D16 narrowed (ADR 0015).
+  <!-- claude 2026-10-20: created this item -->
+- MAIN MERGED by the user (cd6a877..20cd3de, then ..9de789a). Their Intel Mac (x86_64-darwin) had no devShell:
+  9de789a added the system; nixpkgs 26.11 dropped x86_64-darwin, so the user's own Oct 16 edit (pushed as
+  wip/local-oct16 def5d6a: nixpkgs input = nixpkgs-26.05-darwin, nixpkgs-current = the pinned commit, README
+  paragraph, a real lock) was cherry-picked as 56047cd (author yuri4n) and pushed; ci dispatched. Add
+  wip/local-oct16 to the branches to delete. pini4s's own flake still pins 26.11 (its repo).
   <!-- claude 2026-10-20: created this item --> History: the user asked "why
   useSignal gone?"; picked `signal(0)` from a choice (signal, createSignal, sig, useSignal); then "signal() should be
   a primitive, not a hook" (a hook is mount-bound; creating a signal has no lifetime, and the runner is terminal-only),
