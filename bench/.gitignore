@@ -1,0 +1,13 @@
+# claude 2026-10-20: created (L5): the outputs of the bench build and runs
+tui4s.version
+.bsp/
+impl/textual/.venv/
+impl/ink/node_modules/
+impl/ink/dist/
+impl/bubbletea/bin/
+impl/ratatui/target/
+infra/node_modules/
+infra/.alchemy/
+infra/out/
+results/*/raw/
+harness/__pycache__/
