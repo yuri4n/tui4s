@@ -181,6 +181,18 @@
   token (team yurian-solo, GitHub namespace yuri4n is linked): the user creates the project (name tui4s, repo
   yuri4n/tui4s, Root Directory docs, framework Nuxt) in the dashboard; D11 becomes a HUMAN STEP.
   <!-- claude 2026-10-20: created this item -->
+- L6 LAUNCHED 2026-10-20: workflow wf_7be3e308-311 (script tui4s-l6-wf_7be3e308-311.js), 7 Opus agents, two
+  streams: release (/home/user/tui4s-l6-release, l6/release: zio/cats and useSignal removed, examples/README blocks
+  as regions, AOT launchers + flags, native-image metadata + scripts/native-image.sh + native.yml (GraalVM CE),
+  bench stack tui4s-aot, SECURITY/CHANGELOG/CONTRIBUTING, issue + PR templates, rulesets from PR #7 with six tag
+  patterns, Scaladoc step, macOS PTY matrix if the jar has a macOS native, web smoke job, README status, dry runs)
+  and docs (/home/user/tui4s-l6-docs, l6/docs: ADRs as docs/content/4.decisions, project pages roadmap/contributing/
+  security, overclaims removed, TamboUI mutants + tables). Finalizer: ff merge, report.py, ADR statuses, full
+  verification (no nohup for bench/PTY), prunes .work/worktrees, pushes. CI runs for 246e8a4 queued (ci, docs,
+  bench): read their results after the workflow; bench.yml is its first run on GitHub.
+  AFTER: trigger CI; close PR #7 (comment names the rulesets commit); delete the stale remote branches (CLEANUP.md
+  list; not first-take, not main; wip/handoff last); the gate message (ff to main, tags, maven-central, Vercel).
+  <!-- claude 2026-10-20: created this item -->
 - (history) L4 ran as 3 agents: the standalone Scala.js build of the assistant (D5), Theme (D8) in tui4s-widgets rendered to
   one Stylesheet for both platforms, JS interpreters (fetch SSE, localStorage key with a warning), units em/pct.
 - (history) L3 ran as 3 agents: shared crossProject (domain + UI, kyo-ui/use/widgets only), tui main
