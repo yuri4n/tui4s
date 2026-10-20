@@ -36,10 +36,11 @@ tui4s runs a [kyo-ui](https://github.com/getkyo/kyo) value in the terminal, in S
   :::
 ::
 
-## The smallest app
-
-This is the complete Counter example. The UI is plain kyo-ui. `TuiApp` is its main class.
-
+::u-page-section
+---
+title: The smallest app
+description: This is the complete Counter example. The UI is plain kyo-ui, and `TuiApp` is its main class.
+---
 <!-- from: examples/src/main/scala/examples/counter/Counter.scala#quickstart -->
 ```scala [Counter.scala]
 import kyo.*
@@ -88,6 +89,10 @@ end Counter
 object CounterApp extends TuiApp:
     def ui: UI < (Async & Scope) = Counter.ui(Tui.quit)
 ```
+
+:::cast{src="/casts/counter.cast" max-width="36rem"}
+:::
+::
 
 ::u-page-section
 #title
