@@ -55,7 +55,7 @@ Accepted.
 - Good: CI finds an output that does not agree with the text.
 - Bad: the art has 11 rows of thin lines. In the 16 px favicon, the isomark is only the yellow shape of a 4.
 - Bad: the build of the PNG files needs Playwright and Chromium. The check needs only Node.js.
-- Bad: on another machine, the PNG files can change by some bytes (another Chromium, or another system font for the line of the preview image). The check compares only their pixel sizes.
+- Bad: on another machine, the PNG files can change by some bytes (another Chromium, or another system font for the line of the preview image). The check compares their pixel sizes, and a stamp (`assets/logo/stamp.txt`, the hash of the text and of the generator, written after the last raster) that a change of the text or of the generator without a new run of the generator invalidates. <!-- claude 2026-10-20: changed (review): the stamp -->
 - Bad: the site uses no image optimizer. It has no other images, so nothing is lost now. A large image on a page later must be small before it goes in `docs/public`.
 
 ## References

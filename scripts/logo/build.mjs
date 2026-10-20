@@ -37,6 +37,7 @@
 // node_modules, else in the global modules of npm. Set
 // PLAYWRIGHT_BROWSERS_PATH where Chromium is installed. The outputs are
 // generated files: commit them after a change of the source.
+import { createHash } from 'node:crypto'; // claude 2026-10-20: created (review): the stamp
 import { readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -65,6 +66,17 @@ const ISOMARK_TXT = 'assets/logo/isomark.txt';
 const README = 'README.md';
 const LOGO_MARKER = `<!-- logo: ${SOURCE} -->`;
 const PUBLIC = 'docs/public';
+// claude 2026-10-20: created (review): the stamp of the rasters. The PNG and ICO files are
+// compared by their pixel sizes only (another Chromium gives other bytes), so the build writes
+// the hash of the source and of this script after the last raster, and `--check` compares it:
+// a change of the text or of the generator without a new run of the generator fails the check.
+const STAMP = 'assets/logo/stamp.txt';
+function fingerprint() {
+  const hash = createHash('sha256');
+  hash.update(readFileSync(at(SOURCE)));
+  hash.update(readFileSync(fileURLToPath(import.meta.url)));
+  return hash.digest('hex');
+}
 // The columns of the "4" in SOURCE: from 39 (included) to 57 (excluded),
 // counted from 0. The "i" ends at column 38 and the "s" starts at column 57.
 const ISOMARK_COLUMNS = [39, 57];
@@ -321,6 +333,9 @@ function check(lines) {
     const show = (s) => (s ? s.map(([w, h]) => `${w}x${h}`).join(', ') : 'not a PNG or ICO image');
     if (show(sizes) !== show(expected)) problems.push(`${path}: ${show(sizes)}, not ${show(expected)}`);
   }
+  // claude 2026-10-20: created (review): the rasters carry the stamp of the source and the generator
+  if (!existsSync(at(STAMP)) || readFileSync(at(STAMP), 'utf8').trim() !== fingerprint())
+    problems.push(`${STAMP}: the rasters are not the outputs of the current source and generator`);
   // claude 2026-10-20: created (review): the theme colour of the site is a copy of COLORS.brand
   const nuxtConfig = readFileSync(join(root, 'docs/nuxt.config.ts'), 'utf8');
   if (!nuxtConfig.includes(`{ name: 'theme-color', content: '${COLORS.brand}' }`))
@@ -382,6 +397,9 @@ async function build(lines) {
   } finally {
     await browser.close();
   }
+  // The stamp comes last: a build that stops before the last raster leaves the old stamp,
+  // and `--check` fails. claude 2026-10-20: created (review)
+  writeFileSync(at(STAMP), `${fingerprint()}\n`);
 
   for (const [path] of textOutputs(lines)) console.log(`${path}: ${statSync(at(path)).size} bytes`);
   for (const [path] of binaryOutputs) {
