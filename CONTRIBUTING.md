@@ -600,6 +600,16 @@ and after a change of the frame path, and give both numbers.
   example that a cast shows, run `scripts/docs-casts.sh`. After a change to
   the assistant, run `scripts/web-build.sh` and `scripts/docs-demo.sh`.
   Commit the results.
+- The logo is text: `assets/logo/tui4s.txt` is the logotype, and its "4"
+  is the isomark (ADR 0022). Do not edit the logo files of `docs/public`
+  and `assets/logo/isomark.txt` by hand: they are generated files, as the
+  casts are. `node scripts/logo/build.mjs` writes them from the text, and
+  also the logotype block of `README.md`. It needs Playwright with Chromium,
+  as `scripts/web-smoke.mjs` does. After a change of the text, run it and
+  commit the results. `node scripts/logo/build.mjs --check` (the CI step
+  "Logo assets") fails when an output is not the output of the text. It
+  needs only Node.js.
+  <!-- claude 2026-10-20: created this item (ADR 0022) -->
 - The build fetches nothing from the network: no font provider is on, and
   each icon is in the client bundle. Put a new icon in
   `icon.clientBundle.icons` of `docs/nuxt.config.ts`.

@@ -50,6 +50,11 @@ jobs:
       # claude 2026-10-20: changed: CONTRIBUTING.md (ADR 0021)
       - name: Edge files and scalafix suppressions
         run: bash scripts/edge-check.sh
+      # claude 2026-10-20: created (ADR 0022): the logo assets are the outputs
+      # of scripts/logo/build.mjs for assets/logo/tui4s.txt; the check compares
+      # the text files and the pixel sizes, and it starts no browser
+      - name: Logo assets
+        run: node scripts/logo/build.mjs --check
       # alias: scalafmtCheckAll; scalafmtSbtCheck; Test/compile;
       # scalafixAll --check; test; versionPolicyCheck
       # claude 2026-10-17: changed: the alias runs scalafixAll --check

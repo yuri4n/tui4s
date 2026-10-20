@@ -1,6 +1,15 @@
 export default defineAppConfig({
   header: {
     title: 'tui4s',
+    // claude 2026-10-20: created (ADR 0022): the logotype in the header (scripts/logo/build.mjs
+    // writes the files); h-12, because the art has 11 rows and the default h-6 makes it too small
+    logo: {
+      light: '/logo-light.svg',
+      dark: '/logo-dark.svg',
+      alt: 'tui4s',
+      class: '!h-12',
+      favicon: '/favicon.ico',
+    },
   },
   seo: {
     title: 'tui4s',

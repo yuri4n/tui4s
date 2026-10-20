@@ -12,8 +12,34 @@ const siteUrl =
 export default defineNuxtConfig({
   extends: ['docus'],
 
+  // claude 2026-10-20: created (ADR 0022): the icons, the manifest, the social preview and the
+  // theme colour. scripts/logo/build.mjs writes the files in docs/public; the colour is its
+  // COLORS.brand. Docus adds the link to /favicon.ico. A docs page has its own preview image
+  // (nuxt-og-image); the home page sets /og-image.png in its front matter.
+  app: {
+    head: {
+      link: [
+        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },
+        { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png' },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
+        { rel: 'manifest', href: '/site.webmanifest' },
+      ],
+      // claude 2026-10-20: changed (review): no og:image here. nuxt-og-image sets it on each page, from the
+      // front matter and site.url. The theme colour is a copy of COLORS.brand: scripts/logo/build.mjs --check compares them.
+      meta: [
+        { name: 'theme-color', content: '#18181b' },
+        { property: 'og:image:width', content: '1200' },
+        { property: 'og:image:height', content: '630' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+      ],
+    },
+  },
+
   site: {
     name: 'tui4s',
+    // claude 2026-10-20: created (review): the absolute URL of the preview images. This config value
+    // beats VERCEL_URL (the host of one deployment); NUXT_SITE_URL still overrides it.
+    url: siteUrl,
   },
 
   content: {
@@ -75,6 +101,14 @@ export default defineNuxtConfig({
 
   nitro: {
     prerender: { routes: ['/llms-full.txt'] },
+  },
+
+  // claude 2026-10-20: created (ADR 0022): the images are served as they are. The image
+  // optimizer (IPX) gives an SVG file the type text/plain, so the browser does not show the logo,
+  // and its SVGO pass removes the stroke of the logo that does not scale. The site has no other
+  // images that the optimizer can make smaller.
+  image: {
+    provider: 'none',
   },
 
   docus: {
