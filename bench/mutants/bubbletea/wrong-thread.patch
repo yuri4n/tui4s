@@ -1,0 +1,9 @@
+--- a/impl/bubbletea/counter/main.go
++++ b/impl/bubbletea/counter/main.go
+@@ -33,5 +33,5 @@
+ 		switch msg.String() {
+ 		case "+", "up":
+-			m.count++
++			go func() { m.count++ }()
+ 		case "-", "down":
+ 			m.count--

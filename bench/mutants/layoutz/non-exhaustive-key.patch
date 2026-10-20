@@ -1,0 +1,8 @@
+--- a/impl/layoutz/counter/Counter.scala
++++ b/impl/layoutz/counter/Counter.scala
+@@ -23,5 +23,4 @@
+     case Key.Char('-') | Key.Down => Some(Msg.Add(-1))
+     case Key.Ctrl('X')            => Some(Msg.Fail)
+-    case _                        => None
+   }
+ 

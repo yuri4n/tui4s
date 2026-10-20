@@ -1,0 +1,82 @@
+{
+ "bubbletea-counter": {
+  "gzip_bytes": 636,
+  "lines": 52,
+  "tokens": 327
+ },
+ "bubbletea-dashboard": {
+  "gzip_bytes": 1486,
+  "lines": 119,
+  "tokens": 932
+ },
+ "ink-counter": {
+  "gzip_bytes": 457,
+  "lines": 28,
+  "tokens": 265
+ },
+ "ink-dashboard": {
+  "gzip_bytes": 1306,
+  "lines": 103,
+  "tokens": 722
+ },
+ "jatatui-plain-counter": {
+  "gzip_bytes": 920,
+  "lines": 70,
+  "tokens": 560
+ },
+ "jatatui-plain-dashboard": {
+  "gzip_bytes": 1994,
+  "lines": 154,
+  "tokens": 1485
+ },
+ "layoutz-counter": {
+  "gzip_bytes": 555,
+  "lines": 23,
+  "tokens": 292
+ },
+ "layoutz-dashboard": {
+  "gzip_bytes": 1413,
+  "lines": 83,
+  "tokens": 904
+ },
+ "ratatui-counter": {
+  "gzip_bytes": 813,
+  "lines": 53,
+  "tokens": 475
+ },
+ "ratatui-dashboard": {
+  "gzip_bytes": 1932,
+  "lines": 138,
+  "tokens": 1322
+ },
+ "tamboui-counter": {
+  "gzip_bytes": 646,
+  "lines": 46,
+  "tokens": 387
+ },
+ "tamboui-dashboard": {
+  "gzip_bytes": 1584,
+  "lines": 120,
+  "tokens": 1221
+ },
+ "textual-counter": {
+  "gzip_bytes": 594,
+  "lines": 37,
+  "tokens": 233
+ },
+ "textual-dashboard": {
+  "gzip_bytes": 1380,
+  "lines": 102,
+  "tokens": 713
+ },
+ "tui4s-counter": {
+  "gzip_bytes": 473,
+  "lines": 27,
+  "tokens": 236
+ },
+ "tui4s-dashboard": {
+  "gzip_bytes": 1238,
+  "lines": 78,
+  "tokens": 681
+ }
+}

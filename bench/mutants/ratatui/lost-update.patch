@@ -1,0 +1,13 @@
+--- a/impl/ratatui/counter/src/main.rs
++++ b/impl/ratatui/counter/src/main.rs
+@@ -27,5 +27,9 @@
+             continue;
+         }
+-        if let Event::Key(key) = event::read()? {
++        let mut ev = event::read()?;
++        while event::poll(Duration::ZERO)? {
++            ev = event::read()?;
++        }
++        if let Event::Key(key) = ev {
+             if key.kind != KeyEventKind::Press {
+                 continue;

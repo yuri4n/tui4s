@@ -1,0 +1,84 @@
+--- a/impl/textual/dashboard/app.py
++++ b/impl/textual/dashboard/app.py
+@@ -11,7 +11,8 @@
+ from textual.reactive import reactive
+ from textual.widget import Widget
+-from textual.widgets import ProgressBar, Sparkline, Static
++from textual.widgets import Input, ProgressBar, Sparkline, Static
+ 
+ ITEMS = 1000
++LABELS = [f"Item {i:04}" for i in range(1, ITEMS + 1)]
+ 
+ 
+@@ -32,7 +33,13 @@
+     selected = reactive(0)
+     offset = 0
++    shown = LABELS
++
++    def refilter(self, text: str) -> None:
++        self.shown = [label for label in LABELS if text in label]
++        self.selected = 0
++        self.refresh()
+ 
+     def action_move(self, n: int) -> None:
+-        self.selected = max(0, min(ITEMS - 1, self.selected + n))
++        self.selected = max(0, min(len(self.shown) - 1, self.selected + n))
+ 
+     def action_page(self, n: int) -> None:
+@@ -42,7 +49,7 @@
+         rows = max(1, self.content_size.height)
+         self.offset = max(min(self.offset, self.selected), self.selected - rows + 1)
+-        last = min(ITEMS, self.offset + rows)
++        last = min(len(self.shown), self.offset + rows)
+         return "\n".join(
+-            f"{'> ' if i == self.selected else '  '}Item {i + 1:04}"
++            f"{'> ' if i == self.selected else '  '}{self.shown[i]}"
+             for i in range(self.offset, last)
+         )
+@@ -58,4 +65,7 @@
+     #title { width: 1fr; }
+     #clock { width: 8; }
++    #left { width: 1fr; }
++    ItemList { height: 1fr; }
++    #filter { height: 1; border: none; padding: 0; }
+     ItemList, Load { width: 1fr; border: solid gray; }
+     ItemList:focus, Load:focus { border: solid yellow; }
+@@ -76,7 +86,11 @@
+             yield Static(id="clock")
+         with Horizontal():
+-            items = ItemList()
+-            items.border_title = "Items"
+-            yield items
++            with Vertical(id="left"):
++                items = ItemList()
++                items.border_title = "Items"
++                yield items
++                with Horizontal(id="filter"):
++                    yield Static("Filter: ", classes="label")
++                    yield Input(compact=True)
+             with Load() as load:
+                 load.border_title = "Load"
+@@ -105,4 +119,8 @@
+         self.query_one("#clock", Static).update(time.strftime("%H:%M:%S"))
+ 
++    def on_input_changed(self, event: Input.Changed) -> None:
++        self.query_one(ItemList).refilter(event.value)
++        self.show_status()
++
+     def on_descendant_focus(self) -> None:
+         self.show_status()
+@@ -115,7 +133,12 @@
+             return
+         items = self.query_one(ItemList)
+-        focus = "list" if items.has_focus else "load"
++        if items.has_focus:
++            focus = "list"
++        else:
++            focus = "filter" if self.query_one(Input).has_focus else "load"
++        total = len(items.shown)
++        at = items.selected + 1 if total else 0
+         self.query_one("#status", Static).update(
+-            f"Selected {items.selected + 1:04}/{ITEMS} | Focus: {focus} | Tab focus, q quit"
++            f"Selected {at:04}/{total:04} | Focus: {focus} | Tab focus, q quit"
+         )
+ 

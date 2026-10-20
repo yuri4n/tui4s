@@ -1,4 +1,69 @@
 {
+ "change": {
+  "added": 7,
+  "built": true,
+  "changed": 7,
+  "passed": 11,
+  "removed": 0,
+  "steps": [
+   {
+    "detail": "",
+    "ok": true,
+    "step": "start"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 1"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 2"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 3"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "minus"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "up"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "burst +++++"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "unbound x"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "resize 80x24"
+   },
+   {
+    "detail": "exit=0 restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored': True}",
+    "ok": true,
+    "step": "quit"
+   }
+  ],
+  "total": 11
+ },
  "conformance": {
   "passed": 11,
   "steps": [

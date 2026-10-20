@@ -1,0 +1,16 @@
+--- a/impl/ink/counter/app.jsx
++++ b/impl/ink/counter/app.jsx
+@@ -12,10 +12,7 @@
+     else if (key.ctrl && input === "x")
+       throw new Error("forced failure (Ctrl-X)");
+-    // ink gives the characters of one read as one input ("+++"): one step per character.
+-    for (const ch of key.ctrl ? "" : input) {
+-      if (ch === "+") setCount((c) => c + 1);
+-      else if (ch === "-") setCount((c) => c - 1);
+-      else if (ch === "q") exit();
+-    }
++    if (input === "+") setCount((c) => c + 1);
++    else if (input === "-") setCount((c) => c - 1);
++    else if (input === "q") exit();
+   });
+   return (

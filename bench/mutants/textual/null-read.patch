@@ -1,0 +1,10 @@
+--- a/impl/textual/counter/app.py
++++ b/impl/textual/counter/app.py
+@@ -35,5 +35,6 @@
+ 
+     def watch_count(self, count: int) -> None:
+-        self.query_one("#count", Static).update(f"Count: {count}")
++        label = None if count == 3 else f"Count: {count}"
++        self.query_one("#count", Static).update(label.strip())
+ 
+     def action_add(self, n: int) -> None:

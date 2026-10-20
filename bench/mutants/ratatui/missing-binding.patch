@@ -1,0 +1,9 @@
+--- a/impl/ratatui/counter/src/main.rs
++++ b/impl/ratatui/counter/src/main.rs
+@@ -36,5 +36,5 @@
+                 KeyCode::Char('x') if ctrl => panic!("forced failure (Ctrl-X)"),
+                 KeyCode::Char('q') => break,
+-                KeyCode::Char('+') | KeyCode::Up => count += 1,
++                KeyCode::Char('+') => count += 1,
+                 KeyCode::Char('-') | KeyCode::Down => count -= 1,
+                 _ => {}

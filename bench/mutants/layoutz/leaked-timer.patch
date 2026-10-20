@@ -1,0 +1,11 @@
+--- a/impl/layoutz/counter/Counter.scala
++++ b/impl/layoutz/counter/Counter.scala
+@@ -13,5 +13,7 @@
+     Seq("sh", "-c", "stty size < /dev/tty").!!.trim.split(" ").head.toInt
+ 
+-  def init: (Int, Cmd[Msg]) = (0, Cmd.none)
++  def init: (Int, Cmd[Msg]) =
++    java.util.Timer().schedule(new java.util.TimerTask { def run() = () }, 0, 1000)
++    (0, Cmd.none)
+ 
+   def update(msg: Msg, count: Int): (Int, Cmd[Msg]) = msg match

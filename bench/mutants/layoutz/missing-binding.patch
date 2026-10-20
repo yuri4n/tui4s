@@ -1,0 +1,9 @@
+--- a/impl/layoutz/counter/Counter.scala
++++ b/impl/layoutz/counter/Counter.scala
+@@ -20,5 +20,5 @@
+ 
+   def subscriptions(count: Int): Sub[Msg] = Sub.onKeyPress {
+-    case Key.Char('+') | Key.Up   => Some(Msg.Add(1))
++    case Key.Char('+')            => Some(Msg.Add(1))
+     case Key.Char('-') | Key.Down => Some(Msg.Add(-1))
+     case Key.Ctrl('X')            => Some(Msg.Fail)

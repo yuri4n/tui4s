@@ -1,0 +1,8 @@
+--- a/impl/textual/counter/app.py
++++ b/impl/textual/counter/app.py
+@@ -39,4 +39,5 @@
+     def action_add(self, n: int) -> None:
+         self.count += n
++        print(f"count {self.count}")
+ 
+     def action_fail(self) -> None:

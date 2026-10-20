@@ -1,0 +1,30 @@
+--- a/impl/jatatui-plain/counter/Counter.java
++++ b/impl/jatatui-plain/counter/Counter.java
+@@ -18,4 +18,8 @@
+ public final class Counter {
+   private static volatile boolean running = true;
++  private static final String[] NUMBERS =
++      ("zero one two three four five six seven eight nine ten eleven twelve thirteen"
++              + " fourteen fifteen sixteen seventeen eighteen nineteen twenty")
++          .split(" ");
+   private static final CountDownLatch restored = new CountDownLatch(1);
+ 
+@@ -69,4 +73,5 @@
+                 new Constraint.Length(1),
+                 new Constraint.Length(1),
++                new Constraint.Length(1),
+                 new Constraint.Fill(1),
+                 new Constraint.Length(1))
+@@ -74,5 +79,11 @@
+     frame.renderWidget(Paragraph.of("Counter"), rows[0]);
+     frame.renderWidget(Paragraph.of("Count: " + count), rows[2]);
+-    frame.renderWidget(Paragraph.of("+/- or Up/Down change the count, q quits"), rows[4]);
++    frame.renderWidget(Paragraph.of("In words: " + words(count)), rows[3]);
++    frame.renderWidget(Paragraph.of("+/- or Up/Down change the count, q quits"), rows[5]);
++  }
++
++  static String words(int n) {
++    if (Math.abs(n) > 20) return Integer.toString(n);
++    return (n < 0 ? "minus " : "") + NUMBERS[Math.abs(n)];
+   }
+ }

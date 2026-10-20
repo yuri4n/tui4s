@@ -1,0 +1,84 @@
+--- a/impl/jatatui-plain/dashboard/Dashboard.java
++++ b/impl/jatatui-plain/dashboard/Dashboard.java
+@@ -41,4 +41,5 @@
+   enum Focus {
+     LIST,
++    FILTER,
+     LOAD
+   }
+@@ -49,4 +50,6 @@
+     final ListState list = ListState.empty().withSelected(Optional.of(0));
+     Focus focus = Focus.LIST;
++    String filter = "";
++    List<ListItem> shown = ITEM_ROWS;
+     int page = 1; // the visible item rows of the last frame
+ 
+@@ -56,5 +59,14 @@
+ 
+     void select(int i) {
+-      list.select(Optional.of(Math.max(0, Math.min(ITEMS - 1, i))));
++      list.select(Optional.of(Math.max(0, Math.min(shown.size() - 1, i))));
++    }
++
++    void setFilter(String f) {
++      filter = f;
++      shown = new ArrayList<>();
++      for (int i = 1; i <= ITEMS; i++) {
++        if (String.format("Item %04d", i).contains(f)) shown.add(ITEM_ROWS.get(i - 1));
++      }
++      select(0);
+     }
+ 
+@@ -114,6 +126,15 @@
+       case KeyCode.Char(var c) when ctrl && c == 'x' ->
+           throw new IllegalStateException("forced failure (Ctrl-X)");
++      case KeyCode.Char(var c) when s.focus == Focus.FILTER -> s.setFilter(s.filter + c);
++      case KeyCode.Backspace b when s.focus == Focus.FILTER && !s.filter.isEmpty() ->
++          s.setFilter(s.filter.substring(0, s.filter.length() - 1));
+       case KeyCode.Char(var c) when c == 'q' -> running = false;
+-      case KeyCode.Tab t -> s.focus = s.focus == Focus.LIST ? Focus.LOAD : Focus.LIST;
++      case KeyCode.Tab t ->
++          s.focus =
++              switch (s.focus) {
++                case LIST -> Focus.FILTER;
++                case FILTER -> Focus.LOAD;
++                case LOAD -> Focus.LIST;
++              };
+       case KeyCode.Down d when s.focus == Focus.LIST -> s.select(s.selected() + 1);
+       case KeyCode.Up u when s.focus == Focus.LIST -> s.select(s.selected() - 1);
+@@ -142,11 +163,16 @@
+         Layout.horizontal(new Constraint.Percentage(50), new Constraint.Percentage(50))
+             .split(rows[1]);
+-    s.page = Math.max(1, body[0].height() - 2);
++    Block items = panel("Items", s.focus != Focus.LOAD);
++    frame.renderWidget(items, body[0]);
++    Rect[] left =
++        Layout.vertical(new Constraint.Length(1), new Constraint.Fill(1))
++            .split(items.inner(body[0]));
++    frame.renderWidget(Paragraph.of("Filter: " + s.filter), left[0]);
++    s.page = Math.max(1, left[1].height());
+     var list =
+-        jatatui.widgets.list.List.of(ITEM_ROWS)
+-            .withBlock(panel("Items", s.focus == Focus.LIST))
++        jatatui.widgets.list.List.of(s.shown)
+             .withHighlightSymbol("> ")
+             .withHighlightSpacing(HighlightSpacing.Always);
+-    frame.renderStatefulWidget(list, body[0], s.list);
++    frame.renderStatefulWidget(list, left[1], s.list);
+ 
+     Block load = panel("Load", s.focus == Focus.LOAD);
+@@ -164,10 +190,11 @@
+     frame.renderWidget(Sparkline.empty().withDataLongs(data).withMax(100), lines[2]);
+ 
+-    String focus = s.focus == Focus.LIST ? "list" : "load";
++    String focus = s.focus.name().toLowerCase();
++    int at = s.shown.isEmpty() ? 0 : s.selected() + 1;
+     frame.renderWidget(
+         Paragraph.of(
+             String.format(
+-                "Selected %04d/%d | Focus: %s | Tab focus, q quit",
+-                s.selected() + 1, ITEMS, focus)),
++                "Selected %04d/%04d | Focus: %s | Tab focus, q quit",
++                at, s.shown.size(), focus)),
+         rows[2]);
+   }

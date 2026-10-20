@@ -1,0 +1,14 @@
+--- a/impl/ink/counter/app.jsx
++++ b/impl/ink/counter/app.jsx
+@@ -3,8 +3,10 @@
+ import { render, Box, Text, useApp, useInput, useWindowSize } from "ink";
+ 
++const START_ROWS = process.stdout.rows;
++
+ function Counter() {
+   const [count, setCount] = useState(0);
+   const { exit } = useApp();
+-  const { rows } = useWindowSize();
++  const rows = START_ROWS;
+   useInput((input, key) => {
+     if (key.upArrow) setCount((c) => c + 1);

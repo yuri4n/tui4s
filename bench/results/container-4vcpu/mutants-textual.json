@@ -1,0 +1,60 @@
+{
+ "stack": "textual",
+ "machine": "container-4vcpu",
+ "baseline_failed": [],
+ "rebuilt": true,
+ "classes": {
+  "no-restore-on-exception": {
+   "outcome": "n/a",
+   "detail": "Textual catches the exception of an action, ends the app and restores the terminal; the app has no switch to turn this off"
+  },
+  "wrong-thread": {
+   "outcome": "silent-wrong-behaviour",
+   "detail": "every step that passes without the mutant passes with it"
+  },
+  "no-resize": {
+   "outcome": "n/a",
+   "detail": "the CSS layout follows each resize; an app keeps no size of its own (a fixed size is the wrong-unit class)"
+  },
+  "off-by-one": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "start: row 29: '+/- or Up/Down change the count, q quits' (want ''); row 30: '' (want '+/- or Up/Down change the count, q quits; resize 80x24: Counter | Count: 7 | +/- or Up/Down change the count, q quits"
+  },
+  "blocking-handler": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "plus 1: no 'Count: 1' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 2: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 3: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; minus: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the c"
+  },
+  "leaked-timer": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "quit: exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [889], 'restored': False}; failure probe: error-screen+hung exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored"
+  },
+  "non-exhaustive-key": {
+   "outcome": "n/a",
+   "detail": "bindings map keys to actions; an unbound key does nothing"
+  },
+  "null-read": {
+   "outcome": "runtime-crash",
+   "detail": "exit 1 during the key script; plus 3: no 'Count: 3' on row 3 in 1.5 s: \u2502 \u2502        \u2502   \u2502   'dark'                       \u2502                                      ; minus: no 'Count: 2' on row 3 in 1.5 s: \u2502 \u2502        \u2502   \u2502   'dark'                       \u2502                                      ; up: no 'Count: 3' on row 3 in 1.5 s: \u2502 \u2502        \u2502   \u2502   'dark'                       \u2502                                      ; down: no 'Count: 2' on row 3 in 1.5 s: \u2502 \u2502        \u2502   \u2502   'dark'                       \u2502                           "
+  },
+  "stale-closure": {
+   "outcome": "n/a",
+   "detail": "the actions read the reactive attribute; no closure keeps the state"
+  },
+  "wrong-unit": {
+   "outcome": "runtime-crash",
+   "detail": "exit 1 before the first frame; start: no 'Count: 0' in 20 s: \u256d\u2500 Error at /home/user/tui4s-l5-bench/bench/impl/textual/counter/app.py in CounterApp.CSS:2:26 \u2500\u2500"
+  },
+  "stdout-write": {
+   "outcome": "defused",
+   "detail": "Textual captures print() while the app runs"
+  },
+  "missing-binding": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the count, q quits; burst +++++: no 'Count: 7' on row 3 in 1.5 s: Counter | Count: 6 | +/- or Up/Down change the count, q quits; unbound x: row 3: 'Count: 6' (want 'Count: 7'); resize 80x24: Counter | Count: 6 | +/- or Up/Down change the count, q quits"
+  },
+  "lost-update": {
+   "outcome": "defused",
+   "detail": "Textual handles one message at a time and awaits its action"
+  }
+ }
+}

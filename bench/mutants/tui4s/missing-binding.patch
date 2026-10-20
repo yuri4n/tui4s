@@ -1,0 +1,9 @@
+--- a/impl/tui4s/counter/Counter.scala
++++ b/impl/tui4s/counter/Counter.scala
+@@ -13,5 +13,5 @@
+         .style(_.height(100.pct))
+         .onKeyDown {
+-          case KeyboardEvent(Keyboard.Char('+') | Keyboard.ArrowUp, _, _) =>
++          case KeyboardEvent(Keyboard.Char('+'), _, _) =>
+             add(1)
+           case KeyboardEvent(Keyboard.Char('-') | Keyboard.ArrowDown, _, _) =>

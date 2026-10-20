@@ -1,0 +1,63 @@
+{
+ "stack": "layoutz",
+ "machine": "container-4vcpu",
+ "baseline_failed": [
+  "resize 80x24",
+  "start"
+ ],
+ "rebuilt": true,
+ "classes": {
+  "no-restore-on-exception": {
+   "outcome": "n/a",
+   "detail": "the runtime catches the exceptions of update and keeps the terminal"
+  },
+  "wrong-thread": {
+   "outcome": "n/a",
+   "detail": "update runs under the lock of the runtime; the app has no thread of its own"
+  },
+  "no-resize": {
+   "outcome": "n/a",
+   "detail": "layoutz has no resize event; the unchanged program already fails the resize step"
+  },
+  "off-by-one": {
+   "outcome": "silent-wrong-behaviour",
+   "detail": "every step that passes without the mutant passes with it"
+  },
+  "blocking-handler": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "plus 1: no 'Count: 1' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 2: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 3: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; minus: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the c"
+  },
+  "leaked-timer": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "quit: exit=None restore={'cooked': True, 'alt_screen': 'never-entered', 'cursor': 'visible', 'orphans': [4315], 'restored': Fa; failure probe: contained+hung exit=None restore={'cooked': True, 'alt_screen': 'never-entered', 'cursor': 'visible', 'orphans': [], 're"
+  },
+  "non-exhaustive-key": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "unbound x: Count: 7 | +/- or Up/Down change the count, q quits | Input error: Char(x) (of class layoutz.Key$Char)"
+  },
+  "null-read": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "plus 3: no 'Count: 3' on row 3 in 1.5 s: Render error: null | Render error: null | Render error: null | Render error: null | Ren; minus: no 'Count: 2' on row 3 in 1.5 s: Render error: null | Render error: null | Render error: null | Render error: null | Ren; up: no 'Count: 3' on row 3 in 1.5 s: Render error: null | Render error: null | Render error: null | Render error: null | Ren; down: no 'Count: 2' on row 3 in 1.5 s: Render error: null | Render error: null | Render error: null | Render error:"
+  },
+  "stale-closure": {
+   "outcome": "n/a",
+   "detail": "update gets the current state as a value (Elm architecture)"
+  },
+  "wrong-unit": {
+   "outcome": "n/a",
+   "detail": "the counter has no size or duration in layoutz"
+  },
+  "stdout-write": {
+   "outcome": "silent-wrong-behaviour",
+   "detail": "every step that passes without the mutant passes with it"
+  },
+  "missing-binding": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the count, q quits; burst +++++: no 'Count: 7' on row 3 in 1.5 s: Counter | Count: 6 | +/- or Up/Down change the count, q quits; unbound x: Counter | Count: 6 | +/- or Up/Down change the count, q quits"
+  },
+  "lost-update": {
+   "outcome": "n/a",
+   "detail": "the runtime applies each message under its lock, one at a time"
+  }
+ }
+}

@@ -1,0 +1,20 @@
+--- a/impl/ink/counter/app.jsx
++++ b/impl/ink/counter/app.jsx
+@@ -2,4 +2,11 @@
+ import { useState } from "react";
+ import { render, Box, Text, useApp, useInput, useWindowSize } from "ink";
++
++const NUMBERS = (
++  "zero one two three four five six seven eight nine ten eleven twelve thirteen" +
++  " fourteen fifteen sixteen seventeen eighteen nineteen twenty"
++).split(" ");
++const words = (n) =>
++  Math.abs(n) > 20 ? String(n) : (n < 0 ? "minus " : "") + NUMBERS[Math.abs(n)];
+ 
+ function Counter() {
+@@ -24,4 +31,5 @@
+       <Text> </Text>
+       <Text>Count: {count}</Text>
++      <Text>In words: {words(count)}</Text>
+       <Box flexGrow={1} />
+       <Text>+/- or Up/Down change the count, q quits</Text>

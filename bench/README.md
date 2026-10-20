@@ -46,7 +46,7 @@ bench/run.sh ci         # the CI smoke: build all, conformance, resilience, muta
 `harness/report.py` writes the tables below. The machine of this page:
 
 <!-- report:begin machine -->
-Machine `container-4vcpu`: Intel(R) Xeon(R) Processor @ 2.10GHz, 4 CPUs, 15.7 GB, Linux 6.18.44-fc-v139, measured 2026-10-20T03:47:58Z. The build container of this session: 4 vCPU shared with other work, noisy.
+Machine `container-4vcpu`: Intel(R) Xeon(R) Processor @ 2.10GHz, 4 CPUs, 15.7 GB, Linux 6.18.44-fc-v139, measured 2026-10-20T03:59:45Z. The build container of this session: 4 vCPU shared with other work, noisy.
 <!-- report:end machine -->
 
 ## Compactness
@@ -58,6 +58,16 @@ token), and the gzip bytes of the source without comments
 of each stack.
 
 <!-- report:begin compactness -->
+| Stack | counter lines | tokens | gzip B | dashboard lines | tokens | gzip B |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| tui4s | 27 | 236 | 473 | 78 | 681 | 1238 |
+| jatatui-plain | 70 | 560 | 920 | 154 | 1485 | 1994 |
+| TamboUI | 46 | 387 | 646 | 120 | 1221 | 1584 |
+| layoutz | 23 | 292 | 555 | 83 | 904 | 1413 |
+| ratatui | 53 | 475 | 813 | 138 | 1322 | 1932 |
+| bubbletea | 52 | 327 | 636 | 119 | 932 | 1486 |
+| Textual | 37 | 233 | 594 | 102 | 713 | 1380 |
+| ink | 28 | 265 | 457 | 103 | 722 | 1306 |
 <!-- report:end compactness -->
 
 ## Expressiveness
@@ -70,6 +80,16 @@ blank and comment lines; the harness applies the patch, builds it and runs the
 oracle of the change).
 
 <!-- report:begin expressiveness -->
+| Stack | counter concepts | change lines | change oracle | dashboard concepts | change lines | change oracle |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| tui4s | 11 | 7 | 11/11 | 23 | 33 | 5/5 |
+| jatatui-plain | 9 | 12 | 11/11 | 18 | 44 | 5/5 |
+| TamboUI | 9 | 12 | 11/11 | 17 | 52 | 5/5 |
+| layoutz | 8 | 9 | 9/11 | 16 | 47 | 3/5 |
+| ratatui | 10 | 16 | 11/11 | 19 | 53 | 5/5 |
+| bubbletea | 9 | 13 | 11/11 | 17 | 51 | 5/5 |
+| Textual | 11 | 10 | 11/11 | 22 | 37 | 5/5 |
+| ink | 9 | 7 | 11/11 | 16 | 28 | 5/5 |
 <!-- report:end expressiveness -->
 
 ## Correctness
@@ -129,10 +149,61 @@ of the counter per class and stack. The outcome is what finds the bug first:
 the compiler, a crash, the oracle of the harness, or nothing.
 
 <!-- report:begin mutants -->
+| Stack | compile-error | runtime-crash | test-or-oracle-catches | defused | silent-wrong-behaviour | n/a | mutants run |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| tui4s | 0 | 1 | 6 | 4 | 0 | 2 | 11 |
+| jatatui-plain | 1 | 1 | 11 | 0 | 0 | 0 | 13 |
+| TamboUI | 0 | 0 | 0 | 0 | 0 | 13 | 0 |
+| layoutz | 0 | 0 | 5 | 0 | 2 | 6 | 7 |
+| ratatui | 2 | 2 | 8 | 1 | 0 | 0 | 13 |
+| bubbletea | 0 | 1 | 9 | 1 | 0 | 2 | 11 |
+| Textual | 0 | 2 | 4 | 2 | 1 | 4 | 9 |
+| ink | 0 | 1 | 7 | 1 | 0 | 4 | 9 |
 <!-- report:end mutants -->
 
 <!-- report:begin mutant-matrix -->
+| Stack | no-restore-on-exception | wrong-thread | no-resize | off-by-one | blocking-handler | leaked-timer | non-exhaustive-key | null-read | stale-closure | wrong-unit | stdout-write | missing-binding | lost-update |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| tui4s | n/a | n/a | defused | oracle | oracle | oracle | defused | crash | oracle | defused | defused | oracle | oracle |
+| jatatui-plain | oracle | oracle | oracle | oracle | oracle | oracle | compile | crash | oracle | oracle | oracle | oracle | oracle |
+| TamboUI | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| layoutz | n/a | n/a | n/a | SILENT | oracle | oracle | oracle | oracle | n/a | n/a | SILENT | oracle | n/a |
+| ratatui | oracle | compile | crash | oracle | oracle | defused | compile | crash | oracle | oracle | oracle | oracle | oracle |
+| bubbletea | oracle | oracle | oracle | oracle | oracle | defused | n/a | crash | n/a | oracle | oracle | oracle | oracle |
+| Textual | n/a | SILENT | n/a | oracle | oracle | oracle | n/a | crash | n/a | crash | defused | oracle | defused |
+| ink | n/a | n/a | oracle | oracle | oracle | oracle | n/a | crash | oracle | n/a | defused | oracle | oracle |
 <!-- report:end mutant-matrix -->
+
+## What stage 1 found
+
+- **Conformance.** Seven stacks pass every step of both key scripts. layoutz
+  fails the start (its last row stays free) and the resize (it has no size
+  events): see `impl/layoutz/README.md`.
+- **Keys in one read.** bubbletea and ink give the keys of one read (`+++++`)
+  to the program as one message. A handler that compares the message with
+  `+` loses keys; their counters split the message (the `lost-update` mutants
+  of both stacks remove that split, and the oracle catches them).
+- **Signals.** Every stack restores the terminal in the six rows of the
+  restore contract on this machine. tui4s, TamboUI, bubbletea, ink and layoutz
+  do it with no code of the app. jatatui-plain needs a shutdown hook, ratatui
+  needs `signal-hook`, and Textual needs a handler on the asyncio loop; that
+  code counts in their compactness.
+- **The forced failure.** tui4s and layoutz contain an exception of a key
+  handler and go on; TamboUI shows an error screen; the other stacks end the
+  program and restore the terminal.
+- **Mutants.** In every stack the oracle, a crash or the compiler finds most
+  mutants. tui4s defuses four (the capture of stdout, the `MatchError` of a
+  handler, two fixed root heights) and has no silent mutant; the compiler
+  catches one in jatatui-plain and two in ratatui (a match that is not
+  exhaustive; in ratatui also a draw from another thread). The silent ones: a
+  state change from another thread in Textual (it works here, but Textual asks
+  for `call_from_thread`), and in layoutz a write to stdout (the next frame
+  overwrites it) and an off-by-one row (its start step already fails).
+- **tui4s.** The gaps that the bench shows are in the open issues of the
+  bench report: the start time and the memory of the JVM stack, an idle CPU of
+  about 5 %, `ListView.virtual` with a fixed height (the dashboard mounts a new
+  list for each terminal height), the fixed page of `useSelection`, and an
+  exception in a view that ends the run (the `null-read` mutant).
 
 ## Layout of this directory
 

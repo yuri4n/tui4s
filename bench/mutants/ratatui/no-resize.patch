@@ -1,0 +1,25 @@
+--- a/impl/ratatui/counter/src/main.rs
++++ b/impl/ratatui/counter/src/main.rs
+@@ -22,6 +22,7 @@
+ fn run(terminal: &mut DefaultTerminal, stop: &AtomicBool) -> std::io::Result<()> {
+     let mut count: i64 = 0;
++    let start = terminal.size()?;
+     while !stop.load(Ordering::Relaxed) {
+-        terminal.draw(|frame| render(frame, count))?;
++        terminal.draw(|frame| render(frame, count, start))?;
+         if !event::poll(Duration::from_millis(100))? {
+             continue;
+@@ -45,5 +46,5 @@
+ }
+ 
+-fn render(frame: &mut Frame, count: i64) {
++fn render(frame: &mut Frame, count: i64, start: ratatui::layout::Size) {
+     let [title, _, value, _, help] = Layout::vertical([
+         Constraint::Length(1),
+@@ -53,5 +54,5 @@
+         Constraint::Length(1),
+     ])
+-    .areas(frame.area());
++    .areas(ratatui::layout::Rect::new(0, 0, start.width, start.height));
+     frame.render_widget("Counter", title);
+     frame.render_widget(format!("Count: {count}"), value);

@@ -1,0 +1,21 @@
+--- a/impl/tui4s/counter/Counter.scala
++++ b/impl/tui4s/counter/Counter.scala
+@@ -6,4 +6,12 @@
+ /** The counter of the bench: kyo-ui on the tui4s runner. */
+ object CounterApp extends TuiApp:
++  val numbers: Vector[String] =
++    ("zero one two three four five six seven eight nine ten eleven twelve " +
++      "thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty").split(" ").toVector
++
++  def words(n: Int): String =
++    if n.abs > 20 then n.toString
++    else (if n < 0 then "minus " else "") + numbers(n.abs)
++
+   def ui: UI < (Async & Scope) =
+     for count <- Signal.initRef(0)
+@@ -26,4 +34,5 @@
+             span("Count: ", count.map(_.toString))
+           ),
++          div(span("In words: ", count.map(words))),
+           div.style(_.flexGrow(1)),
+           div("+/- or Up/Down change the count, q quits")

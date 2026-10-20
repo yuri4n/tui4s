@@ -1,0 +1,9 @@
+--- a/impl/jatatui-plain/counter/Counter.java
++++ b/impl/jatatui-plain/counter/Counter.java
+@@ -73,5 +73,5 @@
+             .split(frame.area());
+     frame.renderWidget(Paragraph.of("Counter"), rows[0]);
+-    frame.renderWidget(Paragraph.of("Count: " + count), rows[2]);
++    frame.renderWidget(Paragraph.of("Count: " + (count == 3 ? ((String) null).trim() : count)), rows[2]);
+     frame.renderWidget(Paragraph.of("+/- or Up/Down change the count, q quits"), rows[4]);
+   }

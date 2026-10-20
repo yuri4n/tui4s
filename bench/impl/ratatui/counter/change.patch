@@ -1,0 +1,30 @@
+--- a/impl/ratatui/counter/src/main.rs
++++ b/impl/ratatui/counter/src/main.rs
+@@ -45,6 +45,20 @@
+ }
+ 
++fn words(n: i64) -> String {
++    const NUMBERS: [&str; 21] = [
++        "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
++        "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen",
++        "nineteen", "twenty",
++    ];
++    match n.unsigned_abs() as usize {
++        a if a > 20 => n.to_string(),
++        a if n < 0 => format!("minus {}", NUMBERS[a]),
++        a => NUMBERS[a].to_string(),
++    }
++}
++
+ fn render(frame: &mut Frame, count: i64) {
+-    let [title, _, value, _, help] = Layout::vertical([
++    let [title, _, value, in_words, _, help] = Layout::vertical([
++        Constraint::Length(1),
+         Constraint::Length(1),
+         Constraint::Length(1),
+@@ -56,4 +70,5 @@
+     frame.render_widget("Counter", title);
+     frame.render_widget(format!("Count: {count}"), value);
++    frame.render_widget(format!("In words: {}", words(count)), in_words);
+     frame.render_widget("+/- or Up/Down change the count, q quits", help);
+ }

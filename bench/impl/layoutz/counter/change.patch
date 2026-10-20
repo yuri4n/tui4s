@@ -1,0 +1,23 @@
+--- a/impl/layoutz/counter/Counter.scala
++++ b/impl/layoutz/counter/Counter.scala
+@@ -12,4 +12,12 @@
+   val height: Int =
+     Seq("sh", "-c", "stty size < /dev/tty").!!.trim.split(" ").head.toInt
++
++  val numbers: Vector[String] =
++    ("zero one two three four five six seven eight nine ten eleven twelve " +
++      "thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty").split(" ").toVector
++
++  def words(n: Int): String =
++    if n.abs > 20 then n.toString
++    else (if n < 0 then "minus " else "") + numbers(n.abs)
+ 
+   def init: (Int, Cmd[Msg]) = (0, Cmd.none)
+@@ -29,5 +37,6 @@
+   // scroll the screen, so the help is on the row above it.
+   def view(count: Int): Element =
+-    val top = Seq[Element]("Counter", "", s"Count: $count")
++    val top =
++      Seq[Element]("Counter", "", s"Count: $count", s"In words: ${words(count)}")
+     val gap = Seq.fill(height - top.size - 2)(Text(""))
+     layout((top ++ gap :+ Text("+/- or Up/Down change the count, q quits"))*)

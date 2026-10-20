@@ -1,0 +1,9 @@
+--- a/impl/jatatui-plain/counter/Counter.java
++++ b/impl/jatatui-plain/counter/Counter.java
+@@ -67,5 +67,5 @@
+         Layout.vertical(
+                 new Constraint.Length(1),
+-                new Constraint.Length(1),
++                new Constraint.Percentage(1),
+                 new Constraint.Length(1),
+                 new Constraint.Fill(1),

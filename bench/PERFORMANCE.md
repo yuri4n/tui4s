@@ -6,7 +6,7 @@ They are here so that a reader sees the costs of each stack, and the costs of
 tui4s first.
 
 <!-- report:begin machine -->
-Machine `container-4vcpu`: Intel(R) Xeon(R) Processor @ 2.10GHz, 4 CPUs, 15.7 GB, Linux 6.18.44-fc-v139, measured 2026-10-20T03:47:58Z. The build container of this session: 4 vCPU shared with other work, noisy.
+Machine `container-4vcpu`: Intel(R) Xeon(R) Processor @ 2.10GHz, 4 CPUs, 15.7 GB, Linux 6.18.44-fc-v139, measured 2026-10-20T03:59:45Z. The build container of this session: 4 vCPU shared with other work, noisy.
 <!-- report:end machine -->
 
 **The machine is noisy.** The numbers of this page come from a shared build
@@ -71,3 +71,28 @@ columns, 30 rows).
 | tui4s AOT cache (JDK 25) | measured in L5b |  |  |  |  |  |  |  |  |  |
 | tui4s native image (GraalVM) | measured in L5b |  |  |  |  |  |  |  |  |  |
 <!-- report:end perf-dashboard -->
+
+## What the numbers say (this machine)
+
+- **Startup.** tui4s shows its first frame after about 1.2 s (counter) and
+  1.6 s (dashboard). jatatui-plain, on the same JVM and the same jatatui jars,
+  needs about 0.2 s and 0.3 s: on this machine Kyo, kyo-ui and the tui4s
+  runner add about 1 to 1.3 s of startup (class loading and interpretation
+  before the JIT). The native stacks need 8 ms (ratatui) and 30 ms
+  (bubbletea).
+- **Memory and size.** tui4s uses about 130 MB (counter) and 200 MB
+  (dashboard) of RSS, and 38.5 MB of jars; jatatui-plain uses about 65 MB and
+  110 MB, and 2 MB of jars. The JVM default heap settings are in use for all
+  the JVM stacks.
+- **Idle CPU.** The tui4s counter uses about 5 % of one CPU when nothing
+  happens: the most of all the stacks (the others: 0 % to 2 %). The repair
+  tick of the runner (each second) and the Kyo scheduler are the likely
+  causes; this is an open issue for tui4s.
+- **The 100 ms timer.** With the dashboard timer, tui4s uses about 20 % of one
+  CPU (jatatui-plain about 5 %, ratatui under 1 %). Every stack keeps the
+  timer: the median gap between two ticks on the screen is 100 to 103 ms, and
+  no stack skips a tick.
+- **Keys.** After the first key (60 to 90 ms in tui4s, before the JIT), a key
+  shows its effect in about 5 ms (counter) and 15 ms (dashboard) in tui4s. The
+  stacks that redraw on a timer show it later: layoutz about 30 ms (it renders
+  each 50 ms), Textual about 76 ms in the dashboard.

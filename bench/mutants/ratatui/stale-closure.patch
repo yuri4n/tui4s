@@ -1,0 +1,11 @@
+--- a/impl/ratatui/counter/src/main.rs
++++ b/impl/ratatui/counter/src/main.rs
+@@ -22,6 +22,7 @@
+ fn run(terminal: &mut DefaultTerminal, stop: &AtomicBool) -> std::io::Result<()> {
+     let mut count: i64 = 0;
++    let draw = move |frame: &mut Frame| render(frame, count);
+     while !stop.load(Ordering::Relaxed) {
+-        terminal.draw(|frame| render(frame, count))?;
++        terminal.draw(draw)?;
+         if !event::poll(Duration::from_millis(100))? {
+             continue;

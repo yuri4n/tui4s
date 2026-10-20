@@ -1,0 +1,11 @@
+--- a/impl/layoutz/counter/Counter.scala
++++ b/impl/layoutz/counter/Counter.scala
+@@ -16,5 +16,7 @@
+ 
+   def update(msg: Msg, count: Int): (Int, Cmd[Msg]) = msg match
+-    case Msg.Add(n) => (count + n, Cmd.none)
++    case Msg.Add(n) =>
++      println(s"count ${count + n}")
++      (count + n, Cmd.none)
+     case Msg.Fail   => throw RuntimeException("forced failure (Ctrl-X)")
+ 

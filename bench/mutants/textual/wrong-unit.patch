@@ -1,0 +1,9 @@
+--- a/impl/textual/counter/app.py
++++ b/impl/textual/counter/app.py
+@@ -12,5 +12,5 @@
+ class CounterApp(App):
+     CSS = """
+-    #count { margin-top: 1; }
++    #count { margin-top: 1vh; }
+     #help { dock: bottom; }
+     """

@@ -1,4 +1,39 @@
 {
+ "change": {
+  "added": 32,
+  "built": true,
+  "changed": 47,
+  "passed": 3,
+  "removed": 15,
+  "steps": [
+   {
+    "detail": "status bar not on the last row; Dashboard                                                                                   03:45:15 | \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500*Items*\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510 \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500Load\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510 | \u2502 Filter:                                        \u2502 \u2502 Ticks: 4                                 ",
+    "ok": false,
+    "step": "start"
+   },
+   {
+    "detail": "status=(1, 1000, 'filter')",
+    "ok": true,
+    "step": "tab to filter"
+   },
+   {
+    "detail": "status=(1, 19, 'filter') marked=99",
+    "ok": true,
+    "step": "filter 99"
+   },
+   {
+    "detail": "status=(1, 271, 'filter')",
+    "ok": true,
+    "step": "backspace"
+   },
+   {
+    "detail": "",
+    "ok": false,
+    "step": "quit (Ctrl-C)"
+   }
+  ],
+  "total": 5
+ },
  "conformance": {
   "passed": 12,
   "steps": [

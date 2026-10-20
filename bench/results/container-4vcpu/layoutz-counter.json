@@ -1,4 +1,69 @@
 {
+ "change": {
+  "added": 8,
+  "built": true,
+  "changed": 9,
+  "passed": 9,
+  "removed": 1,
+  "steps": [
+   {
+    "detail": "row 29: '+/- or Up/Down change the count, q quits' (want ''); row 30: '' (want '+/- or Up/Down change the count, q quits')",
+    "ok": false,
+    "step": "start"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 1"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 2"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 3"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "minus"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "up"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "burst +++++"
+   },
+   {
+    "detail": "Counter | Count: 7 | In words: seven | +/- or Up/Down change the count, q quits",
+    "ok": true,
+    "step": "unbound x"
+   },
+   {
+    "detail": "Counter | Count: 7 | In words: seven",
+    "ok": false,
+    "step": "resize 80x24"
+   },
+   {
+    "detail": "exit=0 restore={'cooked': True, 'alt_screen': 'never-entered', 'cursor': 'visible', 'orphans': [], 'restored': True}",
+    "ok": true,
+    "step": "quit"
+   }
+  ],
+  "total": 11
+ },
  "conformance": {
   "passed": 9,
   "steps": [

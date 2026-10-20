@@ -1,0 +1,95 @@
+--- a/impl/layoutz/dashboard/Dashboard.scala
++++ b/impl/layoutz/dashboard/Dashboard.scala
+@@ -11,4 +11,6 @@
+   case Page(n: Int)
+   case ToggleFocus
++  case Typed(c: Char)
++  case Erase
+   case Fail
+ 
+@@ -18,5 +20,6 @@
+     selected: Int = 0,
+     offset: Int = 0,
+-    onLoad: Boolean = false
++    focus: String = "list",
++    filter: String = ""
+ )
+ 
+@@ -34,4 +37,8 @@
+   // header, the panels, the status bar.
+   val rows: Int = (height - 1 - 2 - 2).max(1)
++  val listRows: Int = (rows - 1).max(1)
++  val labels: Vector[String] = (1 to Items).map(i => f"Item $i%04d").toVector
++
++  def shown(s: State): Vector[String] = labels.filter(_.contains(s.filter))
+ 
+   /** v(T) of the specification. */
+@@ -41,6 +48,6 @@
+ 
+   def select(s: State, i: Int): State =
+-    val sel = i.max(0).min(Items - 1)
+-    s.copy(selected = sel, offset = s.offset.max(sel - rows + 1).min(sel))
++    val sel = i.min(shown(s).size - 1).max(0)
++    s.copy(selected = sel, offset = s.offset.max(sel - listRows + 1).min(sel))
+ 
+   def update(msg: Msg, s: State): (State, Cmd[Msg]) = msg match
+@@ -51,8 +58,14 @@
+         Cmd.none
+       )
+-    case Msg.Move(n) if !s.onLoad => (select(s, s.selected + n), Cmd.none)
+-    case Msg.Page(n) if !s.onLoad =>
+-      (select(s, s.selected + n * rows), Cmd.none)
+-    case Msg.ToggleFocus => (s.copy(onLoad = !s.onLoad), Cmd.none)
++    case Msg.Move(n) if s.focus == "list" =>
++      (select(s, s.selected + n), Cmd.none)
++    case Msg.Page(n) if s.focus == "list" =>
++      (select(s, s.selected + n * listRows), Cmd.none)
++    case Msg.ToggleFocus =>
++      val next = Map("list" -> "filter", "filter" -> "load", "load" -> "list")
++      (s.copy(focus = next(s.focus)), Cmd.none)
++    case Msg.Typed(c) => (select(s.copy(filter = s.filter + c, offset = 0), 0), Cmd.none)
++    case Msg.Erase =>
++      (select(s.copy(filter = s.filter.dropRight(1), offset = 0), 0), Cmd.none)
+     case Msg.Fail        => throw RuntimeException("forced failure (Ctrl-X)")
+     case _               => (s, Cmd.none)
+@@ -61,4 +74,6 @@
+     Sub.time.everyMs(100, Msg.Tick),
+     Sub.onKeyPress {
++      case Key.Char(c) if s.focus == "filter" => Some(Msg.Typed(c))
++      case Key.Backspace if s.focus == "filter" => Some(Msg.Erase)
+       case Key.Down      => Some(Msg.Move(1))
+       case Key.Up        => Some(Msg.Move(-1))
+@@ -78,22 +93,25 @@
+     val right = width - width / 2 - 5
+     val time = LocalTime.now.format(clock)
+-    val items = (s.offset until (s.offset + rows).min(Items)).map(i =>
+-      val marker = if i == s.selected then "> " else "  "
+-      Text(f"$marker%sItem ${i + 1}%04d".padTo(left, ' '))
+-    )
++    val all = shown(s)
++    val items = Text(s"Filter: ${s.filter}".padTo(left, ' ')) +:
++      (s.offset until (s.offset + listRows).min(all.size)).map(i =>
++        val marker = if i == s.selected then "> " else "  "
++        Text(s"$marker${all(i)}".padTo(left, ' '))
++      )
+     val v = value(s.ticks)
+     val bar = "█" * (v * 40 / 100) + "░" * (40 - v * 40 / 100) + f" $v%3d%%"
+     val load = Seq[Element](s"Ticks: ${s.ticks}", bar, sparkline(s.history))
+       .map(e => Text(e.render.padTo(right, ' ')))
+-    val focus = if s.onLoad then "load" else "list"
++    val onLoad = s.focus == "load"
++    val at = if all.isEmpty then 0 else s.selected + 1
+     layout(
+       "Dashboard" + " " * (width - 9 - time.length) + time,
+       row(
+-        box(if s.onLoad then "Items" else "*Items*")(items*),
+-        box(if s.onLoad then "*Load*" else "Load")(
++        box(if onLoad then "Items" else "*Items*")(items*),
++        box(if onLoad then "*Load*" else "Load")(
+           (load ++ Seq.fill(rows - load.size)(Text(" " * right)))*
+         )
+       ),
+-      f"Selected ${s.selected + 1}%04d/$Items | Focus: $focus | Tab focus, q quit"
++      f"Selected $at%04d/${all.size}%04d | Focus: ${s.focus} | Tab focus, q quit"
+     )
+ 

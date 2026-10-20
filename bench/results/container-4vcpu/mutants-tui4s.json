@@ -1,0 +1,60 @@
+{
+ "stack": "tui4s",
+ "machine": "container-4vcpu",
+ "baseline_failed": [],
+ "rebuilt": true,
+ "classes": {
+  "no-restore-on-exception": {
+   "outcome": "n/a",
+   "detail": "the runner owns the restore (a release stack and a shutdown hook); a key handler has no way to skip it"
+  },
+  "wrong-thread": {
+   "outcome": "n/a",
+   "detail": "only the runner draws, and a SignalRef is safe to write from any fiber or thread"
+  },
+  "no-resize": {
+   "outcome": "defused",
+   "detail": "the screen is a flex column: a root that is taller than the screen shrinks to it, so the last row stays on the screen after a resize"
+  },
+  "off-by-one": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "start: row 29: '+/- or Up/Down change the count, q quits' (want ''); row 30: '' (want '+/- or Up/Down change the count, q quits; resize 80x24: Counter | Count: 7 | +/- or Up/Down change the count, q quits"
+  },
+  "blocking-handler": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "plus 1: no 'Count: 1' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 2: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 3: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; minus: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the c"
+  },
+  "leaked-timer": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "quit: exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [5995], 'restored': False}; failure probe: contained+hung exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored': "
+  },
+  "non-exhaustive-key": {
+   "outcome": "defused",
+   "detail": "the runner catches the MatchError of the handler, logs it and goes on"
+  },
+  "null-read": {
+   "outcome": "runtime-crash",
+   "detail": "exit 1 during the key script; plus 3: no 'Count: 3' on row 3 in 1.5 s: at kyo.Abort[-scala.Any].handle(Unknown Source) | at runWith @ tui4s.TuiApp.runMain(Tui; minus: no 'Count: 2' on row 3 in 1.5 s: at kyo.Abort[-scala.Any].handle(Unknown Source) | at runWith @ tui4s.TuiApp.runMain(Tui; up: no 'Count: 3' on row 3 in 1.5 s: at kyo.Abort[-scala.Any].handle(Unknown Source) | at runWith @ tui4s.TuiApp.runMain(Tui; down: no 'Count: 2' on row 3 in 1.5 s: at kyo.Abort[-scala.Any].handle(Unknown Source) | at runWith @ tui4s.TuiApp."
+  },
+  "stale-closure": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "plus 2: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; plus 3: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; minus: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: -1 | +/- or Up/Down change the count, q quits; up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; down: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: -1 | +/- or Up/Down change the c"
+  },
+  "wrong-unit": {
+   "outcome": "defused",
+   "detail": "the screen is a flex column: a root of 100 rows shrinks to the screen, so the last row stays on the screen"
+  },
+  "stdout-write": {
+   "outcome": "defused",
+   "detail": "TuiApp captures stdout while the UI runs and prints it after the restore"
+  },
+  "missing-binding": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the count, q quits; burst +++++: no 'Count: 7' on row 3 in 1.5 s: Counter | Count: 6 | +/- or Up/Down change the count, q quits; unbound x: row 3: 'Count: 6' (want 'Count: 7'); resize 80x24: Counter | Count: 6 | +/- or Up/Down change the count, q quits"
+  },
+  "lost-update": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "burst +++++: no 'Count: 7' on row 3 in 1.5 s: Counter | Count: 3 | +/- or Up/Down change the count, q quits; unbound x: row 3: 'Count: 3' (want 'Count: 7'); resize 80x24: Counter | Count: 3 | +/- or Up/Down change the count, q quits"
+  }
+ }
+}

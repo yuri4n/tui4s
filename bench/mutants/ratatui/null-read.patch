@@ -1,0 +1,10 @@
+--- a/impl/ratatui/counter/src/main.rs
++++ b/impl/ratatui/counter/src/main.rs
+@@ -55,5 +55,6 @@
+     .areas(frame.area());
+     frame.render_widget("Counter", title);
+-    frame.render_widget(format!("Count: {count}"), value);
++    let shown = if count == 3 { None::<i64>.unwrap() } else { count };
++    frame.render_widget(format!("Count: {shown}"), value);
+     frame.render_widget("+/- or Up/Down change the count, q quits", help);
+ }

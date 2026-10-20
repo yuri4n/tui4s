@@ -1,0 +1,9 @@
+--- a/impl/bubbletea/counter/main.go
++++ b/impl/bubbletea/counter/main.go
+@@ -47,5 +47,5 @@
+ func (m model) View() string {
+ 	lines := []string{"Counter", "", fmt.Sprintf("Count: %d", m.count)}
+-	for len(lines) < m.height-1 {
++	for len(strings.Join(lines, "\n")) < m.height-1 {
+ 		lines = append(lines, "")
+ 	}

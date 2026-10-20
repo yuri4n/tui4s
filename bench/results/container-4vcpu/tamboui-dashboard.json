@@ -1,4 +1,39 @@
 {
+ "change": {
+  "added": 39,
+  "built": true,
+  "changed": 52,
+  "passed": 5,
+  "removed": 13,
+  "steps": [
+   {
+    "detail": "",
+    "ok": true,
+    "step": "start"
+   },
+   {
+    "detail": "status=(1, 1000, 'filter')",
+    "ok": true,
+    "step": "tab to filter"
+   },
+   {
+    "detail": "status=(1, 19, 'filter') marked=99",
+    "ok": true,
+    "step": "filter 99"
+   },
+   {
+    "detail": "status=(1, 271, 'filter')",
+    "ok": true,
+    "step": "backspace"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "quit (Ctrl-C)"
+   }
+  ],
+  "total": 5
+ },
  "conformance": {
   "passed": 14,
   "steps": [

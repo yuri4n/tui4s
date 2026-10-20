@@ -1,0 +1,23 @@
+--- a/impl/bubbletea/counter/main.go
++++ b/impl/bubbletea/counter/main.go
+@@ -45,6 +45,19 @@
+ }
+ 
++var numbers = strings.Fields("zero one two three four five six seven eight nine ten eleven twelve " +
++	"thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty")
++
++func words(n int) string {
++	switch {
++	case n > 20 || n < -20:
++		return fmt.Sprint(n)
++	case n < 0:
++		return "minus " + numbers[-n]
++	}
++	return numbers[n]
++}
++
+ func (m model) View() string {
+-	lines := []string{"Counter", "", fmt.Sprintf("Count: %d", m.count)}
++	lines := []string{"Counter", "", fmt.Sprintf("Count: %d", m.count), "In words: " + words(m.count)}
+ 	for len(lines) < m.height-1 {
+ 		lines = append(lines, "")

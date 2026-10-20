@@ -1,0 +1,13 @@
+--- a/impl/textual/counter/app.py
++++ b/impl/textual/counter/app.py
+@@ -37,6 +37,8 @@
+         self.query_one("#count", Static).update(f"Count: {count}")
+ 
+-    def action_add(self, n: int) -> None:
+-        self.count += n
++    async def action_add(self, n: int) -> None:
++        count = self.count
++        await asyncio.sleep(0.01)
++        self.count = count + n
+ 
+     def action_fail(self) -> None:

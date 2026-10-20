@@ -1,0 +1,11 @@
+--- a/impl/jatatui-plain/counter/Counter.java
++++ b/impl/jatatui-plain/counter/Counter.java
+@@ -42,5 +42,7 @@
+               terminal.draw(frame -> render(frame, shown));
+               if (!jni.poll(new Duration(0, 100_000_000))) continue;
+-              if (jni.read() instanceof Event.Key(var key)) {
++              Event event = jni.read();
++              while (jni.poll(new Duration(0, 0))) event = jni.read();
++              if (event instanceof Event.Key(var key)) {
+                 boolean ctrl = (key.modifiers().bits() & KeyModifiers.CONTROL) != 0;
+                 switch (key.code()) {

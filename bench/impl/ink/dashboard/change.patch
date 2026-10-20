@@ -1,0 +1,72 @@
+--- a/impl/ink/dashboard/app.jsx
++++ b/impl/ink/dashboard/app.jsx
+@@ -18,4 +18,5 @@
+ const value = (t) => Math.round(50 + 40 * Math.sin(t / 5));
+ const pad = (n) => String(n).padStart(4, "0");
++const LABELS = Array.from({ length: ITEMS }, (_, i) => `Item ${pad(i + 1)}`);
+ 
+ function Panel({ title, focused, width, children }) {
+@@ -38,11 +39,14 @@
+   const { frame: ticks } = useAnimation({ interval: 100 });
+   const list = useFocus({ autoFocus: true });
++  const filtering = useFocus();
+   const load = useFocus();
+   const [selected, setSelected] = useState(0);
++  const [filter, setFilter] = useState("");
+   const offset = useRef(0);
+-  const visible = Math.max(1, rows - 5);
++  const visible = Math.max(1, rows - 6);
++  const items = LABELS.filter((label) => label.includes(filter));
+ 
+   useInput((input, key) => {
+-    if (input === "q") exit();
++    if (input === "q" && !filtering.isFocused) exit();
+     else if (key.ctrl && input === "x")
+       throw new Error("forced failure (Ctrl-X)");
+@@ -59,7 +63,16 @@
+               ? -visible
+               : 0;
+-      setSelected((s) => Math.max(0, Math.min(ITEMS - 1, s + move)));
++      setSelected((s) => Math.max(0, Math.min(items.length - 1, s + move)));
+     },
+     { isActive: list.isFocused },
++  );
++  useInput(
++    (input, key) => {
++      if (key.backspace || key.delete) setFilter((f) => f.slice(0, -1));
++      else if (!key.ctrl && !key.meta && !key.tab && input) setFilter((f) => f + input);
++      else return;
++      setSelected(0);
++    },
++    { isActive: filtering.isFocused },
+   );
+ 
+@@ -71,5 +84,5 @@
+   for (
+     let i = offset.current;
+-    i < Math.min(ITEMS, offset.current + visible);
++    i < Math.min(items.length, offset.current + visible);
+     i++
+   ) {
+@@ -77,5 +90,5 @@
+       <Text
+         key={i}
+-      >{`${i === selected ? "> " : "  "}Item ${pad(i + 1)}`}</Text>,
++      >{`${i === selected ? "> " : "  "}${items[i]}`}</Text>,
+     );
+   }
+@@ -93,5 +106,6 @@
+       </Box>
+       <Box flexGrow={1}>
+-        <Panel title="Items" focused={list.isFocused} width={left}>
++        <Panel title="Items" focused={!load.isFocused} width={left}>
++          <Text>Filter: {filter}</Text>
+           {shown}
+         </Panel>
+@@ -106,5 +120,5 @@
+         </Panel>
+       </Box>
+-      <Text>{`Selected ${pad(selected + 1)}/${ITEMS} | Focus: ${list.isFocused ? "list" : "load"} | Tab focus, q quit`}</Text>
++      <Text>{`Selected ${pad(items.length ? selected + 1 : 0)}/${pad(items.length)} | Focus: ${list.isFocused ? "list" : filtering.isFocused ? "filter" : "load"} | Tab focus, q quit`}</Text>
+     </Box>
+   );

@@ -1,0 +1,92 @@
+--- a/impl/tamboui/dashboard/Dashboard.java
++++ b/impl/tamboui/dashboard/Dashboard.java
+@@ -38,5 +38,7 @@
+   static final ArrayDeque<Long> history = new ArrayDeque<>();
+   static final ListState list = new ListState();
+-  static boolean onLoad = false;
++  static String focus = "list";
++  static String filter = "";
++  static List<ListItem> shown = ITEM_ROWS;
+   static int page = 1; // the visible item rows of the last frame
+ 
+@@ -46,5 +48,14 @@
+ 
+   static void select(int i) {
+-    list.select(Math.max(0, Math.min(ITEMS - 1, i)));
++    list.select(Math.max(0, Math.min(shown.size() - 1, i)));
++  }
++
++  static void setFilter(String f) {
++    filter = f;
++    shown = new ArrayList<>();
++    for (int i = 1; i <= ITEMS; i++) {
++      if (String.format("Item %04d", i).contains(f)) shown.add(ITEM_ROWS.get(i - 1));
++    }
++    select(0);
+   }
+ 
+@@ -63,10 +74,20 @@
+             if (!(event instanceof KeyEvent key)) return false;
+             int selected = list.selected();
+-            if (key.isChar('q') || key.isCtrlC()) runner.quit();
++            boolean typing = focus.equals("filter");
++            if (key.isCtrlC() || (key.isChar('q') && !typing)) runner.quit();
+             else if (key.hasCtrl() && key.isCharIgnoreCase('x'))
+               throw new IllegalStateException("forced failure (Ctrl-X)");
+             else if (key.isChar('\t') || key.code() == dev.tamboui.tui.event.KeyCode.TAB)
+-              onLoad = !onLoad;
+-            else if (onLoad) return false;
++              focus =
++                  switch (focus) {
++                    case "list" -> "filter";
++                    case "filter" -> "load";
++                    default -> "list";
++                  };
++            else if (typing && key.code() == dev.tamboui.tui.event.KeyCode.CHAR)
++              setFilter(filter + key.character());
++            else if (typing && key.code() == dev.tamboui.tui.event.KeyCode.BACKSPACE)
++              setFilter(filter.isEmpty() ? "" : filter.substring(0, filter.length() - 1));
++            else if (!focus.equals("list")) return false;
+             else if (key.isDown()) select(selected + 1);
+             else if (key.isUp()) select(selected - 1);
+@@ -102,15 +123,21 @@
+             .constraints(Constraint.percentage(50), Constraint.percentage(50))
+             .split(rows.get(1));
+-    page = Math.max(1, body.get(0).height() - 2);
++    Block left = panel("Items", !focus.equals("load"));
++    frame.renderWidget(left, body.get(0));
++    List<Rect> parts =
++        Layout.vertical()
++            .constraints(Constraint.length(1), Constraint.fill())
++            .split(left.inner(body.get(0)));
++    frame.renderWidget(Paragraph.from("Filter: " + filter), parts.get(0));
++    page = Math.max(1, parts.get(1).height());
+     var items =
+         ListWidget.builder()
+-            .items(ITEM_ROWS.toArray(ListItem[]::new))
+-            .block(panel("Items", !onLoad))
++            .items(shown.toArray(ListItem[]::new))
+             .highlightSymbol("> ")
+             .scrollMode(ScrollMode.AUTO_SCROLL)
+             .build();
+-    frame.renderStatefulWidget(items, body.get(0), list);
++    frame.renderStatefulWidget(items, parts.get(1), list);
+ 
+-    Block load = panel("Load", onLoad);
++    Block load = panel("Load", focus.equals("load"));
+     frame.renderWidget(load, body.get(1));
+     List<Rect> lines =
+@@ -124,10 +151,10 @@
+         Sparkline.builder().data(new ArrayList<>(history)).max(100).build(), lines.get(2));
+ 
+-    String focus = onLoad ? "load" : "list";
++    int at = shown.isEmpty() ? 0 : list.selected() + 1;
+     frame.renderWidget(
+         Paragraph.from(
+             String.format(
+-                "Selected %04d/%d | Focus: %s | Tab focus, q quit",
+-                list.selected() + 1, ITEMS, focus)),
++                "Selected %04d/%04d | Focus: %s | Tab focus, q quit",
++                at, shown.size(), focus)),
+         rows.get(2));
+   }

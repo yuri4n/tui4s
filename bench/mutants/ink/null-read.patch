@@ -1,0 +1,9 @@
+--- a/impl/ink/counter/app.jsx
++++ b/impl/ink/counter/app.jsx
+@@ -23,5 +23,5 @@
+       <Text>Counter</Text>
+       <Text> </Text>
+-      <Text>Count: {count}</Text>
++      <Text>Count: {count === 3 ? null.length : count}</Text>
+       <Box flexGrow={1} />
+       <Text>+/- or Up/Down change the count, q quits</Text>

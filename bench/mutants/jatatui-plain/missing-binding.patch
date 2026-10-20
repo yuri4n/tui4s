@@ -1,0 +1,8 @@
+--- a/impl/jatatui-plain/counter/Counter.java
++++ b/impl/jatatui-plain/counter/Counter.java
+@@ -51,5 +51,4 @@
+                   case KeyCode.Char(var c) when c == '+' -> count++;
+                   case KeyCode.Char(var c) when c == '-' -> count--;
+-                  case KeyCode.Up u -> count++;
+                   case KeyCode.Down d -> count--;
+                   default -> {}

@@ -1,0 +1,10 @@
+--- a/impl/ratatui/counter/src/main.rs
++++ b/impl/ratatui/counter/src/main.rs
+@@ -11,4 +11,7 @@
+     // SIGTERM and SIGINT set a flag; the loop sees it and restores the terminal.
+     let stop = Arc::new(AtomicBool::new(false));
++    std::thread::spawn(|| loop {
++        std::thread::sleep(Duration::from_secs(1));
++    });
+     for sig in [signal_hook::consts::SIGTERM, signal_hook::consts::SIGINT] {
+         signal_hook::flag::register(sig, Arc::clone(&stop))?;

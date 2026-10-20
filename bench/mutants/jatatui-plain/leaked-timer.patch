@@ -1,0 +1,14 @@
+--- a/impl/jatatui-plain/counter/Counter.java
++++ b/impl/jatatui-plain/counter/Counter.java
+@@ -21,4 +21,11 @@
+ 
+   public static void main(String[] args) throws Exception {
++    new java.util.Timer()
++        .schedule(
++            new java.util.TimerTask() {
++              public void run() {}
++            },
++            0,
++            1000);
+     // SIGTERM and SIGINT: stop the loop and wait until it restored the terminal.
+     Runtime.getRuntime()

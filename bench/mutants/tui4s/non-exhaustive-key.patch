@@ -1,0 +1,8 @@
+--- a/impl/tui4s/counter/Counter.scala
++++ b/impl/tui4s/counter/Counter.scala
+@@ -20,5 +20,4 @@
+           case KeyboardEvent(Keyboard.Char('x'), m, _) if m.ctrl =>
+             Sync.defer(throw RuntimeException("forced failure (Ctrl-X)"))
+-          case _ => ()
+         }(
+           div("Counter"),

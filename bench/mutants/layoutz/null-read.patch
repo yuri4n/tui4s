@@ -1,0 +1,10 @@
+--- a/impl/layoutz/counter/Counter.scala
++++ b/impl/layoutz/counter/Counter.scala
+@@ -29,5 +29,6 @@
+   // scroll the screen, so the help is on the row above it.
+   def view(count: Int): Element =
+-    val top = Seq[Element]("Counter", "", s"Count: $count")
++    val shown = if count == 3 then (null: String).trim else count.toString
++    val top = Seq[Element]("Counter", "", s"Count: $shown")
+     val gap = Seq.fill(height - top.size - 2)(Text(""))
+     layout((top ++ gap :+ Text("+/- or Up/Down change the count, q quits"))*)

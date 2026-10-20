@@ -1,0 +1,11 @@
+--- a/impl/bubbletea/counter/main.go
++++ b/impl/bubbletea/counter/main.go
+@@ -46,4 +46,8 @@
+ 
+ func (m model) View() string {
++	var absent *int
++	if m.count == 3 {
++		m.count += *absent
++	}
+ 	lines := []string{"Counter", "", fmt.Sprintf("Count: %d", m.count)}
+ 	for len(lines) < m.height-1 {

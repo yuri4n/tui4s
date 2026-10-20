@@ -1,0 +1,9 @@
+--- a/impl/textual/counter/app.py
++++ b/impl/textual/counter/app.py
+@@ -13,5 +13,5 @@
+     CSS = """
+     #count { margin-top: 1; }
+-    #help { dock: bottom; }
++    #help { dock: bottom; margin-bottom: 1; }
+     """
+     BINDINGS = [

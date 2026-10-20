@@ -1,0 +1,30 @@
+--- a/impl/tamboui/counter/Counter.java
++++ b/impl/tamboui/counter/Counter.java
+@@ -14,4 +14,8 @@
+ public final class Counter {
+   private static int count = 0;
++  private static final String[] NUMBERS =
++      ("zero one two three four five six seven eight nine ten eleven twelve thirteen"
++              + " fourteen fifteen sixteen seventeen eighteen nineteen twenty")
++          .split(" ");
+ 
+   public static void main(String[] args) throws Exception {
+@@ -43,4 +47,5 @@
+                 Constraint.length(1),
+                 Constraint.length(1),
++                Constraint.length(1),
+                 Constraint.fill(),
+                 Constraint.length(1))
+@@ -48,5 +53,11 @@
+     frame.renderWidget(Paragraph.from("Counter"), rows.get(0));
+     frame.renderWidget(Paragraph.from("Count: " + count), rows.get(2));
+-    frame.renderWidget(Paragraph.from("+/- or Up/Down change the count, q quits"), rows.get(4));
++    frame.renderWidget(Paragraph.from("In words: " + words(count)), rows.get(3));
++    frame.renderWidget(Paragraph.from("+/- or Up/Down change the count, q quits"), rows.get(5));
++  }
++
++  static String words(int n) {
++    if (Math.abs(n) > 20) return Integer.toString(n);
++    return (n < 0 ? "minus " : "") + NUMBERS[Math.abs(n)];
+   }
+ }

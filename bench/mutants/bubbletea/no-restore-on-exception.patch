@@ -1,0 +1,9 @@
+--- a/impl/bubbletea/counter/main.go
++++ b/impl/bubbletea/counter/main.go
+@@ -55,5 +55,5 @@
+ 
+ func main() {
+-	if _, err := tea.NewProgram(model{}, tea.WithAltScreen()).Run(); err != nil {
++	if _, err := tea.NewProgram(model{}, tea.WithAltScreen(), tea.WithoutCatchPanics()).Run(); err != nil {
+ 		fmt.Fprintln(os.Stderr, err)
+ 		os.Exit(1)

@@ -1,0 +1,11 @@
+--- a/impl/bubbletea/counter/main.go
++++ b/impl/bubbletea/counter/main.go
+@@ -20,5 +20,7 @@
+ 	switch msg := msg.(type) {
+ 	case tea.WindowSizeMsg:
+-		m.height = msg.Height
++		if m.height == 0 {
++			m.height = msg.Height
++		}
+ 	case tea.KeyMsg:
+ 		// bubbletea gives the runes of one read as one message ("+++"): one update per rune.

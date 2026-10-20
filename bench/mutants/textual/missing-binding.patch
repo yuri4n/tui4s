@@ -1,0 +1,9 @@
+--- a/impl/textual/counter/app.py
++++ b/impl/textual/counter/app.py
+@@ -16,5 +16,5 @@
+     """
+     BINDINGS = [
+-        ("plus,up", "add(1)"),
++        ("plus", "add(1)"),
+         ("minus,down", "add(-1)"),
+         ("q", "quit"),

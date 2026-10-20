@@ -1,0 +1,8 @@
+--- a/impl/bubbletea/counter/main.go
++++ b/impl/bubbletea/counter/main.go
+@@ -34,4 +34,5 @@
+ 		case "+", "up":
+ 			m.count++
++			fmt.Println("count", m.count)
+ 		case "-", "down":
+ 			m.count--

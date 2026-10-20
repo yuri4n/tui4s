@@ -1,0 +1,18 @@
+--- a/impl/jatatui-plain/counter/Counter.java
++++ b/impl/jatatui-plain/counter/Counter.java
+@@ -63,5 +63,8 @@
+   }
+ 
++  static Rect start;
++
+   static void render(Frame frame, int count) {
++    if (start == null) start = frame.area();
+     Rect[] rows =
+         Layout.vertical(
+@@ -71,5 +74,5 @@
+                 new Constraint.Fill(1),
+                 new Constraint.Length(1))
+-            .split(frame.area());
++            .split(start);
+     frame.renderWidget(Paragraph.of("Counter"), rows[0]);
+     frame.renderWidget(Paragraph.of("Count: " + count), rows[2]);

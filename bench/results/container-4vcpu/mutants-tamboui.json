@@ -1,0 +1,60 @@
+{
+ "stack": "tamboui",
+ "machine": "container-4vcpu",
+ "baseline_failed": [],
+ "rebuilt": true,
+ "classes": {
+  "no-restore-on-exception": {
+   "outcome": "n/a",
+   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+  },
+  "wrong-thread": {
+   "outcome": "n/a",
+   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+  },
+  "no-resize": {
+   "outcome": "n/a",
+   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+  },
+  "off-by-one": {
+   "outcome": "n/a",
+   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+  },
+  "blocking-handler": {
+   "outcome": "n/a",
+   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+  },
+  "leaked-timer": {
+   "outcome": "n/a",
+   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+  },
+  "non-exhaustive-key": {
+   "outcome": "n/a",
+   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+  },
+  "null-read": {
+   "outcome": "n/a",
+   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+  },
+  "stale-closure": {
+   "outcome": "n/a",
+   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+  },
+  "wrong-unit": {
+   "outcome": "n/a",
+   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+  },
+  "stdout-write": {
+   "outcome": "n/a",
+   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+  },
+  "missing-binding": {
+   "outcome": "n/a",
+   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+  },
+  "lost-update": {
+   "outcome": "n/a",
+   "detail": "not written in stage 1 (the program asks for the full suite on four stacks only)"
+  }
+ }
+}

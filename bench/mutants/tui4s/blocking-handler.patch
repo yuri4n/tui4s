@@ -1,0 +1,9 @@
+--- a/impl/tui4s/counter/Counter.scala
++++ b/impl/tui4s/counter/Counter.scala
+@@ -14,5 +14,5 @@
+         .onKeyDown {
+           case KeyboardEvent(Keyboard.Char('+') | Keyboard.ArrowUp, _, _) =>
+-            add(1)
++            Sync.defer(Thread.sleep(3000)).andThen(add(1))
+           case KeyboardEvent(Keyboard.Char('-') | Keyboard.ArrowDown, _, _) =>
+             add(-1)

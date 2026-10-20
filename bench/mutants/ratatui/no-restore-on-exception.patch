@@ -1,0 +1,11 @@
+--- a/impl/ratatui/counter/src/main.rs
++++ b/impl/ratatui/counter/src/main.rs
+@@ -14,5 +14,7 @@
+         signal_hook::flag::register(sig, Arc::clone(&stop))?;
+     }
+-    let mut terminal = ratatui::init(); // raw mode, alternate screen, a panic hook that restores
++    crossterm::terminal::enable_raw_mode()?;
++    crossterm::execute!(std::io::stdout(), crossterm::terminal::EnterAlternateScreen)?;
++    let mut terminal = ratatui::Terminal::new(ratatui::backend::CrosstermBackend::new(std::io::stdout()))?;
+     let result = run(&mut terminal, &stop);
+     ratatui::restore();

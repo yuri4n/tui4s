@@ -1,0 +1,9 @@
+--- a/impl/tui4s/counter/Counter.scala
++++ b/impl/tui4s/counter/Counter.scala
+@@ -27,4 +27,5 @@
+           ),
+           div.style(_.flexGrow(1)),
+-          div("+/- or Up/Down change the count, q quits")
++          div("+/- or Up/Down change the count, q quits"),
++          div(" ")
+         )

@@ -1,0 +1,99 @@
+--- a/impl/ratatui/dashboard/src/main.rs
++++ b/impl/ratatui/dashboard/src/main.rs
+@@ -17,4 +17,5 @@
+ enum Focus {
+     List,
++    Filter,
+     Load,
+ }
+@@ -27,4 +28,6 @@
+     page: usize, // the visible item rows of the last frame
+     items: Vec<String>,
++    filter: String,
++    shown: Vec<usize>, // the indices of the items that contain the filter
+ }
+ 
+@@ -53,4 +56,6 @@
+         page: 1,
+         items: (1..=ITEMS).map(|i| format!("Item {i:04}")).collect(),
++        filter: String::new(),
++        shown: (0..ITEMS).collect(),
+     };
+     let mut next_tick = Instant::now() + TICK;
+@@ -85,7 +90,19 @@
+         KeyCode::Char('c') if ctrl => return false,
+         KeyCode::Char('x') if ctrl => panic!("forced failure (Ctrl-X)"),
++        KeyCode::Char(c) if app.focus == Focus::Filter => {
++            app.filter.push(c);
++            refilter(app)
++        }
++        KeyCode::Backspace if app.focus == Focus::Filter => {
++            app.filter.pop();
++            refilter(app)
++        }
+         KeyCode::Char('q') => return false,
+         KeyCode::Tab => {
+-            app.focus = if on_list { Focus::Load } else { Focus::List };
++            app.focus = match app.focus {
++                Focus::List => Focus::Filter,
++                Focus::Filter => Focus::Load,
++                Focus::Load => Focus::List,
++            };
+             return true;
+         }
+@@ -96,6 +113,15 @@
+         _ => return true,
+     };
+-    app.list.select(Some(target.min(ITEMS - 1)));
++    app.list
++        .select(Some(target.min(app.shown.len().saturating_sub(1))));
+     true
++}
++
++/// Keeps the items that contain the filter; the selection goes to the first one.
++fn refilter(app: &mut App) -> usize {
++    app.shown = (0..ITEMS)
++        .filter(|&i| app.items[i].contains(&app.filter))
++        .collect();
++    0
+ }
+ 
+@@ -121,10 +147,14 @@
+     let [left, right] =
+         Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)]).areas(body);
+-    app.page = (left.height as usize).saturating_sub(2).max(1);
+-    let list = List::new(app.items.iter().map(String::as_str))
+-        .block(panel("Items", app.focus == Focus::List))
++    let items = panel("Items", app.focus != Focus::Load);
++    let [filter, rows] =
++        Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).areas(items.inner(left));
++    frame.render_widget(items, left);
++    frame.render_widget(format!("Filter: {}", app.filter), filter);
++    app.page = (rows.height as usize).max(1);
++    let list = List::new(app.shown.iter().map(|&i| app.items[i].as_str()))
+         .highlight_symbol("> ")
+         .highlight_spacing(HighlightSpacing::Always);
+-    frame.render_stateful_widget(list, left, &mut app.list);
++    frame.render_stateful_widget(list, rows, &mut app.list);
+ 
+     let load = panel("Load", app.focus == Focus::Load);
+@@ -142,12 +172,13 @@
+     frame.render_widget(Sparkline::default().data(&data).max(100), spark);
+ 
+-    let focus = if app.focus == Focus::List {
+-        "list"
+-    } else {
+-        "load"
++    let focus = match app.focus {
++        Focus::List => "list",
++        Focus::Filter => "filter",
++        Focus::Load => "load",
+     };
+-    let selected = app.list.selected().unwrap_or(0) + 1;
++    let total = app.shown.len();
++    let selected = if total == 0 { 0 } else { app.list.selected().unwrap_or(0) + 1 };
+     frame.render_widget(
+-        format!("Selected {selected:04}/{ITEMS} | Focus: {focus} | Tab focus, q quit"),
++        format!("Selected {selected:04}/{total:04} | Focus: {focus} | Tab focus, q quit"),
+         status,
+     );

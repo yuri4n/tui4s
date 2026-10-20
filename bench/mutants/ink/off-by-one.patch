@@ -1,0 +1,8 @@
+--- a/impl/ink/counter/app.jsx
++++ b/impl/ink/counter/app.jsx
+@@ -26,4 +26,5 @@
+       <Box flexGrow={1} />
+       <Text>+/- or Up/Down change the count, q quits</Text>
++      <Text> </Text>
+     </Box>
+   );

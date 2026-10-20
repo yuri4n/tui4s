@@ -1,0 +1,60 @@
+{
+ "stack": "bubbletea",
+ "machine": "container-4vcpu",
+ "baseline_failed": [],
+ "rebuilt": true,
+ "classes": {
+  "no-restore-on-exception": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "failure probe: ended exit=2 restore={'cooked': False, 'alt_screen': 'not-left', 'cursor': 'hidden', 'orphans': [], 'restored': False}"
+  },
+  "wrong-thread": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "plus 1: no 'Count: 1' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 2: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 3: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; minus: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: -1 | +/- or Up/Down change the count, q quits; up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: -1 | +/- or Up/Down change the"
+  },
+  "no-resize": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "resize 80x24: +/- or Up/Down change the count, q quits"
+  },
+  "off-by-one": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "start: row 29: '+/- or Up/Down change the count, q quits' (want ''); row 30: '' (want '+/- or Up/Down change the count, q quits; resize 80x24: Counter | Count: 7 | +/- or Up/Down change the count, q quits"
+  },
+  "blocking-handler": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "plus 1: no 'Count: 1' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 2: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 3: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; minus: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the c"
+  },
+  "leaked-timer": {
+   "outcome": "defused",
+   "detail": "the process ends when main returns; the goroutine ends with it"
+  },
+  "non-exhaustive-key": {
+   "outcome": "n/a",
+   "detail": "a Go switch on the key string needs no default; an unmatched key does nothing"
+  },
+  "null-read": {
+   "outcome": "runtime-crash",
+   "detail": "exit 1 during the key script; plus 3: no 'Count: 3' on row 3 in 1.5 s: Caught panic: | runtime error: invalid memory address or nil pointer dereference | Rest; minus: no 'Count: 2' on row 3 in 1.5 s: Caught panic: | runtime error: invalid memory address or nil pointer dereference | Rest; up: no 'Count: 3' on row 3 in 1.5 s: Caught panic: | runtime error: invalid memory address or nil pointer dereference | Rest; down: no 'Count: 2' on row 3 in 1.5 s: Caught panic: | runtime error: invalid memory address or nil pointer derefer"
+  },
+  "stale-closure": {
+   "outcome": "n/a",
+   "detail": "Update gets the current model as a value; no closure keeps the state"
+  },
+  "wrong-unit": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "start: row 16: '+/- or Up/Down change the count, q quits' (want ''); row 30: '' (want '+/- or Up/Down change the count, q quits; resize 80x24: Counter | Count: 7 | +/- or Up/Down change the count, q quits"
+  },
+  "stdout-write": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "plus 1: row 1: '' (want 'Counter'); row 2: 'Count: 0' (want ''); row 29: 'count 1Up/Down change the count, q quits' (want ''); r; plus 2: row 1: 'Count: 0' (want 'Counter'); row 2: 'Count: 1' (want ''); row 28: 'count 1Up/Down change the count, q quits' (wan; plus 3: row 1: 'Count: 1' (want 'Counter'); row 2: 'Count: 2' (want ''); row 27: 'count 1Up/Down change the count, q quits' (wan; minus: row 1: 'Count: 1' (want 'Counter'); row 2: 'Count: 2' (want ''); row 27: 'count 1Up/Down change the cou"
+  },
+  "missing-binding": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the count, q quits; burst +++++: no 'Count: 7' on row 3 in 1.5 s: Counter | Count: 6 | +/- or Up/Down change the count, q quits; unbound x: row 3: 'Count: 6' (want 'Count: 7'); resize 80x24: Counter | Count: 6 | +/- or Up/Down change the count, q quits"
+  },
+  "lost-update": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "burst +++++: no 'Count: 7' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the count, q quits; unbound x: row 3: 'Count: 2' (want 'Count: 7'); resize 80x24: Counter | Count: 2 | +/- or Up/Down change the count, q quits"
+  }
+ }
+}

@@ -1,0 +1,30 @@
+--- a/impl/textual/counter/app.py
++++ b/impl/textual/counter/app.py
+@@ -8,4 +8,15 @@
+ from textual.reactive import reactive
+ from textual.widgets import Static
++
++NUMBERS = (
++    "zero one two three four five six seven eight nine ten eleven twelve thirteen"
++    " fourteen fifteen sixteen seventeen eighteen nineteen twenty"
++).split()
++
++
++def words(n: int) -> str:
++    if abs(n) > 20:
++        return str(n)
++    return ("minus " if n < 0 else "") + NUMBERS[abs(n)]
+ 
+ 
+@@ -27,4 +38,5 @@
+         yield Static("Counter")
+         yield Static("Count: 0", id="count")
++        yield Static("In words: zero", id="words")
+         yield Static("+/- or Up/Down change the count, q quits", id="help")
+ 
+@@ -36,4 +48,5 @@
+     def watch_count(self, count: int) -> None:
+         self.query_one("#count", Static).update(f"Count: {count}")
++        self.query_one("#words", Static).update(f"In words: {words(count)}")
+ 
+     def action_add(self, n: int) -> None:

@@ -1,0 +1,99 @@
+--- a/impl/bubbletea/dashboard/main.go
++++ b/impl/bubbletea/dashboard/main.go
+@@ -24,5 +24,6 @@
+ 	selected      int // 0-based
+ 	offset        int // the first visible item
+-	onLoad        bool
++	focus         string // "list", "filter" or "load"
++	filter        string
+ 	gauge         progress.Model
+ }
+@@ -38,5 +39,16 @@
+ 
+ // rows is the number of visible item rows: the body without the borders and the title.
+-func (m model) rows() int { return max(1, m.height-2-2-1) }
++func (m model) rows() int { return max(1, m.height-2-2-2) }
++
++// shown is the labels of the items that contain the filter.
++func (m model) shown() []string {
++	var out []string
++	for i := 1; i <= items; i++ {
++		if label := fmt.Sprintf("Item %04d", i); strings.Contains(label, m.filter) {
++			out = append(out, label)
++		}
++	}
++	return out
++}
+ 
+ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+@@ -53,11 +65,19 @@
+ 	case tea.KeyMsg:
+ 		switch k := msg.String(); {
+-		case k == "q" || k == "ctrl+c":
++		case k == "ctrl+c":
+ 			return m, tea.Quit
+ 		case k == "ctrl+x":
+ 			panic("forced failure (Ctrl-X)")
+ 		case k == "tab":
+-			m.onLoad = !m.onLoad
+-		case m.onLoad:
++			m.focus = map[string]string{"list": "filter", "filter": "load", "load": "list"}[m.focus]
++		case m.focus == "filter" && k == "backspace" && m.filter != "":
++			m.filter = m.filter[:len(m.filter)-1]
++			m.selected, m.offset = 0, 0
++		case m.focus == "filter" && msg.Type == tea.KeyRunes:
++			m.filter += string(msg.Runes)
++			m.selected, m.offset = 0, 0
++		case k == "q":
++			return m, tea.Quit
++		case m.focus != "list":
+ 		case k == "down":
+ 			m.selected++
+@@ -70,5 +90,5 @@
+ 		}
+ 	}
+-	m.selected = min(max(m.selected, 0), items-1)
++	m.selected = min(max(m.selected, 0), max(0, len(m.shown())-1))
+ 	m.offset = min(max(m.offset, m.selected-m.rows()+1), m.selected)
+ 	return m, nil
+@@ -101,11 +121,12 @@
+ 
+ 	var list strings.Builder
+-	list.WriteString("Items")
+-	for i := m.offset; i < min(items, m.offset+m.rows()); i++ {
++	shown := m.shown()
++	list.WriteString("Items\nFilter: " + m.filter)
++	for i := m.offset; i < min(len(shown), m.offset+m.rows()); i++ {
+ 		marker := "  "
+ 		if i == m.selected {
+ 			marker = "> "
+ 		}
+-		fmt.Fprintf(&list, "\n%sItem %04d", marker, i+1)
++		fmt.Fprintf(&list, "\n%s%s", marker, shown[i])
+ 	}
+ 	left := m.width / 2
+@@ -119,17 +140,17 @@
+ 	}, "\n")
+ 	body := lipgloss.JoinHorizontal(lipgloss.Top,
+-		panel(!m.onLoad, left, bodyHeight, list.String()),
+-		panel(m.onLoad, m.width-left, bodyHeight, load))
++		panel(m.focus != "load", left, bodyHeight, list.String()),
++		panel(m.focus == "load", m.width-left, bodyHeight, load))
+ 
+-	focus := "list"
+-	if m.onLoad {
+-		focus = "load"
++	at := m.selected + 1
++	if len(shown) == 0 {
++		at = 0
+ 	}
+-	status := fmt.Sprintf("Selected %04d/%d | Focus: %s | Tab focus, q quit", m.selected+1, items, focus)
++	status := fmt.Sprintf("Selected %04d/%04d | Focus: %s | Tab focus, q quit", at, len(shown), m.focus)
+ 	return lipgloss.JoinVertical(lipgloss.Left, header, body, status)
+ }
+ 
+ func main() {
+-	m := model{gauge: progress.New(progress.WithSolidFill("2"))}
++	m := model{focus: "list", gauge: progress.New(progress.WithSolidFill("2"))}
+ 	if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
+ 		fmt.Fprintln(os.Stderr, err)

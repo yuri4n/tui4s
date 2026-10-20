@@ -1,0 +1,7 @@
+--- a/impl/ink/counter/app.jsx
++++ b/impl/ink/counter/app.jsx
+@@ -30,3 +30,4 @@
+ }
+ 
++setInterval(() => {}, 1000);
+ render(<Counter />, { alternateScreen: true });

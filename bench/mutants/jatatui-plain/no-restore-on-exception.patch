@@ -1,0 +1,18 @@
+--- a/impl/jatatui-plain/counter/Counter.java
++++ b/impl/jatatui-plain/counter/Counter.java
+@@ -34,5 +34,5 @@
+                 }));
+     try {
+-      Jatatui.runIo(
++      Jatatui.IoConsumer body =
+           terminal -> {
+             var jni = terminal.backend().writer();
+@@ -57,5 +57,7 @@
+               }
+             }
+-          });
++          };
++      body.accept(Jatatui.init());
++      Jatatui.restore();
+     } finally {
+       restored.countDown();

@@ -1,0 +1,14 @@
+--- a/impl/bubbletea/counter/main.go
++++ b/impl/bubbletea/counter/main.go
+@@ -6,4 +6,5 @@
+ 	"os"
+ 	"strings"
++	"time"
+ 
+ 	tea "github.com/charmbracelet/bubbletea"
+@@ -33,4 +34,5 @@
+ 		switch msg.String() {
+ 		case "+", "up":
++			time.Sleep(3 * time.Second)
+ 			m.count++
+ 		case "-", "down":

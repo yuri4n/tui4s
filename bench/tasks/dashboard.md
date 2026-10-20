@@ -109,7 +109,9 @@ Each step must show its effect in 1.5 seconds.
 
 "The dashboard list gets a filter input that narrows the rows."
 
-- The list panel has a filter row under its title: `Filter: TEXT`.
+- The list panel has a filter row `Filter: TEXT`. Its place in the panel is
+  free (under the title, or under the list where the focus order of a stack
+  follows the order of the elements).
 - Tab moves the focus in the cycle list, filter, load. The status bar shows
   `Focus: filter` when the filter has the focus.
 - With the focus on the filter, a printable character goes to the end of

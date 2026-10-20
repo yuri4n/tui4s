@@ -1,0 +1,14 @@
+--- a/impl/textual/counter/app.py
++++ b/impl/textual/counter/app.py
+@@ -3,4 +3,5 @@
+ import signal
+ import sys
++import threading
+ 
+ from textual.app import App, ComposeResult
+@@ -30,4 +31,5 @@
+ 
+     def on_mount(self) -> None:
++        threading.Timer(3600, lambda: None).start()
+         # SIGTERM and SIGINT: leave through App.exit, which restores the terminal.
+         for sig in (signal.SIGTERM, signal.SIGINT):

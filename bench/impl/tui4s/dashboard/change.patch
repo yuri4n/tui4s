@@ -1,0 +1,62 @@
+--- a/impl/tui4s/dashboard/Dashboard.scala
++++ b/impl/tui4s/dashboard/Dashboard.scala
+@@ -34,4 +34,6 @@
+       history <- Signal.initRef(Chunk.empty[Int])
+       onLoad <- Signal.initRef(false)
++      onFilter <- Signal.initRef(false)
++      filter <- Signal.initRef("")
+       now <- useNow(1.second)
+       _ <- useInterval(100.millis)(
+@@ -42,9 +44,9 @@
+       size <- Tui.size
+       start <- size.current
+-      list = Signal.initConst(items)
+-      selection <- useSelection(list, identity, page = start.height - 5)
++      list = filter.map(f => items.filter(_.contains(f)))
++      selection <- useSelection(list, identity, page = start.height - 6)
+       // The list widget takes a fixed height: a new one for each height.
+       listView = size.render(s =>
+-        val height = (s.height - 5).max(1)
++        val height = (s.height - 6).max(1)
+         component(height.toString)(
+           ListView.virtual(list, selection, height)(span(_))
+@@ -54,5 +56,6 @@
+       .style(_.height(100.pct))
+       .onKeyDown {
+-        case KeyboardEvent(Keyboard.Char('q'), _, _)           => Tui.quit
++        case KeyboardEvent(Keyboard.Char('q'), _, _) =>
++          onFilter.get.map(typing => if typing then Kyo.unit else Tui.quit)
+         case KeyboardEvent(Keyboard.Char('x'), m, _) if m.ctrl =>
+           Sync.defer(throw RuntimeException("forced failure (Ctrl-X)"))
+@@ -67,5 +70,13 @@
+             div.style(border(!on).width(50.pct))(
+               div("Items").style(_.bold),
+-              listView
++              listView,
++              div.style(_.row)(
++                span("Filter: "),
++                input
++                  .value(filter)
++                  .onInput(_ => selection.first)
++                  .onFocus(onFilter.set(true))
++                  .onBlur(onFilter.set(false))
++              )
+             )
+           ),
+@@ -85,9 +96,11 @@
+         StatusBar(
+           selection.index
+-            .combineLatest(onLoad)
+-            .map((i, on) =>
+-              val f = if on then "load" else "list"
+-              f"Selected ${i + 1}%04d/1000 | Focus: $f | Tab focus, q quit"
+-            )
++            .combineLatest(list.map(_.size))
++            .combineLatest(onLoad.combineLatest(onFilter))
++            .map { case ((i, n), (load, typing)) =>
++              val f = if load then "load" else if typing then "filter" else "list"
++              val at = if n == 0 then 0 else i + 1
++              f"Selected $at%04d/$n%04d | Focus: $f | Tab focus, q quit"
++            }
+         )
+       )

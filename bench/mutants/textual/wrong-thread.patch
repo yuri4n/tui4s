@@ -1,0 +1,15 @@
+--- a/impl/textual/counter/app.py
++++ b/impl/textual/counter/app.py
+@@ -3,4 +3,5 @@
+ import signal
+ import sys
++import threading
+ 
+ from textual.app import App, ComposeResult
+@@ -38,5 +39,5 @@
+ 
+     def action_add(self, n: int) -> None:
+-        self.count += n
++        threading.Thread(target=lambda: setattr(self, "count", self.count + n)).start()
+ 
+     def action_fail(self) -> None:

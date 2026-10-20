@@ -1,0 +1,10 @@
+--- a/impl/ink/counter/app.jsx
++++ b/impl/ink/counter/app.jsx
+@@ -8,6 +8,5 @@
+   const { rows } = useWindowSize();
+   useInput((input, key) => {
+-    if (key.upArrow) setCount((c) => c + 1);
+-    else if (key.downArrow) setCount((c) => c - 1);
++    if (key.downArrow) setCount((c) => c - 1);
+     else if (key.ctrl && input === "x")
+       throw new Error("forced failure (Ctrl-X)");

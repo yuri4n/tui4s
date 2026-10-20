@@ -1,0 +1,10 @@
+--- a/impl/jatatui-plain/counter/Counter.java
++++ b/impl/jatatui-plain/counter/Counter.java
+@@ -38,6 +38,6 @@
+             var jni = terminal.backend().writer();
+             int count = 0;
++            int shown = count;
+             while (running) {
+-              int shown = count;
+               terminal.draw(frame -> render(frame, shown));
+               if (!jni.poll(new Duration(0, 100_000_000))) continue;

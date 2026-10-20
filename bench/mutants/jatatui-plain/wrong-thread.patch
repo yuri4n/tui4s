@@ -1,0 +1,20 @@
+--- a/impl/jatatui-plain/counter/Counter.java
++++ b/impl/jatatui-plain/counter/Counter.java
+@@ -49,5 +49,16 @@
+                       throw new IllegalStateException("forced failure (Ctrl-X)");
+                   case KeyCode.Char(var c) when c == 'q' -> running = false;
+-                  case KeyCode.Char(var c) when c == '+' -> count++;
++                  case KeyCode.Char(var c) when c == '+' -> {
++                    int next = ++count;
++                    new Thread(
++                            () -> {
++                              try {
++                                terminal.draw(frame -> render(frame, next));
++                              } catch (java.io.IOException e) {
++                                throw new java.io.UncheckedIOException(e);
++                              }
++                            })
++                        .start();
++                  }
+                   case KeyCode.Char(var c) when c == '-' -> count--;
+                   case KeyCode.Up u -> count++;

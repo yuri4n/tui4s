@@ -1,0 +1,60 @@
+{
+ "stack": "jatatui-plain",
+ "machine": "container-4vcpu",
+ "baseline_failed": [],
+ "rebuilt": true,
+ "classes": {
+  "no-restore-on-exception": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "quit: exit=0 restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'hidden', 'orphans': [], 'restored': False}; failure probe: ended exit=1 restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'hidden', 'orphans': [], 'restored': False}"
+  },
+  "wrong-thread": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "burst +++++: row 30: '+/- or Up/Down change the count,nqqquitsintts:' (want '+/- or Up/Down change the count, q quits'); unbound x: row 30: '+/- or Up/Down change the count,nqqquitsintts:' (want '+/- or Up/Down change the count, q quits')"
+  },
+  "no-resize": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "resize 80x24: Counter | Count: 7"
+  },
+  "off-by-one": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "start: row 29: '+/- or Up/Down change the count, q quits' (want ''); row 30: '' (want '+/- or Up/Down change the count, q quits; resize 80x24: Counter | Count: 7 | +/- or Up/Down change the count, q quits"
+  },
+  "blocking-handler": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "plus 1: no 'Count: 1' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 2: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 3: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; minus: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the c"
+  },
+  "leaked-timer": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "quit: exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [29785], 'restored': False}; failure probe: error-screen+hung exit=None restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored"
+  },
+  "non-exhaustive-key": {
+   "outcome": "compile-error",
+   "detail": "[error] impl/jatatui-plain/counter/Counter.java:46:17: the switch statement does not cover all possible input values (the log of the run kept only sbt warnings; the error was read again by hand from the same build)"
+  },
+  "null-read": {
+   "outcome": "runtime-crash",
+   "detail": "exit 1 during the key script; plus 3: no 'Count: 3' on row 3 in 1.5 s: java.lang.NullPointerException: Cannot invoke \"String.trim()\" because \"null\" is null | ; minus: no 'Count: 2' on row 3 in 1.5 s: java.lang.NullPointerException: Cannot invoke \"String.trim()\" because \"null\" is null | ; up: no 'Count: 3' on row 3 in 1.5 s: java.lang.NullPointerException: Cannot invoke \"String.trim()\" because \"null\" is null | ; down: no 'Count: 2' on row 3 in 1.5 s: java.lang.NullPointerException: Cannot invoke \"String.trim()\" because \"null\""
+  },
+  "stale-closure": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "plus 1: no 'Count: 1' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 2: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; plus 3: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; minus: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the count, q quits; up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 0 | +/- or Up/Down change the c"
+  },
+  "wrong-unit": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "start: row 2: 'Count: 0' (want ''); row 3: '' (want 'Count: 0'); plus 1: no 'Count: 1' on row 3 in 1.5 s: Counter | Count: 1 | +/- or Up/Down change the count, q quits; plus 2: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the count, q quits; plus 3: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 3 | +/- or Up/Down change the count, q quits; minus: no 'Count: 2' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the count, q quits; up: no 'Count: 3' on"
+  },
+  "stdout-write": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "plus 1: no 'Count: 1' on row 3 in 1.5 s: Count: 0 | 1 | +/- or Up/Down change the count, q quitscount 1; plus 2: no 'Count: 2' on row 3 in 1.5 s: Count: 0 | 2count 2 | +/- or Up/Down change the count, q quitscount 1; plus 3: no 'Count: 3' on row 3 in 1.5 s: Count: 0 | 3count 3 | +/- or Up/Down change the count, q quitscount 1; minus: no 'Count: 2' on row 3 in 1.5 s: Count: 0 | 2count 3 | +/- or Up/Down change the count, q quitscount 1; up: no 'Count: 3' on row 3 in 1.5 s: Count: 0 | 3count 3 | +"
+  },
+  "missing-binding": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "up: no 'Count: 3' on row 3 in 1.5 s: Counter | Count: 2 | +/- or Up/Down change the count, q quits; burst +++++: no 'Count: 7' on row 3 in 1.5 s: Counter | Count: 6 | +/- or Up/Down change the count, q quits; unbound x: row 3: 'Count: 6' (want 'Count: 7'); resize 80x24: Counter | Count: 6 | +/- or Up/Down change the count, q quits"
+  },
+  "lost-update": {
+   "outcome": "test-or-oracle-catches",
+   "detail": "burst +++++: no 'Count: 7' on row 3 in 1.5 s: Counter | Count: 3 | +/- or Up/Down change the count, q quits; unbound x: row 3: 'Count: 3' (want 'Count: 7'); resize 80x24: Counter | Count: 3 | +/- or Up/Down change the count, q quits"
+  }
+ }
+}
