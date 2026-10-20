@@ -207,8 +207,11 @@
   repo: HUMAN STEP (Settings > Code security). Then: trigger CI (ci, docs, bench, native), close PR #7, delete the
   stale remote branches with `git push origin --delete` (no MCP tool), the gate message.
   <!-- claude 2026-10-20: created this item -->
-- D26 (user, 2026-10-20, chat, FINAL): the state primitive gets the Vue spelling `tui4s.use.ref(initial)` (an alias
-  of `Signal.initRef`, returns `SignalRef` = Vue's `Ref`) in tui4s-use, cross-platform. History: the user asked "why
+- D26 (user, 2026-10-20, chat, FINAL after four turns): the state primitive gets the short name `tui4s.sig(initial)`
+  (an alias of `Signal.initRef`, akin to Vue's `ref()`, returns `SignalRef`) as a top-level def in the RUNNER's
+  package `tui4s` (a terminal app gets it with tui4s-core alone and `import tui4s.{Tui, TuiApp, sig}`); shared
+  cross-platform code calls `Signal.initRef`. `ref` lost (the usual local name; reads as Vue's type); `signal`,
+  `createSignal`, `initRef`, `useSignal` lost. History: the user asked "why
   useSignal gone?"; picked `signal(0)` from a choice (signal, createSignal, sig, useSignal); then "signal() should be
   a primitive, not a hook" (a hook is mount-bound; creating a signal has no lifetime, and the runner is terminal-only),
   so NOT in tui4s.Hooks; then "put a method called `ref`, alias of Signal.initRef, same as Vue". The finalizer adds it
