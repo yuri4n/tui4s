@@ -1,0 +1,9 @@
+# claude 2026-10-20: created (L6)
+blank_issues_enabled: true
+contact_links:
+  - name: Security problem
+    url: https://github.com/yuri4n/tui4s/security/advisories/new
+    about: Report a security problem privately (SECURITY.md).
+  - name: Planned features
+    url: https://github.com/yuri4n/tui4s/issues
+    about: The planned features are open issues. Look there before you ask for a feature.

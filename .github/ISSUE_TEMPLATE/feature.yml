@@ -1,0 +1,27 @@
+# claude 2026-10-20: created (L6): the feature request form
+name: Feature request
+description: A new feature or a change of the API.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The planned features are issues already: look at https://github.com/yuri4n/tui4s/issues first.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you want to do, and why tui4s or kyo-ui does not let you do it today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: A proposal
+      description: The API that you want, as a short Scala example.
+      render: scala
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: What you do today instead (a workaround, another library).

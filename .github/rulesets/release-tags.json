@@ -1,0 +1,24 @@
+{
+  "name": "release tags",
+  "target": "tag",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": [
+        "refs/tags/runner-v*",
+        "refs/tags/app-v*",
+        "refs/tags/testkit-v*",
+        "refs/tags/core-v*",
+        "refs/tags/use-v*",
+        "refs/tags/widgets-v*"
+      ],
+      "exclude": []
+    }
+  },
+  "bypass_actors": [],
+  "rules": [
+    { "type": "deletion" },
+    { "type": "update" },
+    { "type": "non_fast_forward" }
+  ]
+}

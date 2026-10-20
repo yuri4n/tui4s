@@ -18,6 +18,7 @@ jobs:
   sbt:
     name: Format, compile, test, compatibility, packaging
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     # claude 2026-10-12: created: sbt-tpolecat CI mode, a warning fails the build (D-8)
     # claude 2026-10-13: changed: TUI4S_LOAD, the load flag of the glitch tests:
     # runnerTestSettings (build.sbt) gives the test JVM -Dtui4s.load=1, which allows 1
@@ -48,6 +49,10 @@ jobs:
       # scalafixAll --check; test; versionPolicyCheck
       # claude 2026-10-17: changed: the alias runs scalafixAll --check
       - run: sbt -v check examples/Universal/stage examples/Universal/packageBin
+      # claude 2026-10-20: created (L6): the Scaladoc of the six published
+      # modules; an error fails the step (a warning does not)
+      - name: Scaladoc of the published modules
+        run: sbt -v runner/doc app/doc testkit/doc core/doc useJVM/doc widgetsJVM/doc
       - name: Pini4s tests and demo distribution
         working-directory: vendor/pini4s
         run: sbt check demo/Universal/stage demo/Universal/packageBin
@@ -80,9 +85,18 @@ jobs:
         run: nix flake check --all-systems --no-build --no-update-lock-file
 
   # claude 2026-10-13: created (T1, OS-41): the real-terminal checklist
+  # claude 2026-10-20: changed (L5b, L6): macOS too (the crossterm jar of
+  # jatatui 0.31.0 holds libnative-arm64-darwin-crossterm.dylib and
+  # libnative-x86_64-darwin-crossterm.dylib); a second run with the AOT
+  # caches of the examples (ADR 0015)
   terminal:
-    name: Real-terminal checklist (pseudo-terminal)
-    runs-on: ubuntu-latest
+    name: Real-terminal checklist (pseudo-terminal, ${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     # SBT_TPOLECAT_CI: the sbt step of run.sh (examples/launchers) compiles
     # with the CI flags, as the sbt job does. TUI4S_LOAD is for the glitch
     # tests of the core (the integration suites), which this job does not run.
@@ -102,7 +116,8 @@ jobs:
       # claude 2026-10-13: changed (T1, reviews R3-1, R3-2): apt-get update
       # first (the package index of the image can be old); the logs of a
       # failed run are kept as an artifact
-      - run: sudo apt-get update && sudo apt-get install -y expect
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y expect
       # Starts each example in a pseudo-terminal, sends keys and signals,
       # checks the screens and that the terminal is restored
       # (examples/README.md). The runner has no JAVA_TOOL_OPTIONS; run.sh
@@ -111,10 +126,59 @@ jobs:
       - run: examples/ptycheck/run.sh
         env:
           PTY_WORK: ${{ runner.temp }}/ptycheck
+      # The same checklist with the AOT cache of each example (bin/aot-train
+      # of the distribution; the start scripts then use the caches).
+      - name: Train the AOT caches of the examples
+        run: examples/target/bin/aot-train
+      - name: The checklist with the AOT caches
+        run: examples/ptycheck/run.sh
+        env:
+          PTY_SKIP_BUILD: "1"
+          PTY_WORK: ${{ runner.temp }}/ptycheck-aot
       - name: Keep the logs of a failed checklist
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: ptycheck-logs
-          path: ${{ runner.temp }}/ptycheck
+          name: ptycheck-logs-${{ matrix.os }}
+          path: |
+            ${{ runner.temp }}/ptycheck
+            ${{ runner.temp }}/ptycheck-aot
+          if-no-files-found: ignore
+
+  # claude 2026-10-20: created (L6): the assistant on the web, in headless
+  # Chromium (scripts/web-smoke.mjs). The version of Playwright is the one
+  # that the smoke was written with.
+  web:
+    name: Web assistant (Scala.js, Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SBT_TPOLECAT_CI: "1"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25 # Kyo 1.0.0-RC7 needs JDK 25
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Link the web assistant (dist/assistant)
+        run: bash scripts/web-build.sh
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --global playwright@1.56.1
+          npx playwright@1.56.1 install --with-deps chromium
+      - name: Smoke test in Chromium
+        run: node scripts/web-smoke.mjs
+      - name: Keep the screenshot of a failed smoke
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-smoke
+          path: dist/web-smoke.png
           if-no-files-found: ignore

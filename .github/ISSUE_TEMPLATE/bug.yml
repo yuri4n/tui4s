@@ -1,0 +1,63 @@
+# claude 2026-10-20: created (L6): the bug report form
+name: Bug report
+description: Something in tui4s does not work as the docs say.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. Do not report a security problem here: see SECURITY.md.
+        Remove API keys and other secrets from the logs before you paste them.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens, and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps
+      description: The smallest UI or the example (`examples/target/bin/<app>`), and the keys that show the problem.
+      placeholder: |
+        1. examples/target/bin/counter
+        2. Press Tab, then Enter
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: tui4s version
+      description: The artifacts and their version, or the commit.
+      placeholder: tui4s-core 0.1.0-RC1
+    validations:
+      required: true
+  - type: input
+    id: jdk
+    attributes:
+      label: JDK
+      description: The output of `java -version` (JDK 25 is needed). Say if you use a GraalVM native image.
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: Ubuntu 24.04 x86_64, macOS 15 arm64
+    validations:
+      required: true
+  - type: input
+    id: terminal
+    attributes:
+      label: Terminal
+      description: The terminal emulator and the value of TERM (and tmux or screen, if used).
+      placeholder: kitty 0.39, TERM=xterm-kitty
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: The log of the run
+      description: Set `TuiOptions(logFile = ...)` (or `--log` in the Printing example) and paste the file. A run prints its errors after the terminal is restored; paste them too.
+      render: text
