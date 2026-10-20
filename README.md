@@ -43,10 +43,11 @@ examples/target/universal/stage/bin/counter
 The development shell supplies JDK 25, sbt, and the tools for the terminal
 checklist. Run the last command in a real terminal; `q` exits. For an existing
 checkout, run `git submodule update --init --recursive` before building.
-The flake defines shells for Linux on x86_64 or aarch64 and Apple Silicon
-macOS. On Intel macOS, or without Nix, install JDK 25 and sbt, then use the
-same sbt commands. These shell targets do not imply terminal runtime testing
-on every platform.
+The flake defines shells for Linux and macOS on x86_64 or aarch64. The Intel
+macOS shell uses a separately locked nixpkgs 26.05 input because nixpkgs 26.11
+no longer supports that platform. Without Nix, install JDK 25 and sbt, then
+use the same sbt commands. These shell targets do not imply terminal runtime
+testing on every platform.
 
 For automatic activation, install direnv and nix-direnv and enable direnv's
 hook in your shell. For zsh, add `eval "$(direnv hook zsh)"` to `~/.zshrc`.
