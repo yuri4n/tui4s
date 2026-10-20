@@ -1,0 +1,4 @@
+# claude 2026-10-20: created (L5): the state of alchemy and the packages stay local
+node_modules/
+.alchemy/
+out/
