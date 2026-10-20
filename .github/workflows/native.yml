@@ -1,0 +1,53 @@
+name: Native image
+
+# Builds the Counter as a GraalVM native image (GraalVM Community Edition for
+# JDK 25) with scripts/native-image.sh and the metadata of tui4s-runner, then
+# runs it in a pseudo-terminal: the first frame, a key, q, the exit code and
+# the restore (scripts/native-smoke.py). ADR 0015: native-image is an option,
+# not the release format; this job keeps the option working.
+# claude 2026-10-20: created (L5b, ADR 0015)
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "modules/runner/src/main/resources/META-INF/**"
+      - "scripts/native-image.sh"
+      - "scripts/native-smoke.py"
+      - ".github/workflows/native.yml"
+
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  counter:
+    name: Native Counter (GraalVM CE 25)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # dynver reads the tags
+          submodules: recursive
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: "25"
+          distribution: graalvm-community
+          components: native-image
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      # -Ob: the quick build mode of native-image (the binary is larger and
+      # slower to run, but the start is the same).
+      - name: Build the native Counter
+        run: scripts/native-image.sh counter -Ob
+      - name: Run it in a pseudo-terminal
+        run: python3 scripts/native-smoke.py examples/target/native/counter
+      - name: Keep the binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: counter-linux-x64
+          path: examples/target/native/counter
+          if-no-files-found: error

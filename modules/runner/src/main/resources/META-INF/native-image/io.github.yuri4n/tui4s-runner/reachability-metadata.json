@@ -1,0 +1,12 @@
+{
+  "resources": [
+    { "glob": "libnative-*-crossterm.so" },
+    { "glob": "libnative-*-crossterm.dylib" },
+    { "glob": "native-*-crossterm.dll" }
+  ],
+  "foreign": {
+    "downcalls": [
+      { "returnType": "jint", "parameterTypes": ["jint"] }
+    ]
+  }
+}
