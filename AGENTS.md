@@ -32,11 +32,13 @@ issue #17). All the artifacts use the same packages (`tui4s`,
 | `examples`      | `examples` | none                             | -                                       | none             | no        |
 | `examples/web`  | `assistantWeb` | none                         | kyo-ui (the assistant on the web: a Scala.js app of static files from `modules/assistant`; `scripts/web-build.sh` builds `dist/assistant`) | none | no |
 | `docs`          | none       | none (Nuxt Docus site: a guide whose pages lead with examples; `pnpm run build` in `docs` builds it; `MarkdownRegionsSuite` checks each of its Scala blocks; the section "Docs" below) | - | none | no |
+| `bench`         | none (its own sbt build: `bench/build.sbt`) | none | kyo-ui in its tui4s stack; the other stacks use other libraries (the bench of D10) | none | no |
 <!-- claude 2026-10-19: created the row of examples/web; changed: the js part of the assistant (L4) -->
 <!-- claude 2026-10-19: created the rows of use and widgets (L2a); changed: the widgets row (L2b) -->
 <!-- claude 2026-10-19: changed: the rows runner, app, testkit and the composite core (D25) -->
 <!-- claude 2026-10-19: created the row of the assistant (L3) -->
 <!-- claude 2026-10-20: changed: the row of docs (L5) -->
+<!-- claude 2026-10-20: created the row of bench (L5) -->
 
 <!-- claude 2026-10-19: changed: the runner, not the core; zio and cats depend on the runner (D25) -->
 The runner uses Kyo and kyo-ui (both at `Versions.kyo`). The `zio` and `cats`
@@ -306,11 +308,13 @@ nothing.
 | `pnpm install --frozen-lockfile && pnpm run build` (in `docs`) | Builds the docs site into `docs/.output`, with `llms.txt`, `llms-full.txt` and `raw/<page>.md`. Set `NUXT_TELEMETRY_DISABLED=1`. The build fetches nothing from the network. `pnpm run preview` serves the result. |
 | `bash scripts/docs-casts.sh`         | Builds the launchers and records the terminal casts of the docs site (`docs/public/casts/<app>.cast`), each app in a pseudo-terminal of its own (`examples/ptycheck/cast.py`). |
 | `bash scripts/docs-demo.sh`          | Copies `dist/assistant` (run `scripts/web-build.sh` first) to `docs/public/demo/assistant`, the web demo of the docs site. The page opens it with `?demo`: only the fake provider, and a storage in memory. |
+| `bench/run.sh`                       | Runs the bench (`bench/README.md`): publishes the tui4s artifacts locally, builds the eight stacks, measures them in a pseudo-terminal and writes the tables. `bench/run.sh ci` is the smoke of the CI job `bench`. |
 <!-- claude 2026-10-19: created the rows of use/test and useJS/compile; changed: Node.js in the shell (L2a); gallery in the app list (L2b) -->
 <!-- claude 2026-10-19: changed: the rows runner/test and core/test (D25) -->
 <!-- claude 2026-10-19: changed: assistant in the app list (L3) -->
 <!-- claude 2026-10-19: created the rows of the web build and the web smoke test (L4) -->
 <!-- claude 2026-10-20: created the rows of the docs build, docs-casts.sh and docs-demo.sh (L5) -->
+<!-- claude 2026-10-20: created the row of bench/run.sh (L5) -->
 
 A test suite lives in the lowest module whose main classpath it needs: a
 suite that needs only the runner is in `modules/runner/src/test`; a suite
@@ -363,6 +367,23 @@ percentile of each step in ms: `sbt 'set core / Test / javaOptions +=
 "-Dtui4s.stress=30"' 'core/testOnly tui4s.stress.PerfProbe'`. Run it before
 and after a change of the frame path, and give both numbers.
 <!-- claude 2026-10-19: changed: the frame-path probe PerfProbe (PF-b) -->
+
+## Benchmarks
+
+<!-- claude 2026-10-20: created this section (L5) -->
+- The bench (`bench/`, decision D10) compares tui4s with seven other stacks on
+  tasks with an exact specification (`bench/tasks/`). It has its own sbt build
+  and its own CI job (`.github/workflows/bench.yml`), so it does not change a
+  published module; its headline is compactness, expressiveness, correctness
+  and resource management, and its performance numbers are on their own page
+  (`bench/PERFORMANCE.md`).
+- Every number states its machine (`bench/results/<machine>/machine.json`). An
+  implementation in another stack gets a review by a person of that ecosystem
+  before the numbers are published. Pending: ratatui, bubbletea, Textual, ink,
+  layoutz, TamboUI and jatatui-plain.
+- Run the bench only with `bench/run.sh`. The AWS run (`bench/infra/`) reads
+  the credentials only from the AWS SDK default chain, and the operator always
+  destroys it after the fetch.
 
 ## Rules for code
 

@@ -67,6 +67,7 @@ build() {
     has tamboui && targets="$targets tambouiCounter/stage tambouiDashboard/stage"
     has layoutz && targets="$targets layoutzCounter/stage layoutzDashboard/stage"
     if [ -n "$targets" ]; then
+        jvm=1
         step "build: the JVM stacks (one sbt server):$targets"
         (cd "$bench" && $SBT -Dsbt.supershell=false $targets) || status=1
     fi
@@ -81,8 +82,10 @@ report() {
     python3 "$bench/harness/compact.py" >/dev/null && python3 "$bench/harness/report.py" "$BENCH_MACHINE"
 }
 
+jvm=""
 finish() {
-    if [ "${SBT%% *}" = "sbt" ] && [ "$SBT" != "sbt" ]; then (cd "$bench" && $SBT shutdown >/dev/null 2>&1); fi
+    # Stop the sbt server of the bench build (sbt --client starts one).
+    if [ -n "$jvm" ] && [ "$SBT" != "sbt" ]; then (cd "$bench" && $SBT shutdown >/dev/null 2>&1); fi
 }
 trap finish EXIT
 
@@ -99,6 +102,7 @@ esac
 
 case "$mode" in
     full | measure)
+        jvm=1 # change and mutants build through the sbt server
         $harness conformance --stacks "$stacks" || status=1
         $harness resilience --stacks "$stacks" || status=1
         $harness perf --stacks "$stacks" --runs 3 || status=1
@@ -107,6 +111,7 @@ case "$mode" in
         report || status=1
         ;;
     ci)
+        jvm=1
         $harness conformance --stacks "$stacks" || status=1
         $harness resilience --stacks "$stacks" || status=1
         $harness perf --stacks "$stacks" --quick || status=1
