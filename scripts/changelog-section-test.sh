@@ -100,16 +100,135 @@ bash "$script" runner >/dev/null 2>&1 && fail "one argument: expected exit 1"
 cases=$((cases + 1))
 bash "$script" runner 0.2.0 "$work/missing.md" >/dev/null 2>&1 && fail "a missing file: expected exit 1"
 
-# CHANGELOG.md of the repository: each module has a section under its first
-# version heading (Unreleased until the release pull request renames it).
-heading=$(grep -m 1 -E '^## ' "$here/../CHANGELOG.md" | sed -E 's/^## \[?([^] ]+)\]?.*$/\1/')
-for m in runner app testkit core use widgets; do
+# claude 2026-10-20: changed (review fix): the check of the first heading of a
+# file. It checks only the subsections '### tui4s-<module>' that are under the
+# first '## ' heading: each one must have text. A first heading with no
+# subsection is good (an empty '## [Unreleased]' after a release). A pull
+# request adds notes only for the modules that it changes, and a release pull
+# request keeps only the modules of the release. Thus the cases of all six
+# modules and of a missing subsection are only on the fixtures.
+
+# first_heading FILE: the version of the first '## ' heading of FILE
+# ('Unreleased' for '## [Unreleased]'), or nothing.
+first_heading() {
+  grep -m 1 -E '^## ' "$1" | sed -E 's/^## \[?([^] ]+)\]?.*$/\1/'
+}
+
+# first_modules FILE: the module of each subsection '### tui4s-<module>' under
+# the first '## ' heading of FILE, one on each line.
+first_modules() {
+  awk '/^## / { n++; next }
+    n == 1 && /^### tui4s-/ { m = substr($0, 11); sub(/[ \t]+$/, "", m); print m }' "$1"
+}
+
+# first_problems FILE: one line for each problem of the first heading of FILE
+# (no heading, or a subsection with no text); nothing when it is good.
+first_problems() {
+  local heading m
+  heading=$(first_heading "$1")
+  if [[ -z $heading ]]; then
+    echo "no '## ' heading"
+    return
+  fi
+  for m in $(first_modules "$1"); do
+    bash "$script" "$m" "$heading" "$1" >/dev/null 2>&1 ||
+      echo "no text for tui4s-$m under '$heading'"
+  done
+}
+
+# heading NAME WORDS: the first heading of $work/NAME.md (from stdin) has no
+# problem when WORDS is empty; else WORDS is a part of its problems.
+heading() {
+  local file="$work/$1.md" got
+  cat >"$file"
   cases=$((cases + 1))
-  bash "$script" "$m" "$heading" >/dev/null || fail "CHANGELOG.md: no text for tui4s-$m under '$heading'"
-done
+  got=$(first_problems "$file")
+  if [[ -z $2 && -n $got ]]; then
+    fail "first heading, $1: expected no problem, got '$got'"
+  elif [[ -n $2 && $got != *"$2"* ]]; then
+    fail "first heading, $1: expected '$2', got '$got'"
+  fi
+}
+
+heading all-six "" <<'MD'
+## [Unreleased]
+### tui4s-runner
+- r.
+### tui4s-app
+- a.
+### tui4s-testkit
+- t.
+### tui4s-core
+- c.
+### tui4s-use
+- u.
+### tui4s-widgets
+- w.
+MD
+heading one-module-unreleased "" <<'MD'
+# Changelog
+
+## [Unreleased]
+
+### tui4s-runner
+
+- Fixed: a key.
+
+## [0.1.0] - 2026-10-30
+
+### tui4s-runner
+
+- Added: first.
+MD
+heading one-module-release "" <<'MD'
+## [0.1.1] - 2026-11-02
+
+### tui4s-use
+
+- Fixed: a composable.
+
+## [0.1.0] - 2026-10-30
+
+### tui4s-runner
+
+- Added: first.
+MD
+heading empty-unreleased "" <<'MD'
+## [Unreleased]
+
+## [0.1.0] - 2026-10-30
+
+### tui4s-runner
+
+- Added: first.
+MD
+heading empty-subsection "no text for tui4s-app under 'Unreleased'" <<'MD'
+## [Unreleased]
+
+### tui4s-app
+
+<!-- a mark only -->
+
+### tui4s-use
+
+- Added: u.
+MD
+heading no-heading "no '## ' heading" <<'MD'
+# Changelog
+
+Nothing yet.
+MD
+
+# CHANGELOG.md of the repository: each subsection under its first heading has
+# text (Unreleased until the release pull request renames it).
+changelog="$here/../CHANGELOG.md"
+cases=$((cases + 1))
+got=$(first_problems "$changelog")
+[[ -z $got ]] || fail "CHANGELOG.md: $got"
 
 if ((failures > 0)); then
   echo "changelog-section-test: $failures of $cases cases failed"
   exit 1
 fi
-echo "changelog-section-test: all $cases cases passed (CHANGELOG.md at '$heading')"
+echo "changelog-section-test: all $cases cases passed" \
+  "(CHANGELOG.md: $(first_modules "$changelog" | wc -l | tr -d ' ') subsections with text under '$(first_heading "$changelog")')"
