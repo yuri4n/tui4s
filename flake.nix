@@ -6,7 +6,8 @@
 
   outputs = { nixpkgs, ... }:
     let
-      systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
+      # claude 2026-10-20: changed: x86_64-darwin too (the maintainer's Mac evaluates as x86_64-darwin)
+      systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
     in
     {
