@@ -212,8 +212,9 @@ nothing.
   its companion, with module tests (kyo-test, on the JVM and on Node.js). The
   gallery example (`examples.gallery`) shows each widget: a new widget gets a
   place in a family of the gallery, a leaf in `GallerySuite`, and its family
-  region in the README (`ReadmeSuite` checks it).
+  region in the README (`MarkdownRegionsSuite` checks it).
   <!-- claude 2026-10-19: created this item (L2b) -->
+  <!-- claude 2026-10-20: changed: ReadmeSuite is now MarkdownRegionsSuite (L5) -->
 - Use only Kyo's public APIs. Do not use a package name or reflection to reach
   private Kyo implementation members.
 - An ordinary Scala class can group signals, derived values, and actions.

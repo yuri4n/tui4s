@@ -23,6 +23,9 @@ class RecipesSuite extends FunSuite:
     ): Headless < (Async & Scope) =
       Headless.start(60, 10)(_ => ui)
 
+    // claude 2026-10-20: created the region below (L5): the docs page
+    // "Testing" shows it
+    // region: testing
     /** Waits until the screen shows `text`, at most 10 s. */
     private def shows(h: Headless, text: String)(using Frame): Boolean < Async =
       h.awaitScreen(_.contains(text), 10.seconds)
@@ -54,6 +57,7 @@ class RecipesSuite extends FunSuite:
       }
       assert(ok)
     }
+    // endregion: testing
 
     test("autosave: the save runs after the edits stop, with the last text") {
       val saved = run {

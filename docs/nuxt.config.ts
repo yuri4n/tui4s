@@ -21,6 +21,9 @@ export default defineNuxtConfig({
       markdown: {
         highlight: {
           // Added to the Docus defaults (bash, diff, json, js, ts, html, css, vue, shell, mdc, md, yaml).
+          // claude 2026-10-20: created this note (L5): a build.sbt block is an `sbt` block; it
+          // shows as plain text, and only a `scala` block must be a marked region
+          // (MarkdownRegionsSuite).
           langs: ['scala', 'java'],
         },
       },
@@ -89,6 +92,38 @@ export default defineNuxtConfig({
       fontsource: false,
       google: false,
       googleicons: false,
+    },
+  },
+
+  // claude 2026-10-20: created: the icons of the pages, the navigation and the code blocks are
+  // in the client bundle, so no icon comes from the Iconify API at build time or in the browser (L5)
+  icon: {
+    clientBundle: {
+      icons: [
+        'lucide:arrow-right',
+        'lucide:blocks',
+        'lucide:book-open',
+        'lucide:bot',
+        'lucide:component',
+        'lucide:download',
+        'lucide:flask-conical',
+        'lucide:gauge',
+        'lucide:globe',
+        'lucide:layers',
+        'lucide:layout-template',
+        'lucide:message-square',
+        'lucide:package',
+        'lucide:palette',
+        'lucide:play',
+        'lucide:puzzle',
+        'lucide:rocket',
+        'lucide:scroll-text',
+        'lucide:shield-check',
+        'lucide:square-terminal',
+        'lucide:text-cursor-input',
+        'simple-icons:github',
+        'vscode-icons:file-type-scala',
+      ],
     },
   },
 

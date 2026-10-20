@@ -66,10 +66,14 @@ object Printing:
       * `--log <file>` sends the captured lines to that file.
       */
     // claude 2026-10-19: changed: the Chunk of TuiApp.args (P1b, A5 a)
+    // claude 2026-10-20: created the region below (L5): the docs page
+    // "Running and packaging" shows it
+    // region: options
     def options(args: Chunk[String]): TuiOptions = args.toSeq match
         case Seq("--log", file, _*) =>
           TuiOptions(logFile = Some(Paths.get(file)))
         case _                      => TuiOptions()
+    // endregion: options
 end Printing
 
 /** Runs the printing app in the real terminal. Start it with its start script,

@@ -15,6 +15,9 @@ import tui4s.{Component, Tui, TuiApp}
 object CounterHooks:
 
     // claude 2026-10-19: changed: the colours of the stylesheet (L1b)
+    // claude 2026-10-20: created the region below (L5): the docs page
+    // "Components" shows it
+    // region: hook-counter
     def counter(label: String): UI < Sync =
       for count <- Signal.initRef(0)
       yield div.style(_.border(1.px, CounterStyles.frame).padding(0.px, 1.px))(
@@ -26,8 +29,12 @@ object CounterHooks:
           button("-").onClick(count.updateAndGet(_ - 1)),
         ),
       )
+    // endregion: hook-counter
 end CounterHooks
 
+// claude 2026-10-20: created the region below (L5): the docs page
+// "Components" shows it
+// region: class-counter
 /** Style 2: a component class with a type member for its state. The runner
   * allocates the state at mount.
   */
@@ -46,6 +53,7 @@ final class CounterBox(label: String) extends Component:
         ),
       )
 end CounterBox
+// endregion: class-counter
 
 /** Both styles side by side, in one app. On the left, two hook counters that
   * the runner mounts (`component`), inside a `when`: `h` hides them (they lose
@@ -79,6 +87,9 @@ object CounterStyles:
     val count: Style.Color = Style.Color.variable("count")
     // endregion: colors
 
+    // claude 2026-10-20: created the region below (L5): the docs page
+    // "Components" shows it
+    // region: mount
     def ui: UI < Sync =
       for shown <- Signal.initRef(true)
       yield div.onKeyDown {
@@ -103,6 +114,7 @@ object CounterStyles:
           ),
         ),
       )
+    // endregion: mount
 end CounterStyles
 
 /** Runs both counter styles in the real terminal. Start it with its start

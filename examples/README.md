@@ -461,10 +461,13 @@ The tests do not need a terminal. They run the apps on
 (`examples/src/test/scala/examples/<package>/`): the keys of each app, the
 screen after them, the Todo file, the Dashboard with short periods. A test
 that writes a signal of the app waits for the screen with
-`Headless.awaitScreen`. `ReadmeSuite` checks that the code blocks of the root
-`README.md` that have a `<!-- from: <path>#<region> -->` line above them are
-the same text as the example files (a region is the lines between
-`// region: <name>` and `// endregion: <name>`).
+`Headless.awaitScreen`. `MarkdownRegionsSuite` checks that the code blocks of
+`README.md`, of this file and of the pages of the docs site (`docs/content`)
+that have a `<!-- from: <path>#<region> -->` line above them are the same text
+as the source files (a region is the lines between `// region: <name>` and
+`// endregion: <name>`). In the docs pages, each Scala block must have that
+line.
+<!-- claude 2026-10-20: changed: MarkdownRegionsSuite, the docs pages (L5) -->
 
 ## Real-terminal checklist
 

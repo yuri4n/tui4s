@@ -27,5 +27,9 @@ import tui4s.Tui
 // CounterApp.scala:8 of PR 5: the Scaladoc names the launchers, not sbt run)
 // claude 2026-10-13: changed (T2, RC-33): moved from examples.counter (one
 // main per package: the script `counter` now starts the TuiApp CounterApp)
+// claude 2026-10-20: created the region below (L5): the docs page "The
+// terminal contract" shows it
+// region: main
 object CounterKyoApp extends KyoApp:
     run(Tui.run(quit => Counter.ui(quit)))
+// endregion: main
