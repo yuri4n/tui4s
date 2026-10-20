@@ -680,6 +680,10 @@ and after a change of the frame path, and give both numbers.
   example (D17). Write the pages in ASD-STE100, short. Do not claim more than
   the code does: there is no ZIO or Cats Effect integration (issues #18 and
   #19), there is no mouse input, and Windows is experimental.
+  Vercel builds the site (Root Directory `docs`) on a push to `main` that
+  changes `docs/` since the last successful deployment (`docs/vercel.json`,
+  `VERCEL_GIT_PREVIOUS_SHA`); the first deployment always builds.
+  <!-- claude 2026-10-20: changed: the Vercel build rule -->
 - Each Scala block of a page in `docs/content` is the text of a region of a
   source file. The line `<!-- from: <path>#<region> -->` is directly above
   the block, one for each block, as in `README.md`. `MarkdownRegionsSuite`

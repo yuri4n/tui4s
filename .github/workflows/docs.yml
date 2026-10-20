@@ -2,6 +2,9 @@ name: Docs
 
 # Checks that the documentation site (docs/, Nuxt Docus) builds.
 # Vercel deploys the site (project Root Directory = docs). This workflow does not deploy.
+# Vercel builds only when docs/ changed since the last successful deployment
+# (docs/vercel.json, VERCEL_GIT_PREVIOUS_SHA); the first deployment always builds.
+# claude 2026-10-20: changed: the two lines above (the scaffold's HEAD^ rule skipped the first deploy)
 on:
   pull_request:
     paths: ["docs/**", ".github/workflows/docs.yml"]
