@@ -50,4 +50,4 @@ Accepted
 ## References
 
 - Decision log: eleventh round (agent roles), fourteenth round (lean mode), fifteenth round (D14, D15), sixteenth round (D18, D19, D20). Plan: D-32.
-- AGENTS.md: the ASD-STE100 note at the top, "Toolchain" (the skills item).
+- CONTRIBUTING.md: the ASD-STE100 note at the top, "Purity" (the skills item). AGENTS.md: the rules for agents only. <!-- claude 2026-10-20: changed: CONTRIBUTING.md; the skills item is in "Purity" (ADR 0021) -->

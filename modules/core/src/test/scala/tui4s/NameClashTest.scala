@@ -15,7 +15,8 @@ import tui4s.testkit.*
   */
 // claude 2026-10-13: changed (C4): tui4s.Hooks.* too
 // claude 2026-10-12: created; changed (review R1-7): a RunnerSuite, as the
-// rule of AGENTS.md says for a suite that runs the runner
+// rule of CONTRIBUTING.md says for a suite that runs the runner
+// claude 2026-10-20: changed: CONTRIBUTING.md (ADR 0021)
 class NameClashTest extends RunnerSuite:
 
     "kyo.*, kyo.UI.*, kyo.test.*, tui4s.*, tui4s.spi.* and tui4s.testkit.* together" in {

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Checks the scalafix suppressions of the purity rules (AGENTS.md, "Purity").
+# Checks the scalafix suppressions of the purity rules (CONTRIBUTING.md,
+# "Purity").
 #
 # Impure syntax is permitted only in an edge file or on a line with a reason:
 #   1. Each edge file starts with `// scalafix:off DisableSyntax`, then one
@@ -8,12 +9,13 @@
 #      scalafix: outside the edge files, a suppression is one line.
 #   3. Each `scalafix:ok` names the phase that removes the site, or KEEP:
 #      `// scalafix:ok DisableSyntax.<id>; <phase>: <reason>`, where <phase>
-#      is P1, P1b or P2 to P6 (the phase key in AGENTS.md, "Purity") or KEEP
+#      is P1, P1b or P2 to P6 (the phase key in CONTRIBUTING.md, "Purity") or KEEP
 #      (it stays).
 #
-# Usage: bash scripts/edge-check.sh (CI runs it; see AGENTS.md).
+# Usage: bash scripts/edge-check.sh (CI runs it; see CONTRIBUTING.md).
 # claude 2026-10-17: created (purity plan, phase P0)
-# claude 2026-10-19: changed: the edge files are in modules/runner (D25)
+# claude 2026-10-19: changed: the edge files are in modules/runner (D25);
+# 2026-10-20: changed: the header names CONTRIBUTING.md (ADR 0021)
 set -euo pipefail
 
 CDPATH='' cd "$(dirname "$0")/.."

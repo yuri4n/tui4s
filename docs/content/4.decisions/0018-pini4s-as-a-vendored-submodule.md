@@ -16,7 +16,7 @@ Accepted. The move to a published artifact is PROPOSED (see below).
 ## Context
 
 - pini4s ("Pinia-inspired shared state for Scala and Kyo") is a small library of the same author. It keeps named `SignalRef` values in an explicit application registry, with an optional `useState("key")(initial)` helper. It depends on `kyo-core` only and has no UI module.
-- AGENTS.md: "Local state and controlled components need no store library." Components own their state by default; pini4s adds explicit, application-owned sharing by key.
+- CONTRIBUTING.md: "Local state and controlled components need no store library." Components own their state by default; pini4s adds explicit, application-owned sharing by key. <!-- claude 2026-10-20: changed: CONTRIBUTING.md, not AGENTS.md (ADR 0021) -->
 - The tui4s build reads it as `ProjectRef(file("vendor/pini4s"), "root")`. Only the `examples` project depends on it, and only one suite uses it (`examples/src/test/scala/examples/widgets/StateStoreSuite.scala`).
 - pini4s has no published artifact: its build sets `version := "0.1.0-SNAPSHOT"` and `publish / skip := true`.
 - While `yuri4n/pini4s` was private, the CI checkout of the submodule failed, so CI was red on `main` from 2026-10-16. After the user made pini4s public, CI run #43 (2026-10-19) was green; D22 calls it "the first green run since 10-14".
@@ -48,4 +48,4 @@ PROPOSAL (2026-10-20, now that pini4s is public): when pini4s publishes `io.gith
 
 - Decision log: D22. Handoff: "CI #43 on 95bcf2a GREEN".
 - Commit 3c31de8 ("Add native Kyo state patterns and reproducible developer tooling").
-- AGENTS.md: "UI architecture and API design" (the pini4s items).
+- CONTRIBUTING.md: "UI architecture and API design" (the pini4s items). <!-- claude 2026-10-20: changed: CONTRIBUTING.md, not AGENTS.md (ADR 0021) -->

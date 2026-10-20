@@ -250,9 +250,10 @@ object Todo:
                           .andThen(select)
           // The result type is load-bearing: without it the match widens to
           // `Any`, and Kyo lifts the effects as plain values, so they never run
-          // (the lift trap; AGENTS.md "Rules for code").
+          // (the lift trap; CONTRIBUTING.md "Rules for code").
           // claude 2026-10-13: changed (T2): the comment names AGENTS.md (the
-          // prototype named its REPORT.md)
+          // prototype named its REPORT.md); 2026-10-20: changed: CONTRIBUTING.md
+          // (ADR 0021)
           listKeys  = (e: KeyboardEvent) =>
                         (e.key match
                             case Keyboard.ArrowUp | Keyboard.Char('k')   =>

@@ -41,8 +41,13 @@ jobs:
       # claude 2026-10-09: added the table test of the release version order
       - name: Release script version order
         run: bash scripts/version-order-test.sh
+      # claude 2026-10-20: created (ADR 0020): the release notes of each module
+      # come from CHANGELOG.md (scripts/changelog-section.sh)
+      - name: Changelog sections of the release notes
+        run: bash scripts/changelog-section-test.sh
       # claude 2026-10-17: created: the edge headers and the phase of each
-      # scalafix suppression (AGENTS.md, "Purity")
+      # scalafix suppression (CONTRIBUTING.md, "Purity")
+      # claude 2026-10-20: changed: CONTRIBUTING.md (ADR 0021)
       - name: Edge files and scalafix suppressions
         run: bash scripts/edge-check.sh
       # alias: scalafmtCheckAll; scalafmtSbtCheck; Test/compile;

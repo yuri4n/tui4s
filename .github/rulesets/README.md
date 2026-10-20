@@ -7,15 +7,34 @@ files. A human admin imports them; until then, no rule is active.
 
 ## Files
 
+<!-- claude 2026-10-20: changed: the row of release-tags.json: the release workflow creates the tags (ADR 0020) -->
+
 | File                   | Target                                                                 | Bypass | What it does |
 | ---------------------- | ---------------------------------------------------------------------- | ------ | ------------ |
 | `main-invariants.json` | branch `main`                                                          | none   | Blocks force pushes and the deletion of `main`. A change goes through a pull request, with a linear history (squash or rebase merge), resolved threads and a green CI job `Format, compile, test, compatibility, packaging`. A pull request needs no approval. |
-| `release-tags.json`    | tags `runner-v*`, `app-v*`, `testkit-v*`, `core-v*`, `use-v*`, `widgets-v*` | none   | Blocks the deletion and the move of a release tag. You can still create a tag. |
+| `release-tags.json`    | tags `runner-v*`, `app-v*`, `testkit-v*`, `core-v*`, `use-v*`, `widgets-v*` | none   | Blocks the deletion and the move of a release tag. It does not block the creation of a tag: the release workflow (`.github/workflows/release.yml`) creates each tag with `GITHUB_TOKEN`. |
 
 The project has one maintainer, so no ruleset asks for an approval: a review
 rule blocked the author of a pull request, and the rulesets were removed on
 2026-10-14 for that reason. The CI job is the gate. An admin bypass is not
 given either: a bypass applies to a full ruleset, so it would also skip CI.
+
+## The environment of the release
+
+<!-- claude 2026-10-20: created: this section (ADR 0020); changed (review): self-review off -->
+The release starts from the Actions form on `main`, and its job `publish`
+uses the environment `maven-central`. A ruleset does not configure an
+environment. Set it once by hand in **Settings > Environments >
+`maven-central`**:
+
+- Deployment branches and tags: `main`. The job runs on `main`, so the
+  policy must allow `main`. The tag patterns (`runner-v*` and the others) of
+  the old release are not necessary.
+- Required reviewers: the maintainer. GitHub asks the maintainer to approve
+  each deployment: one approval for all the modules of a run. Leave
+  "Prevent self-review" off: the maintainer starts the run and approves it.
+- Environment secrets: `PGP_SECRET`, `PGP_PASSPHRASE`, `SONATYPE_USERNAME`,
+  `SONATYPE_PASSWORD`.
 
 ## Apply or update the rules
 
@@ -45,6 +64,8 @@ Enterprise plan.
   first import (2026-10-09), and no GitHub documentation for it was found.
   It is `false` here: with one maintainer and no approval rule, an extra
   approval would block a merge.
-- To delete a release tag (for example, a tag that failed before
-  publication), set `release tags` to **Disabled**, delete the tag, then set
-  it to **Active** again.
+- A tag with no GitHub release means: its publish is not complete. Re-run
+  the failed job of the release run (CONTRIBUTING.md, "Releasing"); do not
+  delete the tag. To delete a release tag all the same, set `release tags` to
+  **Disabled**, delete the tag, then set it to **Active** again.
+  <!-- claude 2026-10-20: changed: this item: re-run before a deletion (ADR 0020); changed: CONTRIBUTING.md (ADR 0021) -->

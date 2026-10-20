@@ -8,7 +8,8 @@ description: "Each module has its own version and tag; the first release is 0.1.
 
 ## Status
 
-Accepted. The removals of zio, cats and useSignal landed on 2026-10-20 (L6).
+Accepted. The removals of zio, cats and useSignal landed on 2026-10-20 (L6). The trigger of the release changed on 2026-10-20: see [ADR 0020](/decisions/0020-release-from-the-actions-form).
+<!-- claude 2026-10-20: changed: the line of ADR 0020 -->
 
 ## Date
 
@@ -26,6 +27,7 @@ Accepted. The removals of zio, cats and useSignal landed on 2026-10-20 (L6).
 ## Decision
 
 - Each module has its own version and tag `<module>-v<semver>` (`runner`, `app`, `testkit`, `core`, `use`, `widgets`). sbt-ci-release and `ModuleVersioning` set the version; no build file sets it.
+- CHANGED by [ADR 0020](/decisions/0020-release-from-the-actions-form) (2026-10-20): a release starts from the Actions form on `main`, the checks run before the tag, and one approval of the environment publishes all the modules of the run. The items below on `scripts/release.sh`, on `--yes` and on the tag patterns of the environment describe the old trigger. <!-- claude 2026-10-20: created: this item -->
 - `scripts/release.sh <module> <version>` checks the module, the clean tree, CI, the version order (Maven order: `alpha` < `beta` < `M` < `RC` < final) and unreleased dependencies, then pushes one tag. Release order: runner, app and testkit, core; use, widgets.
 - The first release is `0.1.0-RC1` while Kyo is an RC (D12). Windows is experimental.
 - Early-semver with sbt-version-policy: each module has a `compat.sbt` intention; CI runs `versionPolicyCheck`.
@@ -56,4 +58,4 @@ Accepted. The removals of zio, cats and useSignal landed on 2026-10-20 (L6).
 
 - Decision log: first, third and fourth rounds; sixth round (ZIO and Cats order); fifteenth round (D12).
 - Roadmap: D12, L6. Handoff: "INSTRUCTION (user, 2026-10-20)".
-- AGENTS.md: "Releasing", "Compatibility".
+- CONTRIBUTING.md: "Releasing", "Compatibility and versioning". <!-- claude 2026-10-20: changed: CONTRIBUTING.md, not AGENTS.md (ADR 0021) -->

@@ -50,4 +50,4 @@ Accepted
 
 - Decision log: second round (2026-09-30).
 - Plan: D-12, D-13. Research reports on tui-scala and jatatui of 2026-09-30 (in the notes; the facts above are copied from them).
-- AGENTS.md: "Rules for code" (one fiber, the input thread, the JVM flag, no tui-scala).
+- CONTRIBUTING.md: "Rules for code" (one fiber, the input thread, the JVM flag, no tui-scala). <!-- claude 2026-10-20: changed: CONTRIBUTING.md, not AGENTS.md (ADR 0021) -->

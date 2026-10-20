@@ -78,7 +78,8 @@ class OverlayTest extends RunnerSuite:
       )
 
     // claude 2026-10-19: created (L1b review): the repair-tick rule of
-    // AGENTS.md under layers
+    // ARCHITECTURE.md under layers
+    // claude 2026-10-20: changed: ARCHITECTURE.md (ADR 0021)
     "a repair tick of closure regions under an opaque and a transparent layer paints again and sends no cell (repaired > 0, flushed == 0)" in {
       Knobs.let(Knobs(repairInterval = 50.millis)) {
         for

@@ -30,7 +30,7 @@ Accepted
 |---|---|
 | `Signal.observe` keeps about 1.7 KB per change (getkyo/kyo) | Own `currentWith`/`nextWith` watcher loop and a 1 s repair tick ([#8](https://github.com/yuri4n/tui4s/issues/8); [ADR 0005](/decisions/0005-soft-frame-contract-and-own-watcher-loop)) |
 | A write between `current` and `nextWith` waits for the repair; `combineLatest` widens it (getkyo/kyo) | Settle re-check, pull check, SOFT contract, CI load flag ([#9](https://github.com/yuri4n/tui4s/issues/9); [ADR 0005](/decisions/0005-soft-frame-contract-and-own-watcher-loop)) |
-| kyo-ui: a synchronous change notice on `Signal`, and handler types that reject lifted values (2026-10-03; not updated since W0) | The settle probe; `LiftTrapTest`; the AGENTS.md rule "type a handler as `Any < Async`" |
+| kyo-ui: a synchronous change notice on `Signal`, and handler types that reject lifted values (2026-10-03; not updated since W0) | The settle probe; `LiftTrapTest`; the CONTRIBUTING.md rule "type a handler as `Any < Async`" |
 | kyo-kernel RC7 has JMH in compile scope (getkyo/kyo; [#40](https://github.com/yuri4n/tui4s/issues/40)) | `excludeAll(ExclusionRule("org.openjdk.jmh"))` in every module |
 | A runner outside `kyo` cannot honour `UI.scrollIntoView` (getkyo/kyo; [#41](https://github.com/yuri4n/tui4s/issues/41)) | Own follow-focus rule (CSSOM `nearest`) and `aria-activedescendant` |
 | `NativeLoader` leaves one `/tmp/jni-*` folder per start (jatatui; [#42](https://github.com/yuri4n/tui4s/issues/42)) | `internal.NativeCopy` deletes the copy after the load, Linux only |
@@ -43,6 +43,8 @@ Accepted
 | D13, not drafted: an Origin or auth hook for `runHandlers` | None needed: the web target has no server ([ADR 0011](/decisions/0011-web-target-standalone-scalajs-and-one-theme)) |
 | D13: a cell or `ch` length unit ([#39](https://github.com/yuri4n/tui4s/issues/39)) | `Surface.rows` and `Surface.cols`; `em` in shared views |
 | Not drafted: the JNI cuts a typed non-BMP character to 16 bits (jatatui) | A bracketed paste keeps it |
+
+<!-- claude 2026-10-20: changed: the row of the kyo-ui handler types names CONTRIBUTING.md (ADR 0021) -->
 
 ## Alternatives considered
 

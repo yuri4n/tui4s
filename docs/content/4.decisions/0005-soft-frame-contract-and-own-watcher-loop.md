@@ -55,4 +55,4 @@ Accepted
 
 - Decision log: eighth round (D-17 c, K29), eleventh round (gate 1), sixteenth round (D21, D23).
 - Plan: D-16 (armkey), D-17; gates.md G1, K29. Issues [#8](https://github.com/yuri4n/tui4s/issues/8), [#9](https://github.com/yuri4n/tui4s/issues/9).
-- AGENTS.md: "Rules for code" (the frame contract, the repair tick, the scheduler values).
+- CONTRIBUTING.md: "Rules for code" (the frame contract, the repair tick, the scheduler values). <!-- claude 2026-10-20: changed: CONTRIBUTING.md, not AGENTS.md (ADR 0021) -->

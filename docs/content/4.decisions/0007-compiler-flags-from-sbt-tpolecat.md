@@ -48,4 +48,4 @@ Accepted
 
 - Decision log: eighth round (D-8 changed); handoff "Open items for the user" (the mode, assumed).
 - Plan: D-8, D-26; gates.md G6 (S6).
-- AGENTS.md: "Toolchain" (sbt-tpolecat), "Rules for code" (the Java boundary).
+- CONTRIBUTING.md: "Toolchain" (sbt-tpolecat), "Rules for code" (the Java boundary). <!-- claude 2026-10-20: changed: CONTRIBUTING.md, not AGENTS.md (ADR 0021) -->

@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
-# Table test for scripts/version-order.sh. It works with bash 3.2 (macOS).
+# Table test for scripts/release-lib.sh. It works with bash 3.2 (macOS).
 # Usage: bash scripts/version-order-test.sh
 # It prints each failed case and exits with 1 if a case fails.
-# VERSION_ORDER_LIB=<file> tests a different copy of the library.
+# RELEASE_LIB=<file> tests a different copy of the library.
+# claude 2026-10-20: changed: the library is scripts/release-lib.sh (ADR 0020);
+# the variable RELEASE_LIB replaces VERSION_ORDER_LIB
 set -u
 
 # claude 2026-10-09: created the setup (CDPATH='' as in release.sh)
 here=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-lib=${VERSION_ORDER_LIB:-"$here/version-order.sh"}
+lib=${RELEASE_LIB:-"$here/release-lib.sh"} # claude 2026-10-20: changed: release-lib.sh (ADR 0020)
 failures=0
 cases=0
 
@@ -19,9 +21,10 @@ fail() {
 
 # claude 2026-10-09: created the source check (no output, no option change)
 opts_before=$(set +o)
-# shellcheck source-path=SCRIPTDIR source=version-order.sh
+# claude 2026-10-20: changed: the shellcheck source is release-lib.sh (ADR 0020)
+# shellcheck source-path=SCRIPTDIR source=release-lib.sh
 out=$(. "$lib" 2>&1)
-# shellcheck source-path=SCRIPTDIR source=version-order.sh
+# shellcheck source-path=SCRIPTDIR source=release-lib.sh
 . "$lib"
 opts_after=$(set +o)
 cases=$((cases + 1))
@@ -117,6 +120,56 @@ valid no 0.2
 valid no v0.2.0
 valid no ""
 valid no "0.2.0 "
+
+# claude 2026-10-20: created the module table (release_resolve_modules)
+# modules EXPECTED INPUT: EXPECTED is the printed list, or "error" if the
+# function must exit 1.
+modules() {
+  local got
+  cases=$((cases + 1))
+  got=$(release_resolve_modules "$2") || got=error
+  [[ $got == "$1" ]] || fail "release_resolve_modules '$2': expected '$1', got '$got'"
+}
+modules "runner app testkit core use widgets" all
+modules runner runner
+modules widgets widgets
+modules error core-v1
+modules error zio
+modules error ""
+modules error "runner app"
+
+# claude 2026-10-20: created the tag table (release_latest_before), in a
+# temporary git repository with tags in no order
+# latest EXPECTED MODULE [VERSION]: EXPECTED is the printed version, "" for
+# none, or "exit2" if the function must exit 2.
+repo=$(mktemp -d)
+trap 'rm -rf "$repo"' EXIT
+# The options keep a signing setup of the user out of the test.
+g() {
+  git -C "$repo" -c user.name=test -c user.email=test@example.invalid \
+    -c commit.gpgSign=false -c tag.gpgSign=false "$@"
+}
+g init -q
+g commit -q --allow-empty -m test
+for t in runner-v0.1.0-RC1 runner-v0.1.0 runner-v0.1.0-RC10 runner-v0.1.0-RC2 \
+  app-v0.2.0 use-vX archive/runner-v9.9.9; do
+  g tag "$t"
+done
+latest() {
+  local got status=0
+  cases=$((cases + 1))
+  got=$(cd "$repo" && release_latest_before "$2" "${3-}") || status=$?
+  if ((status == 2)); then got=exit2; elif ((status != 0)); then got="exit$status"; fi
+  [[ $got == "$1" ]] || fail "release_latest_before $2 ${3-}: expected '$1', got '$got'"
+}
+latest 0.1.0 runner
+latest 0.1.0-RC10 runner 0.1.0
+latest 0.1.0-RC2 runner 0.1.0-RC10
+latest "" runner 0.1.0-RC1
+latest 0.1.0 runner 0.2.0-RC1
+latest 0.2.0 app
+latest "" core
+latest exit2 use
 
 # claude 2026-10-09: created the summary
 if ((failures > 0)); then

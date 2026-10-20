@@ -1,95 +1,77 @@
 #!/usr/bin/env bash
-# Release ONE module of tui4s to Maven Central by creating and pushing the tag <module>-v<version>.
-# The tag push triggers .github/workflows/release.yml, which publishes only that module.
+# claude 2026-10-20: changed (ADR 0020): this script is now a front for the
+# form of .github/workflows/release.yml. It starts the workflow on main with
+# gh, then shows the run. It creates no tag and pushes nothing: the workflow
+# checks everything, waits for the approval of the environment maven-central,
+# and then tags and publishes each module in the order of the dependencies.
 #
-# Usage: scripts/release.sh <module> <version> [--dry-run] [--yes]
-#   scripts/release.sh runner 0.2.0 --dry-run # validate only, delete the local tag afterwards
-#   scripts/release.sh use 0.1.3              # validate, ask, push the tag
-# Env: MODULES (default "runner app testkit core use widgets"), REMOTE (default origin),
-# BRANCH (default main)
-# MODULES is in the order of the dependencies: release runner, then app and testkit, then core
-# (the composite of the three); use before widgets. The sbt guard
-# assertReleasable stops a release whose inter-project dependency is unreleased.
-# claude 2026-10-19: changed: the cross-built modules use and widgets (L2a); their sbt
-# project <module> aggregates <module>JVM and <module>JS, so one tag publishes both
-# claude 2026-10-19: changed: the modules runner, app and testkit of the split of the core, in the
-# order of the dependencies (D25); 2026-10-20: changed: no zio and cats (ADR 0014)
+# Usage: scripts/release.sh <module|all> <version> [--dry-run]
+#   scripts/release.sh all 0.1.0-RC1 --dry-run # check everything; no tag, no publish
+#   scripts/release.sh use 0.1.3              # release one module
+# <module> is runner, app, testkit, core, use, widgets, or all (all the
+# modules, in this order). It needs gh (GitHub CLI), signed in with the right
+# to run the workflows of the repository. It works with bash 3.2 (macOS).
 set -euo pipefail
 
 die() { echo "release: $*" >&2; exit 1; }
 
-# claude 2026-10-09: source version-order.sh from the directory of this script, before any cd
+# claude 2026-10-09: source the library from the directory of this script, before any cd
+# claude 2026-10-20: changed: the library is release-lib.sh (ADR 0020)
 script_dir=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-# shellcheck source-path=SCRIPTDIR source=version-order.sh
-. "$script_dir/version-order.sh"
+# shellcheck source-path=SCRIPTDIR source=release-lib.sh
+. "$script_dir/release-lib.sh"
 
-MODULES=${MODULES:-"runner app testkit core use widgets"}
-REMOTE=${REMOTE:-origin}
-BRANCH=${BRANCH:-main}
-
-[[ $# -ge 2 ]] || die "usage: scripts/release.sh <module> <version> [--dry-run] [--yes]"
+# claude 2026-10-20: changed: <module> can be all; --yes is gone (ADR 0020)
+[[ $# -ge 2 ]] || die "usage: scripts/release.sh <module|all> <version> [--dry-run]"
 module=$1; version=$2; shift 2
-dry_run=false; assume_yes=false
+dry_run=false
 for arg in "$@"; do
   case $arg in
     --dry-run) dry_run=true ;;
-    --yes|-y)  assume_yes=true ;;
-    *) die "unknown option: $arg" ;;
+    *) die "unknown option: $arg. The approval of the environment maven-central is the gate, so there is no --yes." ;;
   esac
 done
 
-[[ " $MODULES " == *" $module "* ]] || die "module must be one of: $MODULES"
+release_resolve_modules "$module" >/dev/null || die "module must be all or one of: $(release_all_modules)"
 # claude 2026-10-09: changed the version check to version_valid (narrow accepted forms)
 version_valid "$version" \
   || die "version must be x.y.z or x.y.z-<alpha|beta|M|RC><n> (no leading zeros, n >= 1), e.g. 0.2.0 or 0.2.0-RC1"
-tag="$module-v$version"
+command -v gh >/dev/null 2>&1 || die "gh (GitHub CLI) is not on PATH"
 
-cd "$(git rev-parse --show-toplevel)"
-[[ $(git rev-parse --abbrev-ref HEAD) == "$BRANCH" ]] || die "check out $BRANCH first"
-[[ -z $(git status --porcelain) ]] || die "working tree is not clean"
+# claude 2026-10-20: created (ADR 0020): start the workflow, then find its run
+# (the newest dispatch run of the current user that was not there before);
+# changed: only the runs of the current user, so a dispatch of another
+# person in the same seconds is not taken for this one (review P2)
+cd "$script_dir/.."
+me=$(gh api user --jq .login 2>/dev/null || true)
+last_run() {
+  gh run list --workflow release.yml --event workflow_dispatch --limit 1 \
+    ${me:+--user "$me"} \
+    --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true
+}
+before=$(last_run)
+echo "==> Start the release workflow on main: module=$module version=$version dry_run=$dry_run"
+gh workflow run release.yml --ref main -f module="$module" -f version="$version" -f dry_run="$dry_run"
 
-if git remote get-url "$REMOTE" >/dev/null 2>&1; then
-  git fetch --quiet --tags "$REMOTE" "$BRANCH"
-  [[ $(git rev-parse HEAD) == $(git rev-parse "$REMOTE/$BRANCH") ]] || die "HEAD is not $REMOTE/$BRANCH (pull or push first)"
-  if git ls-remote --exit-code --tags "$REMOTE" "refs/tags/$tag" >/dev/null; then die "tag $tag already exists on $REMOTE"; fi
-elif ! $dry_run; then
-  die "remote $REMOTE not found"
+run_id=""
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+  sleep 2
+  run_id=$(last_run)
+  if [[ -n $run_id && $run_id != "$before" ]]; then break; fi
+  run_id=""
+done
+if [[ -z $run_id ]]; then
+  echo "==> The run is not in the list yet. Find it with: gh run list --workflow release.yml --limit 1"
+  exit 0
 fi
-if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then die "tag $tag already exists locally"; fi
-
-prev=$(git describe --tags --abbrev=0 --match "$module-v[0-9]*" 2>/dev/null || true)
-if [[ -n $prev ]]; then
-  prev_v=${prev#"$module-v"}
-  # claude 2026-10-09: changed sort -V to version_gt (Maven order: 0.2.0 > 0.2.0-RC1),
-  # and stop if the last tag has no accepted form
-  version_valid "$prev_v" \
-    || die "the last tag $prev has no accepted version form. The script cannot compare $version with it"
-  version_gt "$version" "$prev_v" || die "$version is not greater than the last release $prev_v"
-  echo "==> Last release of $module: $prev_v"
-else
-  echo "==> First release of $module"
+echo "==> Run: $(gh run view "$run_id" --json url --jq .url)"
+if ! $dry_run; then
+  echo "==> After the checks, GitHub asks the required reviewer of the environment maven-central to approve the job publish."
 fi
+echo "==> Watch it with: gh run watch $run_id"
 
-if ! $dry_run && command -v gh >/dev/null 2>&1; then
-  ci=$(gh run list --commit "$(git rev-parse HEAD)" --workflow ci.yml --json conclusion --jq '.[0].conclusion' 2>/dev/null || true)
-  [[ $ci == success ]] || die "CI is not green for HEAD (conclusion: '${ci:-none}')"
+# claude 2026-10-20: created (ADR 0020): offer to watch the run in a terminal
+if [[ -t 0 && -t 1 ]]; then
+  read -r -p "Watch the run now? [y/N] " answer || answer=""
+  if [[ $answer == y || $answer == Y ]]; then gh run watch "$run_id"; fi
 fi
-
-pushed=false
-git tag -a "$tag" -m "tui4s-$module $version"
-cleanup() { if [[ $pushed != true ]]; then git tag -d "$tag" >/dev/null && echo "==> Deleted local tag $tag"; fi; }
-trap cleanup EXIT
-
-echo "==> Validating $tag: guard (assertReleasable), versionCheck, tests, unsigned staging"
-RELEASE_VERSION=$version sbt -batch "stageModule $module" "$module/versionCheck" "$module/test" \
-  || die "validation failed. If an inter-project dependency is unreleased, release it first (the order: $MODULES; e.g. scripts/release.sh runner <next>)."
-
-if $dry_run; then echo "==> Dry run OK: $tag is releasable."; exit 0; fi
-
-if ! $assume_yes; then
-  read -r -p "Push $tag to $REMOTE and publish tui4s-$module $version to Maven Central? [y/N] " answer
-  [[ $answer == y || $answer == Y ]] || die "aborted"
-fi
-git push "$REMOTE" "refs/tags/$tag"
-pushed=true
-echo "==> Pushed $tag. Follow the release: gh run list --workflow release.yml --limit 1"

@@ -7,8 +7,8 @@ import kyo.test.*
   * controlled clock. A test moves the clock only after a fence (see
   * [[Controlled]]): the composable has taken its step and armed its sleeps. So
   * the tests check exact times. The waits for a fence or a value are on the
-  * live clock, with a bound of 5 s; the clock does not move while they wait.
-  * The leaves run one at a time. The laws of the timing rules are in
+  * live clock, with a bound (`Controlled.bound`); the clock does not move while
+  * they wait. The leaves run one at a time. The laws of the timing rules are in
   * [[TimingPropertyTest]].
   */
 // claude 2026-10-19: created (L2a); changed: fences and exact times, not

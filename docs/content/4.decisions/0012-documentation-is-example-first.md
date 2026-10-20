@@ -53,4 +53,4 @@ The Vercel project is a human step: the session's connector could not create it.
 
 - Decision log: first round (Docus on Vercel), sixteenth round (D17, D18, D11).
 - Roadmap: 2.6 (the stale docs branch), D11, section 5.
-- AGENTS.md: "Daily commands" (`ReadmeSuite`, the PTY kit).
+- CONTRIBUTING.md: "Daily commands" (`ReadmeSuite`, the PTY kit). <!-- claude 2026-10-20: changed: CONTRIBUTING.md, not AGENTS.md (ADR 0021) -->

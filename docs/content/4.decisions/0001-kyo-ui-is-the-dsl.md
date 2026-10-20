@@ -50,4 +50,4 @@ Accepted
 - Handoff: "2026-10-02: DIRECTION CHANGE".
 - Spec: sections 1.1 to 1.4 and 9 (most of its API shapes were dropped by this decision).
 - PRs #3, #4, #5 (closed); PRs #10 to #16 (the kyo-ui stack, merged 2026-10-14).
-- AGENTS.md: "What tui4s is".
+- ARCHITECTURE.md: "What tui4s is". <!-- claude 2026-10-20: changed: ARCHITECTURE.md, not AGENTS.md (ADR 0021) -->

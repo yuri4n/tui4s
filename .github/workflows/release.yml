@@ -1,91 +1,301 @@
 name: Release
 
-# One tag = one module release. Tag format: <module>-v<semver>, e.g. runner-v0.2.0, use-v0.1.3.
-# Tags are created by scripts/release.sh. Note: GitHub creates no push event when more than
-# three tags are pushed at once, so push release tags one by one.
+# claude 2026-10-20: changed (ADR 0020): the release starts from the Actions
+# form (Actions, Release, Run workflow, branch main) or from
+# scripts/release.sh, which fills the same form. The job prepare does every
+# check before a tag exists. The job publish waits for one approval of the
+# environment maven-central for all the modules of the run. Then, for each
+# module in the order of the dependencies, it pushes the tag, publishes the
+# module to Maven Central and creates its GitHub release. A tag that a person
+# pushes starts no release, and a tag that this workflow pushes with
+# GITHUB_TOKEN starts no workflow.
 on:
-  push:
-    # claude 2026-10-19: changed: use-v* and widgets-v* (L2a); the sbt project of a
-    # cross-built module aggregates its JVM and JS projects, so the steps below
-    # test and publish both artifacts
-    # claude 2026-10-19: changed: runner-v*, app-v* and testkit-v* (D25); core-v* is the
-    # composite of the three; 2026-10-20: changed: no zio-v* and cats-v* (ADR 0014)
-    tags: ["runner-v*", "app-v*", "testkit-v*", "core-v*", "use-v*", "widgets-v*"]
+  workflow_dispatch:
+    inputs:
+      module:
+        description: "The module, or all (runner, app, testkit, core, use, widgets: the order of the dependencies)"
+        type: choice
+        required: true
+        options: [runner, app, testkit, core, use, widgets, all]
+      version:
+        description: "The version: x.y.z or x.y.z-<alpha|beta|M|RC><n>, no leading zeros (for example 0.1.0-RC1)"
+        type: string
+        required: true
+      dry_run:
+        description: "Dry run: check everything, create no tag, publish nothing"
+        type: boolean
+        default: false
 
+# claude 2026-10-20: created: this note (ADR 0020): a run on main has the group
+# release-main; a second run waits for the first one
 concurrency:
   group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
+# claude 2026-10-20: changed: read only here; the job publish asks for write
 permissions:
-  contents: write # gh release create
+  contents: read
 
 jobs:
-  publish:
+  # claude 2026-10-20: created (ADR 0020): all the checks, with no secret and
+  # no environment. The tags of this job stay in its checkout: it cannot push.
+  prepare:
+    name: Check the release
     runs-on: ubuntu-latest
-    # Holds the secrets. Only tags runner-v*, app-v*, testkit-v*, core-v*, use-v* and widgets-v*
-    # can use it (a human adds the patterns in the settings of the environment).
-    # claude 2026-10-19: changed: the tags of the split of the core (D25); 2026-10-20: changed:
-    # no zio and cats (ADR 0014)
-    environment: maven-central
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      checks: read # the check runs of the commit (CI is green)
+    outputs:
+      modules: ${{ steps.plan.outputs.modules }}
     steps:
+      - name: Release only from main
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [[ $REF != refs/heads/main ]]; then
+            echo "::error::Release only from main. This run is on $REF: select the branch main in the form."
+            exit 1
+          fi
+
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # all the history and all the tags: dynver and the tag checks read them
           submodules: recursive
 
-      - name: Parse tag
-        id: tag
+      # The rules are in scripts/release-lib.sh and scripts/changelog-section.sh
+      # (the tests: scripts/version-order-test.sh, scripts/changelog-section-test.sh).
+      # The inputs go through env, never into the script text.
+      - name: Modules, version, tags and CHANGELOG.md
+        id: plan
         env:
-          TAG: ${{ github.ref_name }}
+          MODULE: ${{ inputs.module }}
+          VERSION: ${{ inputs.version }}
         run: |
-          # claude 2026-10-19: changed: runner, app and testkit (D25); 2026-10-20: changed: no zio and cats (ADR 0014)
-          if [[ ! "$TAG" =~ ^(runner|app|testkit|core|use|widgets)-v([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?)$ ]]; then
-            echo "::error::Tag '$TAG' does not match <runner|app|testkit|core|use|widgets>-v<semver>"; exit 1
+          set -euo pipefail
+          . scripts/release-lib.sh
+          if ! modules=$(release_resolve_modules "$MODULE"); then
+            echo "::error::The module '$MODULE' is not one of: all $(release_all_modules)."
+            exit 1
           fi
-          echo "module=${BASH_REMATCH[1]}"  >> "$GITHUB_OUTPUT"
-          echo "version=${BASH_REMATCH[2]}" >> "$GITHUB_OUTPUT"
+          if ! version_valid "$VERSION"; then
+            echo "::error::The version '$VERSION' is not x.y.z or x.y.z-<alpha|beta|M|RC><n> (no leading zeros, n >= 1)."
+            exit 1
+          fi
+          problems=0
+          problem() { echo "::error::$*"; problems=$((problems + 1)); }
+          {
+            echo "## Release of $VERSION"
+            echo
+            echo "| Module | Tag | Last release | Notes in CHANGELOG.md |"
+            echo "| --- | --- | --- | --- |"
+          } >>"$GITHUB_STEP_SUMMARY"
+          for m in $modules; do
+            tag="$m-v$VERSION"
+            last="none"
+            notes="missing"
+            if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              problem "The tag $tag exists. A version is released once."
+            fi
+            if latest=$(release_latest_before "$m"); then
+              if [[ -n $latest ]]; then
+                last=$latest
+                version_gt "$VERSION" "$latest" ||
+                  problem "$VERSION is not greater than the last release $latest of $m (the order: alpha < beta < M < RC < final)."
+              fi
+            else
+              problem "A tag $m-v* has no accepted version form, so no version order is safe."
+            fi
+            if lines=$(bash scripts/changelog-section.sh "$m" "$VERSION" | wc -l); then
+              notes="$((lines)) lines"
+            else
+              problem "CHANGELOG.md has no notes for tui4s-$m $VERSION (the message is above)."
+            fi
+            echo "| $m | \`$tag\` | $last | $notes |" >>"$GITHUB_STEP_SUMMARY"
+          done
+          if ((problems > 0)); then
+            echo "::error::$problems problems. No tag exists, and nothing is published."
+            exit 1
+          fi
+          echo "modules=$modules" >>"$GITHUB_OUTPUT"
 
-      - name: Tag must point to a commit on main
+      # Any successful check run of the CI job on this commit counts, so a run
+      # that a newer run cancelled does not block (filter=all: not only the
+      # latest check run of each name).
+      - name: CI is green on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          CHECK: Format, compile, test, compatibility, packaging
         run: |
-          git fetch --no-tags origin main
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/main \
-            || { echo "::error::$GITHUB_REF_NAME is not on main"; exit 1; }
+          set -euo pipefail
+          ids=$(gh api "repos/$REPO/commits/$SHA/check-runs?filter=all&per_page=100" --paginate \
+            --jq ".check_runs[] | select(.name == \"$CHECK\" and .conclusion == \"success\") | .id")
+          if [[ -z $ids ]]; then
+            echo "::error::No successful check run '$CHECK' on $SHA. Wait for CI on main, or run it again."
+            exit 1
+          fi
+          echo "Successful check runs '$CHECK' on $SHA: $(echo "$ids" | wc -l)"
 
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: 25
+          java-version: 25 # Kyo 1.0.0-RC7 needs JDK 25
           cache: sbt
       - uses: sbt/setup-sbt@v1
 
-      - name: Test the module
+      # project/ModuleVersioning.scala takes the version of a module from a tag
+      # <module>-v<version> on HEAD (dynver). The tags exist only in this
+      # checkout, in the order of the dependencies, so assertReleasable sees
+      # the new versions of runner, app, testkit and use when it checks core
+      # and widgets. This job has no write permission: it pushes nothing.
+      - name: Tag the commit in this checkout only
         env:
-          MODULE: ${{ steps.tag.outputs.module }}
-        run: sbt -v "$MODULE/test"
+          MODULES: ${{ steps.plan.outputs.modules }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for m in $MODULES; do
+            git tag -a "$m-v$VERSION" -m "tui4s-$m $VERSION" "$GITHUB_SHA"
+          done
+          git tag --points-at "$GITHUB_SHA"
 
-      - name: Publish to Maven Central
+      # stageModule <m> (project/ModuleVersioning.scala): assertReleasable
+      # (the version of the module is RELEASE_VERSION, its inter-project
+      # dependencies are released), then an unsigned publish into
+      # target/sona-staging, the directory of the real bundle. Nothing is
+      # uploaded. versionCheck: the version agrees with compat.sbt.
+      - name: The sbt release checks of each module
         env:
-          MODULE: ${{ steps.tag.outputs.module }}
-          RELEASE_VERSION: ${{ steps.tag.outputs.version }}
-          # sbt-ci-release runs: $CI_CLEAN (default "; clean") ; $CI_RELEASE ; $CI_SONATYPE_RELEASE
-          CI_RELEASE: "; ${{ steps.tag.outputs.module }}/assertReleasable; ${{ steps.tag.outputs.module }}/versionCheck; ${{ steps.tag.outputs.module }}/publishSigned"
-          # sonaRelease uploads the bundle, and Central publishes it after validation.
-          # It must run with the module as the current project (the root version is a snapshot).
-          CI_SONATYPE_RELEASE: "; project ${{ steps.tag.outputs.module }}; sonaRelease"
+          MODULES: ${{ steps.plan.outputs.modules }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          args=()
+          for m in $MODULES; do
+            args+=("stageModule $m" "$m/versionCheck")
+          done
+          sbt -v "${args[@]}"
+
+      - name: Summary
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          SHA: ${{ github.sha }}
+        run: |
+          {
+            echo
+            echo "Checks passed on \`$SHA\`: the branch, the version, the tags, CHANGELOG.md, CI, and for each module assertReleasable, versionCheck and an unsigned publish."
+            echo
+            if [[ $DRY_RUN == true ]]; then
+              echo "**Dry run:** no tag is pushed, and nothing is published."
+            else
+              echo "The job publish waits for the approval of the environment \`maven-central\`."
+            fi
+          } >>"$GITHUB_STEP_SUMMARY"
+
+  # claude 2026-10-20: created (ADR 0020): one approval of the environment for
+  # all the modules of the run; one step with a loop, in the order of the
+  # dependencies. A failure stops the loop. "Re-run failed jobs" continues:
+  # a tag that exists on this commit is kept, a module with a GitHub release
+  # is skipped, and a module that is on Maven Central gets only its release.
+  # A tag with no GitHub release means: the publish is not complete.
+  publish:
+    name: Tag, publish and release
+    needs: prepare
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    # claude 2026-10-20: changed: 360 (review): an "all" run does six ci-release builds and six waits for Central
+    timeout-minutes: 360
+    # Holds the secrets. Its deployment policy allows only the branch main,
+    # and its required reviewer (the maintainer) approves the run.
+    environment: maven-central
+    permissions:
+      contents: write # push the tags, gh release create
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # all the tags: a re-run finds the tags of the first run
+          submodules: recursive
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25 # Kyo 1.0.0-RC7 needs JDK 25
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+
+      # sbt-ci-release publishes a release only when it sees a tag: on a
+      # dispatch GITHUB_REF is a branch, so CI_COMMIT_TAG names the tag. With
+      # no tag it would publish snapshots of every project (CI_SNAPSHOT_RELEASE);
+      # that command does not exist, so sbt stops.
+      # sbt-ci-release runs $CI_CLEAN (default "; clean"; it also empties
+      # target/sona-staging), then $CI_RELEASE, then $CI_SONATYPE_RELEASE.
+      # sonaRelease uploads the bundle, and Central publishes it after its
+      # validation. It runs with the module as the current project (the root
+      # version is a snapshot). Never "set -x" here: the env holds the secrets.
+      - name: For each module, tag, publish to Maven Central and release
+        env:
+          MODULES: ${{ needs.prepare.outputs.modules }}
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+          CI_SNAPSHOT_RELEASE: noSnapshotPublishInARelease
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-        run: sbt -v ci-release
-
-      - name: GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          MODULE: ${{ steps.tag.outputs.module }}
-          VERSION: ${{ steps.tag.outputs.version }}
         run: |
-          PREV=$(git describe --tags --abbrev=0 --match "${MODULE}-v[0-9]*" "${GITHUB_SHA}^" 2>/dev/null || true)
-          ARGS=(--title "tui4s-${MODULE} ${VERSION}" --generate-notes --verify-tag)
-          [[ -n "$PREV" ]] && ARGS+=(--notes-start-tag "$PREV")
-          [[ "$VERSION" == *-* ]] && ARGS+=(--prerelease)
-          gh release create "$GITHUB_REF_NAME" "${ARGS[@]}"
+          set -euo pipefail
+          . scripts/release-lib.sh
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          echo "## Published" >>"$GITHUB_STEP_SUMMARY"
+          for m in $MODULES; do
+            tag="$m-v$VERSION"
+            echo "::group::tui4s-$m $VERSION"
+            # 1. The tag on this commit, pushed with GITHUB_TOKEN.
+            if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              at=$(git rev-parse "$tag^{commit}")
+              if [[ $at != "$GITHUB_SHA" ]]; then
+                echo "::error::The tag $tag points at $at, not at $GITHUB_SHA."
+                exit 1
+              fi
+              echo "The tag $tag is on this commit already (a re-run)."
+            else
+              git tag -a "$tag" -m "tui4s-$m $VERSION" "$GITHUB_SHA"
+              git push origin "refs/tags/$tag"
+            fi
+            # 2. A GitHub release comes only after a publish: skip the module.
+            if gh release view "$tag" >/dev/null 2>&1; then
+              echo "The GitHub release $tag exists: tui4s-$m $VERSION is complete."
+              echo "- tui4s-$m $VERSION: complete before this run" >>"$GITHUB_STEP_SUMMARY"
+              echo "::endgroup::"
+              continue
+            fi
+            # 3. Maven Central. A version that is on Central already (a re-run
+            # after a failed GitHub release) is not published again.
+            pom="https://repo1.maven.org/maven2/io/github/yuri4n/tui4s-${m}_3/$VERSION/tui4s-${m}_3-$VERSION.pom"
+            if curl -fsIL -o /dev/null "$pom"; then
+              echo "tui4s-$m $VERSION is on Maven Central already: no publish."
+            else
+              CI_COMMIT_TAG="$tag" RELEASE_VERSION="$VERSION" \
+                CI_RELEASE="; $m/assertReleasable; $m/versionCheck; $m/publishSigned" \
+                CI_SONATYPE_RELEASE="; project $m; sonaRelease" \
+                sbt -v ci-release
+            fi
+            # 4. The GitHub release: the notes of CHANGELOG.md, then, when the
+            # module has a previous release, the notes that GitHub generates
+            # since it. A first release has only the notes of CHANGELOG.md.
+            # claude 2026-10-20: changed (review): the generated notes only after a first release
+            notes=$(mktemp)
+            bash scripts/changelog-section.sh "$m" "$VERSION" >"$notes"
+            prev=$(release_latest_before "$m" "$VERSION")
+            args=(--title "tui4s-$m $VERSION" --verify-tag --notes-file "$notes")
+            if [[ -n $prev ]]; then args+=(--generate-notes --notes-start-tag "$m-v$prev"); fi
+            if [[ $VERSION == *-* ]]; then args+=(--prerelease); fi
+            gh release create "$tag" "${args[@]}"
+            echo "- tui4s-$m $VERSION: on Maven Central, GitHub release \`$tag\`" >>"$GITHUB_STEP_SUMMARY"
+            echo "::endgroup::"
+          done
