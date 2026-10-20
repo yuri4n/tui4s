@@ -96,7 +96,8 @@ export default defineNuxtConfig({
   },
 
   // claude 2026-10-20: created: the icons of the pages, the navigation and the code blocks are
-  // in the client bundle, so no icon comes from the Iconify API at build time or in the browser (L5)
+  // in the client bundle, so no icon comes from the Iconify API at build time or in the browser (L5);
+  // changed: the icon of the section Decisions (L6)
   icon: {
     clientBundle: {
       icons: [
@@ -117,6 +118,7 @@ export default defineNuxtConfig({
         'lucide:play',
         'lucide:puzzle',
         'lucide:rocket',
+        'lucide:scale',
         'lucide:scroll-text',
         'lucide:shield-check',
         'lucide:square-terminal',
