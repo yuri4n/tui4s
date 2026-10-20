@@ -207,11 +207,14 @@
   repo: HUMAN STEP (Settings > Code security). Then: trigger CI (ci, docs, bench, native), close PR #7, delete the
   stale remote branches with `git push origin --delete` (no MCP tool), the gate message.
   <!-- claude 2026-10-20: created this item -->
-- D26 (user, 2026-10-20, chat): the state hook comes back as `signal(initial)` in `tui4s.Hooks`, a plain, not
-  deprecated alias of `Signal.initRef` (the user asked "why useSignal gone?", then picked `signal(0)` over
-  createSignal, sig and useSignal). Fallback if NameClashTest finds a kyo-ui `signal`: `createSignal`. The finalizer
-  adds it (Hooks.scala + Scaladoc, HooksTest leaf, README region, docs components page, AGENTS.md hooks sentence,
-  ADR 0014 wording: useSignal removed, signal added).
+- D26 (user, 2026-10-20, chat, FINAL): the state primitive gets the Vue spelling `tui4s.use.ref(initial)` (an alias
+  of `Signal.initRef`, returns `SignalRef` = Vue's `Ref`) in tui4s-use, cross-platform. History: the user asked "why
+  useSignal gone?"; picked `signal(0)` from a choice (signal, createSignal, sig, useSignal); then "signal() should be
+  a primitive, not a hook" (a hook is mount-bound; creating a signal has no lifetime, and the runner is terminal-only),
+  so NOT in tui4s.Hooks; then "put a method called `ref`, alias of Signal.initRef, same as Vue". The finalizer adds it
+  (modules/use, Scaladoc, a use test leaf, the Counter example uses ref(0) with its regions re-copied, AGENTS.md,
+  CHANGELOG, ADR 0014, the components docs page). The user stopped the first finalizer by accident; a second one
+  resumed from c2a5162 (the sbt check had passed on it).
   <!-- claude 2026-10-20: created this item -->
 - (history) L4 ran as 3 agents: the standalone Scala.js build of the assistant (D5), Theme (D8) in tui4s-widgets rendered to
   one Stylesheet for both platforms, JS interpreters (fetch SSE, localStorage key with a warning), units em/pct.
