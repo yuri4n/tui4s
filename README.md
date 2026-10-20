@@ -11,17 +11,19 @@ A [ZIO](https://zio.dev) and a
 version; issues [#18](https://github.com/yuri4n/tui4s/issues/18) and
 [#19](https://github.com/yuri4n/tui4s/issues/19) track them.
 
-> **Status:** under construction, first usable version. A tui4s app is a
-> kyo-ui UI and a `TuiApp` main class: `Tui.run` runs the UI in the real
-> terminal, renders the value, follows its signals and routes keys (focus,
-> handlers, text editing, paste), and it mounts components in two styles
-> (hooks and a `Component` class); a headless kit tests it without a terminal.
-> Nothing is published yet.
+> **Status:** the first release candidate is `0.1.0-RC1` (planned, not
+> published yet: Kyo and kyo-ui are at 1.0.0-RC7). A tui4s app is a kyo-ui UI
+> and a `TuiApp` main class: `Tui.run` runs the UI in the real terminal,
+> renders the value, follows its signals and routes keys (focus, handlers,
+> text editing, paste), and it mounts components in two styles (hooks and a
+> `Component` class); a headless kit tests it without a terminal. See
+> [CHANGELOG.md](CHANGELOG.md), [SECURITY.md](SECURITY.md) and
+> [CONTRIBUTING.md](CONTRIBUTING.md).
 <!-- claude 2026-10-12: changed the status line (C2) -->
 <!-- claude 2026-10-13: changed the status line (C3): keys -->
 <!-- claude 2026-10-13: changed the status line (T1): the real terminal -->
 <!-- claude 2026-10-13: changed the status line (C4): components and hooks -->
-<!-- claude 2026-10-13: changed the status line (T2): TuiApp -->
+<!-- claude 2026-10-13: changed the status line (T2): TuiApp; 2026-10-20: changed (L6): 0.1.0-RC1 planned, the release files -->
 
 Components come in two styles. Hooks: a function, for example
 `for count <- Signal.initRef(0) yield div(...)`, and `component(key)(body)`
@@ -72,6 +74,16 @@ runtime JARs; the receiving machine still needs JDK 25. The existing
 `sbt examples/launchers` command and `examples/target/bin/<app>` paths remain
 available. See [running and packaging examples](examples/README.md#run-an-example)
 and [pini4s's standalone setup and demo](vendor/pini4s/README.md).
+
+A faster start: run `bin/aot-train` once in the distribution (or
+`examples/target/bin/aot-train`). It keeps a JDK 25 AOT cache for each
+example, and the start scripts use it: the first frame of the Counter comes
+after about 0.5 s, not 1.1 s. For a start of a few milliseconds,
+`scripts/native-image.sh <app>` builds a GraalVM native binary (GraalVM for
+JDK 25). tui4s-runner carries the native-image metadata that the examples
+need (the crossterm library and the isatty downcall); an app that uses more
+of Kyo or of the JDK can need more entries. See ADR 0015.
+<!-- claude 2026-10-20: created this paragraph (L5b) -->
 
 ## Quick start
 
@@ -1736,8 +1748,10 @@ The packages are the same in all the artifacts (`tui4s`, `tui4s.spi`,
 
 ## Contributing
 
-Read [AGENTS.md](AGENTS.md). It has the commands, the code rules, and the
-release process for humans and for AI agents.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md). AGENTS.md
+has the commands, the code rules, and the release process for humans and for
+AI agents.
+<!-- claude 2026-10-20: changed (L6): CONTRIBUTING.md -->
 
 Run `git submodule update --init --recursive` after cloning to fetch the
 optional [pini4s](https://github.com/yuri4n/pini4s) example dependency under

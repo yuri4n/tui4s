@@ -301,6 +301,8 @@ nothing.
 | `sbt examples/launchers`             | Stages the distribution and writes compatible `examples/target/bin/<package>` launchers plus the PTY classpath. |
 | `examples/target/bin/<app>`          | Runs an example in the real terminal (its own JVM): `counter`, `counterkyo`, `twocounters`, `counterstyles`, `todo`, `dashboard`, `printing`, `forms`, `gallery`, `assistant` (`--fake`: no network). |
 | `examples/ptycheck/run.sh`           | Runs the real-terminal checklist in a pseudo-terminal (CI job `terminal`). |
+| `examples/target/bin/aot-train`      | Trains the JDK 25 AOT cache of each example in a pseudo-terminal (`bin/aot-train` of the distribution; about 9 s per app). The start scripts then use the caches (ADR 0015). |
+| `scripts/native-image.sh <app>`      | Builds a GraalVM native binary of one example into `examples/target/native/<app>` (GraalVM for JDK 25; CI job `native`). `python3 scripts/native-smoke.py <binary>` checks the native Counter in a pseudo-terminal. |
 | `bash scripts/web-build.sh`          | Links the web assistant (`assistantWeb/fullLinkJS`) and writes `dist/assistant` (index.html, main.js). With an sbt server, set `SBT="sbt --client"`. |
 | `node scripts/web-smoke.mjs`         | Runs the web assistant from `dist/assistant` in headless Chromium (Playwright): a send, the streamed reply, Esc, the look switch. |
 | `pnpm install --frozen-lockfile && pnpm run build` (in `docs`) | Builds the docs site into `docs/.output`, with `llms.txt`, `llms-full.txt` and `raw/<page>.md`. Set `NUXT_TELEMETRY_DISABLED=1`. The build fetches nothing from the network. `pnpm run preview` serves the result. |
@@ -312,7 +314,7 @@ nothing.
 <!-- claude 2026-10-19: changed: assistant in the app list (L3) -->
 <!-- claude 2026-10-19: created the rows of the web build and the web smoke test (L4) -->
 <!-- claude 2026-10-20: created the rows of the docs build, docs-casts.sh and docs-demo.sh (L5) -->
-<!-- claude 2026-10-20: created the row of bench/run.sh (L5) -->
+<!-- claude 2026-10-20: created the row of bench/run.sh (L5); created the rows of aot-train and native-image.sh (L5b) -->
 
 A test suite lives in the lowest module whose main classpath it needs: a
 suite that needs only the runner is in `modules/runner/src/test`; a suite
@@ -349,9 +351,19 @@ the JVM prints a "Picked up ..." line into the terminal before the UI starts;
 The examples use sbt-native-packager's `JavaAppPackaging`. Keep the JVM flags,
 all example launchers, program arguments, and the PTY `target/bin/classpath`
 contract when changing packaging. `Universal/packageBin` distributes JARs and
-scripts; it does not bundle a JDK or build a native executable. Validate both
+scripts; it does not bundle a JDK. Validate both
 the staged distribution and the existing launcher paths. Keep library modules
 free of application packaging plugins.
+The start scripts use the JDK 25 AOT cache of the app (`aot/<app>.aot`) only
+when `bin/aot-train` made it with the same JDK (`aot/<app>.jdk` keeps the text
+of `java -version`); else they start as before (`ExamplePackaging.aotDefines`,
+ADR 0015). The JVM flags of the examples include `-XX:TieredStopAtLevel=1`
+and `-XX:+UseSerialGC`. Run the PTY kit with and without the caches (CI does
+both). tui4s-runner carries the native-image metadata
+(`META-INF/native-image/io.github.yuri4n/tui4s-runner`: the crossterm
+libraries and the isatty downcall). It covers the workloads of the examples;
+keep it in step with a jatatui or Kyo upgrade, and run the CI job `native`.
+<!-- claude 2026-10-20: changed (L5b): the AOT cache, the start flags, the native-image metadata -->
 
 The stress probes (`tui4s.stress.*`) are ignored in `sbt check`. To run one,
 set `-Dtui4s.stress=<rounds>` in the test JVM and run it alone on the machine:
@@ -661,7 +673,7 @@ and after a change of the frame path, and give both numbers.
 
 ## Docs
 
-<!-- claude 2026-10-20: created this section (L5); changed: no zio and cats modules (ADR 0014) -->
+<!-- claude 2026-10-20: created this section (L5); changed: no zio and cats modules (ADR 0014); examples/README.md has the rule of the pages -->
 - The docs site is `docs/` (Nuxt Docus). Each page leads with a usage
   example (D17). Write the pages in ASD-STE100, short. Do not claim more than
   the code does: there is no ZIO or Cats Effect integration (issues #18 and
@@ -670,7 +682,8 @@ and after a change of the frame path, and give both numbers.
   source file. The line `<!-- from: <path>#<region> -->` is directly above
   the block, one for each block, as in `README.md`. `MarkdownRegionsSuite`
   (in `examples/test`) checks each block, and it fails on a Scala block with
-  no such line. A shell, text, YAML or `sbt` block has no line. To show new
+  no such line. The same rule holds for `examples/README.md` (its blocks are
+  regions of `examples.state`). A shell, text, YAML or `sbt` block has no line. To show new
   code, add a region to the source file (the two comment lines; no change of
   behaviour), then copy its text into the page.
 - The casts (`docs/public/casts`) and the web demo
@@ -696,6 +709,24 @@ and after a change of the frame path, and give both numbers.
 - A version that only one module uses goes in `modules/<m>/build.sbt`.
 - Never set `version` or `publishTo` in a build file. `project/ModuleVersioning.scala`
   and sbt-ci-release set them.
+
+## Branch and tag rules
+
+<!-- claude 2026-10-09: created this section; 2026-10-20: changed (L6): the rules of the files of today, no approval -->
+The files of `.github/rulesets/` are the GitHub rulesets of `main` and of the
+release tags (see its `README.md`). They are active only after a human admin
+imports them. Then:
+
+- A change to `main` goes through a pull request, with a linear history
+  (squash or rebase merge) and resolved threads. A pull request needs no
+  approval. Force pushes to `main` and its deletion are blocked.
+- The CI job `Format, compile, test, compatibility, packaging` must pass.
+  Nobody can bypass this rule.
+- You cannot delete or move a release tag (`runner-v*`, `app-v*`,
+  `testkit-v*`, `core-v*`, `use-v*`, `widgets-v*`).
+
+If you change the `name` of the CI job, change
+`.github/rulesets/main-invariants.json` in the same pull request.
 
 ## Compatibility
 
