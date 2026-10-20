@@ -176,6 +176,11 @@
   TamboUI included as a JVM stack, its 13 mutants not written; the docs demo runs FakeOnly in a sandboxed iframe
   (?demo). GitHub issues #18-#51 created from PLANNED-FEATURES (34); drafts D1/D2 as comments on #8/#9.
   <!-- claude 2026-10-20: created this item -->
+- L5 PUSHED 246e8a4 (the one-agent finalizer; the container restarted right after). ADR drafts backed up in
+  `.work/adr/` of this branch. Vercel: `create_git_project`/`create_project` return 403 forbidden for the connector
+  token (team yurian-solo, GitHub namespace yuri4n is linked): the user creates the project (name tui4s, repo
+  yuri4n/tui4s, Root Directory docs, framework Nuxt) in the dashboard; D11 becomes a HUMAN STEP.
+  <!-- claude 2026-10-20: created this item -->
 - (history) L4 ran as 3 agents: the standalone Scala.js build of the assistant (D5), Theme (D8) in tui4s-widgets rendered to
   one Stylesheet for both platforms, JS interpreters (fetch SSE, localStorage key with a warning), units em/pct.
 - (history) L3 ran as 3 agents: shared crossProject (domain + UI, kyo-ui/use/widgets only), tui main
