@@ -230,6 +230,12 @@
   39442239365 GREEN (GraalVM CE smoke on GitHub); bench 39442233726 FAILED only on tamboui wrong-thread (caught on
   GitHub, silent here: timing-dependent). A fix agent (a39bf266...) makes the PTY row wait for the end of the
   stream and adds tamboui wrong-thread to the timing-dependent set, then pushes; then re-dispatch ci + bench.
+  <!-- claude 2026-10-20: created this item -->
+- 0e97b78 pushed (the two timing fixes): bench run 39445536529 GREEN; ci 39445532006 failed only on macOS, 2nd PTY
+  pass (AOT): the assistant's store leaked between passes (the JVM takes user.home from the user database, not HOME;
+  macOS has no XDG fallback: ~/Library/Application Support/tui4s/assistant). 20cd3de pushed: run.sh/aot-train/cast.py
+  give the apps a fresh home + XDG vars + -Duser.home via JAVA_OPTS; both local PTY passes green. ci re-dispatched on
+  20cd3de (watcher a579a006...). When green: the gate message (task #29).
   <!-- claude 2026-10-20: created this item --> History: the user asked "why
   useSignal gone?"; picked `signal(0)` from a choice (signal, createSignal, sig, useSignal); then "signal() should be
   a primitive, not a hook" (a hook is mount-bound; creating a signal has no lifetime, and the runner is terminal-only),
