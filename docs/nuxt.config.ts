@@ -61,12 +61,13 @@ export default defineNuxtConfig({
         ],
       },
     ],
-    // claude 2026-10-20: changed: the notes for kyo-ui and the split artifacts; no version is published (L5); ZIO and Cats Effect are issues, not modules (ADR 0014)
+    // claude 2026-10-20: changed: the notes for kyo-ui and the split artifacts; no version is published (L5); ZIO and Cats Effect are issues, not modules (ADR 0014); the decision records and the roadmap (L6)
     notes: [
       'tui4s runs a kyo-ui value in the terminal, in Scala 3. kyo-ui is the UI DSL; tui4s has no DSL of its own. It paints with jatatui, a Java port of ratatui.',
       'No version of tui4s is published yet. An app uses tui4s-core (tui4s-runner, tui4s-app and tui4s-testkit in one dependency). tui4s-use (composables) and tui4s-widgets (widgets) build for the JVM and Scala.js. Each module has its own version.',
       'tui4s has no ZIO or Cats Effect module. Issues #18 and #19 (https://github.com/yuri4n/tui4s/issues) track them. Mouse input is not supported. Windows is experimental.',
       'tui4s needs JDK 25, because Kyo 1.0.0-RC7 needs it.',
+      'The decision records (/decisions) give the reason for each design decision, with the alternatives that lost. The roadmap (/project/roadmap) lists the open issues.',
       'Every Scala block of this documentation is the text of a region of a source file of the repository, and a test checks it.',
       'To read this documentation as an agent, fetch /llms-full.txt, or the raw Markdown of one page at /raw/<page-path>.md.',
     ],
@@ -97,7 +98,7 @@ export default defineNuxtConfig({
 
   // claude 2026-10-20: created: the icons of the pages, the navigation and the code blocks are
   // in the client bundle, so no icon comes from the Iconify API at build time or in the browser (L5);
-  // changed: the icon of the section Decisions (L6)
+  // changed: the icons of the sections Decisions and Project (L6)
   icon: {
     clientBundle: {
       icons: [
@@ -105,13 +106,16 @@ export default defineNuxtConfig({
         'lucide:blocks',
         'lucide:book-open',
         'lucide:bot',
+        'lucide:compass',
         'lucide:component',
         'lucide:download',
         'lucide:flask-conical',
         'lucide:gauge',
+        'lucide:git-pull-request',
         'lucide:globe',
         'lucide:layers',
         'lucide:layout-template',
+        'lucide:map',
         'lucide:message-square',
         'lucide:package',
         'lucide:palette',
@@ -120,6 +124,7 @@ export default defineNuxtConfig({
         'lucide:rocket',
         'lucide:scale',
         'lucide:scroll-text',
+        'lucide:shield',
         'lucide:shield-check',
         'lucide:square-terminal',
         'lucide:text-cursor-input',
