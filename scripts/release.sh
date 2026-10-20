@@ -39,10 +39,14 @@ version_valid "$version" \
 command -v gh >/dev/null 2>&1 || die "gh (GitHub CLI) is not on PATH"
 
 # claude 2026-10-20: created (ADR 0020): start the workflow, then find its run
-# (the newest dispatch run that was not there before)
+# (the newest dispatch run of the current user that was not there before);
+# changed: only the runs of the current user, so a dispatch of another
+# person in the same seconds is not taken for this one (review P2)
 cd "$script_dir/.."
+me=$(gh api user --jq .login 2>/dev/null || true)
 last_run() {
   gh run list --workflow release.yml --event workflow_dispatch --limit 1 \
+    ${me:+--user "$me"} \
     --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true
 }
 before=$(last_run)
