@@ -170,6 +170,12 @@
   workflow adds it as the JVM peer. ADR drafts are in scratchpad/adr (19 ADRs, PLANNED-FEATURES.md with 34 issue
   blocks, CLEANUP.md with branch shas). `first-take` is the user's own branch: do not delete (HANDOFF 2026-10-01).
   <!-- claude 2026-10-20: created this item -->
+- L5 workflow DONE 2026-10-20 (7 agents; docs stream b537cfa, bench stream 3b9c56b, merged linearly at 246e8a4 local;
+  the finalizer was cut off in `sbt check`; a one-agent finalizer runs the verification and pushes). Facts: AWS
+  credentials of the container are rejected (InvalidClientTokenId): bench/infra written, not deployed (issue #51);
+  TamboUI included as a JVM stack, its 13 mutants not written; the docs demo runs FakeOnly in a sandboxed iframe
+  (?demo). GitHub issues #18-#51 created from PLANNED-FEATURES (34); drafts D1/D2 as comments on #8/#9.
+  <!-- claude 2026-10-20: created this item -->
 - (history) L4 ran as 3 agents: the standalone Scala.js build of the assistant (D5), Theme (D8) in tui4s-widgets rendered to
   one Stylesheet for both platforms, JS interpreters (fetch SSE, localStorage key with a warning), units em/pct.
 - (history) L3 ran as 3 agents: shared crossProject (domain + UI, kyo-ui/use/widgets only), tui main
