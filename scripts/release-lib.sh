@@ -1,5 +1,11 @@
 # shellcheck shell=bash
-# Version form and version order for scripts/release.sh.
+# claude 2026-10-20: changed: this file was scripts/version-order.sh; it also
+# has the module list and the tag lookup, for scripts/release.sh and for the
+# jobs of .github/workflows/release.yml (ADR 0020)
+# The release rules of tui4s: the version form, the version order, the
+# modules and the last tag of a module. scripts/release.sh and
+# .github/workflows/release.yml source this file, so the form and the
+# workflow use the same rules.
 # Source this file. It only defines functions: it does not change shell options
 # and it prints nothing. It works with bash 3.2 (macOS).
 #
@@ -58,4 +64,49 @@ version_gt() {
     if ((10#${new[i]} < 10#${old[i]})); then return 1; fi
   done
   return 1
+}
+
+# claude 2026-10-20: created release_all_modules (the order of the dependencies)
+# release_all_modules: print the published modules in the order of their
+# dependencies: runner, then app and testkit, then core (the composite of the
+# three); use before widgets. A release of "all" goes in this order.
+release_all_modules() {
+  echo "runner app testkit core use widgets"
+}
+
+# claude 2026-10-20: created release_resolve_modules (the input "module" of the form)
+# release_resolve_modules MODULE: print the modules that a release of MODULE
+# publishes. MODULE is one module, or "all" for every module in the order of
+# release_all_modules. Exit 1 if MODULE is not a module and not "all".
+release_resolve_modules() {
+  local m
+  if [[ ${1-} == all ]]; then
+    release_all_modules
+    return 0
+  fi
+  for m in $(release_all_modules); do
+    if [[ ${1-} == "$m" ]]; then
+      echo "$m"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# claude 2026-10-20: created release_latest_before (the last release of a module)
+# release_latest_before MODULE [VERSION]: print the greatest version of the
+# tags MODULE-v* of the git repository in the current directory. With
+# VERSION, only the versions below VERSION count (a re-run finds the release
+# before its own tag). Print nothing if no tag counts.
+# Exit 2 if a tag MODULE-v* has no accepted form: then no order is safe.
+release_latest_before() {
+  local m=${1-} limit=${2-} tag v best=""
+  for tag in $(git tag -l "$m-v*"); do
+    v=${tag#"$m-v"}
+    version_valid "$v" || return 2
+    if [[ -n $limit ]] && ! version_gt "$limit" "$v"; then continue; fi
+    if [[ -z $best ]] || version_gt "$v" "$best"; then best=$v; fi
+  done
+  if [[ -n $best ]]; then echo "$best"; fi
+  return 0
 }

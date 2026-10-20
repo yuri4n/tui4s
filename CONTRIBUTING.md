@@ -15,10 +15,12 @@ it before a change. This file is the short form.
 
 ## Check a change
 
+<!-- claude 2026-10-20: changed: the release rules line; created: the changelog line (ADR 0020) -->
 ```sh
 sbt fmt                                # format
 sbt check                              # format, compile, lint, test, compatibility
-bash scripts/version-order-test.sh     # the version order of the release script
+bash scripts/version-order-test.sh     # the release rules: version order, modules, last tag
+bash scripts/changelog-section-test.sh # the release notes from CHANGELOG.md
 bash scripts/edge-check.sh             # the edge files and the scalafix suppressions
 examples/ptycheck/run.sh               # the real-terminal checklist, in a pseudo-terminal
 ```
@@ -44,6 +46,14 @@ to the terminal code or to the examples. Never start a terminal UI with
 
 A change by an AI agent carries a mark at the smallest unit that it changed:
 `// claude <date>: created|changed: <what>` (an HTML comment in Markdown).
+
+## Record a change for the release notes
+
+<!-- claude 2026-10-20: created: this section (ADR 0020) -->
+`CHANGELOG.md` is the one source of the release notes. A pull request that
+changes a published module adds a line under `## [Unreleased]`, in the
+subsection `### tui4s-<module>` of that module. The maintainer releases from
+the Actions form (AGENTS.md, "Releasing").
 
 ## Run the bench
 

@@ -9,6 +9,14 @@ versions follow early semantic versioning (AGENTS.md, "Compatibility").
 The first release is planned as `0.1.0-RC1` for each module: a release
 candidate, because Kyo and kyo-ui are at 1.0.0-RC7. Nothing is published yet.
 
+<!-- claude 2026-10-20: created: the release headings and the release notes (ADR 0020) -->
+This file is the one source of the release notes. Before a release, its pull
+request renames `## [Unreleased]` to `## [<version>] - <YYYY-MM-DD>`. Under
+that heading, each module of the release has its subsection
+`### tui4s-<module>`. The release workflow gives the text of that subsection
+to the GitHub release of the module (`scripts/changelog-section.sh`). The
+workflow stops before it creates a tag when a subsection is missing.
+
 ## [Unreleased]
 
 ### tui4s-runner

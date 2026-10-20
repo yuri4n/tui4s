@@ -284,13 +284,15 @@ nothing.
 
 <!-- claude 2026-10-09: changed the sbt check row and added the version order test row -->
 <!-- claude 2026-10-17: changed the sbt check row; added the scalafixAll and edge-check rows -->
+<!-- claude 2026-10-20: changed: the release rules row; created: the changelog row (ADR 0020) -->
 
 | Command                              | What it does                                                  |
 | ------------------------------------ | ------------------------------------------------------------- |
 | `sbt fmt`                            | Formats all Scala and sbt files.                              |
 | `sbt check`                          | Does the sbt CI checks: format, compile, lint, test, compat.  |
 | `sbt scalafixAll`                    | Organizes the imports and shows the DisableSyntax errors.     |
-| `bash scripts/version-order-test.sh` | Tests the version order of the release script (CI runs it).   |
+| `bash scripts/version-order-test.sh` | Tests the release rules (`scripts/release-lib.sh`): the version form and order, the modules, the last tag (CI runs it). |
+| `bash scripts/changelog-section-test.sh` | Tests the release notes from `CHANGELOG.md` (`scripts/changelog-section.sh`; CI runs it). |
 | `bash scripts/edge-check.sh`         | Checks the edge headers and the suppressions (CI runs it).    |
 | `sbt versions`                       | Shows the version of each module (released or snapshot).      |
 | `sbt runner/test`                    | Runs the suites that need only the runner (layout, paint, the oracles, the terminal path on a fake crossterm). They use kyo-test. |
@@ -330,8 +332,10 @@ runner). The runner and the core get the same test settings
 
 <!-- claude 2026-10-09: changed: also run the version order test before each push -->
 <!-- claude 2026-10-17: changed: also run the edge check before each push; `sbt scalafixAll` -->
-Run `sbt fmt`, `sbt check`, `bash scripts/version-order-test.sh` and
-`bash scripts/edge-check.sh` before each push. If the scalafix check of
+<!-- claude 2026-10-20: changed: also run the changelog test before each push (ADR 0020) -->
+Run `sbt fmt`, `sbt check`, `bash scripts/version-order-test.sh`,
+`bash scripts/changelog-section-test.sh` and `bash scripts/edge-check.sh`
+before each push. If the scalafix check of
 `sbt check` fails on an import, run `sbt scalafixAll`. After a change to the
 terminal code (`TerminalIO`, `Crossterm`, `Session`, `EventMapping`,
 `OutputCapture`, `Tui.run`, `TuiApp`, the examples), also run
@@ -732,6 +736,9 @@ imports them. Then:
   Nobody can bypass this rule.
 - You cannot delete or move a release tag (`runner-v*`, `app-v*`,
   `testkit-v*`, `core-v*`, `use-v*`, `widgets-v*`).
+- The release workflow creates the release tags (see "Releasing"). A tag
+  that a person pushes starts no release.
+  <!-- claude 2026-10-20: created: this item (ADR 0020) -->
 
 If you change the `name` of the CI job, change
 `.github/rulesets/main-invariants.json` in the same pull request.
@@ -767,55 +774,100 @@ request, and the release runs `<m>/versionCheck`.
 
 ## Releasing
 
-Each module has its own version and its own tag. A tag push publishes only that
-module to Maven Central and creates its GitHub release (see
-`.github/workflows/release.yml`). There is no other manual step.
+<!-- claude 2026-10-20: changed (ADR 0020): this section: the release starts from the Actions form on main, the checks run before the tag, one approval for all the modules -->
+Each module has its own version and its own tag `<module>-v<version>`. A
+release starts from the form of the workflow Release
+(`.github/workflows/release.yml`) on `main`. One run releases one module or
+all the modules, with one approval.
 
-1. Merge to `main` and wait until CI is green.
-2. Do a dry run: `scripts/release.sh <module> <version> --dry-run`.
-3. Release: `scripts/release.sh <module> <version>`. The script checks the
-   module, asks for confirmation, creates the tag `<module>-v<version>`, and
-   pushes only that tag.
+1. In a pull request, rename `## [Unreleased]` of `CHANGELOG.md` to
+   `## [<version>] - <YYYY-MM-DD>`. Keep the subsection
+   `### tui4s-<module>` of each module of the release. Merge the pull
+   request, and wait until CI is green on `main`.
+2. Open **Actions > Release > Run workflow**. Select the branch `main`, the
+   module (or `all`) and the version. Alternatively, run
+   `scripts/release.sh <module|all> <version>`: it fills the same form with
+   `gh`, and it shows the run.
+3. The job `prepare` checks the release before a tag exists. The branch is
+   `main`. The version has an accepted form and is greater than the last tag
+   of each module. The new tags do not exist. `CHANGELOG.md` has the notes of
+   each module. The CI job `Format, compile, test, compatibility, packaging`
+   passed on the commit. For each module, `sbt "stageModule <m>"`
+   (`assertReleasable`, then an unsigned publish into `target/sona-staging`)
+   and `<m>/versionCheck` pass. The job tags the commit only in its own
+   checkout, so that the dependency checks see the new versions.
+4. Approve the deployment: GitHub asks the required reviewer of the
+   environment `maven-central`. One approval covers all the modules of the
+   run.
+5. The job `publish` releases the modules in the order of the dependencies.
+   For each module, it pushes the tag, publishes the module to Maven Central
+   (sbt-ci-release, `sonaRelease`), and creates the GitHub release. The notes
+   of the release are the subsection of the module in `CHANGELOG.md`, then the
+   notes that GitHub makes since the last release of the module.
+
+A dry run (the box "Dry run" of the form, or `--dry-run`) does the job
+`prepare` and stops: no tag, and no publish. Do a dry run before a release.
+
+If the job `publish` fails, remove the cause, then click **Re-run failed
+jobs**. Do not start a new run: its job `prepare` stops on the tags that
+exist. The re-run keeps the tags on the commit. It skips a module that has
+its GitHub release, and it does not publish again a version that is on
+Maven Central. A tag with no GitHub release means: the publish of that module
+is not complete. Central can show a new version on `repo1.maven.org` some
+minutes after it accepts the upload. Wait for it before a re-run.
 
 <!-- claude 2026-10-09: added the accepted version forms and their order -->
+<!-- claude 2026-10-20: changed: the release checks order the versions (ADR 0020) -->
 A version is `x.y.z` or `x.y.z-<q><n>`: `<q>` is `alpha`, `beta`, `M` or `RC`,
 and `<n>` is 1 or more (for example `0.2.0-RC1`). The numbers have no leading
-zeros. The script orders versions as Maven does: it compares `x`, `y` and `z`
-as numbers. For the same `x.y.z`, `alpha` < `beta` < `M` < `RC` < no `<q>`, and
-for the same `<q>`, the larger `<n>` is greater (`RC10` > `RC2`).
+zeros. The release checks order versions as Maven does: they compare `x`, `y`
+and `z` as numbers. For the same `x.y.z`, `alpha` < `beta` < `M` < `RC` < no
+`<q>`, and for the same `<q>`, the larger `<n>` is greater (`RC10` > `RC2`).
 <!-- claude 2026-10-09: added the coursier difference for M -->
 coursier (and thus sbt) puts `M` below `alpha` and `beta`. Thus, do not release
 an `M` version after an `alpha` or `beta` of the same `x.y.z`.
 
 <!-- claude 2026-10-19: changed: `use` before `widgets` (L2b review) -->
-<!-- claude 2026-10-19: changed: the order runner, app, testkit, core (D25); 2026-10-20: changed: no zio and cats (ADR 0014) -->
-If the script says that an inter-project dependency is unreleased, release that
-module first: `runner`, then `app` and `testkit`, then `core` (the composite of
-the three); `use` before `widgets`.
-`scripts/release.sh` lists the modules in this order (`MODULES`). Wait until its
-release run is complete, then try again. Push only one release tag at a time:
-GitHub ignores a push of more than three tags.
+<!-- claude 2026-10-19: changed: the order runner, app, testkit, core (D25); 2026-10-20: changed: no zio and cats (ADR 0014); changed: release all, the order in release-lib.sh (ADR 0020) -->
+If `assertReleasable` says that an inter-project dependency is unreleased,
+release that module first, or release `all`. The order is `runner`, then
+`app` and `testkit`, then `core` (the composite of the three); `use` before
+`widgets` (`release_all_modules` in `scripts/release-lib.sh`). A change in
+`build.sbt` or in `project` makes all the modules unreleased: then release
+`all`.
 
-**Agents:** a release tag publishes a public artifact to Maven Central, and you
-cannot remove it. You can run `--dry-run` at any time. You must get approval
-from a human in the chat before you run `scripts/release.sh` without
-`--dry-run`. Never use `--yes` on your own decision.
+<!-- claude 2026-10-20: changed (ADR 0020): the gate is the required reviewer of the environment; no --yes -->
+**Agents:** a release publishes a public artifact to Maven Central, and you
+cannot remove it. You can start a dry run at any time:
+`scripts/release.sh <module|all> <version> --dry-run`. A real release needs a
+human: start it only when a human asks for it in the chat. The human gate is
+the required reviewer of the environment `maven-central`: GitHub asks the
+maintainer to approve the deployment, not a prompt of a script. An agent
+never approves a deployment and never pushes a release tag.
 
+<!-- claude 2026-10-20: changed (ADR 0020): the deployment policy is the branch main and a required reviewer; no tag patterns -->
 One-time setup (human): sign in to central.sonatype.com with GitHub (this
 verifies `io.github.yuri4n`), make a user token, make a GPG key, and put its
-public key on a key server. Then add these secrets to the GitHub environment
-`maven-central`: `PGP_SECRET`, `PGP_PASSPHRASE`, `SONATYPE_USERNAME`,
-`SONATYPE_PASSWORD`. The environment accepts only the tags `runner-v*`,
-`app-v*`, `testkit-v*`, `core-v*`, `use-v*` and `widgets-v*`. A human adds each tag pattern in the settings of the
-environment (Settings, Environments, `maven-central`, the deployment tags)
-before the first release of its module. The patterns `runner-v*`, `app-v*`
-and `testkit-v*` are new (D25): add them before the first release of the
-runner.
-<!-- claude 2026-10-19: changed: use-v* and widgets-v* (L2a); a human adds them to the environment -->
-<!-- claude 2026-10-19: changed: runner-v*, app-v* and testkit-v* (D25); a human adds them to the environment; 2026-10-20: changed: no zio-v* and cats-v* (ADR 0014) -->
+public key on a key server. Then, in **Settings > Environments >
+`maven-central`**:
+
+- Deployment branches and tags: `main` (the job `publish` runs on `main`).
+  The tag patterns of the old release are not necessary.
+- Required reviewers: the maintainer.
+- Environment secrets: `PGP_SECRET`, `PGP_PASSPHRASE`, `SONATYPE_USERNAME`,
+  `SONATYPE_PASSWORD`.
+
+<!-- claude 2026-10-20: changed (ADR 0020): the messages of the form and of the two jobs -->
 
 | Error message                                          | Cause and fix                                                       |
 | ------------------------------------------------------ | ------------------------------------------------------------------- |
+| `Release only from main`                               | The form ran on another branch. Select `main`.                      |
+| `... is not greater than the last release ...`         | The version is not greater than the last tag of the module (Maven order). Use a greater version. |
+| `The tag <tag> exists`                                 | That version is released, or a run stopped after its tag. Use the next version, or re-run the failed job of that run. |
+| `changelog-section: ... has no heading` (or `no subsection`, `no text`) | `CHANGELOG.md` has no notes for the module and the version. Rename `## [Unreleased]` in a pull request. |
+| `No successful check run ...`                          | CI did not pass on the commit, or it still runs. Wait for CI on `main`, or run it again. |
+| `Not releasable: ...`                                  | The tag and the version are different, the tree is dirty, or a dependency is unreleased. Release the dependency first, or release `all`. |
+| `The tag <tag> points at ...`                          | A tag of this version is on another commit. Do not move a release tag: release the next version. |
+| `... is not allowed to deploy to maven-central ...`    | The deployment policy of the environment does not allow `main`. Add `main`. |
 | `SNAPSHOTs are not supported on the Central Portal`    | `sonaRelease` ran on the root project. Use `; project <m>; sonaRelease`. |
-| `Not releasable: ...`                                  | The tree is dirty, the tag and version are different, or a dependency is unreleased. |
-| `no credentials are found for central.sonatype.com`    | The `SONATYPE_*` variables are missing.                             |
+| `no credentials are found for central.sonatype.com`    | The `SONATYPE_*` secrets are missing in the environment.           |
