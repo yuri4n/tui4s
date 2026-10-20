@@ -1,0 +1,174 @@
+{
+ "conformance": {
+  "passed": 11,
+  "steps": [
+   {
+    "detail": "",
+    "ok": true,
+    "step": "start"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 1"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 2"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 3"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "minus"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "up"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "burst +++++"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "unbound x"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "resize 80x24"
+   },
+   {
+    "detail": "exit=0 restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored': True}",
+    "ok": true,
+    "step": "quit"
+   }
+  ],
+  "total": 11
+ },
+ "machine": "container-4vcpu",
+ "perf": {
+  "artifact": "the production packages of node_modules and the bundle (no Node.js)",
+  "artifact_mb": 8.17,
+  "cpu_pct": 0.0,
+  "date": "2026-10-20T03:39:53Z",
+  "first_frame_ms": 369.9,
+  "first_key_ms": 7.85,
+  "key_median_ms": 22.12,
+  "key_p90_ms": 39.4,
+  "rss_mb": 115.5,
+  "runs": [
+   {
+    "cpu_pct": 0.0,
+    "exit": 0,
+    "first_frame_ms": 395.59,
+    "first_key_ms": 8.37,
+    "key_median_ms": 22.12,
+    "key_p90_ms": 39.4,
+    "rss_mb": 122.4
+   },
+   {
+    "cpu_pct": 0.0,
+    "exit": 0,
+    "first_frame_ms": 363.55,
+    "first_key_ms": 7.85,
+    "key_median_ms": 22.4,
+    "key_p90_ms": 40.71,
+    "rss_mb": 115.5
+   },
+   {
+    "cpu_pct": 0.0,
+    "exit": 0,
+    "first_frame_ms": 369.9,
+    "first_key_ms": 7.68,
+    "key_median_ms": 21.43,
+    "key_p90_ms": 39.16,
+    "rss_mb": 114.5
+   }
+  ],
+  "tick_gap_p50_ms": null,
+  "tick_gap_p90_ms": null,
+  "ticks_skipped_pct": null
+ },
+ "resilience": {
+  "ctrl-c": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.06
+  },
+  "failure": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 1,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true
+  },
+  "kill-mid-frame": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": -15,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.03
+  },
+  "quit": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.06
+  },
+  "sigint": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": -2,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.02
+  },
+  "sigterm": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": -15,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.02
+  }
+ }
+}

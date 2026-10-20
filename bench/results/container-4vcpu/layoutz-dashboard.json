@@ -1,0 +1,204 @@
+{
+ "conformance": {
+  "passed": 12,
+  "steps": [
+   {
+    "detail": "status bar not on the last row; Dashboard                                                                                   03:29:21 | \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500*Items*\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510 \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500Load\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510 | \u2502 > Item 0001                                    \u2502 \u2502 Ticks: 4                                 ",
+    "ok": false,
+    "step": "start"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down 1"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down 2"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down 3"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "pgdn (page 25)"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "pgup"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "up"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "tab to load"
+   },
+   {
+    "detail": "status=(3, 1000, 'load')",
+    "ok": true,
+    "step": "down on load"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "tab to list"
+   },
+   {
+    "detail": "T 11->30 (+19), samples=77, wrong=[]",
+    "ok": true,
+    "step": "ticks"
+   },
+   {
+    "detail": "clock=03:29:24",
+    "ok": true,
+    "step": "clock"
+   },
+   {
+    "detail": "\u2502   Item 0007                                    \u2502",
+    "ok": false,
+    "step": "resize 80x24"
+   },
+   {
+    "detail": "exit=0 restore={'cooked': True, 'alt_screen': 'never-entered', 'cursor': 'visible', 'orphans': [], 'restored': True}",
+    "ok": true,
+    "step": "quit"
+   }
+  ],
+  "total": 14
+ },
+ "machine": "container-4vcpu",
+ "perf": {
+  "artifact": "the jars of the staged app (the app and its dependencies; no JDK)",
+  "artifact_mb": 10.85,
+  "cpu_pct": 9.8,
+  "date": "2026-10-20T03:36:34Z",
+  "first_frame_ms": 354.37,
+  "first_key_ms": 44.74,
+  "key_median_ms": 30.7,
+  "key_p90_ms": 32.69,
+  "rss_mb": 150.4,
+  "runs": [
+   {
+    "cpu_pct": 9.8,
+    "exit": 0,
+    "first_frame_ms": 435.54,
+    "first_key_ms": 52.21,
+    "key_median_ms": 31.19,
+    "key_p90_ms": 32.69,
+    "rss_mb": 150.4,
+    "tick_gap_max_ms": 104.8,
+    "tick_gap_p50_ms": 103.3,
+    "tick_gap_p90_ms": 104.1,
+    "ticks_seen": 49,
+    "ticks_skipped_pct": 0.0
+   },
+   {
+    "cpu_pct": 9.8,
+    "exit": 0,
+    "first_frame_ms": 354.37,
+    "first_key_ms": 43.8,
+    "key_median_ms": 30.7,
+    "key_p90_ms": 32.78,
+    "rss_mb": 150.3,
+    "tick_gap_max_ms": 154.9,
+    "tick_gap_p50_ms": 103.1,
+    "tick_gap_p90_ms": 104.2,
+    "ticks_seen": 49,
+    "ticks_skipped_pct": 0.0
+   },
+   {
+    "cpu_pct": 9.4,
+    "exit": 0,
+    "first_frame_ms": 339.61,
+    "first_key_ms": 44.74,
+    "key_median_ms": 30.59,
+    "key_p90_ms": 31.52,
+    "rss_mb": 151.0,
+    "tick_gap_max_ms": 104.6,
+    "tick_gap_p50_ms": 102.8,
+    "tick_gap_p90_ms": 103.8,
+    "ticks_seen": 51,
+    "ticks_skipped_pct": 0.0
+   }
+  ],
+  "tick_gap_p50_ms": 103.1,
+  "tick_gap_p90_ms": 104.1,
+  "ticks_skipped_pct": 0.0
+ },
+ "resilience": {
+  "ctrl-c": {
+   "alt_screen": "never-entered",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 130,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.36
+  },
+  "failure": {
+   "alt_screen": "never-entered",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "orphans": [],
+   "outcome": "contained",
+   "pass": true,
+   "restored": true
+  },
+  "kill-mid-frame": {
+   "alt_screen": "never-entered",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 143,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.02
+  },
+  "quit": {
+   "alt_screen": "never-entered",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.06
+  },
+  "sigint": {
+   "alt_screen": "never-entered",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 130,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.33
+  },
+  "sigterm": {
+   "alt_screen": "never-entered",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 143,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.37
+  }
+ }
+}

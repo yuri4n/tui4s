@@ -1,0 +1,204 @@
+{
+ "conformance": {
+  "passed": 14,
+  "steps": [
+   {
+    "detail": "",
+    "ok": true,
+    "step": "start"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down 1"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down 2"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down 3"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "pgdn (page 26)"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "pgup"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "up"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "tab to load"
+   },
+   {
+    "detail": "status=(3, 1000, 'load')",
+    "ok": true,
+    "step": "down on load"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "tab to list"
+   },
+   {
+    "detail": "T 7->27 (+20), samples=78, wrong=[]",
+    "ok": true,
+    "step": "ticks"
+   },
+   {
+    "detail": "clock=03:28:05",
+    "ok": true,
+    "step": "clock"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "resize 80x24"
+   },
+   {
+    "detail": "exit=0 restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored': True}",
+    "ok": true,
+    "step": "quit"
+   }
+  ],
+  "total": 14
+ },
+ "machine": "container-4vcpu",
+ "perf": {
+  "artifact": "the jars of the staged app (the app and its dependencies; no JDK)",
+  "artifact_mb": 0.82,
+  "cpu_pct": 12.8,
+  "date": "2026-10-20T03:35:32Z",
+  "first_frame_ms": 465.01,
+  "first_key_ms": 6.44,
+  "key_median_ms": 1.62,
+  "key_p90_ms": 2.37,
+  "rss_mb": 124.9,
+  "runs": [
+   {
+    "cpu_pct": 17.39,
+    "exit": 0,
+    "first_frame_ms": 476.19,
+    "first_key_ms": 6.73,
+    "key_median_ms": 1.81,
+    "key_p90_ms": 2.37,
+    "rss_mb": 132.8,
+    "tick_gap_max_ms": 102.5,
+    "tick_gap_p50_ms": 100.0,
+    "tick_gap_p90_ms": 100.7,
+    "ticks_seen": 50,
+    "ticks_skipped_pct": 0.0
+   },
+   {
+    "cpu_pct": 12.8,
+    "exit": 0,
+    "first_frame_ms": 465.01,
+    "first_key_ms": 6.44,
+    "key_median_ms": 1.62,
+    "key_p90_ms": 3.05,
+    "rss_mb": 124.2,
+    "tick_gap_max_ms": 103.0,
+    "tick_gap_p50_ms": 100.0,
+    "tick_gap_p90_ms": 100.5,
+    "ticks_seen": 51,
+    "ticks_skipped_pct": 0.0
+   },
+   {
+    "cpu_pct": 12.6,
+    "exit": 0,
+    "first_frame_ms": 459.18,
+    "first_key_ms": 5.54,
+    "key_median_ms": 1.51,
+    "key_p90_ms": 2.27,
+    "rss_mb": 124.9,
+    "tick_gap_max_ms": 101.1,
+    "tick_gap_p50_ms": 100.0,
+    "tick_gap_p90_ms": 100.4,
+    "ticks_seen": 50,
+    "ticks_skipped_pct": 0.0
+   }
+  ],
+  "tick_gap_p50_ms": 100.0,
+  "tick_gap_p90_ms": 100.5,
+  "ticks_skipped_pct": 0.0
+ },
+ "resilience": {
+  "ctrl-c": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.07
+  },
+  "failure": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "orphans": [],
+   "outcome": "error-screen",
+   "pass": true,
+   "restored": true
+  },
+  "kill-mid-frame": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 143,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.06
+  },
+  "quit": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.06
+  },
+  "sigint": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 130,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.06
+  },
+  "sigterm": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 143,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.03
+  }
+ }
+}

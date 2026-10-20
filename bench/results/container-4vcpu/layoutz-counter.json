@@ -1,0 +1,174 @@
+{
+ "conformance": {
+  "passed": 9,
+  "steps": [
+   {
+    "detail": "row 29: '+/- or Up/Down change the count, q quits' (want ''); row 30: '' (want '+/- or Up/Down change the count, q quits')",
+    "ok": false,
+    "step": "start"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 1"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 2"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 3"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "minus"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "up"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "burst +++++"
+   },
+   {
+    "detail": "Counter | Count: 7 | +/- or Up/Down change the count, q quits",
+    "ok": true,
+    "step": "unbound x"
+   },
+   {
+    "detail": "Counter | Count: 7",
+    "ok": false,
+    "step": "resize 80x24"
+   },
+   {
+    "detail": "exit=0 restore={'cooked': True, 'alt_screen': 'never-entered', 'cursor': 'visible', 'orphans': [], 'restored': True}",
+    "ok": true,
+    "step": "quit"
+   }
+  ],
+  "total": 11
+ },
+ "machine": "container-4vcpu",
+ "perf": {
+  "artifact": "the jars of the staged app (the app and its dependencies; no JDK)",
+  "artifact_mb": 10.84,
+  "cpu_pct": 2.0,
+  "date": "2026-10-20T03:36:03Z",
+  "first_frame_ms": 335.72,
+  "first_key_ms": 8.39,
+  "key_median_ms": 30.48,
+  "key_p90_ms": 31.27,
+  "rss_mb": 74.6,
+  "runs": [
+   {
+    "cpu_pct": 2.0,
+    "exit": 0,
+    "first_frame_ms": 335.72,
+    "first_key_ms": 56.15,
+    "key_median_ms": 30.48,
+    "key_p90_ms": 31.1,
+    "rss_mb": 74.6
+   },
+   {
+    "cpu_pct": 2.0,
+    "exit": 0,
+    "first_frame_ms": 358.89,
+    "first_key_ms": 8.39,
+    "key_median_ms": 30.5,
+    "key_p90_ms": 31.27,
+    "rss_mb": 74.6
+   },
+   {
+    "cpu_pct": 2.0,
+    "exit": 0,
+    "first_frame_ms": 312.98,
+    "first_key_ms": 7.4,
+    "key_median_ms": 30.33,
+    "key_p90_ms": 31.51,
+    "rss_mb": 74.6
+   }
+  ],
+  "tick_gap_p50_ms": null,
+  "tick_gap_p90_ms": null,
+  "ticks_skipped_pct": null
+ },
+ "resilience": {
+  "ctrl-c": {
+   "alt_screen": "never-entered",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 130,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.36
+  },
+  "failure": {
+   "alt_screen": "never-entered",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "orphans": [],
+   "outcome": "contained",
+   "pass": true,
+   "restored": true
+  },
+  "kill-mid-frame": {
+   "alt_screen": "never-entered",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 143,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.03
+  },
+  "quit": {
+   "alt_screen": "never-entered",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.03
+  },
+  "sigint": {
+   "alt_screen": "never-entered",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 130,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.37
+  },
+  "sigterm": {
+   "alt_screen": "never-entered",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 143,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.36
+  }
+ }
+}

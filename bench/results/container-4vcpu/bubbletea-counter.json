@@ -1,0 +1,179 @@
+{
+ "conformance": {
+  "passed": 11,
+  "steps": [
+   {
+    "detail": "",
+    "ok": true,
+    "step": "start"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 1"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 2"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "plus 3"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "minus"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "up"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "burst +++++"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "unbound x"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "resize 80x24"
+   },
+   {
+    "detail": "exit=0 restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored': True}",
+    "ok": true,
+    "step": "quit"
+   }
+  ],
+  "total": 11
+ },
+ "machine": "container-4vcpu",
+ "perf": {
+  "artifact": "the binary (go build -trimpath)",
+  "artifact_mb": 3.56,
+  "cpu_pct": 1.0,
+  "date": "2026-10-20T03:37:50Z",
+  "first_frame_ms": 29.36,
+  "first_key_ms": 15.48,
+  "key_median_ms": 13.04,
+  "key_p90_ms": 13.29,
+  "rss_mb": 5.1,
+  "runs": [
+   {
+    "cpu_pct": 1.0,
+    "exit": 0,
+    "first_frame_ms": 28.55,
+    "first_key_ms": 16.06,
+    "key_median_ms": 13.01,
+    "key_p90_ms": 13.29,
+    "rss_mb": 5.1
+   },
+   {
+    "cpu_pct": 1.0,
+    "exit": 0,
+    "first_frame_ms": 29.36,
+    "first_key_ms": 15.48,
+    "key_median_ms": 13.04,
+    "key_p90_ms": 13.33,
+    "rss_mb": 5.1
+   },
+   {
+    "cpu_pct": 1.4,
+    "exit": 0,
+    "first_frame_ms": 30.47,
+    "first_key_ms": 15.3,
+    "key_median_ms": 13.04,
+    "key_p90_ms": 13.26,
+    "rss_mb": 5.1
+   }
+  ],
+  "tick_gap_p50_ms": null,
+  "tick_gap_p90_ms": null,
+  "ticks_skipped_pct": null
+ },
+ "resilience": {
+  "ctrl-c": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "note": "",
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.02
+  },
+  "failure": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 1,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true
+  },
+  "kill-mid-frame": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "note": "",
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.02
+  },
+  "quit": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "note": "",
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.02
+  },
+  "sigint": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 1,
+   "note": "exit code 1 is not in (0, 130, -2)",
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.02
+  },
+  "sigterm": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "note": "",
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.02
+  }
+ }
+}

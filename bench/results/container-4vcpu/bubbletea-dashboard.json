@@ -1,0 +1,209 @@
+{
+ "conformance": {
+  "passed": 14,
+  "steps": [
+   {
+    "detail": "",
+    "ok": true,
+    "step": "start"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down 1"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down 2"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "down 3"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "pgdn (page 25)"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "pgup"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "up"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "tab to load"
+   },
+   {
+    "detail": "status=(3, 1000, 'load')",
+    "ok": true,
+    "step": "down on load"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "tab to list"
+   },
+   {
+    "detail": "T 7->27 (+20), samples=77, wrong=[]",
+    "ok": true,
+    "step": "ticks"
+   },
+   {
+    "detail": "clock=03:28:46",
+    "ok": true,
+    "step": "clock"
+   },
+   {
+    "detail": "",
+    "ok": true,
+    "step": "resize 80x24"
+   },
+   {
+    "detail": "exit=0 restore={'cooked': True, 'alt_screen': 'left', 'cursor': 'visible', 'orphans': [], 'restored': True}",
+    "ok": true,
+    "step": "quit"
+   }
+  ],
+  "total": 14
+ },
+ "machine": "container-4vcpu",
+ "perf": {
+  "artifact": "the binary (go build -trimpath)",
+  "artifact_mb": 4.0,
+  "cpu_pct": 1.8,
+  "date": "2026-10-20T03:38:17Z",
+  "first_frame_ms": 29.53,
+  "first_key_ms": 13.23,
+  "key_median_ms": 11.83,
+  "key_p90_ms": 13.1,
+  "rss_mb": 10.4,
+  "runs": [
+   {
+    "cpu_pct": 1.8,
+    "exit": 0,
+    "first_frame_ms": 29.31,
+    "first_key_ms": 14.36,
+    "key_median_ms": 11.84,
+    "key_p90_ms": 12.93,
+    "rss_mb": 10.2,
+    "tick_gap_max_ms": 116.5,
+    "tick_gap_p50_ms": 100.1,
+    "tick_gap_p90_ms": 100.6,
+    "ticks_seen": 50,
+    "ticks_skipped_pct": 0.0
+   },
+   {
+    "cpu_pct": 1.6,
+    "exit": 0,
+    "first_frame_ms": 33.42,
+    "first_key_ms": 12.24,
+    "key_median_ms": 11.83,
+    "key_p90_ms": 13.28,
+    "rss_mb": 10.4,
+    "tick_gap_max_ms": 117.4,
+    "tick_gap_p50_ms": 100.1,
+    "tick_gap_p90_ms": 100.6,
+    "ticks_seen": 50,
+    "ticks_skipped_pct": 0.0
+   },
+   {
+    "cpu_pct": 1.8,
+    "exit": 0,
+    "first_frame_ms": 29.53,
+    "first_key_ms": 13.23,
+    "key_median_ms": 11.83,
+    "key_p90_ms": 13.1,
+    "rss_mb": 10.7,
+    "tick_gap_max_ms": 117.3,
+    "tick_gap_p50_ms": 100.0,
+    "tick_gap_p90_ms": 100.9,
+    "ticks_seen": 50,
+    "ticks_skipped_pct": 0.0
+   }
+  ],
+  "tick_gap_p50_ms": 100.1,
+  "tick_gap_p90_ms": 100.6,
+  "ticks_skipped_pct": 0.0
+ },
+ "resilience": {
+  "ctrl-c": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "note": "",
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.02
+  },
+  "failure": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 1,
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true
+  },
+  "kill-mid-frame": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "note": "",
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.02
+  },
+  "quit": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "note": "",
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.02
+  },
+  "sigint": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 1,
+   "note": "exit code 1 is not in (0, 130, -2)",
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.02
+  },
+  "sigterm": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "note": "",
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.02
+  }
+ }
+}

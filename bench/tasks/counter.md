@@ -71,8 +71,11 @@ The contract applies in each of these cases:
 | failure | the key Ctrl-X (byte 0x18) | see "Failure" |
 | kill mid-frame | a burst of keys, and SIGTERM in the same millisecond | as SIGTERM |
 
-The program ends at most 2 seconds after the key or the signal. SIGKILL is
-not in the contract: no program can restore the terminal after SIGKILL.
+The program ends at most 2 seconds after the key or the signal. For quit the
+exit code must be 0. For the other cases the harness records the exit code,
+and a code outside the list is a note, not a failure (for example, bubbletea
+ends with 1 after SIGINT). SIGKILL is not in the contract: no program can
+restore the terminal after SIGKILL.
 
 ## Failure
 
