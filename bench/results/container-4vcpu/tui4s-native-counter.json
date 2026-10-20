@@ -108,5 +108,80 @@
   "tick_gap_p50_ms": null,
   "tick_gap_p90_ms": null,
   "ticks_skipped_pct": null
+ },
+ "resilience": {
+  "ctrl-c": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "note": "",
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.03
+  },
+  "failure": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "orphans": [],
+   "outcome": "contained",
+   "pass": true,
+   "restored": true
+  },
+  "kill-mid-frame": {
+   "alt_screen": "left",
+   "bytes_after_kill": 54,
+   "bytes_before_kill": 32,
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 143,
+   "note": "",
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.04,
+   "shown_at_kill": "Count: 1"
+  },
+  "quit": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 0,
+   "note": "",
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.03
+  },
+  "sigint": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 130,
+   "note": "",
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.03
+  },
+  "sigterm": {
+   "alt_screen": "left",
+   "cooked": true,
+   "cursor": "visible",
+   "exit": 143,
+   "note": "",
+   "orphans": [],
+   "outcome": "ended",
+   "pass": true,
+   "restored": true,
+   "seconds": 0.03
+  }
  }
 }

@@ -394,11 +394,15 @@ lazy val examples = project
     // --sun-misc-unsafe-memory-access: Kyo and Scala use sun.misc.Unsafe.
     // -Xss16m: Kyo's deep stacks, as in the prototype runs.
     // -XX:TieredStopAtLevel=1 and -XX:+UseSerialGC: a faster start and less
-    // memory for a terminal app (ADR 0015: with the AOT cache, the first frame
-    // of the Counter came at 361 ms, not 521 ms, and the RSS was 94 MB, not
-    // 113 MB). The bench rows tui4s-aot measure the keys and the CPU with them.
-    // claude 2026-10-13: changed: where the warning goes (seen in a PTY)
-    // claude 2026-10-20: changed (L5b, ADR 0015): the two start flags
+    // memory for a terminal app (ADR 0015). Through the start script of the
+    // Counter (4 CPUs, two rounds of 5 runs), the two flags alone moved the
+    // first frame from 1,118-1,144 ms to 1,008-1,020 ms and the RSS from
+    // 143-159 MB to 124 MB; with the AOT cache of bin/aot-train too, the first
+    // frame came after 511-526 ms (RSS 104 MB). The bench rows tui4s-aot
+    // measure the keys and the CPU with them.
+    // claude 2026-10-13: changed: where the warning goes (seen in a PTY);
+    // 2026-10-20: changed (L5b, ADR 0015): the two start flags, with the
+    // numbers measured through the start script (review fix)
     run / javaOptions ++= Seq(
       "--enable-native-access=ALL-UNNAMED",
       "--sun-misc-unsafe-memory-access=allow",

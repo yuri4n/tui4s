@@ -9,11 +9,11 @@ for supported application patterns.
 These standalone experiments retain evidence behind that decision. They are
 not published modules or additional supported APIs. CI does not build these
 experiments; they are the evidence of the API rules of AGENTS.md ("UI
-architecture and API design").
-<!-- claude 2026-10-20: changed (L6): CI does not build them --> Use JDK 25, Scala 3.9.0,
+architecture and API design"). Use JDK 25, Scala 3.9.0,
 sbt 1.13.0, and Kyo 1.0.0-RC7. Run one sbt process at a time, including the main
 build. The `store-env` and `grouped-scope` experiments need the initialized
 `pini4s` submodule.
+<!-- claude 2026-10-20: changed (L6): CI does not build them -->
 
 ## Findings
 

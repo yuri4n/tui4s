@@ -1,11 +1,12 @@
-<!-- claude 2026-10-20: created (L5b): the AOT mode of the tui4s stack -->
+<!-- claude 2026-10-20: created (L5b): the AOT mode of the tui4s stack; changed: the resilience rows (review fix) -->
 # tui4s (AOT cache)
 
 The program of `bench/impl/tui4s` (the same sources and the same jars),
 started with a JDK 25 AOT cache and the start flags of the tui4s examples
 (ADR 0015): `-XX:TieredStopAtLevel=1`, `-XX:+UseSerialGC`,
-`-XX:AOTCache=<task>.aot` and `-Xlog:aot=off`. Only the perf rows measure this
-mode: its code is the code of the tui4s stack.
+`-XX:AOTCache=<task>.aot` and `-Xlog:aot=off`. The perf, conformance and
+resilience rows measure this mode; the change and mutant rows do not: its code
+is the code of the tui4s stack.
 
 | Item | Version |
 | ---- | ------- |
@@ -18,6 +19,7 @@ bench/impl/tui4s/build.sh             # the jars (or bench/run.sh build)
 bench/impl/tui4s-aot/build.sh         # trains counter.aot and dashboard.aot
 bench/impl/tui4s-aot/run.sh counter   # in a terminal
 python3 bench/harness/bench.py perf --stacks tui4s-aot --runs 3
+python3 bench/harness/bench.py resilience --stacks tui4s-aot
 ```
 
 The caches are not in git (about 40 MB each). Train them again after a change

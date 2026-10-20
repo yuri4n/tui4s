@@ -1,9 +1,9 @@
-# claude 2026-10-20: created (L6)
+# claude 2026-10-20: created (L6); changed: the security link goes to SECURITY.md, which has the two private paths (review fix)
 blank_issues_enabled: true
 contact_links:
   - name: Security problem
-    url: https://github.com/yuri4n/tui4s/security/advisories/new
-    about: Report a security problem privately (SECURITY.md).
+    url: https://github.com/yuri4n/tui4s/blob/main/SECURITY.md
+    about: Do not open an issue. Report a security problem privately, as SECURITY.md tells.
   - name: Planned features
     url: https://github.com/yuri4n/tui4s/issues
     about: The planned features are open issues. Look there before you ask for a feature.

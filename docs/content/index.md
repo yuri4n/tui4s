@@ -1,10 +1,10 @@
 ---
 seo:
   title: tui4s - a terminal runner for kyo-ui
-  description: Run a kyo-ui value in the terminal, in Scala 3, and test it with no terminal. ZIO and Cats Effect modules are planned.
+  description: Run a kyo-ui value in the terminal, in Scala 3, and test it with no terminal. A ZIO and a Cats Effect integration are not in this version (issues #18 and #19).
 ---
 
-<!-- claude 2026-10-20: created (L5): the landing page leads with the Counter example -->
+<!-- claude 2026-10-20: created (L5): the landing page leads with the Counter example; changed: ZIO and Cats Effect are issues, not modules (ADR 0014) -->
 
 ::u-page-hero
 #title

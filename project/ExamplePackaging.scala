@@ -52,14 +52,15 @@ object ExamplePackaging {
     * version check of native-packager: the same JDK 25 made the cache. The JVM
     * checks the cache too (the jars, their times); `-Xlog:aot=off` keeps the
     * lines of a rejected cache out of the terminal, and the start goes on
-    * without it.
+    * without it. A script that gets `-java-home` uses no cache: the check
+    * reads the JVM of `JAVA_HOME` or `PATH`, not the JVM of `-java-home`.
     */
   // claude 2026-10-20: created (L5b, ADR 0015): the AOT cache in the start
-  // scripts
+  // scripts; changed: no cache with -java-home (review fix)
   val aotDefines: Seq[String] = Seq(
     "# tui4s: the JDK 25 AOT cache of this app, when bin/aot-train made it with this JDK (ADR 0015)",
     """tui4s_aot="${app_home}/../aot/$(basename "$real_script_path")"""",
-    """if [[ -f "$tui4s_aot.aot" && -f "$tui4s_aot.jdk" ]] &&""",
+    """if [[ " $* " != *" -java-home "* && -f "$tui4s_aot.aot" && -f "$tui4s_aot.jdk" ]] &&""",
     """  [[ "$(env -u JAVA_TOOL_OPTIONS -u JDK_JAVA_OPTIONS -u _JAVA_OPTIONS "$(get_java_cmd)" -version 2>&1)" == "$(cat "$tui4s_aot.jdk")" ]]; then""",
     """  addJava "-XX:AOTCache=$tui4s_aot.aot"""",
     """  addJava "-Xlog:aot=off"""",

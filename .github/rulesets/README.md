@@ -1,7 +1,6 @@
 # Rulesets
 
-<!-- claude 2026-10-09: created this file and the ruleset JSON files in this directory -->
-<!-- claude 2026-10-20: changed (L6): the tags of the six modules; one ruleset for main with no approval and no bypass; no review ruleset (one maintainer) -->
+<!-- claude 2026-10-09: created this file and the ruleset JSON files in this directory; 2026-10-20: changed (L6): the tags of the six modules; one ruleset for main with no approval and no bypass; no review ruleset (one maintainer); when to import main-invariants.json (review fix) -->
 
 This directory holds the GitHub rulesets of tui4s. GitHub does not read these
 files. A human admin imports them; until then, no rule is active.
@@ -23,6 +22,11 @@ given either: a bypass applies to a full ruleset, so it would also skip CI.
 1. Open **Settings > Rules > Rulesets** of `yuri4n/tui4s`.
 2. Click **New ruleset > Import a ruleset**.
 3. Select one JSON file. Do this for each file.
+
+Import `main-invariants.json` only after the release work is on `main`
+(a direct fast-forward merge), or merge that work through a pull request.
+The ruleset blocks a direct push to `main`, so it also blocks a direct
+fast-forward merge.
 
 To update a ruleset, delete the old ruleset in the UI, then import the new
 file. Alternatively, change the ruleset in the UI, then export it into this

@@ -73,6 +73,7 @@ jobs:
   nix:
     name: Nix development shell evaluation
     runs-on: ubuntu-latest
+    timeout-minutes: 10 # claude 2026-10-20: created (review fix): every job has a limit
     steps:
       - uses: actions/checkout@v7
         with:
@@ -84,8 +85,8 @@ jobs:
         working-directory: vendor/pini4s
         run: nix flake check --all-systems --no-build --no-update-lock-file
 
-  # claude 2026-10-13: created (T1, OS-41): the real-terminal checklist
-  # claude 2026-10-20: changed (L5b, L6): macOS too (the crossterm jar of
+  # claude 2026-10-13: created (T1, OS-41): the real-terminal checklist;
+  # 2026-10-20: changed (L5b, L6): macOS too (the crossterm jar of
   # jatatui 0.31.0 holds libnative-arm64-darwin-crossterm.dylib and
   # libnative-x86_64-darwin-crossterm.dylib); a second run with the AOT
   # caches of the examples (ADR 0015)
@@ -127,7 +128,9 @@ jobs:
         env:
           PTY_WORK: ${{ runner.temp }}/ptycheck
       # The same checklist with the AOT cache of each example (bin/aot-train
-      # of the distribution; the start scripts then use the caches).
+      # of the distribution; the start scripts then use the caches). aot-train
+      # fails when the JVM cannot use a cache that it made (-XX:AOTMode=on).
+      # claude 2026-10-20: changed (review fix): the check of each cache
       - name: Train the AOT caches of the examples
         run: examples/target/bin/aot-train
       - name: The checklist with the AOT caches

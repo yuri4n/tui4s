@@ -698,10 +698,12 @@ and after a change of the frame path, and give both numbers.
 ## Dependencies and versions
 
 - `project/Versions.scala` holds the versions that more than one module uses
-  (Scala, Kyo, jatatui, munit, tasty-query). tasty-query is there because the
-  runner and core tests use it (`KyoUiSurfaceTest`, `PublicApiTest`).
+  (Scala, Kyo, jatatui, tasty-query), and the munit version of the example
+  tests (only the examples use munit; they have no build file of their own).
+  tasty-query is there because the runner and core tests use it
+  (`KyoUiSurfaceTest`, `PublicApiTest`).
   <!-- claude 2026-10-12: changed: tasty-query named, with the reason (review R1-3, R2-5) -->
-  <!-- claude 2026-10-19: changed: the runner and core tests (D25); 2026-10-20: changed: no zio and cats coverage tests (ADR 0014) -->
+  <!-- claude 2026-10-19: changed: the runner and core tests (D25); 2026-10-20: changed: no zio and cats coverage tests (ADR 0014); munit only for the examples (review fix) -->
 - Each published module watches its own `modules/<m>` directory, the root
   `build.sbt` and the `project` directory. A change in the root `build.sbt` or
   in `project` marks all modules as unreleased.

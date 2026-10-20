@@ -1,7 +1,7 @@
 // tui4s documentation site (Nuxt Docus). Hosted on Vercel with Root Directory = docs.
-// claude 2026-10-20: changed: tui4s runs kyo-ui values; ZIO and Cats Effect are planned (L5)
+// claude 2026-10-20: changed: tui4s runs kyo-ui values (L5); ZIO and Cats Effect are issues, not modules (ADR 0014)
 const description =
-  'A terminal runner for kyo-ui, in Scala 3. ZIO and Cats Effect modules are planned.'
+  'A terminal runner for kyo-ui, in Scala 3. A ZIO and a Cats Effect integration are not in this version (issues #18 and #19).'
 
 // The absolute URL of the site, for llms.txt links. Vercel sets VERCEL_PROJECT_PRODUCTION_URL.
 // Without it (local and CI builds) nuxt-llms skips llms.txt, so fall back to localhost.
@@ -61,11 +61,11 @@ export default defineNuxtConfig({
         ],
       },
     ],
-    // claude 2026-10-20: changed: the notes for kyo-ui and the split artifacts; ZIO and Cats Effect are planned; no version is published (L5)
+    // claude 2026-10-20: changed: the notes for kyo-ui and the split artifacts; no version is published (L5); ZIO and Cats Effect are issues, not modules (ADR 0014)
     notes: [
       'tui4s runs a kyo-ui value in the terminal, in Scala 3. kyo-ui is the UI DSL; tui4s has no DSL of its own. It paints with jatatui, a Java port of ratatui.',
       'No version of tui4s is published yet. An app uses tui4s-core (tui4s-runner, tui4s-app and tui4s-testkit in one dependency). tui4s-use (composables) and tui4s-widgets (widgets) build for the JVM and Scala.js. Each module has its own version.',
-      'tui4s-zio and tui4s-cats are planned modules. They are not published. Mouse input is not supported. Windows is experimental.',
+      'tui4s has no ZIO or Cats Effect module. Issues #18 and #19 (https://github.com/yuri4n/tui4s/issues) track them. Mouse input is not supported. Windows is experimental.',
       'tui4s needs JDK 25, because Kyo 1.0.0-RC7 needs it.',
       'Every Scala block of this documentation is the text of a region of a source file of the repository, and a test checks it.',
       'To read this documentation as an agent, fetch /llms-full.txt, or the raw Markdown of one page at /raw/<page-path>.md.',

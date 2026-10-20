@@ -420,12 +420,14 @@ quits, and keeps the JDK 25 AOT cache of the app in `aot/<app>.aot` (about
 40 MB each, about 9 s each; it needs `python3`). A start script then uses the
 cache when the same JDK made it (`aot/<app>.jdk` keeps the text of
 `java -version`); else it starts as before. Train again after a change of
-the JDK or of the jars. On a 4-CPU Linux machine (PTY 100x30, median of 10),
-the first frame of the Counter came after 511 ms to 526 ms with the cache, and
+the JDK or of the jars. On a 4-CPU Linux machine (PTY 100x30, two rounds of
+5 runs, the median of each), the first frame of the Counter came after 511 ms to 526 ms with the cache, and
 after 1,118 ms to 1,144 ms with the start scripts of before; the memory (RSS)
 went from about 150 MB to 104 MB. The Dashboard: 584 ms to 631 ms, not
-1,344 ms to 1,351 ms (ADR 0015).
-<!-- claude 2026-10-20: created this section (L5b, ADR 0015) -->
+1,344 ms to 1,351 ms (ADR 0015). `aot-train` also starts the JVM once with
+`-XX:AOTMode=on` and each new cache, and fails when the JVM cannot use it.
+A start script that gets `-java-home` does not use a cache.
+<!-- claude 2026-10-20: created this section (L5b, ADR 0015); changed: the check of each cache, -java-home, the rounds of the measure (review fixes) -->
 
 The existing start-script interface remains available:
 
@@ -489,6 +491,29 @@ Do not use `sbt run` or `sbt runMain` to use an app. sbt also reads the
 keyboard, so some keys never get to the app, and the forked JVM gets no
 terminal on stdin, so the app stops with "stdin/stdout is not a terminal".
 This is true for every terminal UI that sbt starts, not only for tui4s.
+
+### A native binary
+
+`scripts/native-image.sh` builds a GraalVM native binary of one example. It
+needs GraalVM for JDK 25 (the Community Edition is enough), with
+`native-image` on `PATH` or in `$GRAALVM_HOME/bin`:
+
+```sh
+scripts/native-image.sh counter -Ob    # -Ob: a quick build; -Os: a small binary
+examples/target/native/counter         # in a real terminal
+python3 scripts/native-smoke.py examples/target/native/counter
+```
+
+The script stages the distribution, reads the main class and the class path
+of the start script, and writes `examples/target/native/<app>`.
+`native-smoke.py` starts the Counter binary in a pseudo-terminal, presses `+`
+and `q`, and checks the screen, the exit code and the restore (the CI job
+`native` runs it). tui4s-runner carries the native-image metadata
+(`META-INF/native-image`): the crossterm library of each platform and the
+isatty downcall. The metadata covers the workloads of the examples. An app
+that uses more of Kyo or of the JDK can need more entries; a
+`Missing...RegistrationError` at run time names them (ADR 0015).
+<!-- claude 2026-10-20: created this section (review fix: the reference "A native binary" had no section) -->
 
 ## Test the examples
 

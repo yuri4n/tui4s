@@ -1,6 +1,6 @@
 {
   "name": "tui4s-docs",
-  "description": "A terminal runner for kyo-ui, in Scala 3. ZIO and Cats Effect modules are planned.",
+  "description": "A terminal runner for kyo-ui, in Scala 3. A ZIO and a Cats Effect integration are not in this version (issues #18 and #19).",
   "private": true,
   "type": "module",
   "scripts": {

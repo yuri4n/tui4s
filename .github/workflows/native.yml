@@ -5,12 +5,19 @@ name: Native image
 # runs it in a pseudo-terminal: the first frame, a key, q, the exit code and
 # the restore (scripts/native-smoke.py). ADR 0015: native-image is an option,
 # not the release format; this job keeps the option working.
-# claude 2026-10-20: created (L5b, ADR 0015)
+# The push paths: the metadata and the scripts, and also the versions of
+# Kyo and jatatui (project/Versions.scala), the build and the isatty downcall
+# (Crossterm.scala), which the metadata registers.
+# claude 2026-10-20: created (L5b, ADR 0015); changed: the paths of an
+# upgrade and of the downcall, no components input (review fixes)
 on:
   workflow_dispatch:
   push:
     paths:
       - "modules/runner/src/main/resources/META-INF/**"
+      - "modules/runner/src/main/scala/tui4s/internal/Crossterm.scala"
+      - "project/Versions.scala"
+      - "build.sbt"
       - "scripts/native-image.sh"
       - "scripts/native-smoke.py"
       - ".github/workflows/native.yml"
@@ -36,7 +43,6 @@ jobs:
         with:
           java-version: "25"
           distribution: graalvm-community
-          components: native-image
           cache: sbt
       - uses: sbt/setup-sbt@v1
       # -Ob: the quick build mode of native-image (the binary is larger and

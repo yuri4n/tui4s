@@ -1,4 +1,4 @@
-<!-- claude 2026-10-20: created (L6) -->
+<!-- claude 2026-10-20: created (L6); changed: the marked blocks of README.md (review fix) -->
 # Contributing to tui4s
 
 [AGENTS.md](AGENTS.md) is the rule book, for humans and for AI agents. Read
@@ -33,10 +33,11 @@ to the terminal code or to the examples. Never start a terminal UI with
 
 - Write the docs, the comments and the Scaladoc in ASD-STE100 (Simplified
   Technical English): short sentences, one instruction in each.
-- A Scala block of a docs page (`docs/content`), of `README.md` or of
-  `examples/README.md` is the text of a region of a compiled source:
-  `MarkdownRegionsSuite` checks it. Add the region to the source first, then
-  copy its text.
+- A Scala block of a docs page (`docs/content`) or of `examples/README.md`,
+  and a Scala block of `README.md` with the line
+  `<!-- from: <path>#<region> -->` above it, is the text of a region of a
+  compiled source: `MarkdownRegionsSuite` checks it. Add the region to the
+  source first, then copy its text.
 - The docs site: `pnpm install --frozen-lockfile && pnpm run build` in `docs`.
 
 ## Marks

@@ -15,7 +15,10 @@ import stacks as st
 from term import BENCH
 
 NAMES = {"tui4s": "tui4s", "jatatui-plain": "jatatui-plain", "tamboui": "TamboUI", "layoutz": "layoutz",
-         "ratatui": "ratatui", "bubbletea": "bubbletea", "textual": "Textual", "ink": "ink"}
+         "ratatui": "ratatui", "bubbletea": "bubbletea", "textual": "Textual", "ink": "ink",
+         # claude 2026-10-20: created (review fix): the start modes of tui4s (st.MODES) in the perf and
+         # resilience tables
+         "tui4s-aot": "tui4s AOT cache (JDK 25)", "tui4s-native": "tui4s native image (GraalVM)"}
 
 
 def load(path):
@@ -59,7 +62,8 @@ def blocks(machine):
     info = load(os.path.join(res, "machine.json"))
     comp = load(os.path.join(BENCH, "results", "static", "compactness.json"))
     con = concepts()
-    data = {(s, t): load(os.path.join(res, f"{s}-{t}.json")) for s in st.ORDER for t in st.TASKS}
+    # claude 2026-10-20: changed (review fix): the start modes too
+    data = {(s, t): load(os.path.join(res, f"{s}-{t}.json")) for s in st.ORDER + st.MODES for t in st.TASKS}
     out = {}
 
     out["machine"] = (f"Machine `{machine}`: {info.get('cpu', '?')}, {info.get('cpus', '?')} CPUs, "
@@ -101,7 +105,7 @@ def blocks(machine):
 
     rows = []
     cols = ["quit", "ctrl-c", "sigterm", "sigint", "failure", "kill-mid-frame"]
-    for s in st.ORDER:
+    for s in st.ORDER + st.MODES:
         for t in st.TASKS:
             rz = data[(s, t)].get("resilience", {})
             if not rz:
@@ -149,7 +153,7 @@ def blocks(machine):
 
     for t in st.TASKS:
         rows = []
-        for s in st.ORDER:
+        for s in st.ORDER + st.MODES:
             p = data[(s, t)].get("perf", {})
             r = [NAMES[s], fmt(p.get("first_frame_ms"), "", 0), fmt(p.get("first_key_ms")), fmt(p.get("key_median_ms")),
                  fmt(p.get("key_p90_ms")), fmt(p.get("cpu_pct")), fmt(p.get("rss_mb"), "", 0), fmt(p.get("artifact_mb"))]
@@ -160,8 +164,6 @@ def blocks(machine):
         head = ["Stack", "first frame ms", "first key ms", "key median ms", "key p90 ms", cpu, "RSS MB", "artifact MB"]
         if t == "dashboard":
             head += ["tick gap p50 ms", "tick gap p90 ms", "ticks skipped %"]
-        for mode in ("tui4s AOT cache (JDK 25)", "tui4s native image (GraalVM)"):
-            rows.append([mode] + ["measured in L5b"] + [""] * (len(head) - 2))
         out[f"perf-{t}"] = table(head, rows)
     return out
 

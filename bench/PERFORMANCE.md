@@ -1,4 +1,4 @@
-<!-- claude 2026-10-20: created: the performance page of the bench (L5, stage 1) -->
+<!-- claude 2026-10-20: created: the performance page of the bench (L5, stage 1); changed: the rows and the item of the start modes of tui4s (review fix) -->
 # Performance
 
 These numbers are not the headline of the bench (see [README.md](README.md)).
@@ -18,9 +18,10 @@ planned clean run is on a dedicated AWS instance (`infra/`).
 likely to lose on startup time, memory and size. The jatatui-plain row is the
 floor of the JVM: it uses the same jatatui and crossterm jars with no Kyo, so
 the difference between the jatatui-plain row and the tui4s row is the cost of
-Kyo, kyo-ui and the tui4s runner. The two rows "measured in L5b" are the
-modes of tui4s that the next stage measures: a JDK 25 AOT cache and a GraalVM
-native image.
+Kyo, kyo-ui and the tui4s runner. The last two rows of each table are the
+start modes of tui4s (ADR 0015): the same program, started with a JDK 25 AOT
+cache and the start flags of the examples (`impl/tui4s-aot`), and built as a
+GraalVM native image (`impl/tui4s-native`).
 
 ## Method
 
@@ -51,8 +52,8 @@ columns, 30 rows).
 | bubbletea | 29 | 15.5 | 13.0 | 13.3 | 1.0 | 5 | 3.6 |
 | Textual | 202 | 5.9 | 4.2 | 8.8 | 0.2 | 33 | 29.1 |
 | ink | 370 | 7.8 | 22.1 | 39.4 | 0.0 | 116 | 8.2 |
-| tui4s AOT cache (JDK 25) | measured in L5b |  |  |  |  |  |  |
-| tui4s native image (GraalVM) | measured in L5b |  |  |  |  |  |  |
+| tui4s AOT cache (JDK 25) | 444 | 31.5 | 5.4 | 7.6 | 4.6 | 115 | 75.4 |
+| tui4s native image (GraalVM) | 25 | 1.4 | 1.3 | 1.5 | 3.2 | 40 | 30.4 |
 <!-- report:end perf-counter -->
 
 ## Dashboard
@@ -68,8 +69,8 @@ columns, 30 rows).
 | bubbletea | 30 | 13.2 | 11.8 | 13.1 | 1.8 | 10 | 4.0 | 100.1 | 100.6 | 0.0 |
 | Textual | 226 | 75.9 | 76.0 | 79.5 | 9.6 | 35 | 29.1 | 100.0 | 102.2 | 0.0 |
 | ink | 388 | 51.9 | 29.7 | 49.0 | 9.8 | 122 | 8.2 | 100.0 | 101.9 | 0.0 |
-| tui4s AOT cache (JDK 25) | measured in L5b |  |  |  |  |  |  |  |  |  |
-| tui4s native image (GraalVM) | measured in L5b |  |  |  |  |  |  |  |  |  |
+| tui4s AOT cache (JDK 25) | 586 | 37.3 | 10.4 | 15.6 | 12.2 | 162 | 79.6 | 100.7 | 101.9 | 0.0 |
+| tui4s native image (GraalVM) | 49 | 7.9 | 6.5 | 9.6 | 6.4 | 80 | 31.7 | 100.5 | 101.6 | 0.0 |
 <!-- report:end perf-dashboard -->
 
 ## What the numbers say (this machine)
@@ -96,3 +97,8 @@ columns, 30 rows).
   shows its effect in about 5 ms (counter) and 15 ms (dashboard) in tui4s. The
   stacks that redraw on a timer show it later: layoutz about 30 ms (it renders
   each 50 ms), Textual about 76 ms in the dashboard.
+- **The start modes of tui4s.** With the AOT cache, the first frame comes
+  after about 0.44 s (counter) and 0.59 s (dashboard), with 115 MB and 162 MB
+  of RSS. As a native image, it comes after 25 ms and 49 ms, with 40 MB and
+  80 MB of RSS and about 3 % (idle) and 6 % (timer) of one CPU. Both modes
+  pass all the resilience rows (README.md).

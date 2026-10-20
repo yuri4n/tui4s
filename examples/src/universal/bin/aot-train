@@ -6,11 +6,16 @@
 # when the app exits (-XX:AOTCacheOutput, one step). The start scripts use a
 # cache only when it exists and the same JDK made it: the file
 # aot/<app>.jdk keeps the text of `java -version`. Run it again after a
-# change of the JDK or of the jars. It takes about 5 s per app.
+# change of the JDK or of the jars. It takes about 9 s per app. After each
+# training it starts the JVM once more with -XX:AOTMode=on, the flags of
+# conf/application.ini and the class path of the start script: an app whose
+# cache the JVM cannot use fails (exit code 1), so a start script never skips
+# a cache with no message after a training that passed.
 # Usage: bin/aot-train [app ...]   (no app: all the apps of this directory)
 # The apps get only the variables of KEEP_ENV and run in a temporary
 # directory (also their HOME): no key, no proxy, no file of yours.
-# claude 2026-10-20: created (L5b, ADR 0015): the training of the AOT caches
+# claude 2026-10-20: created (L5b, ADR 0015): the training of the AOT caches;
+# changed: the check of each new cache (review fix)
 import os
 import pty
 import select
@@ -46,6 +51,44 @@ def java():
     if home and os.access(os.path.join(home, "bin", "java"), os.X_OK):
         return os.path.join(home, "bin", "java")
     return shutil.which("java") or "java"
+
+
+def jvm_flags():
+    """The JVM flags of conf/application.ini, as the start scripts read them."""
+    conf = os.path.join(os.path.dirname(BIN), "conf", "application.ini")
+    flags = []
+    if os.path.isfile(conf):
+        with open(conf) as f:
+            for line in f:
+                arg = line.strip()
+                if arg.startswith("-J"):
+                    flags.append(arg[2:])
+                elif arg.startswith(("-D", "-XX", "-agentlib", "-agentpath", "-javaagent")):
+                    flags.append(arg)
+    return flags
+
+
+def classpath(app):
+    """The class path of the start script of the app, as the script resolves it."""
+    lib = os.path.realpath(os.path.join(BIN, "..", "lib"))
+    with open(os.path.join(BIN, app)) as f:
+        for line in f:
+            if line.startswith('declare -r app_classpath="'):
+                return line.split('"', 2)[1].replace("$lib_dir", lib)
+    return None
+
+
+def check(app, env, cache):
+    """None when the JVM can use the cache with the flags and the class path of the start script."""
+    cp = classpath(app)
+    if cp is None:
+        return "no class path in the start script"
+    r = subprocess.run([java()] + jvm_flags() + ["-XX:AOTMode=on", f"-XX:AOTCache={cache}", "-cp", cp, "-version"],
+                       env=env, capture_output=True, text=True)
+    if r.returncode == 0:
+        return None
+    lines = [x for x in (r.stdout + r.stderr).splitlines() if x.strip()]
+    return "the JVM cannot use the cache: " + (lines[-1] if lines else f"exit code {r.returncode}")
 
 
 def apps():
@@ -119,6 +162,10 @@ def train(app, env, jdk):
             os.remove(part)
         return "the JVM wrote no cache"
     os.replace(part, cache)
+    problem = check(app, env, cache)
+    if problem:
+        os.remove(cache)
+        return problem
     with open(os.path.join(AOT, app + ".jdk"), "w") as f:
         f.write(jdk)
     return None

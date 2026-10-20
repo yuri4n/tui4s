@@ -155,6 +155,10 @@ arrives; the cell gives the bytes that arrived before the kill.
 | Textual dashboard | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (exit 0) | ok (ended) | ok (exit 0, kill after 4095 B) |
 | ink counter | ok (exit 0) | ok (exit 0) | ok (exit -15) | ok (exit -2) | ok (ended) | ok (exit -15, kill after 369 B) |
 | ink dashboard | ok (exit 0) | ok (exit 0) | ok (exit -15) | ok (exit -2) | ok (ended) | ok (exit -15, kill after 4095 B) |
+| tui4s AOT cache (JDK 25) counter | ok (exit 0) | ok (exit 0) | ok (exit 143) | ok (exit 130) | ok (contained) | ok (exit 143, kill after 32 B) |
+| tui4s AOT cache (JDK 25) dashboard | ok (exit 0) | ok (exit 0) | ok (exit 143) | ok (exit 130) | ok (contained) | ok (exit 143, kill after 207 B) |
+| tui4s native image (GraalVM) counter | ok (exit 0) | ok (exit 0) | ok (exit 143) | ok (exit 130) | ok (contained) | ok (exit 143, kill after 32 B) |
+| tui4s native image (GraalVM) dashboard | ok (exit 0) | ok (exit 0) | ok (exit 143) | ok (exit 130) | ok (contained) | ok (exit 143, kill after 207 B) |
 <!-- report:end resilience -->
 
 ### Mutants
