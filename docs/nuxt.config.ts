@@ -12,6 +12,12 @@ const siteUrl =
 export default defineNuxtConfig({
   extends: ['docus'],
 
+  // claude 2026-10-21: created: start with the terminal palette; keep the reader's saved choice.
+  colorMode: {
+    preference: 'dark',
+    fallback: 'dark',
+  },
+
   // claude 2026-10-20: created (ADR 0022): the icons, the manifest, the social preview and the
   // theme colour. scripts/logo/build.mjs writes the files in docs/public; the colour is its
   // COLORS.brand. Docus adds the link to /favicon.ico. A docs page has its own preview image
@@ -46,6 +52,12 @@ export default defineNuxtConfig({
     build: {
       markdown: {
         highlight: {
+          // claude 2026-10-21: created: readable syntax colors on both terminal-theme surfaces.
+          theme: {
+            light: 'github-light',
+            default: 'github-light',
+            dark: 'github-dark-default',
+          },
           // Added to the Docus defaults (bash, diff, json, js, ts, html, css, vue, shell, mdc, md, yaml).
           // claude 2026-10-20: created this note (L5): a build.sbt block is an `sbt` block; it
           // shows as plain text, and only a `scala` block must be a marked region

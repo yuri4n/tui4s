@@ -41,6 +41,13 @@ issue #17). All the artifacts use the same packages (`tui4s`,
 <!-- claude 2026-10-20: created the row of bench (L5) -->
 <!-- claude 2026-10-20: changed: the rows of zio and cats are removed (ADR 0014; ZIO and Cats Effect are issues #18 and #19) -->
 
+<!-- claude 2026-10-21: created: the docs theme and the Counter recording on the home page. -->
+The docs use a terminal theme in `docs/app/app.css` and the Nuxt UI settings
+in `docs/app/app.config.ts`. Dark mode is the default. The reader can select
+light mode, and the browser keeps that choice. The home page shows the
+Counter recording through `TerminalHero` and the existing `Cast` player.
+Its description stays in Markdown. The theme uses local font stacks.
+
 <!-- claude 2026-10-19: changed: the runner, not the core (D25); 2026-10-20: changed: no zio and cats modules (ADR 0014) -->
 The runner uses Kyo and kyo-ui (both at `Versions.kyo`). A ZIO and a Cats
 Effect integration are planned (issues #18 and #19); no module holds them
