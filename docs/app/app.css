@@ -1,0 +1,256 @@
+/* tui4s documentation theme.
+ * claude 2026-10-21: created: shared terminal colors, typography and layout.
+ */
+
+/* claude 2026-10-21: created: local font stacks, compact corners and page width. */
+@theme {
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+/* claude 2026-10-21: created: light mode keeps the same contrast and terminal accent. */
+:root {
+  --ui-container: 80rem;
+  --ui-radius: 0.2rem;
+  --ui-header-height: 4.5rem;
+  --ui-bg: #fafafa;
+  --ui-bg-muted: #f2f2f2;
+  --ui-bg-elevated: #ededed;
+  --ui-bg-accented: #e5e5e5;
+  --ui-border: #dedede;
+  --ui-border-muted: #e8e8e8;
+  --ui-border-accented: #c8c8c8;
+  --ui-text: #3d3d3d;
+  --ui-text-muted: #626262;
+  --ui-text-dimmed: #737373;
+  --ui-text-highlighted: #171717;
+  --tui-accent: #15803d;
+  --ui-primary: var(--tui-accent);
+  --tui-grid: rgb(0 0 0 / 0.045);
+  --tui-code-bg: #ffffff;
+}
+
+/* claude 2026-10-21: created: near-black surfaces with restrained green highlights. */
+.dark {
+  --ui-bg: #090909;
+  --ui-bg-muted: #111111;
+  --ui-bg-elevated: #191919;
+  --ui-bg-accented: #242424;
+  --ui-border: #292929;
+  --ui-border-muted: #242424;
+  --ui-border-accented: #404040;
+  --ui-text: #c5c5c5;
+  --ui-text-muted: #a1a1a1;
+  --ui-text-dimmed: #858585;
+  --ui-text-highlighted: #ededed;
+  --tui-accent: #7ee2a8;
+  --tui-grid: rgb(255 255 255 / 0.035);
+  --tui-code-bg: #111111;
+}
+
+/* claude 2026-10-21: created: comfortable article text and clear selected text. */
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* claude 2026-10-21: created: selected text uses the same accent as the navigation. */
+::selection {
+  background: color-mix(in srgb, var(--tui-accent) 25%, transparent);
+  color: var(--ui-text-highlighted);
+}
+
+/* claude 2026-10-21: created: visible keyboard focus that does not depend on color alone. */
+:focus-visible {
+  outline: 2px solid var(--tui-accent);
+  outline-offset: 4px;
+}
+
+/* claude 2026-10-21: created: a crisp header with a compact search field. */
+.tui-header {
+  background: color-mix(in srgb, var(--ui-bg) 94%, transparent);
+}
+
+/* claude 2026-10-21: created: the search field uses a compact command-bar style. */
+.tui-header [data-slot="center"] > button {
+  border: 1px solid var(--ui-border);
+  background: var(--ui-bg-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  min-height: 2.25rem;
+}
+
+/* claude 2026-10-21: created: a ruled sidebar and visible current-page marker. */
+.tui-navigation [aria-current="page"] {
+  box-shadow: -2px 0 0 var(--tui-accent);
+}
+
+/* claude 2026-10-21: created: article headings have room above the first example. */
+.tui-page-header {
+  padding-block: 2.5rem 2rem;
+}
+
+/* claude 2026-10-21: created: the contents label has lower emphasis than the article. */
+.tui-toc [data-slot="title"] {
+  color: var(--ui-text-muted);
+}
+
+/* claude 2026-10-21: created: source frames with a contrasting file header. */
+.tui-code-header {
+  background: var(--ui-bg-elevated);
+  border-color: var(--ui-border);
+}
+
+/* claude 2026-10-21: created: code panes use a quiet surface and visible scrollbars. */
+.tui-code pre {
+  background: var(--tui-code-bg);
+  border-color: var(--ui-border);
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-border-accented) transparent;
+}
+
+/* claude 2026-10-21: created: matching frames for recordings and embedded web demos. */
+.tui4s-cast,
+.tui4s-demo {
+  border: 1px solid var(--ui-border);
+  border-radius: 3px;
+}
+
+/* claude 2026-10-21: created: bounded, ruled sections on the landing page. */
+.tui-features,
+.tui-source-section {
+  max-width: var(--ui-container);
+  margin-inline: auto;
+  border-inline: 1px solid var(--ui-border);
+  border-bottom: 1px solid var(--ui-border);
+}
+
+/* claude 2026-10-21: created: the landing sections share vertical spacing. */
+.tui-features > [data-slot="container"],
+.tui-source-section > [data-slot="container"] {
+  padding-block: 4.5rem;
+  gap: 2.5rem;
+}
+
+/* claude 2026-10-21: created: left-aligned section labels and restrained headings. */
+.tui-features [data-slot="headline"],
+.tui-source-section [data-slot="headline"] {
+  justify-content: flex-start;
+  font: 0.6875rem/1.5 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tui-accent);
+}
+
+/* claude 2026-10-21: created: section titles align with the grid below them. */
+.tui-features [data-slot="header"] > [data-slot="title"],
+.tui-source-section [data-slot="header"] > [data-slot="title"] {
+  text-align: left;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+}
+
+/* claude 2026-10-21: created: section descriptions retain a comfortable reading size. */
+.tui-features [data-slot="header"] > [data-slot="description"],
+.tui-source-section [data-slot="header"] > [data-slot="description"] {
+  text-align: left;
+  line-height: 1.75;
+  font-size: 1rem;
+  margin-top: 1rem;
+}
+
+/* claude 2026-10-21: created: one connected grid for the six existing documentation links. */
+.tui-features [data-slot="body"] {
+  margin-top: 2.5rem;
+}
+
+/* claude 2026-10-21: created: the feature grid shares single-pixel borders. */
+.tui-features [data-slot="features"] {
+  gap: 1px;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-border);
+}
+
+/* claude 2026-10-21: created: each feature uses the same spacing and plain surface. */
+.tui-features [data-slot="features"] > [data-slot="root"] {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.75rem;
+  border-radius: 0;
+  background: var(--ui-bg);
+}
+
+/* claude 2026-10-21: created: hover and keyboard focus reveal the feature link. */
+.tui-features [data-slot="features"] > [data-slot="root"]:hover,
+.tui-features [data-slot="features"] > [data-slot="root"]:focus-within {
+  background: var(--ui-bg-muted);
+}
+
+/* claude 2026-10-21: created: feature icons use the neutral palette. */
+.tui-features [data-slot="leadingIcon"] {
+  color: var(--ui-text-muted);
+}
+
+/* claude 2026-10-21: created: feature names use compact monospace type. */
+.tui-features [data-slot="features"] [data-slot="title"] {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+/* claude 2026-10-21: created: feature descriptions keep readable line spacing. */
+.tui-features [data-slot="features"] [data-slot="description"] {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.75;
+}
+
+/* claude 2026-10-21: created: show the complete source in a keyboard-scrollable code pane. */
+.tui-source-section > [data-slot="container"] {
+  align-items: start;
+}
+
+/* claude 2026-10-21: created: the source block fits its grid column without extra margins. */
+.tui-source-section .tui-code {
+  min-width: 0;
+  margin-block: 0;
+}
+
+/* claude 2026-10-21: created: the named region can scroll from a keyboard in every browser. */
+.tui-source-scroll {
+  min-width: 0;
+  width: 100%;
+  max-height: 36rem;
+  overflow: auto;
+  border: 1px solid var(--ui-border);
+  border-radius: 3px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-border-accented) transparent;
+}
+
+/* claude 2026-10-21: created: keep the file label visible inside the source pane. */
+.tui-source-scroll .tui-code-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-width: 0 0 1px;
+}
+
+/* claude 2026-10-21: created: the scroll region supplies the outer code border. */
+.tui-source-scroll pre {
+  border: 0;
+  border-radius: 0;
+}
+
+/* claude 2026-10-21: created: preserve reading width on small screens. */
+@media (max-width: 639px) {
+  .tui-features > [data-slot="container"],
+  .tui-source-section > [data-slot="container"] {
+    padding-block: 2.75rem;
+  }
+
+  .tui-features [data-slot="features"] > [data-slot="root"] {
+    padding: 1.5rem;
+  }
+}

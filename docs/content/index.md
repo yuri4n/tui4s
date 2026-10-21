@@ -7,95 +7,18 @@ seo:
 
 <!-- claude 2026-10-20: created (L5): the landing page leads with the Counter example; changed: ZIO and Cats Effect are issues, not modules (ADR 0014); changed: the social preview /og-image.png in the front matter (ADR 0022) -->
 
-::u-page-hero
-#title
-kyo-ui in the terminal.
-
+<!-- claude 2026-10-21: changed: show the Counter recording beside the introduction. -->
+::terminal-hero
 #description
-tui4s runs a [kyo-ui](https://github.com/getkyo/kyo) value in the terminal, in Scala 3. kyo-ui describes the screen. tui4s lays it out in cells, follows its signals, sends the keys to it and paints it with [jatatui](https://github.com/oyvindberg/jatatui).
-
-#links
-  :::u-button
-  ---
-  color: neutral
-  size: xl
-  to: /getting-started/installation
-  trailing-icon: i-lucide-arrow-right
-  ---
-  Get started
-  :::
-
-  :::u-button
-  ---
-  color: neutral
-  icon: i-simple-icons-github
-  size: xl
-  to: https://github.com/yuri4n/tui4s
-  variant: outline
-  ---
-  Source on GitHub
-  :::
+tui4s runs a [kyo-ui](https://github.com/getkyo/kyo) value in the terminal, in Scala 3. It lays out your screen in cells, follows its signals and paints it with [jatatui](https://github.com/oyvindberg/jatatui).
 ::
 
+<!-- claude 2026-10-21: changed: group the documentation links in a ruled grid. -->
 ::u-page-section
 ---
-title: The smallest app
-description: This is the complete Counter example. The UI is plain kyo-ui, and `TuiApp` is its main class.
+class: tui-features
+headline: 01 / Explore the toolkit
 ---
-<!-- from: examples/src/main/scala/examples/counter/Counter.scala#quickstart -->
-```scala [Counter.scala]
-import kyo.*
-import kyo.UI.*
-import tui4s.{Tui, TuiApp, initSig}
-
-/** The Counter: a kyo-ui UI with one piece of state (a `SignalRef`), key
-  * handlers and two buttons. `+` and `-` change the count, Tab moves between
-  * the buttons, Enter and Space press them, `q` quits (and so does Ctrl-C).
-  */
-object Counter:
-
-    /** The Counter UI; `quit` ends the run. */
-    def ui(quit: Unit < Sync): UI < Sync =
-      initSig(0).map(count => view(count, quit))
-
-    /** The Counter view over a count that the caller owns. */
-    def view(count: SignalRef[Int], quit: Unit < Sync): UI =
-      div.onKeyDown {
-        case KeyboardEvent(Keyboard.Char('+'), _, _) =>
-          count.updateAndGet(_ + 1)
-        case KeyboardEvent(Keyboard.Char('-'), _, _) =>
-          count.updateAndGet(_ - 1)
-        case KeyboardEvent(Keyboard.Char('q'), _, _) => quit
-        case _                                       => ()
-      }(
-        h1("Counter"),
-        span("Count: ", count.map(_.toString)).id("count"),
-        div.style(_.row.gap(1.px))(
-          button("+").onClick(count.updateAndGet(_ + 1)),
-          button("-").onClick(count.updateAndGet(_ - 1)),
-        ),
-        p("+ / - change it, Tab moves, Enter presses, q quits").style(
-          _.color(Style.Color.gray),
-        ),
-      )
-end Counter
-
-/** Runs the Counter in the real terminal. Start it with its start script, not
-  * with `sbt run` (sbt also reads the keyboard):
-  * {{{
-  * sbt examples/launchers
-  * examples/target/bin/counter
-  * }}}
-  */
-object CounterApp extends TuiApp:
-    def ui: UI < (Async & Scope) = Counter.ui(Tui.quit)
-```
-
-:::cast{src="/casts/counter.cast" max-width="36rem"}
-:::
-::
-
-::u-page-section
 #title
 What tui4s gives
 
@@ -171,4 +94,66 @@ What tui4s gives
   #description
   Each page is also Markdown, with `llms.txt` and an MCP server. A test checks each Scala block.
   :::
+::
+
+<!-- claude 2026-10-21: changed: put the complete source beside its introduction. -->
+::u-page-section
+---
+class: tui-source-section
+orientation: horizontal
+headline: 02 / Read the source
+title: The smallest app
+description: This is the complete Counter example. The UI is plain kyo-ui, and TuiApp is its main class.
+---
+<!-- claude 2026-10-21: created: a focusable source pane supports keyboard scrolling. -->
+:::div{class="tui-source-scroll" tabindex="0" role="region" aria-label="Complete Counter source"}
+<!-- from: examples/src/main/scala/examples/counter/Counter.scala#quickstart -->
+```scala [Counter.scala]
+import kyo.*
+import kyo.UI.*
+import tui4s.{Tui, TuiApp, initSig}
+
+/** The Counter: a kyo-ui UI with one piece of state (a `SignalRef`), key
+  * handlers and two buttons. `+` and `-` change the count, Tab moves between
+  * the buttons, Enter and Space press them, `q` quits (and so does Ctrl-C).
+  */
+object Counter:
+
+    /** The Counter UI; `quit` ends the run. */
+    def ui(quit: Unit < Sync): UI < Sync =
+      initSig(0).map(count => view(count, quit))
+
+    /** The Counter view over a count that the caller owns. */
+    def view(count: SignalRef[Int], quit: Unit < Sync): UI =
+      div.onKeyDown {
+        case KeyboardEvent(Keyboard.Char('+'), _, _) =>
+          count.updateAndGet(_ + 1)
+        case KeyboardEvent(Keyboard.Char('-'), _, _) =>
+          count.updateAndGet(_ - 1)
+        case KeyboardEvent(Keyboard.Char('q'), _, _) => quit
+        case _                                       => ()
+      }(
+        h1("Counter"),
+        span("Count: ", count.map(_.toString)).id("count"),
+        div.style(_.row.gap(1.px))(
+          button("+").onClick(count.updateAndGet(_ + 1)),
+          button("-").onClick(count.updateAndGet(_ - 1)),
+        ),
+        p("+ / - change it, Tab moves, Enter presses, q quits").style(
+          _.color(Style.Color.gray),
+        ),
+      )
+end Counter
+
+/** Runs the Counter in the real terminal. Start it with its start script, not
+  * with `sbt run` (sbt also reads the keyboard):
+  * {{{
+  * sbt examples/launchers
+  * examples/target/bin/counter
+  * }}}
+  */
+object CounterApp extends TuiApp:
+    def ui: UI < (Async & Scope) = Counter.ui(Tui.quit)
+```
+:::
 ::
