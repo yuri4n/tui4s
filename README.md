@@ -16,6 +16,10 @@
 ```
 <!-- claude 2026-10-20: created: the logotype; scripts/logo/build.mjs writes this block from assets/logo/tui4s.txt (ADR 0022) -->
 
+[![CI](https://github.com/yuri4n/tui4s/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/yuri4n/tui4s/actions/workflows/ci.yml)
+[![Maven Central](https://maven-badges.sml.io/maven-central/io.github.yuri4n/tui4s-core_3/badge.svg)](https://central.sonatype.com/artifact/io.github.yuri4n/tui4s-core_3)
+<!-- claude 2026-10-20: created: the badges of CI (main) and of Maven Central (tui4s-core) -->
+
 A terminal runner for [kyo-ui](https://github.com/getkyo/kyo), in Scala 3.
 The documentation is at <https://tui4s.yuri4n.dev>.
 <!-- claude 2026-10-20: created: the link to the docs site -->
@@ -29,8 +33,8 @@ A [ZIO](https://zio.dev) and a
 version; issues [#18](https://github.com/yuri4n/tui4s/issues/18) and
 [#19](https://github.com/yuri4n/tui4s/issues/19) track them.
 
-> **Status:** the first release candidate is `0.1.0-RC1` (planned, not
-> published yet: Kyo and kyo-ui are at 1.0.0-RC7). A tui4s app is a kyo-ui UI
+> **Status:** the first release candidate, `0.1.0-RC1`, is on Maven Central
+> (2026-10-20). Kyo and kyo-ui are at 1.0.0-RC7. A tui4s app is a kyo-ui UI
 > and a `TuiApp` main class: `Tui.run` runs the UI in the real terminal,
 > renders the value, follows its signals and routes keys (focus, handlers,
 > text editing, paste), and it mounts components in two styles (hooks and a
@@ -41,7 +45,7 @@ version; issues [#18](https://github.com/yuri4n/tui4s/issues/18) and
 <!-- claude 2026-10-13: changed the status line (C3): keys -->
 <!-- claude 2026-10-13: changed the status line (T1): the real terminal -->
 <!-- claude 2026-10-13: changed the status line (C4): components and hooks -->
-<!-- claude 2026-10-13: changed the status line (T2): TuiApp; 2026-10-20: changed (L6): 0.1.0-RC1 planned, the release files -->
+<!-- claude 2026-10-13: changed the status line (T2): TuiApp; 2026-10-20: changed (L6): 0.1.0-RC1 planned, the release files; 2026-10-20: changed: 0.1.0-RC1 is on Maven Central (After a release) -->
 
 Components come in two styles. Hooks: a function, for example
 `for count <- Signal.initRef(0) yield div(...)`, and `component(key)(body)`
@@ -697,16 +701,16 @@ bits); a paste keeps it.
 
 ## Composables (tui4s-use)
 
-<!-- claude 2026-10-19: created this section (L2a): the code blocks are the text of the region "native" of the Native recipes, of the region "composables" of the Dashboard example and of the regions of the Recipes example (ReadmeSuite checks them); changed: the names timeAgo and Keymap.of, the stream status, the %%% line (L2a review) -->
+<!-- claude 2026-10-19: created this section (L2a): the code blocks are the text of the region "native" of the Native recipes, of the region "composables" of the Dashboard example and of the regions of the Recipes example (ReadmeSuite checks them); changed: the names timeAgo and Keymap.of, the stream status, the %%% line (L2a review); 2026-10-20: changed: the version 0.1.0-RC1 in the dependency lines (After a release, step 4) -->
 `io.github.yuri4n::tui4s-use` has composables: plain functions over Kyo's
 `Signal`, `SignalRef` and `Scope`. The module does not depend on tui4s-core.
 It builds for the JVM and for Scala.js, so a composable works in the terminal
 and on the web. Add it next to tui4s-core:
 
 ```scala
-libraryDependencies += "io.github.yuri4n" %% "tui4s-use" % "<version>"
+libraryDependencies += "io.github.yuri4n" %% "tui4s-use" % "0.1.0-RC1"
 // a Scala.js or a cross-built project:
-libraryDependencies += "io.github.yuri4n" %%% "tui4s-use" % "<version>"
+libraryDependencies += "io.github.yuri4n" %%% "tui4s-use" % "0.1.0-RC1"
 ```
 
 ### You may not need a composable
@@ -1034,9 +1038,9 @@ the terminal runs them; the web runner (L4) will check their sizes (a size
 that counts rows or cells is in `em`). Add it next to tui4s-core:
 
 ```scala
-libraryDependencies += "io.github.yuri4n" %% "tui4s-widgets" % "<version>"
+libraryDependencies += "io.github.yuri4n" %% "tui4s-widgets" % "0.1.0-RC1"
 // a Scala.js or a cross-built project:
-libraryDependencies += "io.github.yuri4n" %%% "tui4s-widgets" % "<version>"
+libraryDependencies += "io.github.yuri4n" %%% "tui4s-widgets" % "0.1.0-RC1"
 ```
 
 The rules of every widget:
@@ -1742,12 +1746,12 @@ Each module is released on its own, with its own version.
 | `io.github.yuri4n::tui4s-use`    | Composables over Kyo signals, for the JVM and Scala.js. It does not need tui4s-core. |
 | `io.github.yuri4n::tui4s-widgets` | Widgets for the JVM and Scala.js, on tui4s-use. It does not need tui4s-core. |
 <!-- claude 2026-10-19: created the two rows above (L2a); changed: the widgets row (L2b) -->
-<!-- claude 2026-10-19: changed: the rows of the split of the core: runner, app, testkit (D25); 2026-10-20: changed: the rows of zio and cats are removed (ADR 0014) -->
+<!-- claude 2026-10-19: changed: the rows of the split of the core: runner, app, testkit (D25); 2026-10-20: changed: the rows of zio and cats are removed (ADR 0014); 2026-10-20: changed: the version 0.1.0-RC1 in the dependency lines (After a release, step 4) -->
 
 An app uses tui4s-core:
 
 ```scala
-libraryDependencies += "io.github.yuri4n" %% "tui4s-core" % "<version>"
+libraryDependencies += "io.github.yuri4n" %% "tui4s-core" % "0.1.0-RC1"
 ```
 
 The terminal runner for kyo-ui alone (for example, a library, or a main of
@@ -1755,8 +1759,8 @@ its own with no `TuiApp`) is tui4s-runner. Add tui4s-testkit in the `Test`
 scope for the headless test kit:
 
 ```scala
-libraryDependencies += "io.github.yuri4n" %% "tui4s-runner"  % "<version>"
-libraryDependencies += "io.github.yuri4n" %% "tui4s-testkit" % "<version>" % Test
+libraryDependencies += "io.github.yuri4n" %% "tui4s-runner"  % "0.1.0-RC1"
+libraryDependencies += "io.github.yuri4n" %% "tui4s-testkit" % "0.1.0-RC1" % Test
 ```
 
 The packages are the same in all the artifacts (`tui4s`, `tui4s.spi`,

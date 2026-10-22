@@ -702,9 +702,21 @@ to `Compatibility.None` in the same pull request. After the release, set it back
 to `Compatibility.BinaryCompatible`. CI runs `versionPolicyCheck` on each pull
 request, and the release runs `<m>/versionCheck`.
 
+<!-- claude 2026-10-20: created: this paragraph, the checks compare nothing before 0.1.1 (after the release of 0.1.0-RC1) -->
+The checks compare a version only with the stable releases of its series.
+sbt-version-policy drops the qualifier and the metadata of the version
+(`0.1.0-RC1+1-<sha>-SNAPSHOT` becomes `0.1.0`), and a release candidate on
+Maven Central sorts below `0.1.0`. Thus, while the versions are `0.1.0-RC<n>`,
+`versionPolicyPreviousVersions` is empty: MiMa compares nothing, and
+`versionPolicyCheck` and `versionCheck` pass with no comparison. The first
+real comparison is `0.1.1` against `0.1.0`. Set the intention anyway, so the
+record is right when the checks start. To see the binary changes of a module
+since the last candidate, give MiMa that candidate by hand:
+`sbt 'set runner / mimaPreviousArtifacts := Set("io.github.yuri4n" %% "tui4s-runner" % "0.1.0-RC1")' runner/mimaReportBinaryIssues`.
+
 ### How to choose the next version of a module
 
-<!-- claude 2026-10-20: created: this procedure (ADR 0021); changed: step 4, what the checks stop and what they do not (review fix) -->
+<!-- claude 2026-10-20: created: this procedure (ADR 0021); changed: step 4, what the checks stop and what they do not (review fix); 2026-10-20: changed: step 3, the next candidate (after the release of 0.1.0-RC1) -->
 1. Read the section `## [Unreleased]` of `CHANGELOG.md`: the subsection
    `### tui4s-<module>` tells what changed in the module since its last
    release.
@@ -714,7 +726,10 @@ request, and the release runs `<m>/versionCheck`.
    a patch bump (`0.y.z` to `0.y.z+1`). Under early-semver at `0.x`, a patch
    can add features, and a minor can break the API.
 3. Keep a qualifier (`RC<n>`, for example `0.1.0-RC1`) while Kyo and kyo-ui
-   are release candidates.
+   are release candidates. The next candidate keeps the number and bumps
+   `<n>` (`0.1.0-RC2`), also after a change of the API: a candidate has no
+   compatibility promise, and the checks compare it with nothing (see
+   above).
 4. The job `prepare` checks the number before a tag exists ("Releasing",
    step 3). The run stops when the version is not greater than the last tag
    of a module, or when it is a smaller bump than `versionPolicyIntention`
@@ -729,7 +744,7 @@ request, and the release runs `<m>/versionCheck`.
 
 ### After a release
 
-<!-- claude 2026-10-20: created: this procedure (ADR 0021) -->
+<!-- claude 2026-10-20: created: this procedure (ADR 0021); 2026-10-20: changed: step 4, the version in the docs -->
 Open one pull request after a release:
 
 1. In `CHANGELOG.md`, check the heading of the released version,
@@ -741,6 +756,10 @@ Open one pull request after a release:
    subsection of that module.
 3. Set `versionPolicyIntention` of each released module back to
    `Compatibility.BinaryCompatible` in `modules/<m>/compat.sbt`.
+4. Put the released version in the dependency lines of the docs, where
+   `grep -rn 'io.github.yuri4n" %%' README.md docs/content` finds them: the
+   status line and the dependency lines of `README.md`, the installation
+   page, and the composables and widgets pages of the docs site.
 
 ## Releasing
 
