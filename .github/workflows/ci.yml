@@ -142,15 +142,24 @@ jobs:
       - run: examples/ptycheck/run.sh
         env:
           PTY_WORK: ${{ runner.temp }}/ptycheck
-      # codex 2026-10-22: created: verify real input and diagnostic wiring on both terminal platforms.
+      # codex 2026-10-22: created: verify real input and diagnostic wiring on both terminal platforms; changed: require timely input and graceful shutdown while unrelated work and status updates run.
       - name: Settlement input and diagnostics
         env:
           PTY_WORK: ${{ runner.temp }}/ptycheck
         run: |
           JAVA_OPTS="-Dtui4s.diagnostics.file=$PTY_WORK/diagnostics.json" \
-            python3 examples/ptycheck/latency.py --keys 10 --rate 10 --deadline-ms 2000 \
+            python3 examples/ptycheck/latency.py --keys 60 --rate 10 --deadline-ms 250 \
+              --require-graceful-exit \
               --output "$PTY_WORK/latency.json" --command examples/target/bin/settlement
           python3 examples/ptycheck/diagnostics_check.py "$PTY_WORK/diagnostics.json" "$PTY_WORK/latency.json"
+          python3 examples/ptycheck/latency.py --keys 60 --rate 10 --deadline-ms 250 \
+            --require-graceful-exit --require-load-running \
+            --output "$PTY_WORK/latency-busy.json" \
+            --command examples/target/bin/settlement --busy --duration=60
+          python3 examples/ptycheck/latency.py --keys 60 --rate 10 --deadline-ms 250 \
+            --require-graceful-exit --require-load-running --require-updates \
+            --output "$PTY_WORK/latency-combined.json" \
+            --command examples/target/bin/settlement --busy --updates=1000 --duration=60
       # The same checklist with the AOT cache of each example (bin/aot-train
       # of the distribution; the start scripts then use the caches). aot-train
       # fails when the JVM cannot use a cache that it made (-XX:AOTMode=on).

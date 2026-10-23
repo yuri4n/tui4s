@@ -4,7 +4,6 @@ package tui4s.internal
 
 import kyo.*
 import kyo.UI.Keyboard
-import tui4s.spi.Settle
 import tui4s.{FrameCause, FrameStats, TerminalSize, TuiError}
 
 /** The runner: one fiber that owns the world and the canvas.
@@ -12,15 +11,14 @@ import tui4s.{FrameCause, FrameStats, TerminalSize, TuiError}
   * Each step takes one message (a key, a resize, or a region's new value),
   * applies it (the key handlers run here, through [[Dispatch]]), then SETTLES:
   * it applies every queued region value until the settle rule of
-  * [[tui4s.spi.Settle]] says that the consequences are in (default: the Kyo
-  * scheduler is quiescent, twice, one hop apart, each time before an empty
-  * drain). Only then does it lay out what changed, paint it into the kept
-  * buffer and flush the changed cells: one frame per event, with all of that
-  * event's consequences in it.
+  * [[tui4s.spi.Settle]] ends the batch. The default uses the scheduler probe
+  * with a shared active time budget. Then it lays out what changed, paints it
+  * into the kept buffer and flushes the changed cells. Late reactive values
+  * reach a later frame.
   */
 // claude 2026-10-13: changed: the Scaladoc names the dispatcher (C3)
 // claude 2026-10-19: changed: built by `Runner.init`, with the checked
-// options (RunOptions, A10), the gauge and the quit flag of the run (P2, A7)
+// options (RunOptions, A10), the gauge and the quit flag of the run (P2, A7); codex 2026-10-22: changed: describe bounded settlement.
 private[tui4s] final class Runner private (
     inbox: Channel[Msg],
     canvas: Canvas,
@@ -36,6 +34,9 @@ private[tui4s] final class Runner private (
     diagnostics: DiagnosticRecorder,
 ):
     private val options = runOpts.options
+
+    // codex 2026-10-22: created: validate the settlement policy once for this run.
+    private val settlement = Settlement.policy(runOpts)
 
     // codex 2026-10-22: created: disabled hooks allocate no records and read no clock
     private inline def observe(inline action: Unit)(using Frame): Unit < Sync =
@@ -255,31 +256,40 @@ private[tui4s] final class Runner private (
 
     /** The settle, the verify pass, and the re-check (D-17 c): when the verify
       * pass repaired a value, its consequences (a remount, the watchers that
-      * the write woke) get one more settle before the frame.
+      * the write woke) get one more settle while active time remains or a
+      * component is pending.
       */
     // claude 2026-10-12: created (RC-11)
     // claude 2026-10-13: changed (C4, P-6): one deadline for the wait for a
     // mounting component, for the settle and the re-check of this frame
     // claude 2026-10-13: changed (C4, review R1-3, R2-3): the start of the
     // frame, not an absolute deadline: the settle compares differences of
-    // `System.nanoTime` (its value can be negative); codex 2026-10-22: changed: observe verification
+    // `System.nanoTime` (its value can be negative); codex 2026-10-22: changed: observe verification and share its active budget with both settlement passes.
     private def settleAndVerify(w: World, input: Boolean)(using
         Frame,
     ): World < Async =
       nanos.map { t0 =>
-        settle(w, t0).map { w1 =>
-          observe(
-            diagnostics.phase(
-              DiagnosticPhase.Verifying,
-              w1.backlog.size,
-              w1.pending.size,
-            ),
-          ).andThen(verify(w1, input)).map { w2 =>
-            // TODO(#9): drop the re-check when Kyo closes the lost-wakeup
-            // window of `Signal` (the conditions of D-17 c).
-            // https://github.com/yuri4n/tui4s/issues/9
-            if w2.repaired > w1.repaired then settle(w2, t0) else w2
-          }
+        settle(w, t0, Settlement.Budget(settlement.maximum, t0)).map {
+          (w1, budget) =>
+            ending(w1).map { end =>
+              if end then w1
+              else
+                  observe(
+                    diagnostics.phase(
+                      DiagnosticPhase.Verifying,
+                      w1.backlog.size,
+                      w1.pending.size,
+                    ),
+                  ).andThen(verify(w1, input)).map { w2 =>
+                    // TODO(#9): drop the re-check when Kyo closes the lost-wakeup
+                    // window of `Signal` (the conditions of D-17 c).
+                    // https://github.com/yuri4n/tui4s/issues/9
+                    if w2.repaired > w1.repaired &&
+                        (w2.pending.nonEmpty || !settlement.expired(budget))
+                    then settle(w2, t0, budget).map(_._1)
+                    else w2
+                  }
+            }
         }
       }
 
@@ -453,162 +463,161 @@ private[tui4s] final class Runner private (
     private def hop(using Frame): Unit < Async =
       Fiber.initUnscoped(Kyo.unit).map(_.get)
 
-    /** Settles the consequences of one event. kyo's `Signal` has no synchronous
-      * change hook: a write completes a promise and each watcher resumes as a
-      * scheduled task, often through one or more races (`observe`,
-      * `combineLatest`). See [[tui4s.spi.Settle]] for the two strategies. While
-      * a component that this frame mounts waits for its first content
-      * (`World.pending`), the settle takes messages until `pendingTimeout`
-      * after `frameStart` (`System.nanoTime`), and then goes on without it.
+    /** Batches messages until the policy completes or its active budget ends. A
+      * pending component has a separate allowance measured from frameStart.
+      * Drains are finite, so continuous producers cannot hide the deadline.
       */
     // claude 2026-10-13: changed (C4, the C2 cut back): the bounded wait for
     // a mounting component (the `pending` branch)
     // claude 2026-10-13: changed (C4, P-6): the deadline of the frame
     // claude 2026-10-13: changed (C4, review R1-3, R2-3): the start of the
     // frame; the time left is a difference
-    // claude 2026-10-13: changed (C4, review R1-1, R2-1): `start` is in the
-    // loop state: the end of the wait for a component sets it, so the `max`
-    // of the settle counts from there (the wait counted as a settle timeout,
-    // and the frame skipped the `confirm` observations); codex 2026-10-22: changed: observe progress and existing timeout decisions
-    private def settle(w: World, frameStart: Long)(using
-        Frame,
-    ): World < Async =
+    // claude 2026-10-13: changed (C4, review R1-1, R2-1): exclude the component wait; codex 2026-10-22: changed: bounded drains, shared active budget and prompt shutdown.
+    private def settle(
+        w: World,
+        frameStart: Long,
+        budget: Settlement.Budget,
+    )(using Frame): (World, Settlement.Budget) < Async =
       nanos.map { t0 =>
-        Loop(w, 0, t0, t0) { (w, quiet, start, last) =>
-          observe(
-            diagnostics.phase(
-              if w.pending.nonEmpty then DiagnosticPhase.Pending
-              else DiagnosticPhase.Settling,
-              w.backlog.size,
-              w.pending.size,
-            ),
-          ).andThen {
-            if w.pending.nonEmpty then
-                // a component mount is running its effect: its first content
-                // will come, wait for it (bounded)
-                // claude 2026-10-13: changed (C4, P-6): the bound is in total,
-                // from the start of the settle: each message that arrives
-                // meanwhile no longer starts the wait again (with steady
-                // traffic, the settle of a slow component did not end); the
-                // deadline is the frame's (the settle and its re-check)
-                nanos.map { now =>
-                  // claude 2026-10-13: changed (C4, review R1-3, R2-3): by
-                  // difference, so that a negative `nanoTime` cannot overflow
-                  // (`pendingNanos` and `waited` are not negative)
-                  val waited = now - frameStart
-                  // claude 2026-10-19: changed: the checked timeout
-                  // (RunOptions, A10)
-                  val left   =
-                    if waited <= 0L then runOpts.pendingNanos
-                    else runOpts.pendingNanos - waited
-                  // claude 2026-10-13: changed (C4, review R2-2): a run that
-                  // ends does not wait for the component
-                  ending(w).map { end =>
-                    if left <= 0L || end then
-                        Loop.continue(w.copy(pending = Set.empty), 0, now, now)
+        // codex 2026-10-22: created: fix the two-state Loop result type once.
+        def finish(
+            world: World,
+            left: Settlement.Budget,
+        ): Loop.Outcome2[World, Settlement.State, (World, Settlement.Budget)] <
+          Any =
+          Loop.done((world, left))
+        Loop(w, settlement.begin(budget, t0)) { (w, state) =>
+          for
+              _      <- observe(
+                          diagnostics.phase(
+                            if w.pending.nonEmpty then DiagnosticPhase.Pending
+                            else DiagnosticPhase.Settling,
+                            w.backlog.size,
+                            w.pending.size,
+                          ),
+                        )
+              now    <- nanos
+              end    <- ending(w)
+              charged = state.budget.spend(now)
+              result <-
+                if end then finish(w.copy(pending = Set.empty), charged)
+                else if w.pending.nonEmpty then
+                    val waited = (now - frameStart).max(0L)
+                    val left   = runOpts.pendingNanos - waited
+                    if left <= 0L then
+                        Loop.continue(
+                          w.copy(pending = Set.empty),
+                          Settlement.State(charged, 0, now),
+                        )
                     else
                         Abort
                           .run[Timeout | Closed](
                             Async.timeout(Duration.fromNanos(left))(inbox.take),
                           )
-                          .map {
-                            case Result.Success(m) =>
-                              absorb(w, m).map(w1 =>
-                                nanos.map(t => Loop.continue(w1, 0, t, t)),
-                              )
-                            case _                 =>
-                              nanos.map(t =>
-                                Loop.continue(
-                                  w.copy(pending = Set.empty),
-                                  0,
-                                  t,
-                                  t,
-                                ),
-                              )
+                          .map { taken =>
+                            nanos.map { resumed =>
+                              val active = charged.resume(resumed)
+                              taken match
+                                  case Result.Success(m)         =>
+                                    absorb(w, m).map { w1 =>
+                                      nanos.map { after =>
+                                        Loop.continue(
+                                          w1,
+                                          Settlement.State(
+                                            active.spend(after),
+                                            0,
+                                            after,
+                                          ),
+                                        )
+                                      }
+                                    }
+                                  case Result.Failure(_: Closed) =>
+                                    finish(
+                                      w.copy(quit = true, pending = Set.empty),
+                                      active,
+                                    )
+                                  case _                         =>
+                                    Loop.continue(
+                                      w.copy(pending = Set.empty),
+                                      Settlement.State(active, 0, resumed),
+                                    )
+                              end match
+                            }
                           }
                     end if
-                  }
-                }
-            else
-                // The order is "probe, THEN drain". A loop that drains first,
-                // finds nothing, and then reads the probe can miss a watcher
-                // that posted between the drain and the probe: it is parked
-                // again when the probe runs, so the probe says "quiescent" and
-                // the frame flushes without that value (it gets its own
-                // Background frame). Seen on a 4-CPU container under CPU
-                // contention: 2-5 split frames per 500 events in the glitch
-                // test. "Done" needs the probe to say quiescent BEFORE a drain
-                // that finds nothing.
-                val idleBefore = options.settle match
-                    case Settle.Quiescent(_, _) => SchedulerProbe.quiescent()
-                    case Settle.Hops(_, _)      => true
-                Abort.run[Closed](inbox.drain).map {
-                  case Result.Success(msgs) if msgs.nonEmpty =>
-                    observe(
-                      diagnostics.drained(
-                        msgs.size,
-                        options.settle match
-                            case Settle.Quiescent(_, _) => Some(idleBefore)
-                            case _                      => None,
+                else if settlement.expired(charged) then
+                    observe(diagnostics.timedOut()).andThen(
+                      finish(
+                        w.copy(settleTimeouts = w.settleTimeouts + 1),
+                        charged,
                       ),
-                    ).andThen(
-                      Kyo
-                        .foldLeft(msgs)(w)(absorb)
-                        .map(w1 =>
-                          nanos.map(t => Loop.continue(w1, 0, start, t)),
-                        ),
                     )
-                  case _                                     =>
-                    observe(
-                      diagnostics.drained(
-                        0,
-                        options.settle match
-                            case Settle.Quiescent(_, _) => Some(idleBefore)
-                            case _                      => None,
-                      ),
-                    ).andThen(nanos.map { now =>
-                      options.settle match
-                          // `quiet` counts quiescent observations in a row
-                          // (each followed by an empty drain); the settle ends
-                          // after `confirm` of them, one hop apart.
-                          // claude 2026-10-19: changed: the checked `max`
-                          // (RunOptions.settleNanos, A10)
-                          case Settle.Quiescent(_, confirm) =>
-                            if idleBefore && quiet + 1 >= confirm then
-                                Loop.done(w)
-                            else if now - start > runOpts.settleNanos then
-                                // claude 2026-10-12: changed (D-17 c, RR O6):
-                                // the frame counts the timeout; no print to
-                                // stderr
-                                observe(diagnostics.timedOut()).andThen(
-                                  Loop.done(
-                                    w.copy(settleTimeouts =
-                                      w.settleTimeouts + 1,
-                                    ),
-                                  ),
-                                )
-                            else
-                                hop.andThen(
-                                  Loop.continue(
-                                    w,
-                                    if idleBefore then quiet + 1 else 0,
-                                    start,
-                                    last,
-                                  ),
-                                )
-                          // claude 2026-10-19: changed: the checked `window`
-                          // (RunOptions.settleNanos, A10)
-                          case Settle.Hops(hops, _)         =>
-                            if quiet >= hops && now - last >= runOpts.settleNanos
-                            then Loop.done(w)
-                            else
-                                hop.andThen(
-                                  Loop.continue(w, quiet + 1, start, last),
-                                )
-                    })
-                }
-            end if
-          }
+                else
+                    // A global probe must precede the drain: a watcher can
+                    // post and park between the two operations.
+                    val idleBefore =
+                      if settlement.probesScheduler then
+                          Some(SchedulerProbe.quiescent())
+                      else None
+                    Abort.run[Closed](inbox.drainUpTo(64)).map {
+                      case Result.Success(msgs) =>
+                        observe(diagnostics.drained(msgs.size, idleBefore))
+                          .andThen(
+                            Kyo.foldLeft(msgs)(w)(absorb),
+                          )
+                          .map { w1 =>
+                            for
+                                after   <- nanos
+                                stop    <- ending(w1)
+                                next     =
+                                  state
+                                    .copy(budget = charged)
+                                    .observed(
+                                      after,
+                                      msgs.isEmpty && idleBefore.getOrElse(true),
+                                    )
+                                outcome <-
+                                  if stop then
+                                      finish(
+                                        w1.copy(pending = Set.empty),
+                                        next.budget,
+                                      )
+                                  else if w1.pending.nonEmpty then
+                                      Loop.continue(w1, next)
+                                  else
+                                      settlement.decide(
+                                        next,
+                                        after,
+                                        msgs.isEmpty,
+                                      ) match
+                                          case Settlement.Decision.Complete =>
+                                            finish(w1, next.budget)
+                                          case Settlement.Decision.Timeout  =>
+                                            observe(diagnostics.timedOut())
+                                              .andThen(
+                                                finish(
+                                                  w1.copy(settleTimeouts =
+                                                    w1.settleTimeouts + 1,
+                                                  ),
+                                                  next.budget,
+                                                ),
+                                              )
+                                          case Settlement.Decision.Continue =>
+                                            // Hop between empty observations.
+                                            // A nonempty batch already has
+                                            // work to consume within its budget.
+                                            if msgs.nonEmpty then
+                                                Loop.continue(w1, next)
+                                            else
+                                                hop.andThen(
+                                                  Loop.continue(w1, next),
+                                                )
+                            yield outcome
+                          }
+                      case _                    =>
+                        finish(w.copy(quit = true), charged)
+                    }
+          yield result
         }
       }
     end settle

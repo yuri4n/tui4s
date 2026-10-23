@@ -18,61 +18,115 @@ object Settlement:
     enum Load derives CanEqual:
         case Running, Done
 
+    // codex 2026-10-22: created: distinguish paced status writes from continuous notification pressure.
+    enum Cadence derives CanEqual:
+        case Paced, Continuous
+
     /** CLI values are validated before workers start. */
-    // codex 2026-10-22: created: bounded workload configuration.
+    // codex 2026-10-22: created: bounded workload configuration; changed: add notification cadence and reactive fanout.
     final class Settings private (
         val workload: Workload,
         val updatesPerSecond: Int,
         val seconds: Int,
+        val regions: Int,
+        val cadence: Cadence,
     ):
-        // codex 2026-10-22: created: identify whether a background worker is needed.
-        def active: Boolean = workload == Workload.Busy || updatesPerSecond > 0
+        // codex 2026-10-22: created: identify whether a background worker is needed; changed: continuous writes also start the load.
+        def active: Boolean = workload == Workload.Busy || notifications
+
+        // codex 2026-10-22: created: zero-rate paced mode starts no notification worker.
+        def notifications: Boolean =
+          cadence == Cadence.Continuous || updatesPerSecond > 0
+    end Settings
 
     // codex 2026-10-22: created: parse the reproducible workload flags.
     object Settings:
-        // codex 2026-10-22: created: a quiet default with a ten-second load duration.
-        val default: Settings = new Settings(Workload.Quiet, 0, 10)
+        // codex 2026-10-22: created: a quiet default with a ten-second load duration; changed: fanout and continuous writes are opt-in.
+        val default: Settings =
+          new Settings(Workload.Quiet, 0, 10, 0, Cadence.Paced)
 
-        // codex 2026-10-22: created: reject invalid rates, durations and unknown flags.
+        // codex 2026-10-22: created: reject invalid rates, durations and unknown flags; changed: bound fanout and reject competing notification modes.
         def parse(args: Vector[String]): Either[String, Settings] =
-          args
-            .foldLeft[Either[String, Settings]](Right(default)) { (out, arg) =>
-              out.flatMap { previous =>
-                if arg == "--busy" then
-                    Right(
-                      new Settings(
-                        Workload.Busy,
-                        previous.updatesPerSecond,
-                        previous.seconds,
-                      ),
-                    )
-                else if arg.startsWith("--updates=") then
-                    number(
-                      arg.drop("--updates=".length),
-                      0,
-                      100000,
-                      "--updates",
-                    )
-                      .map(n =>
-                        new Settings(previous.workload, n, previous.seconds),
-                      )
-                else if arg.startsWith("--duration=") then
-                    number(
-                      arg.drop("--duration=".length),
-                      1,
-                      3600,
-                      "--duration",
-                    )
-                      .map(n =>
-                        new Settings(
-                          previous.workload,
-                          previous.updatesPerSecond,
-                          n,
-                        ),
-                      )
-                else Left(s"unknown settlement option: $arg")
-              }
-            }
+          if args.contains("--continuous") && args.exists(
+                _.startsWith("--updates="),
+              )
+          then Left("--continuous and --updates cannot be combined")
+          else
+              args
+                .foldLeft[Either[String, Settings]](Right(default)) {
+                  (out, arg) =>
+                    out.flatMap { previous =>
+                      if arg == "--busy" then
+                          Right(
+                            new Settings(
+                              Workload.Busy,
+                              previous.updatesPerSecond,
+                              previous.seconds,
+                              previous.regions,
+                              previous.cadence,
+                            ),
+                          )
+                      else if arg == "--continuous" then
+                          Right(
+                            new Settings(
+                              previous.workload,
+                              previous.updatesPerSecond,
+                              previous.seconds,
+                              previous.regions,
+                              Cadence.Continuous,
+                            ),
+                          )
+                      else if arg.startsWith("--updates=") then
+                          number(
+                            arg.drop("--updates=".length),
+                            0,
+                            100000,
+                            "--updates",
+                          )
+                            .map(n =>
+                              new Settings(
+                                previous.workload,
+                                n,
+                                previous.seconds,
+                                previous.regions,
+                                previous.cadence,
+                              ),
+                            )
+                      else if arg.startsWith("--regions=") then
+                          number(
+                            arg.drop("--regions=".length),
+                            0,
+                            512,
+                            "--regions",
+                          )
+                            .map(n =>
+                              new Settings(
+                                previous.workload,
+                                previous.updatesPerSecond,
+                                previous.seconds,
+                                n,
+                                previous.cadence,
+                              ),
+                            )
+                      else if arg.startsWith("--duration=") then
+                          number(
+                            arg.drop("--duration=".length),
+                            1,
+                            3600,
+                            "--duration",
+                          )
+                            .map(n =>
+                              new Settings(
+                                previous.workload,
+                                previous.updatesPerSecond,
+                                n,
+                                previous.regions,
+                                previous.cadence,
+                              ),
+                            )
+                      else Left(s"unknown settlement option: $arg")
+                    }
+                }
 
         // codex 2026-10-22: created: the CLI integer boundary.
         private def number(
@@ -86,15 +140,16 @@ object Settlement:
             .toRight(s"$flag must be an integer from $min to $max")
     end Settings
 
-    // codex 2026-10-22: created: input and status state; work is not a UI signal.
+    // codex 2026-10-22: created: input and status state; work is not a UI signal; changed: retain the configured fanout in the app state.
     final case class State(
         text: SignalRef[String],
         updates: SignalRef[Long],
         load: SignalRef[Load],
         work: AtomicLong,
+        regions: Int,
     )
 
-    // codex 2026-10-22: created: state belongs to this app instance.
+    // codex 2026-10-22: created: state belongs to this app instance; changed: copy the validated region count.
     def init(settings: Settings)(using Frame): State < Sync =
       for
           text    <- Signal.initRef("")
@@ -102,10 +157,10 @@ object Settlement:
           load    <-
             Signal.initRef(if settings.active then Load.Running else Load.Done)
           work    <- AtomicLong.init(0L)
-      yield State(text, updates, load, work)
+      yield State(text, updates, load, work, settings.regions)
 
     /** The PTY observer reads the actual input, not a separate echo field. */
-    // codex 2026-10-22: created: stable screen rows for the external observer.
+    // codex 2026-10-22: created: stable screen rows for the external observer; changed: keep the status fanout below the input and load markers.
     def view(state: State): UI =
       div(
         span("Settlement probe"),
@@ -125,7 +180,26 @@ object Settlement:
         span(
           "Ctrl-C quits. The load stops at its deadline; the input stays open.",
         ),
+        fanout(state),
       )
+
+    /** Each mounted region follows both the prompt and the status producer. */
+    // codex 2026-10-22: created: scale derived notifications and layout without hiding the native input.
+    private def fanout(state: State): UI =
+      if state.regions == 0 then UI.empty
+      else
+          div.style(_.height(12.px).overflowY(_.hidden))(
+            Vector.tabulate(state.regions) { index =>
+              span(
+                state.text
+                  .map(_.length)
+                  .combineLatest(state.updates)
+                  .map((length, updates) =>
+                    s"Task ${index + 1}: chars=$length updates=$updates",
+                  ),
+              )
+            }*,
+          )
 
     /** Finite CPU work. Its next seed is retained outside the UI. */
     // codex 2026-10-22: created: bounded work between cooperative boundaries.
@@ -165,12 +239,14 @@ object Settlement:
         }
       }
 
-    /** The rate is a requested ceiling; scheduling can reduce the actual rate. */
-    // codex 2026-10-22: created: finite status traffic with a measured update count.
+    /** Paced writes have a rate ceiling. Continuous writes yield after each
+      * write.
+      */
+    // codex 2026-10-22: created: finite status traffic with a measured update count; changed: continuous writes use a cooperative hop instead of a timed pause.
     private def notifications(
         stop: AtomicBoolean,
         updates: SignalRef[Long],
-        perSecond: Int,
+        settings: Settings,
     )(using Frame): Unit < Async =
       Loop.foreach {
         stop.get.map { done =>
@@ -179,14 +255,21 @@ object Settlement:
               updates
                 .updateAndGet(_ + 1)
                 .andThen(
-                  Async.sleep(Duration.fromNanos(1000000000L / perSecond)),
+                  settings.cadence match
+                      case Cadence.Continuous => hop
+                      case Cadence.Paced      =>
+                        Async.sleep(
+                          Duration.fromNanos(
+                            1000000000L / settings.updatesPerSecond,
+                          ),
+                        ),
                 )
                 .andThen(Loop.continue)
         }
       }
 
     /** Both workers start before the UI is returned for its first mount. */
-    // codex 2026-10-22: created: scoped workers, a relative stop timer, startup acknowledgement and a package test seam.
+    // codex 2026-10-22: created: scoped workers, a relative stop timer, startup acknowledgement and a package test seam; changed: continuous writes share the same owner and stop timer.
     private[settlement] def start(state: State, settings: Settings)(using
         Frame,
     ): Unit < (Async & Scope) =
@@ -212,11 +295,11 @@ object Settlement:
                                            )
                                   u     <- Fiber.init(
                                              updatesStarted.completeUnit.andThen(
-                                               if settings.updatesPerSecond > 0 then
+                                               if settings.notifications then
                                                    notifications(
                                                      stop,
                                                      state.updates,
-                                                     settings.updatesPerSecond,
+                                                     settings,
                                                    )
                                                else Kyo.unit,
                                              ),

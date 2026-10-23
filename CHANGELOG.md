@@ -20,6 +20,21 @@ that heading, each module of the release has its subsection
 to the GitHub release of the module (`scripts/changelog-section.sh`). The
 workflow stops before it creates a tag when a subsection is missing.
 
+## [Unreleased]
+<!-- codex 2026-10-22: created: settlement progress fixes after the diagnostic baseline. -->
+
+### tui4s-runner
+<!-- codex 2026-10-22: created: bounded settlement with the existing public policies. -->
+- Fixed: bounded inbox batches keep continuous notifications from bypassing
+  the settlement deadline. Verification and its re-check share the same
+  active time budget. Component startup keeps its separate bounded wait.
+  <!-- codex 2026-10-22: created: enforce progress under continuous traffic. -->
+- Fixed: quit is checked between notification batches, including with the
+  explicit `Settle.Hops` policy. The default remains `Quiescent(100 ms)`.
+  These bounds do not prevent heavy notifications from delaying input in
+  the shared inbox.
+  <!-- codex 2026-10-22: created: prompt shutdown and the remaining input-queue limitation. -->
+
 ## [0.1.1-RC1] - 2026-10-23
 <!-- codex 2026-10-23: changed: prepare the coordinated diagnostic release. -->
 

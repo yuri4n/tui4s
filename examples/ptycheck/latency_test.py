@@ -25,24 +25,84 @@ HERE = Path(__file__).resolve().parent
 
 # codex 2026-10-22: created: verify the external metric, failure counts and watchdog.
 class LatencyTest(unittest.TestCase):
-    # codex 2026-10-22: created: a finite scenario with six independently sent keys.
-    def scenario(self, mode="normal", deadline=1000, **options):
+    # codex 2026-10-22: created: a finite scenario with six independently sent keys; changed: inject process shutdown faults separately from input faults.
+    def scenario(self, mode="normal", deadline=1000, fixture_options=(), **options):
         args = latency.arguments([
             "--keys", "6", "--rate", "30", "--deadline-ms", str(deadline),
             "--observe-ms", "1500", "--startup-seconds", "3",
             "--command", sys.executable, str(HERE / "latency_fixture.py"), "--mode", mode,
         ])
+        args.command.extend(fixture_options)
         for name, value in options.items():
             setattr(args, name, value)
         return latency.run(args)
 
-    # codex 2026-10-22: created: both input and status must progress in a healthy app.
+    # codex 2026-10-22: created: both input and status must progress in a healthy app; changed: acceptance also requires clean shutdown and terminal restoration.
     def test_healthy_input_with_updates(self):
         result = self.scenario(require_updates=True, require_load_running=True)
         self.assertTrue(result["ok"], result)
         self.assertEqual(result["visible_count"], 6)
         self.assertTrue(result["final_text_matches"])
         self.assertTrue(result["observed_updates_bracket_input"])
+        self.assertEqual(result["deadline_count"], 0)
+        self.assertTrue(result["shutdown"]["graceful"], result)
+        self.assertTrue(result["shutdown"]["terminal_restored"], result)
+        self.assertEqual(result["shutdown"]["exit_code"], 0)
+        self.assertGreater(result["startup_to_ready_ms"], 0)
+
+    # codex 2026-10-22: created: correct input cannot conceal a process that needs SIGKILL.
+    def test_correct_input_with_hung_shutdown_fails(self):
+        result = self.scenario(fixture_options=["--ignore-quit"], quit_seconds=.1, observe_ms=10)
+        self.assertFalse(result["ok"], result)
+        self.assertEqual(result["visible_count"], 6)
+        self.assertEqual(result["deadline_count"], 0)
+        self.assertTrue(result["shutdown"]["term_sent"], result)
+        self.assertTrue(result["shutdown"]["kill_sent"], result)
+        self.assertEqual(result["shutdown"]["exit_code"], -signal.SIGKILL)
+
+    # codex 2026-10-22: created: a nonzero quit exit fails even when the terminal was restored.
+    def test_nonzero_shutdown_fails(self):
+        result = self.scenario(fixture_options=["--exit-code", "7"], observe_ms=10)
+        self.assertFalse(result["ok"], result)
+        self.assertEqual(result["visible_count"], 6)
+        self.assertEqual(result["shutdown"]["exit_code"], 7)
+        self.assertTrue(result["shutdown"]["terminal_restored"], result)
+        self.assertFalse(result["shutdown"]["kill_sent"], result)
+
+    # codex 2026-10-22: created: a launcher that exits normally cannot conceal a surviving child.
+    def test_child_left_after_normal_exit_fails(self):
+        result = self.scenario(fixture_options=["--leave-child"], observe_ms=10)
+        self.assertFalse(result["ok"], result)
+        self.assertEqual(result["visible_count"], 6)
+        self.assertEqual(result["shutdown"]["exit_code"], 0)
+        self.assertFalse(result["shutdown"]["term_sent"], result)
+        self.assertTrue(result["shutdown"]["kill_sent"], result)
+        self.assertTrue(result["shutdown"]["terminal_restored"], result)
+
+    # codex 2026-10-22: created: exit zero cannot conceal raw mode, an alternate screen or a hidden cursor.
+    def test_unrestored_terminal_fails(self):
+        result = self.scenario(fixture_options=["--no-restore"], observe_ms=10)
+        self.assertFalse(result["ok"], result)
+        self.assertEqual(result["visible_count"], 6)
+        self.assertTrue(result["shutdown"]["graceful"], result)
+        self.assertFalse(result["shutdown"]["terminal_restored"], result)
+        self.assertFalse(any(result["shutdown"]["terminal"].values()), result)
+
+    # codex 2026-10-22: created: a deliberate shutdown opt-out keeps the cleanup evidence in the result.
+    def test_shutdown_requirement_can_be_disabled_explicitly(self):
+        parsed = latency.arguments(["--no-require-graceful-exit"])
+        self.assertFalse(parsed.require_graceful_exit)
+        result = self.scenario(fixture_options=["--ignore-quit"], quit_seconds=.1,
+                               observe_ms=10, require_graceful_exit=False)
+        self.assertTrue(result["ok"], result)
+        self.assertFalse(result["require_graceful_exit"])
+        self.assertTrue(result["shutdown"]["kill_sent"], result)
+
+    # codex 2026-10-22: created: startup time is visible without being mislabeled as key latency.
+    def test_startup_delay_has_its_own_metric(self):
+        result = self.scenario(fixture_options=["--startup-delay", ".3"], observe_ms=10)
+        self.assertTrue(result["ok"], result)
+        self.assertGreaterEqual(result["startup_to_ready_ms"], 300)
         self.assertEqual(result["deadline_count"], 0)
 
     # codex 2026-10-22: created: a known delay appears in the metric and fails its gate.
