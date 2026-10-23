@@ -72,6 +72,10 @@ A change by an AI agent carries a mark at the smallest unit that it changed:
 Use the actual agent name, for example `codex`. Keep earlier attributions.
 [AGENTS.md](AGENTS.md) has the full rule.
 
+<!-- codex 2026-10-23: created: document the provenance rule for unchanged vendored files. -->
+Do not add marks inside vendored third-party files. Keep those files unchanged.
+An adjacent README records their source, pinned revision and license.
+
 ### Run the bench
 
 `bench/run.sh` publishes the tui4s artifacts locally, builds the eight

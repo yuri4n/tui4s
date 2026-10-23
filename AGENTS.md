@@ -31,6 +31,10 @@ two files above. Another agent reads the two files itself.
 - Never mark a whole file as changed: mark the units. A new file gets one
   mark line under its title. For a new file of moved text, that line tells
   where the text comes from, and the moved blocks keep their marks.
+- Keep vendored third-party files unchanged. Do not add marks to them.
+  Record their source, pinned revision and license in an adjacent README.
+  This is the exception to the per-file and per-unit mark rules above.
+  <!-- codex 2026-10-23: created: preserve upstream files and record their provenance beside them. -->
 - Never start a terminal UI in your own shell. Only the PTY kit
   (`examples/ptycheck`) runs one.
 - Run only one sbt process in the repository at a time, also across its
