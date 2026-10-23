@@ -30,6 +30,25 @@ settlement decisions. Internal input-to-frame-pass timing is distinct from the
 PTY test's send-to-correct-screen timing. See
 [the diagnostics guide](docs/content/2.guide/14.diagnostics.md).
 
+<!-- codex 2026-10-22: created: bounded settlement and its cooperative limits. -->
+The default remains `Settle.Quiescent` with a 100 ms maximum. Unrelated Kyo
+tasks can keep its scheduler probe busy until that budget ends. Each inbox
+drain takes a bounded batch. One active time budget covers settlement,
+verification and its re-check, including continuous notifications. A
+mounting component has a separate bounded wait. Only time blocked waiting
+for its messages pauses the active budget; processing those messages does
+not restore spent time. The budget cannot interrupt user code or a scheduler
+pause. Layout, paint and terminal output are outside this budget.
+`Settle.Hops` retains its quiet-window rule without a total time limit.
+
+<!-- codex 2026-10-22: created: settlement bounds do not guarantee input latency. -->
+Kyo's public signal API has no event-completion barrier. Settlement therefore
+batches updates on a best-effort basis. Verification and repair still recover
+missed notifications. An update that arrives after the batch closes appears
+in a later frame. Inputs and notifications share one bounded inbox. Heavy
+notification traffic can delay input admission and dispatch. Input
+correctness, derived-region consistency and input latency are separate checks.
+
 | Directory       | sbt id     | Artifact                         | UI DSL                                  | Release tag      | Published |
 | --------------- | ---------- | -------------------------------- | --------------------------------------- | ---------------- | --------- |
 | `modules/runner` | `runner`  | `io.github.yuri4n::tui4s-runner` | kyo-ui (the terminal runner for kyo-ui: `tui4s.internal`, `tui4s.spi`, `Tui`, the components, the screen types) | `runner-v<semver>` | yes |

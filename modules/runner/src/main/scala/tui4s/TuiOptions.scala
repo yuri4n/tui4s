@@ -13,8 +13,9 @@ import java.time.Duration
   *   nothing has the focus. A `focusAuto(true)` element that appears takes the
   *   focus also when this option is false, as in kyo-ui's client.
   * @param settle
-  *   how the runner decides that the consequences of an event are all in before
-  *   it flushes a frame (see [[tui4s.spi.Settle]])
+  *   how the runner batches reactive changes before it flushes a frame. The
+  *   default uses scheduler quiescence with a 100 ms active budget (see
+  *   [[tui4s.spi.Settle]]).
   * @param ctrlCQuits
   *   the key Ctrl-C ends the run. A terminal in raw mode sends Ctrl-C as a key,
   *   not as a signal, so the runner quits on it before any handler sees it.
@@ -65,14 +66,14 @@ import java.time.Duration
   *   longer). When the body takes longer, the frame comes without it (the
   *   component's place is empty), and its content comes in a later frame; the
   *   frames between do not wait for it again. A negative value counts as zero.
-  *   After the wait, the frame settles as usual: the `max` of `settle` counts
-  *   from the end of the wait. A quit (`Tui.quit`, or Ctrl-C with `ctrlCQuits`)
-  *   ends the wait at once, and so does a body that fails (the component's
-  *   place stays empty).
+  *   The wait pauses the frame's active settlement budget. It does not restore
+  *   time spent before the wait. A quit (`Tui.quit`, or Ctrl-C with
+  *   `ctrlCQuits`) ends the wait at once, and so does a body that fails (the
+  *   component's place stays empty).
   */
 // claude 2026-10-19: changed: the Scaladoc of autoFocus: a focusAuto element
 // takes the focus also without autoFocus (L1b review)
-// claude 2026-10-19: changed: TuiApp is in tui4s-app, not a link (D25)
+// claude 2026-10-19: changed: TuiApp is in tui4s-app, not a link (D25); codex 2026-10-22: changed: document the shared active budget and pending allowance.
 final case class TuiOptions(
     autoFocus: Boolean = true,
     settle: Settle = Settle.Quiescent(Duration.ofMillis(100)),

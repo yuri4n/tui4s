@@ -7,12 +7,14 @@ from pathlib import Path
 import sys
 
 
-# codex 2026-10-22: created: incomplete input or a failed exporter cannot pass the smoke; codex 2026-10-23: changed: checks also run with Python optimization.
+# codex 2026-10-22: created: incomplete input or a failed exporter cannot pass the smoke; codex 2026-10-23: changed: checks also run with Python optimization; codex 2026-10-22: changed: require graceful process exit and terminal restoration.
 def main():
     diagnostic = json.loads(Path(sys.argv[1]).read_text())
     screen = json.loads(Path(sys.argv[2]).read_text())
     checks = (
         (screen["ok"] and screen["visible_count"] == screen["planned_count"], "screen input failed"),
+        (screen.get("require_graceful_exit") and screen["shutdown"]["graceful"]
+         and screen["shutdown"]["terminal_restored"], "process shutdown or terminal restore failed"),
         (diagnostic["schemaVersion"] == 1, "unsupported schema"),
         (diagnostic["phase"] == "Stopped", "exporter did not stop"),
         (diagnostic["inputReceived"] >= screen["written_count"], "input receipts missing"),
