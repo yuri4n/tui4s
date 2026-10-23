@@ -20,6 +20,16 @@ issue #17). All the artifacts use the same packages (`tui4s`,
 `tui4s.internal`, `tui4s.spi`, `tui4s.testkit`).
 <!-- claude 2026-10-19: changed: the runner artifact and the composite core (D25) -->
 
+<!-- codex 2026-10-22: created: the opt-in diagnostic recorder and its lifetime. -->
+The JVM option `tui4s.diagnostics.file` enables a bounded recorder for a
+terminal run. The input thread and runner record timestamps and counters;
+they record no input text or signal values. A daemon thread outside Kyo
+writes the latest snapshot, also while the runner waits in settlement.
+The session's release stack stops the recorder. Diagnostics do not change
+settlement decisions. Internal input-to-frame-pass timing is distinct from the
+PTY test's send-to-correct-screen timing. See
+[the diagnostics guide](docs/content/2.guide/14.diagnostics.md).
+
 | Directory       | sbt id     | Artifact                         | UI DSL                                  | Release tag      | Published |
 | --------------- | ---------- | -------------------------------- | --------------------------------------- | ---------------- | --------- |
 | `modules/runner` | `runner`  | `io.github.yuri4n::tui4s-runner` | kyo-ui (the terminal runner for kyo-ui: `tui4s.internal`, `tui4s.spi`, `Tui`, the components, the screen types) | `runner-v<semver>` | yes |

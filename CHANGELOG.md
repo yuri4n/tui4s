@@ -8,8 +8,9 @@ module has its own version and its own tag (`<module>-v<version>`); the
 versions follow early semantic versioning (CONTRIBUTING.md, "Compatibility
 and versioning").
 
-The first release is planned as `0.1.0-RC1` for each module: a release
-candidate, because Kyo and kyo-ui are at 1.0.0-RC7. Nothing is published yet.
+<!-- codex 2026-10-22: changed: the first release is published; keep the Kyo qualifier. -->
+The first release is `0.1.0-RC1` for each module. Releases keep an RC
+qualifier while Kyo and kyo-ui are release candidates.
 
 <!-- claude 2026-10-20: created: the release headings and the release notes (ADR 0020) -->
 This file is the one source of the release notes. Before a release, its pull
@@ -18,6 +19,54 @@ that heading, each module of the release has its subsection
 `### tui4s-<module>`. The release workflow gives the text of that subsection
 to the GitHub release of the module (`scripts/changelog-section.sh`). The
 workflow stops before it creates a tag when a subsection is missing.
+
+## [0.1.1-RC1] - 2026-10-23
+<!-- codex 2026-10-23: changed: prepare the coordinated diagnostic release. -->
+
+<!-- codex 2026-10-22: created: optional diagnostics, with settlement behavior unchanged. -->
+### tui4s-runner
+
+- Added: opt-in bounded JSON diagnostics with
+  `-Dtui4s.diagnostics.file=<path>`. The report includes terminal receipt to
+  frame-pass timings, pending input, backlog, runner phases, notification
+  counts and settlement observations. It contains no application contents.
+- Added: a daemon exporter outside the Kyo scheduler. It can report a
+  stalled settlement before an input completes.
+- Known issue: settlement still depends on global scheduler idleness.
+  Unrelated work can delay input, and continuous notifications can extend
+  settlement past its configured maximum. This release measures those
+  conditions; it does not fix them.
+
+<!-- codex 2026-10-23: created: app dependency for the coordinated diagnostic release. -->
+### tui4s-app
+
+- Changed: use the diagnostic release of tui4s-runner. A `TuiApp` can enable
+  the report with the JVM option; its entry point stays the same.
+
+<!-- codex 2026-10-23: created: testkit dependency for the coordinated diagnostic release. -->
+### tui4s-testkit
+
+- Changed: align the runner dependency with the diagnostic release.
+  `Headless` retains its existing API and measurement boundaries.
+
+<!-- codex 2026-10-22: created: the composite includes the runner diagnostics. -->
+### tui4s-core
+
+- Added: the runner's optional input and settlement diagnostics through the
+  composite dependency. See the diagnostics guide for an independently
+  paced PTY reproduction and the limits of each metric.
+
+<!-- codex 2026-10-23: created: use participates in the coordinated version. -->
+### tui4s-use
+
+- Changed: align the artifact version with the coordinated `0.1.1-RC1`
+  release. The composable APIs and behavior are unchanged.
+
+<!-- codex 2026-10-23: created: widgets participates in the coordinated version. -->
+### tui4s-widgets
+
+- Changed: align the artifact version with the coordinated `0.1.1-RC1`
+  release. The widget APIs and behavior are unchanged.
 
 ## [0.1.0-RC1] - 2026-10-20
 <!-- claude 2026-10-20: changed: the heading of the first release (Releasing, step 1) -->

@@ -66,8 +66,10 @@ the Actions form ([Releasing](#releasing)). The version of a module:
 
 ### Marks
 
+<!-- codex 2026-10-23: changed: use the name of the agent that made the change. -->
 A change by an AI agent carries a mark at the smallest unit that it changed:
-`// claude <date>: created|changed: <what>` (an HTML comment in Markdown).
+`// <agent> <date>: created|changed: <what>` (an HTML comment in Markdown).
+Use the actual agent name, for example `codex`. Keep earlier attributions.
 [AGENTS.md](AGENTS.md) has the full rule.
 
 ### Run the bench
@@ -224,6 +226,22 @@ and after a change of the frame path, and give both numbers.
 <!-- claude 2026-10-19: changed: the frame-path probe PerfProbe (PF-b) -->
 
 ## UI architecture and API design
+
+<!-- codex 2026-10-22: created: input-latency checks include pending work and independent sends. -->
+For input-latency changes, use the PTY harness in
+`examples/ptycheck/latency.py` and the
+[diagnostics guide](docs/content/2.guide/14.diagnostics.md). Its sender does
+not wait for each frame. Report missing input and deadline failures beside
+the completed samples. `FrameStats.nanos` starts after dequeue, and
+`Headless.typeText` waits for each key, so neither measures a growing input
+backlog. Keep the quiet and loaded reports from the same workload. Run the
+Python harness tests with
+`python3 -m unittest discover -s examples/ptycheck -p latency_test.py`.
+Run the benchmark accounting tests with
+`python3 -m unittest discover -s bench/harness -p test_perf.py`.
+The benchmark gate rejects errors, missing input and unknown completion
+counts. Historical reports still display unknown coverage; rerun them to
+use them as an acceptance result.
 
 - Audit the pinned Kyo and kyo-ui public APIs, documentation, and tests before
   adding an abstraction. Prefer their existing signals, bindings, callbacks,
@@ -570,11 +588,12 @@ and after a change of the frame path, and give both numbers.
 - Property tests use kyo-test-prop (`PropertyTest[S]`, `Gen`, `Shrink`) under
   the kyo-test framework, with explicit `Gen` values. Do not use `Gen.derive`
   or a given `Gen` for a domain type.
-- The skills `functional-design` and `scala-functional-design` are the rules
-  of the rewrite. They are not in this repo. Install them from
-  <https://github.com/yuri4n/functional-design-skills> (a Claude Code plugin
-  marketplace), or copy its `skills/` directory into `~/.claude/skills`.
-  <!-- claude 2026-10-19: created this item (D19: the skills leave the repo) -->
+- The skills [functional-design](.agents/skills/functional-design/SKILL.md)
+  and [scala-functional-design](.agents/skills/scala-functional-design/SKILL.md)
+  are the design rules. Read both before a code change. The local copies
+  include their reference files. Their source, pinned revision, license and
+  update rule are in [.agents/skills/README.md](.agents/skills/README.md).
+  <!-- claude 2026-10-19: created this item (D19: the skills leave the repo); codex 2026-10-22: changed: use pinned local copies at the user's request. -->
 
 ## Docs
 
@@ -683,6 +702,12 @@ rules are early-semver:
 - `Compatibility.None`: the next release must bump the minor version (`0.y` to
   `0.y+1`).
 
+<!-- codex 2026-10-23: created: explicit published baselines prevent empty RC checks. -->
+Each module also sets `versionPolicyPreviousVersions` to its last published
+version. The automatic lookup can omit RC versions or select an unpublished
+stable version. Keep this baseline explicit. The JVM and Scala.js artifacts
+of a cross-built module use the same baseline.
+
 The package `tui4s.internal` is sealed: each of its top-level definitions is
 `private[tui4s]`, so users and Scaladoc do not see it (tui4s-app and
 tui4s-testkit are other jars in the package `tui4s`, and they keep the
@@ -741,6 +766,9 @@ Open one pull request after a release:
    subsection of that module.
 3. Set `versionPolicyIntention` of each released module back to
    `Compatibility.BinaryCompatible` in `modules/<m>/compat.sbt`.
+4. Set `versionPolicyPreviousVersions` in each released module to the version
+   just published. The next compatibility check must compare with that artifact.
+   <!-- codex 2026-10-23: created: advance the explicit baseline after publication. -->
 
 ## Releasing
 

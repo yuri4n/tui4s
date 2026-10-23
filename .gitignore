@@ -46,8 +46,8 @@ docs/.env
 # Local agent scratch space (reports, probes, handoff notes)
 .work/
 
-# Claude Code skills live in github.com/yuri4n/functional-design-skills, not here
-# claude 2026-10-19: created (D19: the skills leave the repo)
+# Local Claude Code installs are ignored; tracked skills are in .agents/skills.
+# claude 2026-10-19: created (D19: the skills leave the repo); codex 2026-10-22: changed: name the tracked local copies.
 .claude/skills/
 
 # Nix / direnv

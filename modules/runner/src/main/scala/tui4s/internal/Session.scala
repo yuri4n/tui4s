@@ -77,13 +77,31 @@ private[tui4s] object Session:
       * drop an open session.
       */
     // claude 2026-10-19: changed (P3, A1): the release stack; no `safely` and
-    // no undo of its own
+    // no undo of its own; codex 2026-10-22: changed: preserve the old entry point without diagnostics
     def open(
         runOpts: RunOptions,
         control: TerminalControl,
         input: Option[InputPort],
         inbox: Channel[Msg],
         stack: ReleaseStack,
+    )(using Frame): Either[TuiError, Session] < Sync =
+      openDiagnosed(
+        runOpts,
+        control,
+        input,
+        inbox,
+        stack,
+        DiagnosticRecorder.Disabled,
+      )
+
+    // codex 2026-10-22: created: the input thread shares the run's optional recorder
+    def openDiagnosed(
+        runOpts: RunOptions,
+        control: TerminalControl,
+        input: Option[InputPort],
+        inbox: Channel[Msg],
+        stack: ReleaseStack,
+        diagnostics: DiagnosticRecorder,
     )(using Frame): Either[TuiError, Session] < Sync =
       Sync.Unsafe
         .defer {
@@ -92,7 +110,9 @@ private[tui4s] object Session:
               val thread  = Maybe.fromOption(
                 input
                   .orElse(control.input())
-                  .map(port => InputThread(port, inbox, runOpts.pollMillis)),
+                  .map(port =>
+                    InputThread(port, inbox, runOpts.pollMillis, diagnostics),
+                  ),
               )
               // Pushed before the start: on a closed stack the stop runs at
               // once, and a thread that starts after its stop ends at once.
@@ -172,12 +192,17 @@ end Session
   */
 // claude 2026-10-13: changed (T1, RC-21, D-21 a): crossterm events, mapped
 // here to Msg; the failure is kept for the run and the run gets Msg.Quit
-// claude 2026-10-13: changed (T1, review R2-4): the Scaladoc names the errors
+// claude 2026-10-13: changed (T1, review R2-4): the Scaladoc names the errors; codex 2026-10-22: changed: optional receipt and batch timing
 private[tui4s] final class InputThread(
     port: InputPort,
     inbox: Channel[Msg],
     pollMillis: Int,
+    diagnostics: DiagnosticRecorder,
 ) extends java.lang.Thread("tui4s-input"):
+    // codex 2026-10-22: created: preserve the original constructor
+    def this(port: InputPort, inbox: Channel[Msg], pollMillis: Int) =
+      this(port, inbox, pollMillis, DiagnosticRecorder.Disabled)
+
     setDaemon(true)
     @volatile private var running = true
 
@@ -187,6 +212,7 @@ private[tui4s] final class InputThread(
     /** Why the input failed; `null` while it did not. */
     @volatile var failure: Throwable | Null = null
 
+    // codex 2026-10-22: changed: timestamp input receipt and whole-batch admission
     override def run(): Unit =
         import AllowUnsafe.embrace.danger
         try
@@ -198,6 +224,7 @@ private[tui4s] final class InputThread(
                         // claude 2026-10-19: changed: Maybe from the port and
                         // from the mapping (purity plan, P1)
                         port.read().flatMap(EventMapping(_, seq)).foreach { m =>
+                          diagnostics.received(seq)
                           batch += m
                           seq += 1
                         }
@@ -205,10 +232,15 @@ private[tui4s] final class InputThread(
                     end while
                     if batch.nonEmpty && running then
                         val accepted = java.util.concurrent.CountDownLatch(1)
+                        diagnostics.offered(batch.size)
                         inbox.unsafe
                           .putBatchFiber(batch.toSeq)
-                          .onComplete(_ => accepted.countDown())
+                          .onComplete { result =>
+                            diagnostics.accepted(batch.size, result.isSuccess)
+                            accepted.countDown()
+                          }
                         accepted.await()
+                    end if
                 end if
             end while
         catch

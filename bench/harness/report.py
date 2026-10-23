@@ -13,6 +13,7 @@ import sys
 
 import mutants as mu
 import stacks as st
+from bench import PERF_COUNTS, perf_counts_known, perf_errors  # codex 2026-10-22: created: share perf verdicts
 from term import BENCH
 
 NAMES = {"tui4s": "tui4s", "jatatui-plain": "jatatui-plain", "tamboui": "TamboUI", "layoutz": "layoutz",
@@ -43,6 +44,22 @@ def fmt(v, unit="", digits=1):
         if digits == 0:
             v = int(v)
     return f"{v}{unit}"
+
+
+# codex 2026-10-22: created: partial medians never conceal errors or imply legacy completeness
+def perf_result(summary):
+    errors = perf_errors(summary)
+    if errors:
+        return "FAIL: " + "; ".join(errors).replace("|", "\\|").replace("\n", " ")
+    return "complete" if perf_counts_known(summary) else "completion unknown"
+
+
+# codex 2026-10-22: created: the denominator includes the separately measured first key
+def perf_key_counts(summary):
+    if not perf_counts_known(summary):
+        return "unknown"
+    counts = {key: sum(run[key] for run in summary["runs"]) for key in PERF_COUNTS}
+    return f"{counts['keys_completed']}/{counts['keys_planned']}"
 
 
 def concepts():
@@ -165,17 +182,20 @@ def blocks(machine):
     if classes:
         out["mutant-matrix"] = table(["Stack"] + classes, rows) + ("\n\n" + "\n\n".join(timed) if timed else "")
 
+    # codex 2026-10-22: changed: show performance errors and sample completeness alongside timings
     for t in st.TASKS:
         rows = []
         for s in st.ORDER + st.MODES:
             p = data[(s, t)].get("perf", {})
-            r = [NAMES[s], fmt(p.get("first_frame_ms"), "", 0), fmt(p.get("first_key_ms")), fmt(p.get("key_median_ms")),
+            r = [NAMES[s], perf_result(p), perf_key_counts(p),
+                 fmt(p.get("first_frame_ms"), "", 0), fmt(p.get("first_key_ms")), fmt(p.get("key_median_ms")),
                  fmt(p.get("key_p90_ms")), fmt(p.get("cpu_pct")), fmt(p.get("rss_mb"), "", 0), fmt(p.get("artifact_mb"))]
             if t == "dashboard":
                 r += [fmt(p.get("tick_gap_p50_ms")), fmt(p.get("tick_gap_p90_ms")), fmt(p.get("ticks_skipped_pct"))]
             rows.append(r)
         cpu = "CPU idle %" if t == "counter" else "CPU at 10 Hz %"
-        head = ["Stack", "first frame ms", "first key ms", "key median ms", "key p90 ms", cpu, "RSS MB", "artifact MB"]
+        head = ["Stack", "result", "keys completed/planned", "first frame ms", "first key ms", "key median ms",
+                "key p90 ms", cpu, "RSS MB", "artifact MB"]
         if t == "dashboard":
             head += ["tick gap p50 ms", "tick gap p90 ms", "ticks skipped %"]
         out[f"perf-{t}"] = table(head, rows)

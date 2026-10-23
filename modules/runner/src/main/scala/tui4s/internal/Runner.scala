@@ -32,8 +32,14 @@ private[tui4s] final class Runner private (
     // claude 2026-10-19: created (L1b): the size of the terminal, for
     // Tui.size
     terminal: SignalRef[TerminalSize],
+    // codex 2026-10-22: created: optional observation, never a settlement input
+    diagnostics: DiagnosticRecorder,
 ):
     private val options = runOpts.options
+
+    // codex 2026-10-22: created: disabled hooks allocate no records and read no clock
+    private inline def observe(inline action: Unit)(using Frame): Unit < Sync =
+      if diagnostics.enabled then Sync.defer(action) else Kyo.unit
 
     // claude 2026-10-19: changed: the mount gets the gauge (P2, A7)
     private val mount = Mount(inbox, gauge, knobs)
@@ -112,12 +118,13 @@ private[tui4s] final class Runner private (
       * S2, gates.md G2).
       */
     // claude 2026-10-19: changed: the gauge starts the tick; no `remember`
-    // of each world (P2, A7)
+    // of each world (P2, A7); codex 2026-10-22: changed: observe mount progress
     def run(root: UI)(using Frame): Unit < Async =
       scoped(Sync.ensure(stop) {
         for
             _   <- gauge.fork(repairTick)
             t0  <- nanos
+            _   <- observe(diagnostics.phase(DiagnosticPhase.Mounting, 0, 0))
             // claude 2026-10-19: changed: the custom properties of the
             // stylesheet of the run (L1b)
             w0  <- mount.walk(
@@ -139,6 +146,7 @@ private[tui4s] final class Runner private (
         yield ()
       })
 
+    // codex 2026-10-22: changed: observe waiting and dispatch without changing ordering
     private def step(
         w: World,
     )(using Frame): Loop.Outcome[World, World] < Async =
@@ -147,9 +155,23 @@ private[tui4s] final class Runner private (
       quitRequested.get.map { q =>
         if w.quit || q then Loop.done(w)
         else
-            next(w).map { (msg, w1) =>
+            observe(
+              diagnostics.phase(
+                DiagnosticPhase.Waiting,
+                w.backlog.size,
+                w.pending.size,
+              ),
+            ).andThen(next(w)).map { (msg, w1) =>
               for
                   t0          <- nanos
+                  _           <- observe(diagnostics.dispatched(msg))
+                  _           <- observe(
+                                   diagnostics.phase(
+                                     DiagnosticPhase.Handling,
+                                     w1.backlog.size,
+                                     w1.pending.size,
+                                   ),
+                                 )
                   // claude 2026-10-12: changed (D-16, armkey): the young
                   // regions shift by one step; the verify pass runs after
                   // the settle
@@ -188,12 +210,14 @@ private[tui4s] final class Runner private (
             }
       }
 
+    // codex 2026-10-22: changed: record first inbox removal before a possible backlog wait
     private def next(w: World)(using Frame): (Msg, World) < Async =
       w.backlog.headOption match
           case Some(m) => (m, w.copy(backlog = w.backlog.tail))
           case None    =>
             Abort.run[Closed](inbox.take).map {
-              case Result.Success(m) => (m, w)
+              case Result.Success(m) =>
+                observe(diagnostics.seen(m)).andThen((m, w))
               case _                 => (Msg.Quit, w)
             }
 
@@ -238,13 +262,19 @@ private[tui4s] final class Runner private (
     // mounting component, for the settle and the re-check of this frame
     // claude 2026-10-13: changed (C4, review R1-3, R2-3): the start of the
     // frame, not an absolute deadline: the settle compares differences of
-    // `System.nanoTime` (its value can be negative)
+    // `System.nanoTime` (its value can be negative); codex 2026-10-22: changed: observe verification
     private def settleAndVerify(w: World, input: Boolean)(using
         Frame,
     ): World < Async =
       nanos.map { t0 =>
         settle(w, t0).map { w1 =>
-          verify(w1, input).map { w2 =>
+          observe(
+            diagnostics.phase(
+              DiagnosticPhase.Verifying,
+              w1.backlog.size,
+              w1.pending.size,
+            ),
+          ).andThen(verify(w1, input)).map { w2 =>
             // TODO(#9): drop the re-check when Kyo closes the lost-wakeup
             // window of `Signal` (the conditions of D-17 c).
             // https://github.com/yuri4n/tui4s/issues/9
@@ -400,19 +430,22 @@ private[tui4s] final class Runner private (
                 case Source.Local                      => w
           case _                         => w
 
+    // codex 2026-10-22: changed: observe messages removed during a live settle
     private def absorb(w: World, msg: Msg)(using Frame): World < Sync =
-      msg match
-          case c: Msg.Content  => apply(w, c)
-          case Msg.Quit        => w.copy(quit = true)
-          // claude 2026-10-12: created the two cases below (K29, D-16): an arm
-          // inside a settle verifies its region; a tick inside a settle is kept
-          // for the next step, once (review R2-7)
-          // claude 2026-10-19: changed: the region leaves World.unarmed (P2)
-          case Msg.Armed(p, g) => verifyRegion(w.armed(p, g), p, Some(g))
-          case Msg.Repair      =>
-            if w.backlog.contains(Msg.Repair) then w
-            else w.copy(backlog = w.backlog :+ Msg.Repair)
-          case other           => w.copy(backlog = w.backlog :+ other)
+      observe(diagnostics.seen(msg)).andThen {
+        msg match
+            case c: Msg.Content  => apply(w, c)
+            case Msg.Quit        => w.copy(quit = true)
+            // claude 2026-10-12: created the two cases below (K29, D-16): an arm
+            // inside a settle verifies its region; a tick inside a settle is kept
+            // for the next step, once (review R2-7)
+            // claude 2026-10-19: changed: the region leaves World.unarmed (P2)
+            case Msg.Armed(p, g) => verifyRegion(w.armed(p, g), p, Some(g))
+            case Msg.Repair      =>
+              if w.backlog.contains(Msg.Repair) then w
+              else w.copy(backlog = w.backlog :+ Msg.Repair)
+            case other           => w.copy(backlog = w.backlog :+ other)
+      }
 
     /** One scheduler round trip: lets the watcher fibers that a write woke up
       * run and post their values.
@@ -436,115 +469,146 @@ private[tui4s] final class Runner private (
     // claude 2026-10-13: changed (C4, review R1-1, R2-1): `start` is in the
     // loop state: the end of the wait for a component sets it, so the `max`
     // of the settle counts from there (the wait counted as a settle timeout,
-    // and the frame skipped the `confirm` observations)
+    // and the frame skipped the `confirm` observations); codex 2026-10-22: changed: observe progress and existing timeout decisions
     private def settle(w: World, frameStart: Long)(using
         Frame,
     ): World < Async =
       nanos.map { t0 =>
         Loop(w, 0, t0, t0) { (w, quiet, start, last) =>
-          if w.pending.nonEmpty then
-              // a component mount is running its effect: its first content
-              // will come, wait for it (bounded)
-              // claude 2026-10-13: changed (C4, P-6): the bound is in total,
-              // from the start of the settle: each message that arrives
-              // meanwhile no longer starts the wait again (with steady
-              // traffic, the settle of a slow component did not end); the
-              // deadline is the frame's (the settle and its re-check)
-              nanos.map { now =>
-                // claude 2026-10-13: changed (C4, review R1-3, R2-3): by
-                // difference, so that a negative `nanoTime` cannot overflow
-                // (`pendingNanos` and `waited` are not negative)
-                val waited = now - frameStart
-                // claude 2026-10-19: changed: the checked timeout
-                // (RunOptions, A10)
-                val left   =
-                  if waited <= 0L then runOpts.pendingNanos
-                  else runOpts.pendingNanos - waited
-                // claude 2026-10-13: changed (C4, review R2-2): a run that
-                // ends does not wait for the component
-                ending(w).map { end =>
-                  if left <= 0L || end then
-                      Loop.continue(w.copy(pending = Set.empty), 0, now, now)
-                  else
-                      Abort
-                        .run[Timeout | Closed](
-                          Async.timeout(Duration.fromNanos(left))(inbox.take),
-                        )
-                        .map {
-                          case Result.Success(m) =>
-                            absorb(w, m).map(w1 =>
-                              nanos.map(t => Loop.continue(w1, 0, t, t)),
-                            )
-                          case _                 =>
-                            nanos.map(t =>
-                              Loop.continue(
-                                w.copy(pending = Set.empty),
-                                0,
-                                t,
-                                t,
-                              ),
-                            )
-                        }
-                  end if
-                }
-              }
-          else
-              // The order is "probe, THEN drain". A loop that drains first,
-              // finds nothing, and then reads the probe can miss a watcher
-              // that posted between the drain and the probe: it is parked
-              // again when the probe runs, so the probe says "quiescent" and
-              // the frame flushes without that value (it gets its own
-              // Background frame). Seen on a 4-CPU container under CPU
-              // contention: 2-5 split frames per 500 events in the glitch
-              // test. "Done" needs the probe to say quiescent BEFORE a drain
-              // that finds nothing.
-              val idleBefore = options.settle match
-                  case Settle.Quiescent(_, _) => SchedulerProbe.quiescent()
-                  case Settle.Hops(_, _)      => true
-              Abort.run[Closed](inbox.drain).map {
-                case Result.Success(msgs) if msgs.nonEmpty =>
-                  Kyo
-                    .foldLeft(msgs)(w)(absorb)
-                    .map(w1 => nanos.map(t => Loop.continue(w1, 0, start, t)))
-                case _                                     =>
-                  nanos.map { now =>
-                    options.settle match
-                        // `quiet` counts quiescent observations in a row
-                        // (each followed by an empty drain); the settle ends
-                        // after `confirm` of them, one hop apart.
-                        // claude 2026-10-19: changed: the checked `max`
-                        // (RunOptions.settleNanos, A10)
-                        case Settle.Quiescent(_, confirm) =>
-                          if idleBefore && quiet + 1 >= confirm then
-                              Loop.done(w)
-                          else if now - start > runOpts.settleNanos then
-                              // claude 2026-10-12: changed (D-17 c, RR O6):
-                              // the frame counts the timeout; no print to
-                              // stderr
-                              Loop.done(
-                                w.copy(settleTimeouts = w.settleTimeouts + 1),
+          observe(
+            diagnostics.phase(
+              if w.pending.nonEmpty then DiagnosticPhase.Pending
+              else DiagnosticPhase.Settling,
+              w.backlog.size,
+              w.pending.size,
+            ),
+          ).andThen {
+            if w.pending.nonEmpty then
+                // a component mount is running its effect: its first content
+                // will come, wait for it (bounded)
+                // claude 2026-10-13: changed (C4, P-6): the bound is in total,
+                // from the start of the settle: each message that arrives
+                // meanwhile no longer starts the wait again (with steady
+                // traffic, the settle of a slow component did not end); the
+                // deadline is the frame's (the settle and its re-check)
+                nanos.map { now =>
+                  // claude 2026-10-13: changed (C4, review R1-3, R2-3): by
+                  // difference, so that a negative `nanoTime` cannot overflow
+                  // (`pendingNanos` and `waited` are not negative)
+                  val waited = now - frameStart
+                  // claude 2026-10-19: changed: the checked timeout
+                  // (RunOptions, A10)
+                  val left   =
+                    if waited <= 0L then runOpts.pendingNanos
+                    else runOpts.pendingNanos - waited
+                  // claude 2026-10-13: changed (C4, review R2-2): a run that
+                  // ends does not wait for the component
+                  ending(w).map { end =>
+                    if left <= 0L || end then
+                        Loop.continue(w.copy(pending = Set.empty), 0, now, now)
+                    else
+                        Abort
+                          .run[Timeout | Closed](
+                            Async.timeout(Duration.fromNanos(left))(inbox.take),
+                          )
+                          .map {
+                            case Result.Success(m) =>
+                              absorb(w, m).map(w1 =>
+                                nanos.map(t => Loop.continue(w1, 0, t, t)),
                               )
-                          else
-                              hop.andThen(
+                            case _                 =>
+                              nanos.map(t =>
                                 Loop.continue(
-                                  w,
-                                  if idleBefore then quiet + 1 else 0,
-                                  start,
-                                  last,
+                                  w.copy(pending = Set.empty),
+                                  0,
+                                  t,
+                                  t,
                                 ),
                               )
-                        // claude 2026-10-19: changed: the checked `window`
-                        // (RunOptions.settleNanos, A10)
-                        case Settle.Hops(hops, _)         =>
-                          if quiet >= hops && now - last >= runOpts.settleNanos
-                          then Loop.done(w)
-                          else
-                              hop.andThen(
-                                Loop.continue(w, quiet + 1, start, last),
-                              )
+                          }
+                    end if
                   }
-              }
-          end if
+                }
+            else
+                // The order is "probe, THEN drain". A loop that drains first,
+                // finds nothing, and then reads the probe can miss a watcher
+                // that posted between the drain and the probe: it is parked
+                // again when the probe runs, so the probe says "quiescent" and
+                // the frame flushes without that value (it gets its own
+                // Background frame). Seen on a 4-CPU container under CPU
+                // contention: 2-5 split frames per 500 events in the glitch
+                // test. "Done" needs the probe to say quiescent BEFORE a drain
+                // that finds nothing.
+                val idleBefore = options.settle match
+                    case Settle.Quiescent(_, _) => SchedulerProbe.quiescent()
+                    case Settle.Hops(_, _)      => true
+                Abort.run[Closed](inbox.drain).map {
+                  case Result.Success(msgs) if msgs.nonEmpty =>
+                    observe(
+                      diagnostics.drained(
+                        msgs.size,
+                        options.settle match
+                            case Settle.Quiescent(_, _) => Some(idleBefore)
+                            case _                      => None,
+                      ),
+                    ).andThen(
+                      Kyo
+                        .foldLeft(msgs)(w)(absorb)
+                        .map(w1 =>
+                          nanos.map(t => Loop.continue(w1, 0, start, t)),
+                        ),
+                    )
+                  case _                                     =>
+                    observe(
+                      diagnostics.drained(
+                        0,
+                        options.settle match
+                            case Settle.Quiescent(_, _) => Some(idleBefore)
+                            case _                      => None,
+                      ),
+                    ).andThen(nanos.map { now =>
+                      options.settle match
+                          // `quiet` counts quiescent observations in a row
+                          // (each followed by an empty drain); the settle ends
+                          // after `confirm` of them, one hop apart.
+                          // claude 2026-10-19: changed: the checked `max`
+                          // (RunOptions.settleNanos, A10)
+                          case Settle.Quiescent(_, confirm) =>
+                            if idleBefore && quiet + 1 >= confirm then
+                                Loop.done(w)
+                            else if now - start > runOpts.settleNanos then
+                                // claude 2026-10-12: changed (D-17 c, RR O6):
+                                // the frame counts the timeout; no print to
+                                // stderr
+                                observe(diagnostics.timedOut()).andThen(
+                                  Loop.done(
+                                    w.copy(settleTimeouts =
+                                      w.settleTimeouts + 1,
+                                    ),
+                                  ),
+                                )
+                            else
+                                hop.andThen(
+                                  Loop.continue(
+                                    w,
+                                    if idleBefore then quiet + 1 else 0,
+                                    start,
+                                    last,
+                                  ),
+                                )
+                          // claude 2026-10-19: changed: the checked `window`
+                          // (RunOptions.settleNanos, A10)
+                          case Settle.Hops(hops, _)         =>
+                            if quiet >= hops && now - last >= runOpts.settleNanos
+                            then Loop.done(w)
+                            else
+                                hop.andThen(
+                                  Loop.continue(w, quiet + 1, start, last),
+                                )
+                    })
+                }
+            end if
+          }
         }
       }
     end settle
@@ -820,6 +884,7 @@ private[tui4s] final class Runner private (
           case Result.Failure(e) => Abort.panic(e)
           case Result.Panic(e)   => Abort.panic(e)
 
+    // codex 2026-10-22: changed: observe render and receive-to-flush completion
     private def frame(
         w: World,
         seq: Long,
@@ -834,7 +899,13 @@ private[tui4s] final class Runner private (
           w.scrolled.isEmpty
         // claude 2026-10-19: changed: the start of the render is read inside
         // the effect (P2)
-        nanos.map { tr =>
+        observe(
+          diagnostics.phase(
+            DiagnosticPhase.Rendering,
+            w.backlog.size,
+            w.pending.size,
+          ),
+        ).andThen(nanos).map { tr =>
           Sync
             .defer {
               if idle then
@@ -910,36 +981,40 @@ private[tui4s] final class Runner private (
             .map { (w1, lines, s) =>
               // claude 2026-10-19: created (L1b): the warnings go to the
               // logger of the run (TuiLog), never to stdout
-              Kyo.foreach(lines)(Log.warn(_)).andThen(nanos).map { t1 =>
-                val emit = stats match
-                    case Present(_) if idle && cause == FrameCause.Background =>
-                      Kyo.unit // nothing happened: no frame
-                    case Present(ch) =>
-                      // claude 2026-10-19: changed: None when nothing has the
-                      // focus, not "" (P1b, A5 c)
-                      val focus = w1.focus.map { f =>
-                        w1.laid.nodes.get(f).map(_.kind) match
-                            case Some(Kind.El(e)) =>
-                              e.attrs.identifier.getOrElse(f.showLoc)
-                            case _                => f.showLoc
-                      }
-                      Abort
-                        .run[Closed](
-                          ch.put(
-                            s.copy(
-                              endNanos = t1,
-                              nanos = t1 - t0,
-                              handleNanos = handleNs,
-                              settleNanos = settleNs,
-                              renderNanos = t1 - tr,
-                              focus = focus,
+              observe(diagnostics.frameCompleted(seq, handleNs, settleNs, tr))
+                .andThen(Kyo.foreach(lines)(Log.warn(_)))
+                .andThen(nanos)
+                .map { t1 =>
+                  val emit = stats match
+                      case Present(_)
+                          if idle && cause == FrameCause.Background =>
+                        Kyo.unit // nothing happened: no frame
+                      case Present(ch) =>
+                        // claude 2026-10-19: changed: None when nothing has the
+                        // focus, not "" (P1b, A5 c)
+                        val focus = w1.focus.map { f =>
+                          w1.laid.nodes.get(f).map(_.kind) match
+                              case Some(Kind.El(e)) =>
+                                e.attrs.identifier.getOrElse(f.showLoc)
+                              case _                => f.showLoc
+                        }
+                        Abort
+                          .run[Closed](
+                            ch.put(
+                              s.copy(
+                                endNanos = t1,
+                                nanos = t1 - t0,
+                                handleNanos = handleNs,
+                                settleNanos = settleNs,
+                                renderNanos = t1 - tr,
+                                focus = focus,
+                              ),
                             ),
-                          ),
-                        )
-                        .unit
-                    case Absent      => Kyo.unit
-                emit.andThen(w1)
-              }
+                          )
+                          .unit
+                      case Absent      => Kyo.unit
+                  emit.andThen(w1)
+                }
             }
         }
     end frame
@@ -948,12 +1023,30 @@ end Runner
 private[tui4s] object Runner:
     /** A runner with a new gauge and a new quit flag of its own. */
     // claude 2026-10-19: created (P2, A7): the gauge and the flag are Kyo
-    // atomics, so they are made in `Sync`
+    // atomics, so they are made in `Sync`; codex 2026-10-22: changed: retain the old entry point with diagnostics disabled
     def init(
         inbox: Channel[Msg],
         canvas: Canvas,
         runOpts: RunOptions,
         stats: Maybe[Channel[FrameStats]],
+        knobs: Knobs = Knobs.default,
+    )(using Frame): Runner < Sync =
+      initDiagnosed(
+        inbox,
+        canvas,
+        runOpts,
+        stats,
+        DiagnosticRecorder.Disabled,
+        knobs,
+      )
+
+    // codex 2026-10-22: created: additive entry point for a run-owned diagnostic recorder
+    def initDiagnosed(
+        inbox: Channel[Msg],
+        canvas: Canvas,
+        runOpts: RunOptions,
+        stats: Maybe[Channel[FrameStats]],
+        diagnostics: DiagnosticRecorder,
         knobs: Knobs = Knobs.default,
     )(using Frame): Runner < Sync =
       for
@@ -962,5 +1055,15 @@ private[tui4s] object Runner:
           // claude 2026-10-19: created (L1b): the size signal
           size  <- Sync.defer(canvas.size)
           term  <- Signal.initRef(TerminalSize(size.w, size.h))
-      yield new Runner(inbox, canvas, runOpts, stats, knobs, gauge, quit, term)
+      yield new Runner(
+        inbox,
+        canvas,
+        runOpts,
+        stats,
+        knobs,
+        gauge,
+        quit,
+        term,
+        diagnostics,
+      )
 end Runner

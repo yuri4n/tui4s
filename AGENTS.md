@@ -19,12 +19,15 @@ two files above. Another agent reads the two files itself.
 - Mark each unit that you create or change, at the smallest unit: a list
   item, a paragraph, a table row, a function, a step. A mark gives the date,
   `created` or `changed`, and what changed:
-  `claude <YYYY-MM-DD>: created|changed: <what>`. Write it in the comment
-  syntax of the file: `<!-- ... -->` in Markdown, `// ...` in Scala, sbt and
+  `<agent> <YYYY-MM-DD>: created|changed: <what>`. Use the name of the agent
+  that made the change, for example `codex`. Write it in the comment syntax
+  of the file: `<!-- ... -->` in Markdown, `// ...` in Scala, sbt and
   JavaScript, `# ...` in shell, Python, YAML and HOCON (`.conf`).
+  <!-- codex 2026-10-23: changed: attribute each change to its actual agent. -->
 - Put one mark on a unit. When the unit has a mark already, add the new
-  change to that line (`...; <YYYY-MM-DD>: changed: <what>`). Do not stack a
-  second mark line.
+  change to that line (`...; <agent> <YYYY-MM-DD>: changed: <what>`). Keep
+  the names and dates of earlier authors. Do not stack a second mark line.
+  <!-- codex 2026-10-23: changed: preserve earlier authors when agents differ. -->
 - Never mark a whole file as changed: mark the units. A new file gets one
   mark line under its title. For a new file of moved text, that line tells
   where the text comes from, and the moved blocks keep their marks.
@@ -48,5 +51,8 @@ two files above. Another agent reads the two files itself.
   active voice.
 - A change of behaviour updates ARCHITECTURE.md in the same pull request. A
   change of process updates CONTRIBUTING.md in the same pull request.
-- Install the skills `functional-design` and `scala-functional-design`
-  before a change of code (CONTRIBUTING.md, "Purity", tells where).
+- Read the local skills before a change of code:
+  [functional-design](.agents/skills/functional-design/SKILL.md) and
+  [scala-functional-design](.agents/skills/scala-functional-design/SKILL.md).
+  CONTRIBUTING.md, "Purity", gives their source and update rule.
+  <!-- codex 2026-10-22: changed: use the local copies of the design skills. -->

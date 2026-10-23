@@ -50,6 +50,11 @@ jobs:
       # claude 2026-10-20: changed: CONTRIBUTING.md (ADR 0021)
       - name: Edge files and scalafix suppressions
         run: bash scripts/edge-check.sh
+      # codex 2026-10-22: created: validate latency measurement and failure accounting.
+      - name: Input measurement and benchmark accounting
+        run: |
+          python3 -m unittest discover -s examples/ptycheck -p latency_test.py
+          python3 -m unittest discover -s bench/harness -p test_perf.py
       # claude 2026-10-20: created (ADR 0022): the logo assets are the outputs
       # of scripts/logo/build.mjs for assets/logo/tui4s.txt; the check compares
       # the text files and the pixel sizes, and it starts no browser
@@ -137,6 +142,15 @@ jobs:
       - run: examples/ptycheck/run.sh
         env:
           PTY_WORK: ${{ runner.temp }}/ptycheck
+      # codex 2026-10-22: created: verify real input and diagnostic wiring on both terminal platforms.
+      - name: Settlement input and diagnostics
+        env:
+          PTY_WORK: ${{ runner.temp }}/ptycheck
+        run: |
+          JAVA_OPTS="-Dtui4s.diagnostics.file=$PTY_WORK/diagnostics.json" \
+            python3 examples/ptycheck/latency.py --keys 10 --rate 10 --deadline-ms 2000 \
+              --output "$PTY_WORK/latency.json" --command examples/target/bin/settlement
+          python3 examples/ptycheck/diagnostics_check.py "$PTY_WORK/diagnostics.json" "$PTY_WORK/latency.json"
       # The same checklist with the AOT cache of each example (bin/aot-train
       # of the distribution; the start scripts then use the caches). aot-train
       # fails when the JVM cannot use a cache that it made (-XX:AOTMode=on).

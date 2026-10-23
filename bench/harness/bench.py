@@ -24,6 +24,7 @@ import signal
 import statistics
 import subprocess
 import sys
+import tempfile  # codex 2026-10-22: created: atomically replace result files
 import time
 
 import compact
@@ -52,6 +53,7 @@ def result_path(stack, task):
     return os.path.join(RESULTS, f"{stack}-{task}.json")
 
 
+# codex 2026-10-22: changed: atomic replacement makes invalidating previous measurements reliable
 def update(path, section, value):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     data = {}
@@ -60,9 +62,16 @@ def update(path, section, value):
             data = json.load(f)
     data[section] = value
     data["machine"] = MACHINE
-    with open(path, "w") as f:
-        json.dump(data, f, indent=1, sort_keys=True)
-        f.write("\n")
+    pending = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", dir=os.path.dirname(path), delete=False) as f:
+            pending = f.name
+            json.dump(data, f, indent=1, sort_keys=True)
+            f.write("\n")
+        os.replace(pending, path)
+    finally:
+        if pending is not None and os.path.exists(pending):
+            os.unlink(pending)
 
 
 def load_json(path):
@@ -121,16 +130,60 @@ def machine():
 # -- perf
 
 
+# codex 2026-10-22: created: count every planned key, including the separate first-key sample
+PERF_COUNTS = ("keys_planned", "keys_attempted", "keys_completed", "keys_missing", "keys_unattempted")
+
+
+# codex 2026-10-22: created: preserve failures even when a run has successful latency samples
+def perf_run_errors(run):
+    errors = [str(run[key]) for key in ("error", "key_error") if run.get(key)]
+    if "exit" in run and run["exit"] != 0:
+        errors.append(f"exit {run['exit']}")
+    incomplete = any(run.get(key, 0) > 0 for key in ("keys_missing", "keys_unattempted"))
+    for key in ("keys_planned", "keys_attempted"):
+        if key in run and "keys_completed" in run and run[key] != run["keys_completed"]:
+            incomplete = True
+    if incomplete:
+        errors.append(f"incomplete keys: {run.get('keys_completed', '?')}/{run.get('keys_planned', '?')} completed, "
+                      f"{run.get('keys_missing', '?')} missing, {run.get('keys_unattempted', '?')} unattempted")
+    return errors
+
+
+# codex 2026-10-22: created: one failure policy for measurement, the CI gate and generated reports
+def perf_errors(summary):
+    if not summary:
+        return ["no result"]
+    errors = list(summary.get("errors", [])) + perf_run_errors(summary)
+    if "runs" in summary and not summary["runs"]:
+        errors.append("no runs recorded")
+    if "runs_planned" in summary and len(summary.get("runs", [])) != summary["runs_planned"]:
+        errors.append(f"incomplete runs: {len(summary.get('runs', []))}/{summary['runs_planned']} recorded")
+    for i, run in enumerate(summary.get("runs", []), 1):
+        errors.extend(f"run {i}: {error}" for error in perf_run_errors(run))
+    if not errors and (summary.get("error_count", 0) > 0 or summary.get("runs_failed", 0) > 0):
+        errors.append("recorded performance failures (details unavailable)")
+    return list(dict.fromkeys(errors))
+
+
+# codex 2026-10-22: created: older measurements cannot establish key completeness without counts
+def perf_counts_known(summary):
+    runs = summary.get("runs", [])
+    return bool(runs) and all(all(key in run for key in PERF_COUNTS) for run in runs)
+
+
+# codex 2026-10-22: changed: record attempted, completed and unanswered keys before aggregating latency
 def perf_once(stack, task, keys, idle_s):
     s = session(stack, task)
-    out = {}
+    out = dict.fromkeys(PERF_COUNTS, 0)
+    out.update(keys_planned=keys + 1, keys_unattempted=keys + 1)
     try:
         if task == "counter":
             first = s.expect(lambda x: "Count: 0" in x.text(), 30)
         else:
             first = s.expect(lambda x: oracle.selected_is(1)(x) and oracle.marked(x) == 1, 30)
         if first is None:
-            return {"error": "no first frame: " + oracle.screen_dump(s)}
+            out["error"] = "no first frame: " + oracle.screen_dump(s)
+            return out
         out["first_frame_ms"] = ms(first - s.t0)
         time.sleep(0.5)
         lat = []
@@ -140,11 +193,15 @@ def perf_once(stack, task, keys, idle_s):
             else:
                 pred, data = oracle.selected_is(i + 2), "down"
             p = s.arm(pred)
+            out["keys_attempted"] += 1
+            out["keys_unattempted"] -= 1
             t = s.send(data)
             hit = s.await_armed(p, 2.0)
             if hit is None:
+                out["keys_missing"] += 1
                 out["key_error"] = f"key {i + 1}: no effect in 2 s"
                 break
+            out["keys_completed"] += 1
             lat.append(hit - t)
             time.sleep(0.02)
         if lat:
@@ -181,16 +238,30 @@ def perf_once(stack, task, keys, idle_s):
     return out
 
 
+# codex 2026-10-22: changed: retain counts and errors beside partial timing samples, fail the command;
+# invalidate previous timings before starting so exceptions cannot leave a stale successful result
 def perf(args):
+    failed = False
     for stack in args.stacks:
         for task in args.tasks:
+            update(result_path(stack, task), "perf", {
+                "error": "performance measurement did not finish; re-run perf",
+                "runs": [], "runs_planned": args.runs, "keys_planned": args.runs * (args.keys + 1),
+            })
             runs = []
             for r in range(args.runs):
                 log(f"perf {stack} {task} run {r + 1}/{args.runs}")
                 runs.append(perf_once(stack, task, args.keys, args.idle))
                 time.sleep(0.5)
             size, what = st.artifact(stack, task)
-            summary = {"runs": runs, "artifact_mb": round(size / 1e6, 2), "artifact": what}
+            summary = {"runs": runs, "runs_planned": args.runs, "runs_recorded": len(runs),
+                       "runs_failed": sum(bool(perf_run_errors(run)) for run in runs),
+                       "artifact_mb": round(size / 1e6, 2), "artifact": what}
+            if perf_counts_known(summary):
+                summary.update({key: sum(run[key] for run in runs) for key in PERF_COUNTS})
+            summary["errors"] = perf_errors(summary)
+            summary["error_count"] = len(summary["errors"])
+            failed = failed or bool(summary["errors"])
             for key in ("first_frame_ms", "first_key_ms", "key_median_ms", "key_p90_ms", "cpu_pct", "rss_mb",
                         "tick_gap_p50_ms", "tick_gap_p90_ms", "ticks_skipped_pct"):
                 vals = [x[key] for x in runs if x.get(key) is not None]
@@ -199,6 +270,9 @@ def perf(args):
             update(result_path(stack, task), "perf", summary)
             log(f"  first frame {summary['first_frame_ms']} ms, key {summary['key_median_ms']} ms, "
                 f"cpu {summary['cpu_pct']} %, rss {summary['rss_mb']} MB, artifact {summary['artifact_mb']} MB")
+            for error in summary["errors"]:
+                log("  FAIL:", error)
+    return 1 if failed else 0
 
 
 # -- conformance
@@ -671,6 +745,7 @@ EXPECTED = {
 REFERENCE = os.environ.get("BENCH_REFERENCE", "container-4vcpu")
 
 
+# codex 2026-10-22: changed: performance failures, incomplete samples and unknown coverage fail the CI gate
 def check(args):
     """Exits 1 when a step fails that EXPECTED does not list, a section is missing, or a mutant outcome differs
     from the reference machine."""
@@ -679,6 +754,11 @@ def check(args):
     for stack in args.stacks:
         for task in args.tasks:
             data = load_json(result_path(stack, task))
+            summary = data.get("perf")
+            perf_failures = perf_errors(summary)
+            if not perf_failures and not perf_counts_known(summary):
+                perf_failures = ["key completion unknown; re-run perf to record counts"]
+            errors.extend(f"{stack} {task} perf: {error}" for error in perf_failures)
             for section in ("conformance", "resilience", "change"):
                 sec = data.get(section)
                 if sec is None:
@@ -738,6 +818,7 @@ def peek(argv):
         s.close()
 
 
+# codex 2026-10-22: changed: propagate performance failures through the process exit code
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == "peek":
         return peek(sys.argv[2:])
@@ -756,19 +837,21 @@ def main():
     if args.quick:
         args.runs, args.keys, args.idle = 1, 10, 2.0
     if args.command == "check":
-        sys.exit(check(args))
+        return check(args)
     machine()
+    status = 0
     if args.command in ("conformance", "all"):
         conformance(args)
     if args.command in ("resilience", "all"):
         resilience(args)
     if args.command in ("perf", "all"):
-        perf(args)
+        status = perf(args)
     if args.command in ("change", "all"):
         change(args)
     if args.command in ("mutants", "all"):
         mutants(args)
+    return status
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())  # codex 2026-10-22: changed: expose the command status to bench/run.sh
