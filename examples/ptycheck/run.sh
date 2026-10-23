@@ -54,6 +54,10 @@ echo "ptycheck: java $java_bin (Java $java_major)"
 # and the examples need no network: the runs of the apps do not get them. sbt
 # above keeps them (it may need the proxy).
 unset JAVA_TOOL_OPTIONS JDK_JAVA_OPTIONS
+# The screen checks require color and bold styles. Keep that terminal mode
+# fixed: inherited NO_COLOR can reset bold when the backend emits a color.
+# codex 2026-10-23: changed: control color mode for the style checklist
+unset NO_COLOR
 # A fresh home for the apps of this pass: a new empty directory under the
 # work dir is HOME and each XDG base directory, and JAVA_OPTS of the start
 # scripts sets the JVM property user.home to it. The JVM takes user.home from

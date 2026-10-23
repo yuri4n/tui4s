@@ -23,6 +23,8 @@ CDPATH='' cd "$(dirname "$0")/.."
 edge=(
   modules/runner/src/main/scala/tui4s/internal/Canvas.scala
   modules/runner/src/main/scala/tui4s/internal/Crossterm.scala
+  # codex 2026-10-22: created: the diagnostic recorder wraps JVM clocks, threads and files.
+  modules/runner/src/main/scala/tui4s/internal/DiagnosticRecorder.scala
   modules/runner/src/main/scala/tui4s/internal/LogSink.scala
   modules/runner/src/main/scala/tui4s/internal/OutputCapture.scala
   modules/runner/src/main/scala/tui4s/internal/ReleaseStack.scala

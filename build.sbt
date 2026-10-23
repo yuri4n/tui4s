@@ -71,9 +71,10 @@ ThisBuild / tpolecatDevModeOptions ++= Set(
 // claude 2026-10-12: created
 ThisBuild / tpolecatExcludeOptions += ScalacOptions.privateCheckAllPatmat
 
-// Unreleased inter-project deps have dynver versions like 0.2.0+3-1a2b3c4d.
+// Unreleased inter-project deps can include an RC qualifier before +<distance>.
+// codex 2026-10-23: changed: ignore dynver snapshots of release candidates too.
 ThisBuild / versionPolicyIgnoredInternalDependencyVersions :=
-  Some("^\\d+\\.\\d+\\.\\d+\\+\\d+".r)
+  Some("^\\d+\\.\\d+\\.\\d+(?:-(?:alpha|beta|M|RC)\\d+)?\\+\\d+".r)
 
 // One test JVM at a time (D-9). The runner tests settle on the JVM-wide Kyo
 // scheduler. A second test JVM on the same CPUs raises the rate of split
@@ -227,11 +228,14 @@ def crossModule(id: String): CrossProject =
         tagPrefix = s"$id-v",
         paths = Seq(s"modules/$id", "build.sbt", "project"),
       ),
-      name                   := s"tui4s-$id",
+      name                          := s"tui4s-$id",
       // modules/<id>/compat.sbt sets the intention of the aggregate project
       // <id> (its base directory); both platforms take it from there.
-      versionPolicyIntention :=
+      versionPolicyIntention        :=
         (LocalProject(id) / versionPolicyIntention).value,
+      // codex 2026-10-23: created: both platforms use the published RC baseline.
+      versionPolicyPreviousVersions :=
+        (LocalProject(id) / versionPolicyPreviousVersions).value,
       // kyo-kernel's POM brings JMH in compile scope (see
       // modules/runner/build.sbt): keep it out of the POM of the module.
       // claude 2026-10-19: changed: modules/runner (D25)

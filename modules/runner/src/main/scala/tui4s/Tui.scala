@@ -3,6 +3,7 @@ package tui4s
 import kyo.*
 import tui4s.internal.{
   Crossterm,
+  DiagnosticRecorder,
   Hooks,
   LogSink,
   Msg,
@@ -199,7 +200,7 @@ object Tui:
       * (a quit, a failure, an interrupt). The runner runs on the run fiber, as
       * `Headless.start` builds it.
       */
-    // claude 2026-10-19: changed (P3, A1): the release is the stack
+    // claude 2026-10-19: changed (P3, A1): the release is the stack; codex 2026-10-22: changed: share optional diagnostics across input and runner
     private def onTerminal(
         options: RunOptions,
         control: TerminalIO,
@@ -207,15 +208,26 @@ object Tui:
     )(
         ui: (Unit < Sync) => UI < (Async & Scope),
     )(using Frame): Unit < (Async & Abort[TuiError]) =
-      Channel.initUnscoped[Msg](options.inboxCapacity).map { inbox =>
-        Sync.acquireReleaseWith(
-          Session.open(options, control, None, inbox, stack),
-        )(_ => Sync.defer(stack.runAll())) { opened =>
-          Abort.get(opened).map { session =>
-            Runner.init(inbox, session.canvas, options, Absent).map { runner =>
-              Scope
-                .run(runner.scoped(ui(runner.quit).map(runner.run)))
-                .andThen(inputFailed(session))
+      DiagnosticRecorder.open(options, stack).map { diagnostics =>
+        Channel.initUnscoped[Msg](options.inboxCapacity).map { inbox =>
+          Sync.acquireReleaseWith(
+            Session
+              .openDiagnosed(options, control, None, inbox, stack, diagnostics),
+          )(_ => Sync.defer(stack.runAll())) { opened =>
+            Abort.get(opened).map { session =>
+              Runner
+                .initDiagnosed(
+                  inbox,
+                  session.canvas,
+                  options,
+                  Absent,
+                  diagnostics,
+                )
+                .map { runner =>
+                  Scope
+                    .run(runner.scoped(ui(runner.quit).map(runner.run)))
+                    .andThen(inputFailed(session))
+                }
             }
           }
         }
