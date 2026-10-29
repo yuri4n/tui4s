@@ -1,9 +1,10 @@
 package tui4s
 
 /** Reusable kyo-ui widgets for the terminal and the web. They are plain kyo-ui
-  * code: the package does not depend on tui4s-core, and it builds for the JVM
-  * and for Scala.js. It uses the composables of tui4s-use (`useSelection`,
-  * `useScrollWindow`, `useDialog`, `Keymap`, `debounced`, `useNow`).
+  * code: the package does not depend on the terminal runner, and it builds for
+  * the JVM and for Scala.js. The JVM classes ship in tui4s-core. It uses the
+  * composables of tui4s-use (`useSelection`, `useScrollWindow`, `useDialog`,
+  * `Keymap`, `debounced`, `useNow`).
   *
   * The conventions of every widget:
   *   - Shape: a function of a companion object that returns the UI
@@ -135,5 +136,5 @@ package tui4s
 // claude 2026-10-19: created (L2a): the empty package of tui4s-widgets;
 // changed: the conventions, the widgets, the colour variables and the plan
 // (L2b); the shapes, the field lists and the sizes (L2b review); the themes
-// (L4); the sizes are terminal cells (L4 review)
+// (L4); the sizes are terminal cells (L4 review); cursor 2026-10-29: changed: the JVM classes ship in tui4s-core (ADR 0024)
 package object widgets

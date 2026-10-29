@@ -1,12 +1,12 @@
 <!-- claude 2026-10-20: created (L6, ADR 0014) -->
 # Changelog
 
-<!-- claude 2026-10-20: changed: CONTRIBUTING.md names the versioning rules (ADR 0021) -->
+<!-- claude 2026-10-20: changed: CONTRIBUTING.md names the versioning rules (ADR 0021); cursor 2026-10-29: changed: the published modules are runner, testkit and core (ADR 0024) -->
 All notable changes to the published modules of tui4s are in this file. The
-format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each
-module has its own version and its own tag (`<module>-v<version>`); the
-versions follow early semantic versioning (CONTRIBUTING.md, "Compatibility
-and versioning").
+format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The
+published modules are `runner`, `testkit` and `core`. Each one has its own
+version and its own tag (`<module>-v<version>`); the versions follow early
+semantic versioning (CONTRIBUTING.md, "Compatibility and versioning").
 
 <!-- codex 2026-10-22: changed: the first release is published; keep the Kyo qualifier. -->
 The first release is `0.1.0-RC1` for each module. Releases keep an RC
@@ -21,6 +21,14 @@ to the GitHub release of the module (`scripts/changelog-section.sh`). The
 workflow stops before it creates a tag when a subsection is missing.
 
 ## [Unreleased]
+
+### tui4s-core
+
+- Changed: the jar holds `TuiApp`, `tui4s.use` and `tui4s.widgets`. The POM
+  still depends on tui4s-runner and tui4s-testkit. `tui4s-app`, `tui4s-use`
+  and `tui4s-widgets` are not published. `0.1.0-RC1` of those coordinates
+  stays on Maven Central.
+  <!-- cursor 2026-10-29: created: three published artifacts (ADR 0024) -->
 
 ## [0.1.1-RC1] - 2026-10-29
 <!-- codex 2026-10-23: changed: prepare the coordinated diagnostic release.; cursor 2026-10-29: changed: the date, and the notes include bounded settlement and sampled crowded regions. -->

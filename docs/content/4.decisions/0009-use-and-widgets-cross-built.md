@@ -24,7 +24,9 @@ Accepted
 
 - `tui4s-use` (package `tui4s.use`) has 13 composables over `SignalRef`, `Signal` and `Scope`: Pacing, Selection, History, ScrollWindow, TimeAgo, Keymap, AsyncState, Dialog, Storage, useProcess and others. Each takes its lifetime from the caller's `Scope`.
 - `tui4s-widgets` (package `tui4s.widgets`) has 31 widgets on `tui4s-use`: containers, data, input, feedback and navigation families.
-- Both are cross-built (JVM and Scala.js, `CrossType.Full`) and depend on kyo-ui only, not on `tui4s-core`. Each has its own tag (`use-v*`, `widgets-v*`).
+- Both are cross-built (JVM and Scala.js, `CrossType.Full`) and depend on kyo-ui only, not on the runner. Each has its own tag (`use-v*`, `widgets-v*`).
+- CHANGED by [ADR 0024](/decisions/0024-three-artifacts-one-central-deployment) (2026-10-29): the JVM classes ship in `tui4s-core`. The Scala.js projects stay in the build and are not published. New releases do not create `use-v*` or `widgets-v*` tags.
+  <!-- cursor 2026-10-29: created: this item -->
 - A widget takes typed props, a `Model` for its value (`Local`: the widget owns it; `Bound`: the parent's `SignalRef`, written before `onChange`; `Controlled`: the parent's `Signal`, and `onChange` asks), and function slots.
 - A widget takes its colours from the `--tui4s-*` custom properties (`Colors`, 8 `Color.Var` names) and also shows its state with a mark (`›`, `[x]`, bold).
 - The README section "You may not need a composable" comes first: it shows the native Kyo line for each common hook.

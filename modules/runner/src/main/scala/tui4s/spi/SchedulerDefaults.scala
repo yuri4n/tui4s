@@ -6,7 +6,7 @@ package tui4s.spi
   * while the app is idle. These settings make its timers slower, which cuts the
   * idle cost to about 4-8%. They are JVM system properties that Kyo reads once,
   * when its scheduler starts, so they must be set before the first Kyo class
-  * loads. `tui4s.TuiApp` (artifact tui4s-app) calls [[applyIfUnset]] first in
+  * loads. `tui4s.TuiApp` (artifact tui4s-core) calls [[applyIfUnset]] first in
   * its constructor; an app with a main of its own can call it first in its
   * main, or give the values as JVM flags.
   *
@@ -38,7 +38,7 @@ package tui4s.spi
 // section; TuiApp, not the facades' classes, which do not exist yet); the code
 // is carried unchanged (RC-25)
 // claude 2026-10-19: changed: the Scaladoc of blockingMonitorMinIntervalNs;
-// TuiApp is in tui4s-app (D25)
+// TuiApp is in tui4s-app (D25); cursor 2026-10-29: changed: TuiApp ships in tui4s-core (ADR 0024)
 // (C2)
 object SchedulerDefaults:
     /** The property that turns the defaults off:

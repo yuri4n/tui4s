@@ -56,8 +56,9 @@ What tui4s gives
   Composables and widgets
 
   #description
-  `tui4s-use` and `tui4s-widgets` are plain kyo-ui code for the JVM and Scala.js.
+  The composables and the widgets are plain kyo-ui code. They ship in `tui4s-core`. The sources also build for Scala.js.
   :::
+  <!-- cursor 2026-10-29: changed: the composables and the widgets ship in tui4s-core (ADR 0024) -->
 
   :::u-page-feature
   ---

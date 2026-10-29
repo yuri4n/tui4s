@@ -51,10 +51,10 @@ val javaOnly: Seq[Setting[_]] = Seq(
   autoScalaLibrary := false
 )
 
+// tui4s-core brings the runner, TuiApp, the composables and the widgets.
+// cursor 2026-10-29: changed: one coordinate (ADR 0024)
 lazy val tui4sDeps = Seq(
   "io.github.yuri4n" %% "tui4s-core" % tui4sVersion,
-  "io.github.yuri4n" %% "tui4s-widgets" % tui4sVersion,
-  "io.github.yuri4n" %% "tui4s-use" % tui4sVersion
 )
 
 // kyo-kernel's POM has JMH in compile scope; tui4s excludes it too.

@@ -19,7 +19,7 @@ The five tasks of stage 2 are in [tasks/README.md](tasks/README.md).
 
 | Stack | Language | Versions | Notes |
 | ----- | -------- | -------- | ----- |
-| [tui4s](impl/tui4s) | Scala 3.9.0, JDK 25 | tui4s (this repository), Kyo and kyo-ui 1.0.0-RC7, jatatui 0.31.0 | `TuiApp`, kyo-ui, tui4s-use, tui4s-widgets |
+| [tui4s](impl/tui4s) | Scala 3.9.0, JDK 25 | tui4s (this repository), Kyo and kyo-ui 1.0.0-RC7, jatatui 0.31.0 | `TuiApp`, kyo-ui, composables and widgets from tui4s-core |
 | [jatatui-plain](impl/jatatui-plain) | Java 25 | jatatui 0.31.0 | the same jatatui and crossterm jars as tui4s, no Kyo: the JVM floor |
 | [TamboUI](impl/tamboui) | Java 25 | TamboUI 0.6.0 | a Java library (the program listed it as .NET; it is on Maven Central, not NuGet) |
 | [layoutz](impl/layoutz) | Scala 3.9.0, JDK 25 | layoutz 0.8.0 | no alternate screen, no resize, no last row: see its README |
@@ -27,6 +27,8 @@ The five tasks of stage 2 are in [tasks/README.md](tasks/README.md).
 | [bubbletea](impl/bubbletea) | Go 1.24 | bubbletea 1.3.10, bubbles 1.0.0, lipgloss 1.1.0 | |
 | [Textual](impl/textual) | Python 3.11 | Textual 8.2.8 | a signal handler for SIGTERM and SIGINT |
 | [ink](impl/ink) | Node.js 22 | ink 8.0.0, React 19.3.1 | esbuild for the JSX |
+
+<!-- cursor 2026-10-29: changed: the tui4s row names tui4s-core (ADR 0024) -->
 
 Dropped or reduced in stage 1: TamboUI as a .NET stack (it is a Java stack
 here); 1 mutant class of tui4s, 1 of TamboUI, 2 of bubbletea, 4 of Textual,

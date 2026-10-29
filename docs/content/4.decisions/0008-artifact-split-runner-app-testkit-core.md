@@ -24,6 +24,8 @@ Accepted
 ## Decision
 
 - The repository publishes four artifacts for the terminal: `tui4s-runner` (Layout, Paint, Canvas, Runner, Mount, Dispatch, the terminal code, `Hooks`, `Component`, `Tui.run`, `TuiOptions`, `Tui.size`, `Screen`, `tui4s.spi`), `tui4s-app` (`TuiApp`), `tui4s-testkit` (`Headless`, aliases of the `Screen` types) and the composite `tui4s-core`.
+- CHANGED by [ADR 0024](/decisions/0024-three-artifacts-one-central-deployment) (2026-10-29): the published artifacts are `tui4s-runner`, `tui4s-testkit` and `tui4s-core`. The core jar holds `TuiApp`, `tui4s.use` and `tui4s.widgets`. The POM of core depends on the runner and the test kit.
+  <!-- cursor 2026-10-29: created: this item -->
 - The jar of `tui4s-core` holds only `object tui4s.Core`. It depends on the three, and its test sources are the integration suites.
 - All artifacts use the same packages (`tui4s`, `tui4s.internal`, `tui4s.spi`, `tui4s.testkit`), so imports do not change.
 - `tui4s.internal` is sealed: each top-level definition is `private[tui4s]`. `PublicApiTest` checks the seal across the four jars, and that no public signature names an internal type.

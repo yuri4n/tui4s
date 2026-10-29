@@ -8,7 +8,8 @@ The dashboard uses the widgets of tui4s-widgets (`ListView.virtual`, `Gauge`,
 
 | Item | Version |
 | ---- | ------- |
-| tui4s (runner, app, use, widgets) | the local snapshot of this repository (`bench/tui4s.version`, written by `bench/run.sh`) |
+| tui4s-core (runner, TuiApp, use, widgets) | the local snapshot of this repository (`bench/tui4s.version`, written by `bench/run.sh`) |
+<!-- cursor 2026-10-29: changed: the version row is tui4s-core (ADR 0024) -->
 | Kyo, kyo-ui | 1.0.0-RC7 |
 | jatatui | 0.31.0 |
 | Scala | 3.9.0 |
