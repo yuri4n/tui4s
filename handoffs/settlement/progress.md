@@ -115,3 +115,37 @@ must stay independent. Snapshot the generation before checking closure on
 every retry, then fail with Closed after shutdown. Preserve cancellation and
 lazy message construction. Meter does not guarantee FIFO fairness; do not
 claim starvation freedom or a latency fix before measurement.
+
+## Checkpoint 4, rejected: one capacity waiter
+
+<!-- cursor 2026-10-28: created: record the waiter result as a rejected draft. -->
+Draft PR #62 held one admission permit across the capacity wait. Focused
+concurrency checks passed. The loaded input runs did not. At 128 regions
+with diagnostics off, one run missed 8 keys and exited 143. A repeat showed
+every key and a 1.61 s p95. At 512 regions the p95 fell from about 2.3 s to
+about 300–480 ms, and every key was still late against 100 ms. Thread dumps
+showed Kyo workers in effect-remainder draining, with one busy worker. The
+change stays a draft. It is not the base of the next fix.
+
+## Checkpoint 5: sample reactive regions past 32 watchers
+
+<!-- cursor 2026-10-28: created: state the sampling decision and the acceptance gate. -->
+The branch `cursor/sample-reactive-regions-296f` starts at checkpoint 3.
+The mount keeps a watcher for the first 32 reactive regions. Further reactive
+regions are read in slices of 32 on background frames. An input frame still
+reads the watched set and the focused region. A queued input paints before
+the next background frame. The CI gate is 250 ms on the continuous
+128-region workload with diagnostics off. ADR 0023 records the contract.
+
+<!-- cursor 2026-10-28: created: record two 128-region passes and the remaining 512-region misses. -->
+Local PTY runs on this branch, 60 keys at 10 per second, diagnostics off,
+deadline 250 ms, busy continuous load:
+
+| Regions | Visible | Missing | Deadline failures | p95 | Maximum | Graceful shutdown |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| 128, run A | 60/60 | 0 | 0 | 48.6 ms | 113.8 ms | Yes |
+| 128, run B | 60/60 | 0 | 0 | 52.2 ms | 91.7 ms | Yes |
+| 512 | 43/60 | 17 | 19 | 184.7 ms | 302.9 ms | Yes |
+
+The 128-region runs meet the 250 ms gate. The 512-region run is faster than
+checkpoint 3 and still misses keys. It is not the CI gate.

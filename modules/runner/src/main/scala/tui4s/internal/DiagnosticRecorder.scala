@@ -49,7 +49,7 @@ private[tui4s] sealed abstract class DiagnosticRecorder(val enabled: Boolean):
             ),
           )
 
-    // codex 2026-10-22: created: count dequeued notifications, including a live settle; codex 2026-10-23: changed: include current-state change notices.
+    // codex 2026-10-22: created: count dequeued notifications, including a live settle; codex 2026-10-23: changed: include current-state change notices; cursor 2026-10-28: changed: a sample tick adds no counts.
     final def seen(msg: Msg): Unit =
       if enabled then
           val now = java.lang.System.nanoTime()
@@ -62,7 +62,8 @@ private[tui4s] sealed abstract class DiagnosticRecorder(val enabled: Boolean):
                   s.copy(contents = s.contents + 1)
                 case _: Msg.Armed                    => s.copy(armed = s.armed + 1)
                 case Msg.Repair                      => s.copy(repairs = s.repairs + 1)
-                case Msg.Quit                        => s,
+                // cursor 2026-10-28: created: a sample tick carries no application contents.
+                case Msg.Sample | Msg.Quit           => s,
           )
 
     // codex 2026-10-22: created: dispatch time includes time deferred in World.backlog

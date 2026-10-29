@@ -11,9 +11,11 @@ import scala.annotation.unused
 /** Mounting and unmounting regions. A mount reads the signal's current value
   * synchronously (so the first frame needs no scheduler round trip) and starts
   * one watcher fiber that posts change notices to the runner's inbox. The
-  * runner reads the signal's current value when it handles a notice.
+  * runner reads the signal's current value when it handles a notice. A reactive
+  * region past [[ReactiveBudget.watchedLimit]] has no watcher; the runner
+  * samples its current value.
   */
-// claude 2026-10-19: changed: the gauge of the run, a parameter (P2, A7); codex 2026-10-23: changed: accept the run's background admission gate.
+// claude 2026-10-19: changed: the gauge of the run, a parameter (P2, A7); codex 2026-10-23: changed: accept the run's background admission gate; cursor 2026-10-28: changed: sample reactive regions past the watcher budget.
 private[tui4s] final class Mount(
     @unused inbox: Channel[Msg],
     gauge: FiberGauge,
@@ -113,7 +115,7 @@ private[tui4s] final class Mount(
       * with the same signal (or ref) is kept as is with its watcher and its
       * content.
       */
-    // claude 2026-10-19: changed: the steps of Loc (P2, A6)
+    // claude 2026-10-19: changed: the steps of Loc (P2, A6); cursor 2026-10-28: changed: sample reactive regions past the watcher budget.
     def walk(ui: UI, path: Loc, w: World, reclaim: Map[Loc, RegionState])(using
         Frame,
     ): World < Sync =
@@ -147,31 +149,52 @@ private[tui4s] final class Mount(
                         )
                       case _ =>
                         val (gen, w1) = w.gen
-                        for
-                            cur     <- r.signal.current
-                            watcher <- watch(r.signal, path, gen)
-                            region   = RegionState(
-                                         path,
-                                         Source.One(r.signal),
-                                         gen,
-                                         Content.Single(cur),
-                                         Vector.empty,
-                                         Some(watcher),
-                                       )
-                            w2      <- walk(
-                                         cur,
-                                         path.content,
-                                         newWatcher(
+                        if ReactiveBudget.watchAnother(w1.reactiveWatchers) then
+                            for
+                                cur     <- r.signal.current
+                                watcher <- watch(r.signal, path, gen)
+                                region   = RegionState(
+                                             path,
+                                             Source.One(r.signal),
+                                             gen,
+                                             Content.Single(cur),
+                                             Vector.empty,
+                                             Some(watcher),
+                                           )
+                                w2      <- walk(
+                                             cur,
+                                             path.content,
+                                             newWatcher(
+                                               w1.copy(regions =
+                                                 w1.regions.updated(path, region),
+                                               ),
+                                               path,
+                                               gen,
+                                             ),
+                                             reclaim,
+                                           )
+                            yield w2
+                        else
+                            for
+                                cur   <- r.signal.current
+                                region = RegionState(
+                                           path,
+                                           Source.One(r.signal),
+                                           gen,
+                                           Content.Single(cur),
+                                           Vector.empty,
+                                           None,
+                                         )
+                                w2    <- walk(
+                                           cur,
+                                           path.content,
                                            w1.copy(regions =
                                              w1.regions.updated(path, region),
                                            ),
-                                           path,
-                                           gen,
-                                         ),
-                                         reclaim,
-                                       )
-                        yield w2
-                        end for
+                                           reclaim,
+                                         )
+                            yield w2
+                        end if
                   end match
             end match
           // claude 2026-10-19: changed: a type pattern binds the item type

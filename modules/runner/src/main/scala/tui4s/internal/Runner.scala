@@ -150,7 +150,7 @@ private[tui4s] final class Runner private (
         yield ()
       })
 
-    // codex 2026-10-22: changed: observe waiting and dispatch without changing ordering
+    // codex 2026-10-22: changed: observe waiting and dispatch without changing ordering; cursor 2026-10-28: changed: a background frame yields when input is queued.
     private def step(
         w: World,
     )(using Frame): Loop.Outcome[World, World] < Async =
@@ -209,22 +209,35 @@ private[tui4s] final class Runner private (
                                      case Msg.Resize(_, s) =>
                                        (s, FrameCause.Input)
                                      case _                => (0L, FrameCause.Background)
-                  w4          <- frame(w3, seq, cause, t0, t1 - t0, t2 - t1)
+                  w4          <-
+                    paintFrame(w3, input, seq, cause, t0, t1 - t0, t2 - t1)
               yield Loop.continue(w4)
             }
       }
 
-    // codex 2026-10-22: changed: record first inbox removal before a possible backlog wait; codex 2026-10-23: changed: wake background senders after removal.
+    // codex 2026-10-22: changed: record first inbox removal before a possible backlog wait; codex 2026-10-23: changed: wake background senders after removal; cursor 2026-10-28: changed: sample idle reactive regions.
     private def next(w: World)(using Frame): (Msg, World) < Async =
       w.backlog.headOption match
           case Some(m) => (m, w.copy(backlog = w.backlog.tail))
           case None    =>
-            Abort.run[Closed](inbox.take).map {
-              case Result.Success(m) =>
+            val wait =
+              if w.hasSampled then
+                  Abort.run[Timeout | Closed](
+                    Async.timeout(
+                      Duration.fromNanos(ReactiveBudget.sampleNanos),
+                    )(
+                      inbox.take,
+                    ),
+                  )
+              else Abort.run[Closed](inbox.take)
+            wait.map {
+              case Result.Success(m)          =>
                 admission.released
                   .andThen(observe(diagnostics.seen(m)))
                   .andThen((m, w))
-              case _                 => (Msg.Quit, w)
+              case Result.Failure(_: Timeout) =>
+                observe(diagnostics.seen(Msg.Sample)).andThen((Msg.Sample, w))
+              case _                          => (Msg.Quit, w)
             }
 
     // claude 2026-10-13: created (C3)
@@ -260,6 +273,8 @@ private[tui4s] final class Runner private (
           // claude 2026-10-19: changed: the region leaves World.unarmed (P2)
           case Msg.Armed(p, g)                                     => verifyRegion(w.armed(p, g), p, Some(g))
           case Msg.Repair                                          => repairAll(w)
+          // cursor 2026-10-28: created: the sample frame's reads happen in verify.
+          case Msg.Sample                                          => w
           case Msg.Quit                                            => w.copy(quit = true)
 
     /** The settle, the verify pass, and the re-check (D-17 c): when the verify
@@ -311,38 +326,50 @@ private[tui4s] final class Runner private (
       * value with closures never compares equal).
       *
       * The pull check (D-17 c, spike S1 section 4.3) adds every bound and
-      * `Foreach` region. An Input step also pulls each reactive region. A
-      * derived signal computes `current` synchronously, so this sees the
-      * event's writes before a watcher notice arrives. Targets are a snapshot
-      * of paths and generations, with parents first. A remount can replace a
-      * descendant; that older generation is skipped. Fresh descendants are read
-      * by their mount, without a recursive verification cascade.
+      * `Foreach` region. An Input step also pulls each watched reactive region.
+      * Sampled reactive regions rotate through later frames. A derived signal
+      * computes `current` synchronously, so this sees the event's writes before
+      * a watcher notice arrives. Targets are a snapshot of paths and
+      * generations, with parents first. A remount can replace a descendant;
+      * that older generation is skipped. Fresh descendants are read by their
+      * mount, without a recursive verification cascade.
       */
     // claude 2026-10-12: created (RC-9, RC-11)
     // claude 2026-10-13: changed: the Scaladoc names the keys and the paste
-    // (C3); codex 2026-10-23: changed: pull input consequences from a finite generation snapshot.
+    // (C3); codex 2026-10-23: changed: pull input consequences from a finite generation snapshot; cursor 2026-10-28: changed: sample reactive regions past the watcher budget.
     private def verify(w: World, input: Boolean)(using Frame): World < Sync =
         // claude 2026-10-19: changed: a function of the World (P2)
-        val unarmed = if input then w.unarmedRegions else Set.empty[Loc]
+        val unarmed         = if input then w.unarmedRegions else Set.empty[Loc]
         // TODO(#9): drop the pull check when Kyo closes the lost-wakeup window
         // of `Signal` (the conditions of D-17 c).
         // https://github.com/yuri4n/tui4s/issues/9
-        val pulled  = w.regions.collect {
-          case (
-                p,
-                RegionState(_, Source.Bound(_) | Source.Many(_), _, _, _, _),
-              ) =>
-            p
-          case (p, RegionState(_, Source.One(_), _, _, _, _)) if input =>
-            p
-        }
-        val targets = (w.youngNow ++ w.youngPrev ++ unarmed ++ pulled).toVector
-          .flatMap(p => w.regions.get(p).map(r => (p, r.gen)))
-          .sortBy(_._1.depth)
-        val keep    = w.youngNow
+        val views           = w.regions.iterator.map { (p, r) =>
+          val (kind, watched) = r.source match
+              case Source.One(_)   =>
+                (ReactiveBudget.Kind.Reactive, r.watcher.nonEmpty)
+              case Source.Bound(_) =>
+                (ReactiveBudget.Kind.Bound, r.watcher.nonEmpty)
+              case Source.Many(_)  =>
+                (ReactiveBudget.Kind.Many, r.watcher.nonEmpty)
+              case _               => (ReactiveBudget.Kind.Other, false)
+          ReactiveBudget.View(p, kind, watched)
+        }.toVector
+        val (paths, cursor) =
+          ReactiveBudget.pulls(
+            views,
+            w.youngNow ++ w.youngPrev,
+            unarmed,
+            w.focus,
+            input,
+            w.sampleFrom,
+          )
+        val targets         =
+          paths.flatMap(p => w.regions.get(p).map(r => (p, r.gen)))
+        val keep            = w.youngNow
         Kyo
-          .foldLeft(targets)(w) { case (acc, (p, gen)) =>
-            verifyRegion(acc, p, Some(gen))
+          .foldLeft(targets)(w.copy(sampleFrom = cursor)) {
+            case (acc, (p, gen)) =>
+              verifyRegion(acc, p, Some(gen))
           }
           .map(_.copy(youngNow = keep))
     end verify
@@ -931,6 +958,22 @@ private[tui4s] final class Runner private (
           case Result.Success(a) => a
           case Result.Failure(e) => Abort.panic(e)
           case Result.Panic(e)   => Abort.panic(e)
+
+    /** Paints `w`, or leaves it when a background step already has input
+      * queued.
+      */
+    // cursor 2026-10-28: created: the input frame paints before the deferred background frame.
+    private def paintFrame(
+        w: World,
+        input: Boolean,
+        seq: Long,
+        cause: FrameCause,
+        t0: Long,
+        handleNs: Long,
+        settleNs: Long,
+    )(using Frame): World < Async =
+      if !input && ReactiveBudget.hasInput(w.backlog) then w
+      else frame(w, seq, cause, t0, handleNs, settleNs)
 
     // codex 2026-10-22: changed: observe render and receive-to-flush completion
     private def frame(

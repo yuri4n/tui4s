@@ -21,6 +21,8 @@ private[tui4s] enum Msg:
     // armed (its `nextWith` is about to be registered); the repair tick
     case Armed(region: Loc, gen: Long)
     case Repair
+    // cursor 2026-10-28: created: an idle sample of regions that have no watcher.
+    case Sample
     case Quit
     // codex 2026-10-23: created: a watcher invalidates its region without retaining an older signal value.
     case Changed(region: Loc, gen: Long)
@@ -142,6 +144,8 @@ private[tui4s] final case class World(
     // claude 2026-10-19: created (PF-b, F9b): the plan that the canvas holds
     // (the plan of the last frame that wrote)
     lastPlan: Option[Plan] = None,
+    // cursor 2026-10-28: created: the next index in the sorted sampled-region rotation.
+    sampleFrom: Int = 0,
 ):
     // claude 2026-10-19: changed: the terminal cursor shows the caret (L1c)
     def env: Scene =
@@ -188,6 +192,22 @@ private[tui4s] final case class World(
     // claude 2026-10-19: created (P2)
     def armed(p: Loc, g: Long): World =
       if unarmed.get(p).contains(g) then copy(unarmed = unarmed - p) else this
+
+    /** Reactive regions that own a watcher fiber. */
+    // cursor 2026-10-28: created: the mount spends the watcher budget in tree order.
+    def reactiveWatchers: Int =
+      regions.values.count {
+        case RegionState(_, Source.One(_), _, _, _, Some(_)) => true
+        case _                                               => false
+      }
+
+    /** True when at least one reactive region is sampled. */
+    // cursor 2026-10-28: created: the idle sample wait runs only for this set.
+    def hasSampled: Boolean =
+      regions.values.exists {
+        case RegionState(_, Source.One(_), _, _, _, None) => true
+        case _                                            => false
+      }
 end World
 
 private[tui4s] object World:
