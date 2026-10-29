@@ -220,11 +220,12 @@ private[tui4s] final class Runner private (
       w.backlog.headOption match
           case Some(m) => (m, w.copy(backlog = w.backlog.tail))
           case None    =>
-            def accept(m: Msg): (Msg, World) < Async =
+            def accept(m: Msg): (Msg, World) < Async  =
               admission.released
                 .andThen(observe(diagnostics.seen(m)))
                 .andThen((m, w))
-            def polled(result: Result[Closed, Maybe[Msg]]): (Msg, World) < Async =
+            def polled(result: Result[Closed, Maybe[Msg]]): (Msg, World) <
+              Async                                   =
               result match
                   case Result.Success(Present(m)) => accept(m)
                   case Result.Success(Absent)     =>
@@ -346,7 +347,7 @@ private[tui4s] final class Runner private (
       */
     // claude 2026-10-12: created (RC-9, RC-11)
     // claude 2026-10-13: changed: the Scaladoc names the keys and the paste
-    // (C3); codex 2026-10-23: changed: pull input consequences from a finite generation snapshot; cursor 2026-10-28: changed: sample reactive regions past the watcher budget.
+    // (C3); codex 2026-10-23: changed: pull input consequences from a finite generation snapshot; cursor 2026-10-28: changed: sample reactive regions past the watcher budget; cursor 2026-10-28: changed: skip the sample slice when a key is already queued.
     private def verify(w: World, input: Boolean)(using Frame): World < Sync =
         // claude 2026-10-19: changed: a function of the World (P2)
         val unarmed         = if input then w.unarmedRegions else Set.empty[Loc]
@@ -370,7 +371,7 @@ private[tui4s] final class Runner private (
             w.youngNow ++ w.youngPrev,
             unarmed,
             w.focus,
-            input,
+            input || ReactiveBudget.hasInput(w.backlog),
             w.sampleFrom,
           )
         val targets         =
