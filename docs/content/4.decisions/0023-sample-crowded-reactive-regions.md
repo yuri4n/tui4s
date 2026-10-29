@@ -1,6 +1,6 @@
 ---
 title: "0023. Sample crowded reactive regions"
-description: "The first 32 reactive regions keep a watcher. Further reactive regions are read in slices, so a loaded input frame does not wait for one fiber per region."
+description: "The first 2 reactive regions keep a watcher. Further reactive regions are read in slices, so a loaded input frame does not wait for one fiber per region." # cursor 2026-10-28: changed: watch two reactive regions.
 ---
 
 <!-- cursor 2026-10-28: created: ADR 0023, sample crowded reactive regions. -->
@@ -22,7 +22,8 @@ Accepted.
 
 ## Decision
 
-- The mount gives a watcher to at most 32 reactive regions, in tree order.
+- The mount gives a watcher to at most 2 reactive regions, in tree order.
+  <!-- cursor 2026-10-28: changed: watch two reactive regions. -->
 - Each further reactive region is sampled. A background frame reads the current value of 32 sampled regions. The idle runner waits at most 16 ms for the next sample.
 - An input frame still reads every watched reactive region, every bound region, every `Foreach`, and a sampled region that holds the focus.
 - When input is already queued, the runner paints that input before the next background frame.
@@ -36,7 +37,8 @@ Accepted.
 
 ## Consequences
 
-- A screen with 32 reactive regions or fewer keeps the ADR 0005 watcher behavior.
+- A screen with 2 reactive regions or fewer keeps the ADR 0005 watcher behavior.
+  <!-- cursor 2026-10-28: changed: watch two reactive regions. -->
 - A sampled region can show its new value on a later frame. Input text and the focused region stay on the input frame.
 - The CI input gate remains 250 ms for the continuous 128-region workload. This record does not claim a 100 ms bound.
 

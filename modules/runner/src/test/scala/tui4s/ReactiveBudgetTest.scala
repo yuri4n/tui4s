@@ -20,7 +20,7 @@ class ReactiveBudgetTest extends Test[Any]:
     private val many  =
       view(Loc.root.child(1), ReactiveBudget.Kind.Many, true)
 
-    // cursor 2026-10-28: created: the 33rd reactive region is sampled.
+    // cursor 2026-10-28: created: the 33rd reactive region is sampled; cursor 2026-10-28: changed: watch two reactive regions.
     "a reactive region past the watcher limit is sampled" in {
       assert(ReactiveBudget.watchAnother(0))
       assert(ReactiveBudget.watchAnother(ReactiveBudget.watchedLimit - 1))
@@ -115,5 +115,53 @@ class ReactiveBudgetTest extends Test[Any]:
       assert(ReactiveBudget.hasInput(Vector(Msg.Key(key, 1L))))
       assert(ReactiveBudget.hasInput(Vector(Msg.Paste("x", 2L))))
       assert(ReactiveBudget.hasInput(Vector(Msg.Resize(Size(2, 2), 3L))))
+    }
+
+    // cursor 2026-10-28: created: the bound field and two status lines stay watched.
+    "a settlement-shaped tree watches the bound field and two status lines" in {
+      val prompt          =
+        view(Loc.root.child(0), ReactiveBudget.Kind.Bound, true)
+      val statuses        = Vector.tabulate(2)(i =>
+        view(
+          Loc.root.child(i + 1),
+          ReactiveBudget.Kind.Reactive,
+          true,
+        ),
+      )
+      val tasks           = Vector.tabulate(4)(i =>
+        view(
+          Loc.root.child(i + 3),
+          ReactiveBudget.Kind.Reactive,
+          false,
+        ),
+      )
+      val regions         = Vector(prompt) ++ statuses ++ tasks
+      assert(ReactiveBudget.watchAnother(0))
+      assert(ReactiveBudget.watchAnother(1))
+      assert(ReactiveBudget.watchAnother(2) == false)
+      val (input, held)   =
+        ReactiveBudget.pulls(
+          regions,
+          Set.empty,
+          Set.empty,
+          None,
+          input = true,
+          sampleFrom = 0,
+        )
+      val sampled         = tasks.map(_.path).toSet
+      assert(held == 0)
+      assert(input.contains(prompt.path))
+      assert(statuses.forall(line => input.contains(line.path)))
+      assert(input.forall(path => !sampled.contains(path)))
+      val (background, _) =
+        ReactiveBudget.pulls(
+          regions,
+          Set.empty,
+          Set.empty,
+          None,
+          input = false,
+          sampleFrom = 0,
+        )
+      assert(tasks.forall(row => background.contains(row.path)))
     }
 end ReactiveBudgetTest

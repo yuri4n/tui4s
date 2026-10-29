@@ -79,8 +79,8 @@ in a later frame. Slow user code, rendering, terminal output and scheduler
 pauses can still delay input. Input correctness, derived-region consistency
 and input latency are separate checks.
 
-<!-- cursor 2026-10-28: created: sampled reactive regions keep input off the watcher storm. -->
-The first 32 reactive regions keep a watcher fiber. Each further reactive
+<!-- cursor 2026-10-28: created: sampled reactive regions keep input off the watcher storm; cursor 2026-10-28: changed: watch two reactive regions. -->
+The first 2 reactive regions keep a watcher fiber. Each further reactive
 region is sampled. The runner reads one slice of 32 sampled regions on a
 background frame, and reads their current values. An input frame still reads
 every watched reactive region, every bound region and every `Foreach`. It

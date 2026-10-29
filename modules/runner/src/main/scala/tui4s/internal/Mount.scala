@@ -65,16 +65,18 @@ private[tui4s] final class Mount(
     /* `nextWith` (`Signal.awaitAny`), which this loop cannot avoid (review
      * R2-6). */
     // https://github.com/yuri4n/tui4s/issues/8
-    /** The watcher loop (K29). It uses `Signal.nextWith`: step 0 posts
-      * `Msg.Armed` and waits for the first change (the mount read the first
-      * value already); each later step posts a change notice and waits for the
-      * next change. The runner reads `current` when it handles the notice. A
-      * write after that read but before the registration of `nextWith` is
-      * missed here; the verify pass and repair tick re-read `current` and
-      * repair it. `knobs.seam` holds the notice-to-registration window open for
-      * the tests.
+    /** The watcher loop (K29). Sampled rows never enter this loop. `Mount.walk`
+      * does not call this loop for a sampled row. A sampled row never calls
+      * `signal.nextWith`. A sampled row never calls `admission.send`. The loop
+      * uses `Signal.nextWith`: step 0 posts `Msg.Armed` and waits for the first
+      * change (the mount read the first value already); each later step posts a
+      * change notice and waits for the next change. The runner reads `current`
+      * when it handles the notice. A write after that read but before the
+      * registration of `nextWith` is missed here; the verify pass and repair
+      * tick re-read `current` and repair it. `knobs.seam` holds the
+      * notice-to-registration window open for the tests.
       */
-    // claude 2026-10-12: created; codex 2026-10-23: changed: gate change notices and leave current reads to the consumer.
+    // claude 2026-10-12: created; codex 2026-10-23: changed: gate change notices and leave current reads to the consumer; cursor 2026-10-28: changed: sampled rows never enter this loop.
     private def loop[A](signal: Signal[A], path: Loc, gen: Long)(using
         Frame,
     ): Unit < (Async & Abort[Closed]) =

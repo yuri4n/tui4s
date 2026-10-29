@@ -4,8 +4,8 @@ package tui4s.internal
 // cursor 2026-10-28: created: pure watcher budget and sampled-region rotation.
 private[tui4s] object ReactiveBudget:
     /** Reactive regions at this count and above are sampled. */
-    // cursor 2026-10-28: created: keep ordinary screens on the watcher loop.
-    val watchedLimit: Int = 32
+    // cursor 2026-10-28: created: keep ordinary screens on the watcher loop; cursor 2026-10-28: changed: watch two reactive regions.
+    val watchedLimit: Int = 2
 
     /** Sampled regions read on one non-input frame. */
     // cursor 2026-10-28: created: bound one sample slice.
