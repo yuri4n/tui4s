@@ -6,7 +6,7 @@ navigation:
   icon: i-lucide-scroll-text
 ---
 
-<!-- claude 2026-10-20: created: the index of the decision records, with the routes of the site (L6); changed: the row of ADR 0015 (L6 loose ends); changed: the rows of ADR 0014 and 0020 (ADR 0020); created: the row of ADR 0021 (ADR 0021); created: the row of ADR 0022 (ADR 0022); cursor 2026-10-28: created: the row of ADR 0023; cursor 2026-10-28: changed: the row of ADR 0023, crowded parents fork no reactive watcher. -->
+<!-- claude 2026-10-20: created: the index of the decision records, with the routes of the site (L6); changed: the row of ADR 0015 (L6 loose ends); changed: the rows of ADR 0014 and 0020 (ADR 0020); created: the row of ADR 0021 (ADR 0021); created: the row of ADR 0022 (ADR 0022); cursor 2026-10-28: created: the row of ADR 0023; cursor 2026-10-28: changed: the row of ADR 0023, crowded parents fork no reactive watcher; cursor 2026-10-29: created: the row of ADR 0024 -->
 
 Each record states one decision: the forces, the decision, the alternatives that lost, and the consequences. The ids in the references (D-1 to D-32, D1 to D25, S1 to S8, K29, RR N9) are the ids of the working notes of the project, which are not in the repository. The ADRs keep what a reader needs from them.
 
@@ -35,5 +35,6 @@ Each record states one decision: the forces, the decision, the alternatives that
 | [0021](/decisions/0021-the-rulebook-is-contributing-md) | The rulebook is CONTRIBUTING.md | Accepted | `CONTRIBUTING.md` is the rulebook for humans and agents; `ARCHITECTURE.md` tells how the runner works; `AGENTS.md` is short and imports both. |
 | [0022](/decisions/0022-the-logo-is-text) | The logo is text | Accepted | The ASCII art of the maintainer is the logotype and its "4" is the isomark; one script makes all the logo assets from the text, and CI checks them. |
 | [0023](/decisions/0023-sample-crowded-reactive-regions) | Sample crowded reactive regions | Accepted | An input frame reads 16 reactive children per parent. A parent with more than 2 forks no reactive watcher. |
+| [0024](/decisions/0024-three-artifacts-one-central-deployment) | Three artifacts, one Central deployment | Accepted | The published artifacts are runner, core and testkit. The core jar holds TuiApp, the composables and the widgets. One release run uploads one bundle. |
 
 Format: MADR-lite. Each record has the sections Status, Date, Context, Decision, Alternatives considered, Consequences and References. The text uses ASD-STE100. When a source does not record a reason, the record says "not recorded"; a reason that the record adds is marked PROPOSAL.

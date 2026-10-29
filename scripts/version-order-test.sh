@@ -130,13 +130,52 @@ modules() {
   got=$(release_resolve_modules "$2") || got=error
   [[ $got == "$1" ]] || fail "release_resolve_modules '$2': expected '$1', got '$got'"
 }
-modules "runner app testkit core use widgets" all
+modules "runner testkit core" all
 modules runner runner
-modules widgets widgets
+modules core core
+modules error app
+modules error use
+modules error widgets
 modules error core-v1
 modules error zio
 modules error ""
 modules error "runner app"
+
+# cursor 2026-10-29: created the bundle table (release_bundle_sbt, ADR 0024)
+bundle_sbt() {
+  local got status=0
+  cases=$((cases + 1))
+  if [[ $# -eq 1 && $1 == none ]]; then
+    got=$(release_bundle_sbt) || status=$?
+  else
+    got=$(release_bundle_sbt "$@") || status=$?
+  fi
+  if ((status != 0)); then got=error; fi
+  [[ $got == "$expected_bundle" ]] || fail "release_bundle_sbt $*: expected '$expected_bundle', got '$got'"
+}
+expected_bundle="; runner/assertReleasable; runner/versionCheck; runner/publishSigned; testkit/assertReleasable; testkit/versionCheck; testkit/publishSigned; core/assertReleasable; core/versionCheck; core/publishSigned;"
+bundle_sbt runner testkit core
+expected_bundle="; runner/assertReleasable; runner/versionCheck; runner/publishSigned;"
+bundle_sbt runner
+expected_bundle=error
+bundle_sbt none
+bundle_project() {
+  local got status=0
+  cases=$((cases + 1))
+  if [[ $# -eq 1 && $1 == none ]]; then
+    got=$(release_bundle_project) || status=$?
+  else
+    got=$(release_bundle_project "$@") || status=$?
+  fi
+  if ((status != 0)); then got=error; fi
+  [[ $got == "$expected_project" ]] || fail "release_bundle_project $*: expected '$expected_project', got '$got'"
+}
+expected_project=runner
+bundle_project runner testkit core
+expected_project=core
+bundle_project core
+expected_project=error
+bundle_project none
 
 # claude 2026-10-20: created the tag table (release_latest_before), in a
 # temporary git repository with tags in no order

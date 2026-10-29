@@ -267,7 +267,8 @@ use them as an acceptance result.
   Prefer typed props and function parameters for slots.
 - Put reusable composables in `tui4s.use` (`modules/use`) and reusable
   widgets in `tui4s.widgets` (`modules/widgets`). These modules are plain
-  kyo-ui code for the JVM and Scala.js, with no dependency on tui4s-core. A
+  kyo-ui code for the JVM and Scala.js, with no dependency on the runner. The
+  JVM classes ship in tui4s-core. The Scala.js projects are not published. A
   composable takes its lifetime from the `Scope` of its caller, never from a
   hidden global. A widget may use the composables; tui4s-widgets depends on
   tui4s-use. `tui4s.widgets.Tabs` uses public Kyo APIs only;
@@ -275,7 +276,7 @@ use them as an acceptance result.
   separate UI core repository. tui4s owns terminal rendering, input, and its
   retained mount identity. Ordinary Kyo UI construction and terminal mounting
   have different state lifetimes; document the difference.
-  <!-- claude 2026-10-19: changed: composables and widgets go in the modules use and widgets (L2a); Tabs moved to tui4s.widgets, widgets depends on use (L2b) -->
+  <!-- claude 2026-10-19: changed: composables and widgets go in the modules use and widgets (L2a); Tabs moved to tui4s.widgets, widgets depends on use (L2b); cursor 2026-10-29: changed: the JVM classes ship in tui4s-core (ADR 0024) -->
 - A widget of tui4s-widgets takes typed props (named parameters with
   defaults), a `Model` for its value (`Local`: the widget owns it; `Bound`:
   the parent's `SignalRef`, written before `onChange`; `Controlled`: the
@@ -686,8 +687,8 @@ imports them. Then:
   approval. Force pushes to `main` and its deletion are blocked.
 - The CI job `Format, compile, test, compatibility, packaging` must pass.
   Nobody can bypass this rule.
-- You cannot delete or move a release tag (`runner-v*`, `app-v*`,
-  `testkit-v*`, `core-v*`, `use-v*`, `widgets-v*`).
+- You cannot delete or move a release tag (`runner-v*`, `testkit-v*`,
+  `core-v*`, and the old patterns `app-v*`, `use-v*`, `widgets-v*`).
 - The release workflow creates the release tags (see "Releasing"). A tag
   that a person pushes starts no release.
   <!-- claude 2026-10-20: created: this item (ADR 0020) -->
@@ -707,25 +708,27 @@ rules are early-semver:
 - `Compatibility.None`: the next release must bump the minor version (`0.y` to
   `0.y+1`).
 
-<!-- codex 2026-10-23: created: explicit published baselines prevent empty RC checks. -->
-Each module also sets `versionPolicyPreviousVersions` to its last published
-version. The automatic lookup can omit RC versions or select an unpublished
-stable version. Keep this baseline explicit. The JVM and Scala.js artifacts
-of a cross-built module use the same baseline.
+<!-- codex 2026-10-23: created: explicit published baselines prevent empty RC checks; cursor 2026-10-29: changed: the published modules are runner, testkit and core (ADR 0024) -->
+Each published module also sets `versionPolicyPreviousVersions` to its last
+published version. The published modules are `runner`, `testkit` and `core`.
+The automatic lookup can omit RC versions or select an unpublished stable
+version. Keep this baseline explicit. `app`, `use` and `widgets` are not
+published. Their intention is `Compatibility.None`, and they have no previous
+version. The check of their public API is the check of `core`.
 
 The package `tui4s.internal` is sealed: each of its top-level definitions is
-`private[tui4s]`, so users and Scaladoc do not see it (tui4s-app and
+`private[tui4s]`, so users and Scaladoc do not see it (tui4s-core and
 tui4s-testkit are other jars in the package `tui4s`, and they keep the
 access: `private[tui4s]` works across jars).
-`PublicApiTest` (in `modules/core`) checks the seal in the classes of the four
-jars of the split (runner, app, testkit, core), and also that no public
+`PublicApiTest` (in `modules/core`) checks the seal in the class directories
+of runner, app, testkit and core, and also that no public
 signature of `tui4s`, `tui4s.spi` or `tui4s.testkit` names an internal type;
 the compiler does not check this. `private[tui4s]` is public in the bytecode: MiMa and
 `versionPolicyCheck` see the internal types and the `private[tui4s]` seams, so
 a change there can break binary compatibility as a change of the public API
 does.
 <!-- claude 2026-10-13: created this paragraph (C3, gate 1 item 1, RC-36) -->
-<!-- claude 2026-10-19: changed: the seal across the jars of the split (D25); 2026-10-20: changed: no zio and cats (ADR 0014) -->
+<!-- claude 2026-10-19: changed: the seal across the jars of the split (D25); 2026-10-20: changed: no zio and cats (ADR 0014); cursor 2026-10-29: changed: the check reads the class directories, and app is not a published jar (ADR 0024) -->
 
 If a pull request breaks binary compatibility, set the intention of that module
 to `Compatibility.None` in the same pull request. After the release, set it back
@@ -777,11 +780,12 @@ Open one pull request after a release:
 
 ## Releasing
 
-<!-- claude 2026-10-20: changed (ADR 0020): this section: the release starts from the Actions form on main, the checks run before the tag, one approval for all the modules; changed (review): the notes of a first release, the limit of a re-run, self-review off -->
-Each module has its own version and its own tag `<module>-v<version>`. A
-release starts from the form of the workflow Release
-(`.github/workflows/release.yml`) on `main`. One run releases one module or
-all the modules, with one approval.
+<!-- claude 2026-10-20: changed (ADR 0020): this section: the release starts from the Actions form on main, the checks run before the tag, one approval for all the modules; changed (review): the notes of a first release, the limit of a re-run, self-review off; cursor 2026-10-29: changed: three modules, one Central deployment, and a GitHub Release whose body is the changelog subsection (ADR 0024) -->
+The published modules are `runner`, `testkit` and `core`. Each one has its
+own version and its own tag `<module>-v<version>`. A release starts from the
+form of the workflow Release (`.github/workflows/release.yml`) on `main`. One
+run releases one module or all the modules, with one approval. One run uploads
+one bundle to Maven Central.
 
 1. In a pull request, rename `## [Unreleased]` of `CHANGELOG.md` to
    `## [<version>] - <YYYY-MM-DD>`. Keep the subsection
@@ -802,26 +806,32 @@ all the modules, with one approval.
 4. Approve the deployment: GitHub asks the required reviewer of the
    environment `maven-central`. One approval covers all the modules of the
    run.
-5. The job `publish` releases the modules in the order of the dependencies.
-   For each module, it pushes the tag, publishes the module to Maven Central
-   (sbt-ci-release, `sonaRelease`), and creates the GitHub release. The notes
-   of the release are the subsection of the module in `CHANGELOG.md`, then,
-   after a first release, the notes that GitHub makes since the previous
-   release of the module.
+5. The job `publish` releases the modules in the order of the dependencies
+   (`runner`, then `testkit`, then `core`). For each module, it pushes the
+   tag and creates a GitHub Release for that tag. The title is
+   `tui4s-<module> <version>`. The body is the subsection
+   `### tui4s-<module>` of that version in `CHANGELOG.md`. A GitHub Release
+   that already exists stays. It then publishes every module that is not yet
+   on Maven Central in one `sbt ci-release` and one `sonaRelease`. The
+   approval of the environment `maven-central` gates that publish. A module
+   that is already on Maven Central stays out of the bundle.
 
 A dry run (the box "Dry run" of the form, or `--dry-run`) does the job
-`prepare` and stops: no tag, and no publish. Do a dry run before a release.
+`prepare` and stops: no tag, no GitHub Release, and no publish. Do a dry run
+before a release.
 
 If the job `publish` fails, remove the cause, then click **Re-run failed
 jobs**. Do not start a new run: its job `prepare` stops on the tags that
-exist. The re-run keeps the tags on the commit. It skips a module that has
-its GitHub release, and it does not publish again a version that is on
-Maven Central. A tag with no GitHub release means: the publish of that module
-is not complete. Central can show a new version on `repo1.maven.org` some
-minutes after it accepts the upload. Wait for it before a re-run. A re-run
-uses the workflow and the scripts of the commit of the run: a fix of
-`release.yml` or of a script cannot help a re-run. Merge the fix, and release
-the next version.
+exist. The re-run keeps the tags on the commit. It keeps a GitHub Release
+that already exists for the tag. It publishes a module when Maven Central
+does not have the version, in the same bundle as the other missing modules.
+It leaves a version that is already on Maven Central. Central can show a new
+version on `repo1.maven.org` some minutes after it accepts the upload. Wait
+for it before a re-run: a second upload of a version that Central already
+accepted is refused, and that refusal drops the other modules in the same
+bundle. A re-run uses the workflow and the scripts of the commit of the run:
+a fix of `release.yml` or of a script cannot help a re-run. Merge the fix,
+and release the next version.
 
 <!-- claude 2026-10-09: added the accepted version forms and their order -->
 <!-- claude 2026-10-20: changed: the release checks order the versions (ADR 0020) -->
@@ -835,13 +845,13 @@ coursier (and thus sbt) puts `M` below `alpha` and `beta`. Thus, do not release
 an `M` version after an `alpha` or `beta` of the same `x.y.z`.
 
 <!-- claude 2026-10-19: changed: `use` before `widgets` (L2b review) -->
-<!-- claude 2026-10-19: changed: the order runner, app, testkit, core (D25); 2026-10-20: changed: no zio and cats (ADR 0014); changed: release all, the order in release-lib.sh (ADR 0020) -->
+<!-- claude 2026-10-19: changed: the order runner, app, testkit, core (D25); 2026-10-20: changed: no zio and cats (ADR 0014); changed: release all, the order in release-lib.sh (ADR 0020); cursor 2026-10-29: changed: the order is runner, testkit, core (ADR 0024) -->
 If `assertReleasable` says that an inter-project dependency is unreleased,
 release that module first, or release `all`. The order is `runner`, then
-`app` and `testkit`, then `core` (the composite of the three); `use` before
-`widgets` (`release_all_modules` in `scripts/release-lib.sh`). A change in
-`build.sbt` or in `project` makes all the modules unreleased: then release
-`all`.
+`testkit`, then `core` (`release_all_modules` in `scripts/release-lib.sh`).
+A change in `modules/app`, `modules/use` or `modules/widgets` makes `core`
+unreleased. A change in `build.sbt` or in `project` makes all the published
+modules unreleased: then release `all`.
 
 <!-- claude 2026-10-20: changed (ADR 0020): the gate is the required reviewer of the environment; no --yes -->
 **Agents:** a release publishes a public artifact to Maven Central, and you
