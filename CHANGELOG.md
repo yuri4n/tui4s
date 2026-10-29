@@ -24,6 +24,11 @@ workflow stops before it creates a tag when a subsection is missing.
 <!-- codex 2026-10-22: created: settlement progress fixes after the diagnostic baseline. -->
 
 ### tui4s-runner
+
+- Improved: dirty-region membership compares path steps without temporary
+  vector equality work. Repeated marks keep the current world and preserve
+  first-seen order.
+  <!-- codex 2026-10-28: created: reduce repeated work during notification bursts. -->
 <!-- codex 2026-10-22: created: bounded settlement with the existing public policies. -->
 - Fixed: bounded inbox batches keep continuous notifications from bypassing
   the settlement deadline. Verification and its re-check share the same

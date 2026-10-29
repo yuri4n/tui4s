@@ -75,10 +75,14 @@ class SettleTest extends RunnerSuite:
       }
     }
 
+    // codex 2026-10-28: changed: test the scheduler probe explicitly, independently of the default batching policy.
     "a quiet run: 50 frames, no settle timeout, no repair" in {
+      val options =
+        TuiOptions(settle = Settle.Quiescent(JDuration.ofMillis(100)))
       for
           n   <- Signal.initRef(0)
-          h   <- Headless.start(30, 2)(_ => div(span(n.map(v => s"n=$v"))))
+          h   <-
+            Headless.start(30, 2, options)(_ => div(span(n.map(v => s"n=$v"))))
           _   <- h.drainFrames
           // the frames of a write are read after the stats of its frame
           // arrived (review R2-3)
@@ -101,6 +105,7 @@ class SettleTest extends RunnerSuite:
             fs.forall(_.repaired == 0),
             s"repairs: ${fs.filter(_.repaired > 0)}",
           )
+      end for
     }
 
     // claude 2026-10-12: changed (the contention run of the review fixes): an

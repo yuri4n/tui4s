@@ -157,9 +157,11 @@ private[tui4s] final case class World(
 
     def gen: (Long, World) = (nextGen, copy(nextGen = nextGen + 1))
 
-    def markRegion(p: Loc): World = copy(dirtyRegions =
-      if dirtyRegions.contains(p) then dirtyRegions else dirtyRegions :+ p,
-    )
+    // codex 2026-10-28: changed: compare exact path steps without vector equality or an unchanged copy.
+    def markRegion(p: Loc): World =
+      if dirtyRegions.exists(r => r.depth == p.depth && r.isAtOrUnder(p)) then
+          this
+      else copy(dirtyRegions = dirtyRegions :+ p)
     def markNode(p: Loc): World   = copy(dirtyNodes = dirtyNodes + p)
 
     /** The world after a key scrolled the viewport at `p` to `o`: the frame

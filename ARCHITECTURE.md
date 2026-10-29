@@ -26,6 +26,11 @@ item. This also covers text inside a new container. A text node has no child
 regions, so a later text change can replace that node directly. It keeps the
 same layout and paint rules without scanning every region for removal.
 
+<!-- codex 2026-10-28: created: exact dirty-region membership preserves first-seen order. -->
+The dirty region list keeps each exact path once, in first-seen order. A
+parent and a child can both be marked. Membership compares path steps only
+when their depths match. An already marked path keeps the current world.
+
 <!-- codex 2026-10-22: created: the opt-in diagnostic recorder and its lifetime. -->
 The JVM option `tui4s.diagnostics.file` enables a bounded recorder for a
 terminal run. The input thread and runner record timestamps and counters;

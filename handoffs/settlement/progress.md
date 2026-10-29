@@ -63,3 +63,55 @@ method. If new profiling confirms the cost, the next small candidate can
 reuse the indexed path comparison for equal-depth paths and avoid copying an
 unchanged World. Preserve first-seen order and distinguish equality from
 ancestor membership. Measure before changing the data structure.
+
+## Checkpoint 3: exact dirty-region membership
+
+<!-- codex 2026-10-28: created: record the third measured change and its contract tests. -->
+The branch perf/dirty-region-membership starts at e253fbd. World.markRegion
+compares equal-depth path steps and retains the current world for an existing
+mark. It keeps first-seen order and preserves other state. Ten focused tests
+passed, including a generated sequence oracle and both ancestor orders. This
+retains linear membership and quadratic worst-case total marking cost.
+
+<!-- codex 2026-10-28: created: retain the first full-check failure and explicit canary scope. -->
+The first full check failed the quiet settlement canary. That case inherited
+the Local default while asserting the scheduler-probe contract. It now selects
+Quiescent at 100 ms explicitly, matching the CPU-bound case. The assertions
+are unchanged; production Local remains at 16 ms. The focused canary and
+full strict rerun passed, including all eight binary compatibility checks.
+
+<!-- codex 2026-10-28: created: preserve all third-checkpoint input failures. -->
+The same 60-key, 10-key/second, continuous workload gives these results at a
+100 ms planned-send deadline. The [manifest](evidence/marking-manifest.json)
+records the source and report hashes.
+
+| Regions | Diagnostics | Visible by watchdog | Missing | Deadline failures | p95 observed | Maximum observed |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| 128 | Off | 60/60 | 0 | 3 | 97.6 ms | 231.8 ms |
+| 128 | On | 60/60 | 0 | 30 | 1258.2 ms | 1464.4 ms |
+| 512 | Off | 47/60 | 13 | 60 | 2266.0 ms | 2311.7 ms |
+| 512 | On | 60/60 | 0 | 60 | 909.2 ms | 962.0 ms |
+
+<!-- codex 2026-10-28: created: limit the performance claim to the recorded evidence. -->
+These runs do not establish robust 100 ms or 250 ms acceptance. All four had
+zero incorrect input and graceful shutdown. Missing input remains a failure.
+Percentiles include observed effects only. The 128-region diagnostics-off
+p95 is below 100 ms, but its maximum and the other runs remain too high.
+
+<!-- codex 2026-10-28: created: distinguish sampled CPU attribution from latency or allocation gains. -->
+A separate instrumented profile has 1,178 CPU samples. World.markRegion
+appears in 80 samples and Laid.without in 12. The earlier profile had
+149/1,679 and 272/1,679 respectively. Inclusive counts overlap and do not
+establish throughput gains. The separate profile is not part of acceptance.
+No matching JVM-wide pause explains its long dispatch backlog. GC peaked at
+51 ms. Diagnostics use atomic snapshots; no shared exporter file-I/O lock
+was found on the runner path.
+
+<!-- codex 2026-10-28: created: bound the next concurrency hypothesis and its proof obligations. -->
+The next small candidate can reduce the number of admission capacity waiters.
+Currently each removal wakes every capacity waiter. Holding one async mutex
+permit across the capacity wait can reduce this fanout. The consumer's wakeup
+must stay independent. Snapshot the generation before checking closure on
+every retry, then fail with Closed after shutdown. Preserve cancellation and
+lazy message construction. Meter does not guarantee FIFO fairness; do not
+claim starvation freedom or a latency fix before measurement.
