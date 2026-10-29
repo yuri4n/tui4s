@@ -118,9 +118,9 @@ claim starvation freedom or a latency fix before measurement.
 
 ## Checkpoint 4: one capacity waiter
 
-<!-- codex 2026-10-29: created: record the admission experiment and its measured limits. -->
-The branch `perf/admission-capacity-waiter` is based on checkpoint 3. The
-sender holds the async mutex permit while it waits for inbox capacity. This
+<!-- codex 2026-10-29: created: record the admission experiment and its measured limits; codex 2026-10-29: changed: link its draft pull request. -->
+The branch `perf/admission-capacity-waiter` is based on checkpoint 3 and is
+[draft PR #62](https://github.com/yuri4n/tui4s/pull/62). The sender holds the async mutex permit while it waits for inbox capacity. This
 leaves one sender waiting on the inbox generation. Other senders wait for the
 mutex. The consumer still signals capacity without taking that mutex. Closure
 ends the holder and queued senders. Cancellation releases the permit. The
