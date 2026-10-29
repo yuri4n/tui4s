@@ -7,12 +7,13 @@ import java.util.concurrent.atomic.AtomicReference
 /** Helpers for the tests on Kyo's controlled clock (`Clock.withTimeControl`).
   * The clock moves only when a test moves it. A test moves it only after a
   * fence: the composable has taken its step (a recorded [[Steps]] entry or a
-  * value of a signal) and has armed its sleeps (`awaitPendingSleepers`). So
-  * each time that a composable reads is exact, whatever the speed of the
-  * scheduler. The waits for a fence are on the live clock, with a bound.
+  * value of a signal) and has armed its sleeps (`awaitPendingSleepers`). A test
+  * writes a source only after [[awaitWatch]]: the watch has subscribed. So each
+  * time that a composable reads is exact, whatever the speed of the scheduler.
+  * The waits for a fence are on the live clock, with a bound.
   */
 // claude 2026-10-19: created (L2a); changed: fences in place of steps of the
-// clock with wall-clock waits (L2a review)
+// clock with wall-clock waits (L2a review); cursor 2026-10-29: changed: a write waits until the watch has subscribed
 object Controlled:
 
     /** The wall-clock bound of a wait for a fence, a value or a step. It only
@@ -23,14 +24,43 @@ object Controlled:
     val bound: Duration = 30.seconds
 
     /** Waits until at least `n` sleeps on the controlled clock are armed and
-      * not done, at most `bound` of wall-clock time. True when they are.
+      * not done. True when they are. A single wait misses an enqueue that
+      * already filled the count when no later sleep wakes that waiter. The next
+      * wait reads the queue. The waits share [[bound]] on the live clock.
       */
+    // claude 2026-10-20: changed: bound; cursor 2026-10-29: changed: a missed enqueue is read again
     def fence(ctl: Clock.TimeControl, n: Int)(using Frame): Boolean < Async =
-      Clock.let(Clock.live)(
-        Abort
-          .run[Timeout](Async.timeout(bound)(ctl.awaitPendingSleepers(n))) // claude 2026-10-20: changed: bound
-          .map(_.isSuccess),
-      )
+        val slice = 250.millis
+        val turns = (bound.toMillis / slice.toMillis).toInt.max(1)
+        Clock.let(Clock.live)(
+          Loop(turns) { left =>
+            if left <= 0 then Loop.done(false)
+            else
+                Abort
+                  .run[Timeout](
+                    Async.timeout(slice)(ctl.awaitPendingSleepers(n)),
+                  )
+                  .map(r =>
+                    if r.isSuccess then Loop.done(true)
+                    else Loop.continue(left - 1),
+                  )
+          },
+        )
+    end fence
+
+    /** True when at least `n` fibers wait for the next value of `src`. The
+      * watch of `debounced` and `throttled` subscribes on that promise.
+      * `Async.race` starts the repair sleep and that subscription together. The
+      * subscription is a separate step from the repair sleep. A write before
+      * the subscription waits for the repair time on the controlled clock.
+      * These tests keep the controlled clock at its current instant while they
+      * wait. A test writes after this returns.
+      */
+    // cursor 2026-10-29: created: wait until the watch has subscribed
+    def awaitWatch[A](src: SignalRef[A], n: Int = 1)(using
+        Frame,
+    ): Boolean < Async =
+      poll(bound)(src.waiters.map(_ >= n))
 
     /** On the live clock: waits until `p` holds for the value of `s`, at most
       * `timeout` (a read every 5 ms). True when it holds.

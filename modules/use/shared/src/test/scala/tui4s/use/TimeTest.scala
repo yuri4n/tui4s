@@ -5,14 +5,15 @@ import kyo.test.*
 
 /** `useNow`, `timeAgo`, `debounced`, `throttled` and `useDebouncedFn` on Kyo's
   * controlled clock. A test moves the clock only after a fence (see
-  * [[Controlled]]): the composable has taken its step and armed its sleeps. So
-  * the tests check exact times. The waits for a fence or a value are on the
-  * live clock, with a bound (`Controlled.bound`); the clock does not move while
-  * they wait. The leaves run one at a time. The laws of the timing rules are in
-  * [[TimingPropertyTest]].
+  * [[Controlled]]): the composable has taken its step and armed its sleeps. A
+  * test writes a source only after [[Controlled.awaitWatch]]: the watch has
+  * subscribed. The tests then check exact times. The waits for a fence, a watch
+  * or a value are on the live clock, with a bound (`Controlled.bound`). The
+  * controlled clock does not move while they wait. The leaves run one at a
+  * time. The laws of the timing rules are in [[TimingPropertyTest]].
   */
 // claude 2026-10-19: created (L2a); changed: fences and exact times, not
-// steps of the clock with wall-clock bounds (L2a review)
+// steps of the clock with wall-clock bounds (L2a review); cursor 2026-10-29: changed: a write waits until the watch has subscribed
 class TimeTest extends Test[Any]:
     import Controlled.*
     import Steps.Entry.{Wake, Write}
@@ -110,13 +111,17 @@ class TimeTest extends Test[Any]:
               src   <- Signal.initRef(0)
               out   <- Pacing.run(src, steps.traced)
               // The value at the start waits; then the watch arms.
+              // cursor 2026-10-29: changed: each write waits until the watch has subscribed
               f0    <- step(ctl, steps)(1, 2)
+              w0    <- awaitWatch(src)
               _     <- ctl.advance(30.millis)
               _     <- src.set(1)
               f1    <- step(ctl, steps)(2, 2)
+              w1    <- awaitWatch(src)
               _     <- ctl.advance(30.millis)
               _     <- src.set(2)
               f2    <- step(ctl, steps)(3, 2)
+              w2    <- awaitWatch(src)
               _     <- ctl.advance(30.millis)
               _     <- src.set(3)
               f3    <- step(ctl, steps)(4, 2)
@@ -126,7 +131,7 @@ class TimeTest extends Test[Any]:
               shown <- eventually(out)(_ == 3)
               log   <- steps.entries
           yield
-              assert(f0 && f1 && f2 && f3)
+              assert(f0 && w0 && f1 && w1 && f2 && w2 && f3)
               assert(early == 0 && shown)
               assert(
                 log == Chunk(
@@ -150,9 +155,12 @@ class TimeTest extends Test[Any]:
               src    <- Signal.initRef(0)
               out    <- Pacing.run(src, steps.traced)
               // The value at the start shows and opens a window to 100 ms.
+              // cursor 2026-10-29: changed: each write waits until the watch has subscribed
               f0     <- step(ctl, steps)(1, 1)
+              w0     <- awaitWatch(src)
               _      <- src.set(1)
               f1     <- step(ctl, steps)(2, 2)
+              w1     <- awaitWatch(src)
               _      <- src.set(2)
               f2     <- step(ctl, steps)(3, 2)
               _      <- ctl.advance(99.millis)
@@ -161,12 +169,13 @@ class TimeTest extends Test[Any]:
               two    <- eventually(out)(_ == 2)
               f3     <- step(ctl, steps)(4, 1)
               // The window of 2 ends at 200 ms with no value that waits.
+              w3     <- awaitWatch(src)
               _      <- ctl.advance(100.millis)
               _      <- src.set(3)
               three  <- eventually(out)(_ == 3)
               log    <- steps.entries
           yield
-              assert(f0 && f1 && f2 && f3)
+              assert(f0 && w0 && f1 && w1 && f2 && f3 && w3)
               assert(inside == 0 && two && three)
               assert(
                 log == Chunk(
@@ -190,7 +199,9 @@ class TimeTest extends Test[Any]:
               deb   <- debounced(src, 100.millis)
               thr   <- throttled(src, 100.millis)
               // debounced: the wait of 0 and the watch; throttled: the watch.
+              // cursor 2026-10-29: changed: the write waits until both watches have subscribed
               f0    <- fence(ctl, 3)
+              w0    <- awaitWatch(src, 2)
               _     <- ctl.advance(100.millis)
               _     <- src.set(7)
               // 3 armed sleeps: debounced has seen 7.
@@ -201,7 +212,7 @@ class TimeTest extends Test[Any]:
               _     <- ctl.advance(1.millis)
               late  <- eventually(deb)(_ == 7)
           yield
-              assert(f0 && f1)
+              assert(f0 && w0 && f1)
               assert(now && early == 0 && late)
         }
       }
