@@ -5,10 +5,12 @@ name: Release
 # scripts/release.sh, which fills the same form. The job prepare does every
 # check before a tag exists. The job publish waits for one approval of the
 # environment maven-central for all the modules of the run. Then, for each
-# module in the order of the dependencies, it pushes the tag, publishes the
-# module to Maven Central and creates its GitHub release. A tag that a person
+# module in the order of the dependencies, it pushes the tag, creates the
+# GitHub Release of that module, and publishes the module to Maven Central.
+# The body of the release is the changelog subsection of the module. The
+# Maven publish uses the approval of maven-central. A tag that a person
 # pushes starts no release, and a tag that this workflow pushes with
-# GITHUB_TOKEN starts no workflow.
+# GITHUB_TOKEN starts no workflow.; cursor 2026-10-29: changed: create the GitHub Release with the tag; its body is the module changelog subsection
 on:
   workflow_dispatch:
     inputs:
@@ -21,8 +23,9 @@ on:
         description: "The version: x.y.z or x.y.z-<alpha|beta|M|RC><n>, no leading zeros (for example 0.1.0-RC1)"
         type: string
         required: true
+      # cursor 2026-10-29: changed: a dry run creates no GitHub Release
       dry_run:
-        description: "Dry run: check everything, create no tag, publish nothing"
+        description: "Dry run: check everything, create no tag, create no GitHub Release, publish nothing"
         type: boolean
         default: false
 
@@ -180,6 +183,7 @@ jobs:
           done
           sbt -v "${args[@]}"
 
+      # cursor 2026-10-29: changed: a dry run creates no GitHub Release
       - name: Summary
         env:
           DRY_RUN: ${{ inputs.dry_run }}
@@ -190,7 +194,7 @@ jobs:
             echo "Checks passed on \`$SHA\`: the branch, the version, the tags, CHANGELOG.md, CI, and for each module assertReleasable, versionCheck and an unsigned publish."
             echo
             if [[ $DRY_RUN == true ]]; then
-              echo "**Dry run:** no tag is pushed, and nothing is published."
+              echo "**Dry run:** no tag is pushed, no GitHub Release is created, and nothing is published."
             else
               echo "The job publish waits for the approval of the environment \`maven-central\`."
             fi
@@ -199,11 +203,12 @@ jobs:
   # claude 2026-10-20: created (ADR 0020): one approval of the environment for
   # all the modules of the run; one step with a loop, in the order of the
   # dependencies. A failure stops the loop. "Re-run failed jobs" continues:
-  # a tag that exists on this commit is kept, a module with a GitHub release
-  # is skipped, and a module that is on Maven Central gets only its release.
-  # A tag with no GitHub release means: the publish is not complete.
+  # a tag on this commit stays, a GitHub Release that exists stays, and a
+  # version that is on Maven Central is not published again. The GitHub
+  # Release is the notes of the module. The Maven publish uses the approval
+  # of maven-central.; cursor 2026-10-29: changed: an existing GitHub Release stays and does not skip the Maven publish
   publish:
-    name: Tag, publish and release
+    name: Tag, release and publish
     needs: prepare
     if: ${{ !inputs.dry_run }}
     runs-on: ubuntu-latest
@@ -236,7 +241,7 @@ jobs:
       # sonaRelease uploads the bundle, and Central publishes it after its
       # validation. It runs with the module as the current project (the root
       # version is a snapshot). Never "set -x" here: the env holds the secrets.
-      - name: For each module, tag, publish to Maven Central and release
+      - name: For each module, tag, create the GitHub Release and publish
         env:
           MODULES: ${{ needs.prepare.outputs.modules }}
           VERSION: ${{ inputs.version }}
@@ -248,7 +253,6 @@ jobs:
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
         run: |
           set -euo pipefail
-          . scripts/release-lib.sh
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           echo "## Published" >>"$GITHUB_STEP_SUMMARY"
@@ -267,35 +271,34 @@ jobs:
               git tag -a "$tag" -m "tui4s-$m $VERSION" "$GITHUB_SHA"
               git push origin "refs/tags/$tag"
             fi
-            # 2. A GitHub release comes only after a publish: skip the module.
+            # 2. The GitHub Release is the notes of this module. Create it
+            # with the tag. The title is the module and the version. The body
+            # is the subsection of the module in CHANGELOG.md. An existing
+            # release stays. The Maven publish below still runs when Maven
+            # Central does not have the version.
+            # claude 2026-10-20: changed (review): the generated notes only after a first release; cursor 2026-10-29: changed: the body is only that subsection, and an existing release does not skip Maven
             if gh release view "$tag" >/dev/null 2>&1; then
-              echo "The GitHub release $tag exists: tui4s-$m $VERSION is complete."
-              echo "- tui4s-$m $VERSION: complete before this run" >>"$GITHUB_STEP_SUMMARY"
-              echo "::endgroup::"
-              continue
+              echo "The GitHub release $tag exists: its notes stay."
+            else
+              notes=$(mktemp)
+              bash scripts/changelog-section.sh "$m" "$VERSION" >"$notes"
+              args=(--title "tui4s-$m $VERSION" --verify-tag --notes-file "$notes")
+              if [[ $VERSION == *-* ]]; then args+=(--prerelease); fi
+              gh release create "$tag" "${args[@]}"
+              echo "Created the GitHub release $tag."
             fi
-            # 3. Maven Central. A version that is on Central already (a re-run
-            # after a failed GitHub release) is not published again.
+            # 3. Maven Central. This job has the approval of maven-central.
+            # A version that is on Central already is not published again.
             pom="https://repo1.maven.org/maven2/io/github/yuri4n/tui4s-${m}_3/$VERSION/tui4s-${m}_3-$VERSION.pom"
             if curl -fsIL -o /dev/null "$pom"; then
               echo "tui4s-$m $VERSION is on Maven Central already: no publish."
+              echo "- tui4s-$m $VERSION: GitHub release \`$tag\`, already on Maven Central" >>"$GITHUB_STEP_SUMMARY"
             else
               CI_COMMIT_TAG="$tag" RELEASE_VERSION="$VERSION" \
                 CI_RELEASE="; $m/assertReleasable; $m/versionCheck; $m/publishSigned" \
                 CI_SONATYPE_RELEASE="; project $m; sonaRelease" \
                 sbt -v ci-release
+              echo "- tui4s-$m $VERSION: GitHub release \`$tag\`, published to Maven Central" >>"$GITHUB_STEP_SUMMARY"
             fi
-            # 4. The GitHub release: the notes of CHANGELOG.md, then, when the
-            # module has a previous release, the notes that GitHub generates
-            # since it. A first release has only the notes of CHANGELOG.md.
-            # claude 2026-10-20: changed (review): the generated notes only after a first release
-            notes=$(mktemp)
-            bash scripts/changelog-section.sh "$m" "$VERSION" >"$notes"
-            prev=$(release_latest_before "$m" "$VERSION")
-            args=(--title "tui4s-$m $VERSION" --verify-tag --notes-file "$notes")
-            if [[ -n $prev ]]; then args+=(--generate-notes --notes-start-tag "$m-v$prev"); fi
-            if [[ $VERSION == *-* ]]; then args+=(--prerelease); fi
-            gh release create "$tag" "${args[@]}"
-            echo "- tui4s-$m $VERSION: on Maven Central, GitHub release \`$tag\`" >>"$GITHUB_STEP_SUMMARY"
             echo "::endgroup::"
           done

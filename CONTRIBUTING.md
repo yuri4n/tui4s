@@ -777,7 +777,7 @@ Open one pull request after a release:
 
 ## Releasing
 
-<!-- claude 2026-10-20: changed (ADR 0020): this section: the release starts from the Actions form on main, the checks run before the tag, one approval for all the modules; changed (review): the notes of a first release, the limit of a re-run, self-review off -->
+<!-- claude 2026-10-20: changed (ADR 0020): this section: the release starts from the Actions form on main, the checks run before the tag, one approval for all the modules; changed (review): the notes of a first release, the limit of a re-run, self-review off; cursor 2026-10-29: changed: each module release is a GitHub Release whose body is that module's changelog subsection, and the Maven publish stays behind the maven-central approval -->
 Each module has its own version and its own tag `<module>-v<version>`. A
 release starts from the form of the workflow Release
 (`.github/workflows/release.yml`) on `main`. One run releases one module or
@@ -803,25 +803,28 @@ all the modules, with one approval.
    environment `maven-central`. One approval covers all the modules of the
    run.
 5. The job `publish` releases the modules in the order of the dependencies.
-   For each module, it pushes the tag, publishes the module to Maven Central
-   (sbt-ci-release, `sonaRelease`), and creates the GitHub release. The notes
-   of the release are the subsection of the module in `CHANGELOG.md`, then,
-   after a first release, the notes that GitHub makes since the previous
-   release of the module.
+   For each module, it pushes the tag and creates a GitHub Release for that
+   tag. The title is `tui4s-<module> <version>`. The body is the subsection
+   `### tui4s-<module>` of that version in `CHANGELOG.md`. It then publishes
+   the module to Maven Central (sbt-ci-release, `sonaRelease`). The approval
+   of the environment `maven-central` gates that publish. A GitHub Release
+   that already exists stays. The job still publishes the module when Maven
+   Central does not have the version.
 
 A dry run (the box "Dry run" of the form, or `--dry-run`) does the job
-`prepare` and stops: no tag, and no publish. Do a dry run before a release.
+`prepare` and stops: no tag, no GitHub Release, and no publish. Do a dry run
+before a release.
 
 If the job `publish` fails, remove the cause, then click **Re-run failed
 jobs**. Do not start a new run: its job `prepare` stops on the tags that
-exist. The re-run keeps the tags on the commit. It skips a module that has
-its GitHub release, and it does not publish again a version that is on
-Maven Central. A tag with no GitHub release means: the publish of that module
-is not complete. Central can show a new version on `repo1.maven.org` some
-minutes after it accepts the upload. Wait for it before a re-run. A re-run
-uses the workflow and the scripts of the commit of the run: a fix of
-`release.yml` or of a script cannot help a re-run. Merge the fix, and release
-the next version.
+exist. The re-run keeps the tags on the commit. It keeps a GitHub Release
+that already exists for the tag. It publishes a module when Maven Central
+does not have the version. It leaves a version that is already on Maven
+Central. Central can show a new version on `repo1.maven.org` some minutes
+after it accepts the upload. Wait for it before a re-run. A re-run uses the
+workflow and the scripts of the commit of the run: a fix of `release.yml`
+or of a script cannot help a re-run. Merge the fix, and release the next
+version.
 
 <!-- claude 2026-10-09: added the accepted version forms and their order -->
 <!-- claude 2026-10-20: changed: the release checks order the versions (ADR 0020) -->

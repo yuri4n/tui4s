@@ -64,8 +64,9 @@ Enterprise plan.
   first import (2026-10-09), and no GitHub documentation for it was found.
   It is `false` here: with one maintainer and no approval rule, an extra
   approval would block a merge.
-- A tag with no GitHub release means: its publish is not complete. Re-run
-  the failed job of the release run (CONTRIBUTING.md, "Releasing"); do not
-  delete the tag. To delete a release tag all the same, set `release tags` to
-  **Disabled**, delete the tag, then set it to **Active** again.
-  <!-- claude 2026-10-20: changed: this item: re-run before a deletion (ADR 0020); changed: CONTRIBUTING.md (ADR 0021) -->
+- The GitHub Release of a tag holds the notes of that module. Re-run the
+  failed job when Maven Central does not have the version (CONTRIBUTING.md,
+  "Releasing"). Keep the tag. To delete a release tag all the same, set
+  `release tags` to **Disabled**, delete the tag, then set it to **Active**
+  again.
+  <!-- claude 2026-10-20: changed: this item: re-run before a deletion (ADR 0020); changed: CONTRIBUTING.md (ADR 0021); cursor 2026-10-29: changed: a GitHub Release holds the notes, and Maven Central is the publish check -->
