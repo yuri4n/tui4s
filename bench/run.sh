@@ -42,24 +42,21 @@ check_java() {
 }
 
 # claude 2026-10-20: changed: the version of each of the six modules, and a
-# reload of the bench build after the publish (review fixes)
+# reload of the bench build after the publish (review fixes); cursor 2026-10-29: changed: publish runner, testkit and core (ADR 0024)
 publish() {
-    # One sbt process in the root build: publish the six artifacts and print
-    # their version (dynver: like 0.1.0+N-<sha>-SNAPSHOT). The bench build
-    # uses one version for all of them, so they must be equal.
+    # One sbt process in the root build: publish the three artifacts and print
+    # the version of core (dynver: like 0.1.0+N-<sha>-SNAPSHOT). The bench
+    # depends on tui4s-core. That POM brings runner and testkit.
     step "publishLocal of the tui4s artifacts (root build)"
-    local log="$bench/results/publish.log" version m
-    local modules="runner app testkit core useJVM widgetsJVM" prints=()
-    for m in $modules; do prints+=("print $m/version"); done
+    local log="$bench/results/publish.log" version
     mkdir -p "$bench/results"
-    (cd "$root" && sbt -Dsbt.supershell=false runner/publishLocal app/publishLocal testkit/publishLocal \
-        core/publishLocal useJVM/publishLocal widgetsJVM/publishLocal "${prints[@]}") >"$log" 2>&1 || {
+    (cd "$root" && sbt -Dsbt.supershell=false runner/publishLocal testkit/publishLocal \
+        core/publishLocal "print core/version") >"$log" 2>&1 || {
         tail -n 40 "$log"; step "publishLocal failed"; exit 1; }
-    version=$(grep -E '^[0-9]+\.[0-9]+\.[0-9]+' "$log" | tail -n 6)
-    if [ "$(echo "$version" | wc -l)" -ne 6 ] || [ "$(echo "$version" | sort -u | wc -l)" -ne 1 ]; then
-        step "the six modules do not have one version: $(echo $version)"; exit 1
+    version=$(grep -E '^[0-9]+\.[0-9]+\.[0-9]+' "$log" | tail -n 1)
+    if [ -z "$version" ]; then
+        step "no version from core"; exit 1
     fi
-    version=$(echo "$version" | head -n 1)
     echo "$version" >"$bench/tui4s.version"
     step "tui4s version $version"
     # A running sbt server of the bench build read tui4s.version when it

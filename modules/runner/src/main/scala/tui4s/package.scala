@@ -21,12 +21,12 @@
   * member; the runner keeps the state under the position and the state key). A
   * component in a `when` loses its state when it is hidden, and the fibers of
   * the components and hooks end with the run. `tui4s.TuiApp` (artifact
-  * tui4s-app) is the main class of an app: it prepares the JVM (the scheduler
+  * tui4s-core) is the main class of an app: it prepares the JVM (the scheduler
   * values of [[tui4s.spi.SchedulerDefaults]], the output capture), runs the UI
   * with `Tui.run`, and gives the exit code (0 after a quit, 1 after a failure;
   * 143 and 130 when `kill -TERM` and `kill -INT` stop the JVM). The artifact
-  * tui4s-core gives the runner, the app and the test kit in one dependency
-  * (`tui4s.Core`).
+  * tui4s-core gives the runner, `TuiApp`, the composables, the widgets and the
+  * test kit in one dependency (`tui4s.Core`).
   *
   * Scroll, wrap and ellipsis are plain kyo-ui styles:
   * {{{
@@ -169,5 +169,5 @@
 // claude 2026-10-19: changed: the package Scaladoc names the inputs and their
 // keys (L1c)
 // claude 2026-10-19: changed: Headless and TuiApp are in tui4s-testkit and
-// tui4s-app (D25)
+// tui4s-app (D25); cursor 2026-10-29: changed: TuiApp ships in tui4s-core (ADR 0024)
 package object tui4s

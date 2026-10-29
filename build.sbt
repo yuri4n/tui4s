@@ -2,17 +2,16 @@
 // claude 2026-10-12: changed this header: tui4s runs kyo-ui (line 1, core line)
 //
 // Published modules (each one has its own releases; see CONTRIBUTING.md):
-// claude 2026-10-20: changed: CONTRIBUTING.md (ADR 0021)
+// claude 2026-10-20: changed: CONTRIBUTING.md (ADR 0021); cursor 2026-10-29: changed: three published artifacts (ADR 0024)
 //   runner  -> io.github.yuri4n::tui4s-runner   (kyo-ui on Kyo + jatatui)
-//   app     -> io.github.yuri4n::tui4s-app      (TuiApp, on the runner)
 //   testkit -> io.github.yuri4n::tui4s-testkit  (Headless, on the runner)
-//   core    -> io.github.yuri4n::tui4s-core     (runner + app + testkit)
-// claude 2026-10-19: changed: the four modules of the split of the core (D25)
-//   use     -> io.github.yuri4n::tui4s-use      (composables; JVM and JS)
-//   widgets -> io.github.yuri4n::tui4s-widgets  (widgets; JVM and JS)
-// claude 2026-10-19: changed: the two cross-built modules (L2a); 2026-10-20:
-// changed: the empty zio and cats modules are removed (ADR 0014, issues #18,
-// #19)
+//   core    -> io.github.yuri4n::tui4s-core     (TuiApp, tui4s.use, tui4s.widgets;
+//                                                 the POM depends on runner and testkit)
+// The sbt projects app, use and widgets stay. Their JVM classes ship in the
+// core jar. use and widgets still build for Scala.js. They are not published.
+// claude 2026-10-19: changed: the four modules of the split of the core (D25);
+// the two cross-built modules (L2a); 2026-10-20: changed: the empty zio and
+// cats modules are removed (ADR 0014, issues #18, #19)
 // ModuleVersioning and sbt-ci-release set `version` and `publishTo`. Never set
 // them here.
 
@@ -175,6 +174,24 @@ def module(id: String, watch: Seq[String] = Seq.empty): Project =
     )
     .settings(name := s"tui4s-$id")
 
+/** A project whose JVM classes ship in tui4s-core. It is not published. Its
+  * version is the version of core, so `assertReleasable` does not see a
+  * snapshot dependency. The binary-compatibility check for this code is the
+  * check of core.
+  */
+// cursor 2026-10-29: created: MiMa sees the classes that ship in the core jar (ADR 0024)
+lazy val mimaBundledClasses = taskKey[File](
+  "Class directory of tui4s-core plus TuiApp, the composables and the widgets",
+)
+
+// cursor 2026-10-29: created: app, use and widgets follow core (ADR 0024)
+def bundledIntoCore: Seq[Setting[?]] = Seq(
+  publish / skip                := true,
+  version                       := (LocalProject("core") / version).value,
+  versionPolicyIntention        := Compatibility.None,
+  versionPolicyPreviousVersions := Nil,
+)
+
 // claude 2026-10-19: changed: the cross-built modules (L2a); the four modules
 // of the split of the core (D25); the assistant (L3); the web app (L4);
 // 2026-10-20: changed: no zio and cats (ADR 0014)
@@ -205,25 +222,106 @@ lazy val root = project
 // runner (FakeCrossterm, the fixtures, ScriptedInput), hence test->test.
 // claude 2026-10-19: created (D25)
 lazy val runner  = module("runner").settings(runnerTestSettings)
-lazy val app     = module("app").dependsOn(runner).settings(runnerTestSettings)
+lazy val app     = module("app")
+  .dependsOn(runner)
+  .settings(runnerTestSettings)
+  .settings(bundledIntoCore)
 lazy val testkit =
   module("testkit").dependsOn(runner).settings(runnerTestSettings)
 // claude 2026-10-19: changed: the composite watches the code of its three
-// modules, so a change there makes it unreleased too (D25 hygiene)
+// modules, so a change there makes it unreleased too (D25 hygiene);
+// cursor 2026-10-29: changed: core also watches use and widgets, and its jar
+// holds their JVM classes and TuiApp (ADR 0024)
 lazy val core    = module(
   "core",
-  watch = Seq("modules/runner", "modules/app", "modules/testkit"),
+  watch = Seq(
+    "modules/runner",
+    "modules/app",
+    "modules/testkit",
+    "modules/use",
+    "modules/widgets",
+  ),
 )
-  .dependsOn(runner % "compile->compile;test->test", app, testkit)
+  .dependsOn(
+    runner % "compile->compile;test->test",
+    app,
+    testkit,
+    useJVM,
+    widgetsJVM,
+  )
   .settings(runnerTestSettings)
+  .settings(
+    // The class directories of the bundled projects are on the classpath
+    // through dependsOn. The published jar must also contain those classes.
+    // publishLocal writes an Ivy file from projectDependencies. pomPostProcess
+    // changes only the Maven POM. Both omit the bundled projects.
+    // cursor 2026-10-29: changed: the Ivy file matches the POM (ADR 0024)
+    Compile / packageBin / mappings ++= CorePackaging.productMappings(
+      (LocalProject("app") / Compile / products).value ++
+        (LocalProject("useJVM") / Compile / products).value ++
+        (LocalProject("widgetsJVM") / Compile / products).value,
+    ),
+    Compile / packageSrc / mappings ++= CorePackaging.sourceMappings(
+      (LocalProject("app") / Compile / unmanagedSources).value ++
+        (LocalProject("useJVM") / Compile / unmanagedSources).value ++
+        (LocalProject("widgetsJVM") / Compile / unmanagedSources).value,
+      (LocalProject("app") / Compile / unmanagedSourceDirectories).value ++
+        (LocalProject("useJVM") / Compile / unmanagedSourceDirectories).value ++
+        (LocalProject(
+          "widgetsJVM",
+        ) / Compile / unmanagedSourceDirectories).value,
+    ),
+    Compile / doc / sources ++=
+      (LocalProject("app") / Compile / sources).value ++
+        (LocalProject("useJVM") / Compile / sources).value ++
+        (LocalProject("widgetsJVM") / Compile / sources).value,
+    // Scala 3 Scaladoc reads TASTy, not the extra sources alone.
+    Compile / tastyFiles ++=
+      (LocalProject("app") / Compile / tastyFiles).value ++
+        (LocalProject("useJVM") / Compile / tastyFiles).value ++
+        (LocalProject("widgetsJVM") / Compile / tastyFiles).value,
+    projectDependencies    := projectDependencies.value.filterNot { dep =>
+      dep.organization == organization.value && CorePackaging
+        .isBundled(dep.name)
+    },
+    pomPostProcess         := pomPostProcess.value.andThen(
+      CorePackaging.dropInternalDependencies,
+    ),
+    // MiMa reads one class directory. The published jar holds more classes
+    // than core compiles, so the check copies them into one directory first.
+    mimaBundledClasses     := {
+      val compiled = Seq(
+        (Compile / products).value,
+        (LocalProject("app") / Compile / products).value,
+        (LocalProject("useJVM") / Compile / products).value,
+        (LocalProject("widgetsJVM") / Compile / products).value,
+      )
+      if (compiled.exists(_.isEmpty))
+        sys.error("tui4s-core: a bundled project did not compile")
+      CorePackaging.stageClasses(
+        (Compile / target).value / "mima-current",
+        Seq(
+          (Compile / classDirectory).value,
+          (LocalProject("app") / Compile / classDirectory).value,
+          (LocalProject("useJVM") / Compile / classDirectory).value,
+          (LocalProject("widgetsJVM") / Compile / classDirectory).value,
+        ),
+      )
+    },
+    mimaCurrentClassfiles  := (Compile / target).value / "mima-current",
+    mimaReportBinaryIssues := mimaReportBinaryIssues
+      .dependsOn(mimaBundledClasses)
+      .value,
+    versionPolicyCheck     := versionPolicyCheck.dependsOn(mimaBundledClasses).value,
+  )
 
-/** A published module in `modules/<id>` for the JVM and for Scala.js, with no
-  * dependency on the core: plain kyo-ui code (D6). The sources are in
-  * `shared/`, `jvm/` and `js/` (CrossType.Full); the sbt ids are `<id>JVM` and
-  * `<id>JS`. The artifacts are `tui4s-<id>` and `tui4s-<id>_sjs1`. The tests
+/** A module in `modules/<id>` for the JVM and for Scala.js, with no dependency
+  * on the runner: plain kyo-ui code (D6). The sources are in `shared/`, `jvm/`
+  * and `js/` (CrossType.Full); the sbt ids are `<id>JVM` and `<id>JS`. use and
+  * widgets are not published: their JVM classes ship in tui4s-core. The tests
   * use kyo-test on both platforms (Node.js runs the JS tests).
   */
-// claude 2026-10-19: created (L2a)
+// claude 2026-10-19: created (L2a); cursor 2026-10-29: changed: use and widgets are not published (ADR 0024)
 def crossModule(id: String): CrossProject =
   CrossProject(id, file(s"modules/$id"))(JVMPlatform, JSPlatform)
     .crossType(CrossType.Full)
@@ -289,18 +387,21 @@ def crossAggregate(id: String, m: CrossProject): Project =
 // claude 2026-10-19: created (L2a): the composables (tui4s.use) and the
 // widgets (tui4s.widgets); changed: widgets depends on use on both platforms
 // (L2b): the lists take useSelection, the modal useDialog, ...
-lazy val useCross     = crossModule("use").settings(
-  // kyo-system (Path, Command): the files of usePersisted and the process
-  // of useProcess on the JVM. kyo-ui brings it already; the module names it
-  // because it calls it. Its POM brings JMH through kyo-kernel too.
-  // claude 2026-10-19: changed: JMH is out of the POM (L2a review)
-  libraryDependencies += ("io.getkyo" %%% "kyo-system" % Versions.kyo)
-    .excludeAll(ExclusionRule("org.openjdk.jmh")),
-)
+lazy val useCross     = crossModule("use")
+  .settings(bundledIntoCore)
+  .settings(
+    // kyo-system (Path, Command): the files of usePersisted and the process
+    // of useProcess on the JVM. kyo-ui brings it already; the module names it
+    // because it calls it. Its POM brings JMH through kyo-kernel too.
+    // claude 2026-10-19: changed: JMH is out of the POM (L2a review)
+    libraryDependencies += ("io.getkyo" %%% "kyo-system" % Versions.kyo)
+      .excludeAll(ExclusionRule("org.openjdk.jmh")),
+  )
 lazy val useJVM       = useCross.jvm
 lazy val useJS        = useCross.js
 lazy val use          = crossAggregate("use", useCross)
-lazy val widgetsCross = crossModule("widgets").dependsOn(useCross)
+lazy val widgetsCross =
+  crossModule("widgets").dependsOn(useCross).settings(bundledIntoCore)
 lazy val widgetsJVM   = widgetsCross.jvm
 lazy val widgetsJS    = widgetsCross.js
 lazy val widgets      = crossAggregate("widgets", widgetsCross)
@@ -490,10 +591,11 @@ addCommandAlias(
   "; scalafmtCheckAll; scalafmtSbtCheck; Test/compile; scalafixAll --check; test; versionPolicyCheck",
 )
 // claude 2026-10-19: changed: use and widgets (L2a); runner, app and testkit
-// (D25); 2026-10-20: changed: no zio and cats (ADR 0014)
+// (D25); 2026-10-20: changed: no zio and cats (ADR 0014); cursor 2026-10-29:
+// changed: the published modules are runner, testkit and core (ADR 0024)
 addCommandAlias(
   "versions",
-  "; show runner/version; show app/version; show testkit/version; show core/version; show useJVM/version; show widgetsJVM/version",
+  "; show runner/version; show testkit/version; show core/version",
 )
 
 /** The assistant on the web (L4, D5): a standalone Scala.js app from the shared

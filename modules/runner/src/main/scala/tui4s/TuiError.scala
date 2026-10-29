@@ -14,9 +14,9 @@ import scala.util.control.NoStackTrace
   *     fails, or `TuiApp.onExit` fails). Such a failure is not a `TuiError`. It
   *     comes out of the run as it is, after the terminal is restored. A handler
   *     that fails is logged, and the run goes on.
-  *   - Panics: an exception that nobody expected. `TuiApp` (artifact tui4s-app)
-  *     catches it once, in its report: it prints the stack trace and gives the
-  *     exit code 1.
+  *   - Panics: an exception that nobody expected. `TuiApp` (artifact
+  *     tui4s-core) catches it once, in its report: it prints the stack trace
+  *     and gives the exit code 1.
   *
   * The runner converts a native exception (of the terminal library or of the
   * JVM) to a `TuiError` at the edge where it calls the terminal. Each case
@@ -29,7 +29,8 @@ import scala.util.control.NoStackTrace
 // claude 2026-10-19: changed: a non-null cause, NoStackTrace, the taxonomy in
 // the Scaladoc (P1b, A4)
 // claude 2026-10-19: changed: TuiApp is in tui4s-app (D25); 2026-10-20:
-// changed: the ZIO and Cats Effect integrations are issues, not modules
+// changed: the ZIO and Cats Effect integrations are issues, not modules;
+// cursor 2026-10-29: changed: TuiApp ships in tui4s-core (ADR 0024)
 enum TuiError(message: String, cause: Throwable)
     extends Exception(message, cause)
     with NoStackTrace:

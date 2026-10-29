@@ -15,8 +15,12 @@ import scala.sys.process._
 object ModuleVersioning {
 
   /** `releaseModule <id>`: check, sign and stage one module, then upload and
-    * release that bundle. `sonaRelease` runs in the module project.
+    * release that bundle. One call is one Central deployment. The release
+    * workflow batches the modules of a run into one `sonaRelease`.
+    * `sonaRelease` runs in the module project, because the root version is a
+    * snapshot.
     */
+  // cursor 2026-10-29: changed: one call is one Central deployment (ADR 0024)
   val releaseModule: Command = Command.single("releaseModule") { (state, m) =>
     s"$m/assertReleasable" :: s"$m/publishSigned" :: s"project $m" ::
       "sonaRelease" :: state

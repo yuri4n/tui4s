@@ -25,9 +25,11 @@ Until 1.0, only the last release of each module gets fixes.
 
 In scope:
 
-- The libraries: `tui4s-runner`, `tui4s-app`, `tui4s-testkit`, `tui4s-core`,
-  `tui4s-use` and `tui4s-widgets`. For example: the restore of the terminal,
-  the output capture and the log file of a run (`TuiOptions.logFile`).
+- The libraries: `tui4s-runner`, `tui4s-testkit` and `tui4s-core` (the core
+  jar also holds `TuiApp`, the composables and the widgets). For example: the
+  restore of the terminal, the output capture and the log file of a run
+  (`TuiOptions.logFile`).
+  <!-- cursor 2026-10-29: changed: the published libraries are runner, testkit and core (ADR 0024) -->
 - The API keys of the example assistant (`examples.assistant`,
   `modules/assistant`):
   - the environment variables `ANTHROPIC_API_KEY` and `OPENAI_API_KEY`;

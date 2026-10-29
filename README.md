@@ -1731,18 +1731,15 @@ of the prompt.
 
 ## Modules
 
-Each module is released on its own, with its own version.
+The published modules are `runner`, `testkit` and `core`. Each one is released on its own, with its own version.
 
 | Artifact                         | For                                    |
 | -------------------------------- | -------------------------------------- |
-| `io.github.yuri4n::tui4s-core`   | Kyo users: the tui4s experience in one dependency. It gives tui4s-runner, tui4s-app and tui4s-testkit. |
+| `io.github.yuri4n::tui4s-core`   | Kyo users: the tui4s experience in one dependency. The jar holds `TuiApp`, the composables and the widgets. The POM brings tui4s-runner and tui4s-testkit. |
 | `io.github.yuri4n::tui4s-runner` | The terminal runner for kyo-ui: `Tui.run`, the components (`Hooks`, `Component`), the screen types. The base of the others. |
-| `io.github.yuri4n::tui4s-app`    | `TuiApp`, the main class of an app, on tui4s-runner. |
 | `io.github.yuri4n::tui4s-testkit` | `tui4s.testkit.Headless`, the headless test kit, on tui4s-runner. |
-| `io.github.yuri4n::tui4s-use`    | Composables over Kyo signals, for the JVM and Scala.js. It does not need tui4s-core. |
-| `io.github.yuri4n::tui4s-widgets` | Widgets for the JVM and Scala.js, on tui4s-use. It does not need tui4s-core. |
 <!-- claude 2026-10-19: created the two rows above (L2a); changed: the widgets row (L2b) -->
-<!-- claude 2026-10-19: changed: the rows of the split of the core: runner, app, testkit (D25); 2026-10-20: changed: the rows of zio and cats are removed (ADR 0014) -->
+<!-- claude 2026-10-19: changed: the rows of the split of the core: runner, app, testkit (D25); 2026-10-20: changed: the rows of zio and cats are removed (ADR 0014); cursor 2026-10-29: changed: three published artifacts (ADR 0024) -->
 
 An app uses tui4s-core:
 
@@ -1759,8 +1756,8 @@ libraryDependencies += "io.github.yuri4n" %% "tui4s-runner"  % "<version>"
 libraryDependencies += "io.github.yuri4n" %% "tui4s-testkit" % "<version>" % Test
 ```
 
-The packages are the same in all the artifacts (`tui4s`, `tui4s.spi`,
-`tui4s.testkit`), so the imports do not change.
+The packages are the same in all the artifacts (`tui4s`, `tui4s.use`,
+`tui4s.widgets`, `tui4s.spi`, `tui4s.testkit`), so the imports do not change.
 <!-- claude 2026-10-19: created these lines (D25) -->
 
 ## Requirements

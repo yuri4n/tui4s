@@ -5,24 +5,27 @@ name: Release
 # scripts/release.sh, which fills the same form. The job prepare does every
 # check before a tag exists. The job publish waits for one approval of the
 # environment maven-central for all the modules of the run. Then, for each
-# module in the order of the dependencies, it pushes the tag, publishes the
-# module to Maven Central and creates its GitHub release. A tag that a person
+# module in the order of the dependencies, it pushes the tag and creates the
+# GitHub Release of that module. The body of the release is the changelog
+# subsection of the module. Modules that are not yet on Maven Central are
+# published together: one sbt ci-release, one sonaRelease. A tag that a person
 # pushes starts no release, and a tag that this workflow pushes with
 # GITHUB_TOKEN starts no workflow.
+# cursor 2026-10-29: changed: one Central deployment; the GitHub Release is created with the tag (ADR 0024, PR 66)
 on:
   workflow_dispatch:
     inputs:
       module:
-        description: "The module, or all (runner, app, testkit, core, use, widgets: the order of the dependencies)"
+        description: "The module, or all (runner, testkit, core: the order of the dependencies)"
         type: choice
         required: true
-        options: [runner, app, testkit, core, use, widgets, all]
+        options: [runner, testkit, core, all]
       version:
         description: "The version: x.y.z or x.y.z-<alpha|beta|M|RC><n>, no leading zeros (for example 0.1.0-RC1)"
         type: string
         required: true
       dry_run:
-        description: "Dry run: check everything, create no tag, publish nothing"
+        description: "Dry run: check everything, create no tag, create no GitHub Release, publish nothing"
         type: boolean
         default: false
 
@@ -148,8 +151,10 @@ jobs:
       # project/ModuleVersioning.scala takes the version of a module from a tag
       # <module>-v<version> on HEAD (dynver). The tags exist only in this
       # checkout, in the order of the dependencies, so assertReleasable sees
-      # the new versions of runner, app, testkit and use when it checks core
-      # and widgets. This job has no write permission: it pushes nothing.
+      # the new versions of runner and testkit when it checks core. app, use
+      # and widgets take the version of core. This job has no write permission:
+      # it pushes nothing.
+      # cursor 2026-10-29: changed: core checks runner and testkit (ADR 0024)
       - name: Tag the commit in this checkout only
         env:
           MODULES: ${{ steps.plan.outputs.modules }}
@@ -190,24 +195,24 @@ jobs:
             echo "Checks passed on \`$SHA\`: the branch, the version, the tags, CHANGELOG.md, CI, and for each module assertReleasable, versionCheck and an unsigned publish."
             echo
             if [[ $DRY_RUN == true ]]; then
-              echo "**Dry run:** no tag is pushed, and nothing is published."
+              echo "**Dry run:** no tag is pushed, no GitHub Release is created, and nothing is published."
             else
               echo "The job publish waits for the approval of the environment \`maven-central\`."
             fi
           } >>"$GITHUB_STEP_SUMMARY"
 
   # claude 2026-10-20: created (ADR 0020): one approval of the environment for
-  # all the modules of the run; one step with a loop, in the order of the
-  # dependencies. A failure stops the loop. "Re-run failed jobs" continues:
-  # a tag that exists on this commit is kept, a module with a GitHub release
-  # is skipped, and a module that is on Maven Central gets only its release.
-  # A tag with no GitHub release means: the publish is not complete.
+  # all the modules of the run. A failure stops the step. "Re-run failed
+  # jobs" continues: a tag on this commit stays, a GitHub Release that exists
+  # stays, and a version that is on Maven Central is not published again.
+  # The modules that are missing from Central share one sonaRelease.
+  # cursor 2026-10-29: changed: one bundle; an existing GitHub Release does not skip Maven (ADR 0024)
   publish:
-    name: Tag, publish and release
+    name: Tag, release and publish
     needs: prepare
     if: ${{ !inputs.dry_run }}
     runs-on: ubuntu-latest
-    # claude 2026-10-20: changed: 360 (review): an "all" run does six ci-release builds and six waits for Central
+    # claude 2026-10-20: changed: 360 (review): an "all" run does six ci-release builds and six waits for Central; cursor 2026-10-29: changed: one ci-release and one wait (ADR 0024)
     timeout-minutes: 360
     # Holds the secrets. Its deployment policy allows only the branch main,
     # and its required reviewer (the maintainer) approves the run.
@@ -233,10 +238,11 @@ jobs:
       # that command does not exist, so sbt stops.
       # sbt-ci-release runs $CI_CLEAN (default "; clean"; it also empties
       # target/sona-staging), then $CI_RELEASE, then $CI_SONATYPE_RELEASE.
-      # sonaRelease uploads the bundle, and Central publishes it after its
-      # validation. It runs with the module as the current project (the root
-      # version is a snapshot). Never "set -x" here: the env holds the secrets.
-      - name: For each module, tag, publish to Maven Central and release
+      # One sonaRelease uploads the whole target/sona-staging directory.
+      # It runs in the first module of the bundle (the root version is a
+      # snapshot). Never "set -x" here: the env holds the secrets.
+      # cursor 2026-10-29: changed: one bundle for the modules that are not on Central (ADR 0024)
+      - name: Tag, create the GitHub Releases and publish one bundle
         env:
           MODULES: ${{ needs.prepare.outputs.modules }}
           VERSION: ${{ inputs.version }}
@@ -252,6 +258,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           echo "## Published" >>"$GITHUB_STEP_SUMMARY"
+          to_publish=""
           for m in $MODULES; do
             tag="$m-v$VERSION"
             echo "::group::tui4s-$m $VERSION"
@@ -267,35 +274,41 @@ jobs:
               git tag -a "$tag" -m "tui4s-$m $VERSION" "$GITHUB_SHA"
               git push origin "refs/tags/$tag"
             fi
-            # 2. A GitHub release comes only after a publish: skip the module.
+            # 2. The GitHub Release is the notes of this module. The title is
+            # the module and the version. The body is the subsection of the
+            # module in CHANGELOG.md. An existing release stays. The Maven
+            # publish below still runs when Maven Central does not have the
+            # version.
+            # cursor 2026-10-29: changed: the body is only that subsection, and an existing release does not skip Maven
             if gh release view "$tag" >/dev/null 2>&1; then
-              echo "The GitHub release $tag exists: tui4s-$m $VERSION is complete."
-              echo "- tui4s-$m $VERSION: complete before this run" >>"$GITHUB_STEP_SUMMARY"
-              echo "::endgroup::"
-              continue
+              echo "The GitHub release $tag exists: its notes stay."
+            else
+              notes=$(mktemp)
+              bash scripts/changelog-section.sh "$m" "$VERSION" >"$notes"
+              args=(--title "tui4s-$m $VERSION" --verify-tag --notes-file "$notes")
+              if [[ $VERSION == *-* ]]; then args+=(--prerelease); fi
+              gh release create "$tag" "${args[@]}"
+              echo "Created the GitHub release $tag."
             fi
-            # 3. Maven Central. A version that is on Central already (a re-run
-            # after a failed GitHub release) is not published again.
+            # 3. A version that is on Central already is not part of the bundle.
             pom="https://repo1.maven.org/maven2/io/github/yuri4n/tui4s-${m}_3/$VERSION/tui4s-${m}_3-$VERSION.pom"
             if curl -fsIL -o /dev/null "$pom"; then
               echo "tui4s-$m $VERSION is on Maven Central already: no publish."
+              echo "- tui4s-$m $VERSION: GitHub release \`$tag\`, already on Maven Central" >>"$GITHUB_STEP_SUMMARY"
             else
-              CI_COMMIT_TAG="$tag" RELEASE_VERSION="$VERSION" \
-                CI_RELEASE="; $m/assertReleasable; $m/versionCheck; $m/publishSigned" \
-                CI_SONATYPE_RELEASE="; project $m; sonaRelease" \
-                sbt -v ci-release
+              to_publish="$to_publish $m"
+              echo "- tui4s-$m $VERSION: GitHub release \`$tag\`, in the Central bundle" >>"$GITHUB_STEP_SUMMARY"
             fi
-            # 4. The GitHub release: the notes of CHANGELOG.md, then, when the
-            # module has a previous release, the notes that GitHub generates
-            # since it. A first release has only the notes of CHANGELOG.md.
-            # claude 2026-10-20: changed (review): the generated notes only after a first release
-            notes=$(mktemp)
-            bash scripts/changelog-section.sh "$m" "$VERSION" >"$notes"
-            prev=$(release_latest_before "$m" "$VERSION")
-            args=(--title "tui4s-$m $VERSION" --verify-tag --notes-file "$notes")
-            if [[ -n $prev ]]; then args+=(--generate-notes --notes-start-tag "$m-v$prev"); fi
-            if [[ $VERSION == *-* ]]; then args+=(--prerelease); fi
-            gh release create "$tag" "${args[@]}"
-            echo "- tui4s-$m $VERSION: on Maven Central, GitHub release \`$tag\`" >>"$GITHUB_STEP_SUMMARY"
             echo "::endgroup::"
           done
+          # 4. One sbt session stages every missing module, then one
+          # sonaRelease uploads that directory. The tags of step 1 are on
+          # this commit, so each module has a release version.
+          to_publish=${to_publish# }
+          if [[ -n $to_publish ]]; then
+            first=$(release_bundle_project $to_publish)
+            CI_COMMIT_TAG="${first}-v$VERSION" RELEASE_VERSION="$VERSION" \
+              CI_RELEASE="$(release_bundle_sbt $to_publish)" \
+              CI_SONATYPE_RELEASE="; project $first; sonaRelease" \
+              sbt -v ci-release
+          fi

@@ -66,12 +66,39 @@ version_gt() {
   return 1
 }
 
-# claude 2026-10-20: created release_all_modules (the order of the dependencies)
+# claude 2026-10-20: created release_all_modules (the order of the dependencies);
+# cursor 2026-10-29: changed: the published modules are runner, testkit, core (ADR 0024)
 # release_all_modules: print the published modules in the order of their
-# dependencies: runner, then app and testkit, then core (the composite of the
-# three); use before widgets. A release of "all" goes in this order.
+# dependencies: runner, then testkit, then core. A release of "all" goes in
+# this order. app, use and widgets are not published: their JVM classes ship
+# in core.
 release_all_modules() {
-  echo "runner app testkit core use widgets"
+  echo "runner testkit core"
+}
+
+# cursor 2026-10-29: created release_bundle_sbt (one Central deployment, ADR 0024)
+# release_bundle_sbt MODULE...: print the CI_RELEASE command for those
+# modules, in the given order. Each module is checked, then publishSigned.
+# One sonaRelease after that command uploads every staged module.
+# Exit 1 when no module is given.
+release_bundle_sbt() {
+  local m cmd=";"
+  [[ $# -ge 1 ]] || return 1
+  for m in "$@"; do
+    cmd="$cmd $m/assertReleasable; $m/versionCheck; $m/publishSigned;"
+  done
+  printf '%s\n' "$cmd"
+}
+
+# cursor 2026-10-29: created release_bundle_project (ADR 0024)
+# release_bundle_project MODULE...: print the project where sonaRelease runs.
+# That project is the first module. The root project is a snapshot, so
+# sonaRelease cannot run there. The upload zips the whole target/sona-staging
+# directory, so every module staged before it is in the bundle.
+# Exit 1 when no module is given.
+release_bundle_project() {
+  [[ $# -ge 1 ]] || return 1
+  printf '%s\n' "$1"
 }
 
 # claude 2026-10-20: created release_resolve_modules (the input "module" of the form)
