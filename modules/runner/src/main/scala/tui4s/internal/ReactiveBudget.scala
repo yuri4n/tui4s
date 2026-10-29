@@ -3,13 +3,13 @@ package tui4s.internal
 /** How many reactive regions keep a watcher, and which regions a frame reads. */
 // cursor 2026-10-28: created: pure watcher budget and sampled-region rotation.
 private[tui4s] object ReactiveBudget:
-    /** Reactive regions at this count and above are sampled. */
-    // cursor 2026-10-28: created: keep ordinary screens on the watcher loop; cursor 2026-10-28: changed: watch two reactive regions.
-    val watchedLimit: Int = 2
+    /** Reactive children of one parent at this count and above are sampled. */
+    // cursor 2026-10-28: created: keep ordinary screens on the watcher loop; cursor 2026-10-28: changed: watch two reactive regions; cursor 2026-10-28: changed: the cap is per parent.
+    val watchedLimit: Int = 16
 
     /** Sampled regions read on one non-input frame. */
-    // cursor 2026-10-28: created: bound one sample slice.
-    val sampleBatch: Int = 32
+    // cursor 2026-10-28: created: bound one sample slice; cursor 2026-10-28: changed: keep one slice small enough for the 250 ms gate.
+    val sampleBatch: Int = 8
 
     /** Idle wait before a sample frame, when sampled regions exist. */
     // cursor 2026-10-28: created: one local-settlement interval.

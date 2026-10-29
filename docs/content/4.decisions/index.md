@@ -34,6 +34,6 @@ Each record states one decision: the forces, the decision, the alternatives that
 | [0020](/decisions/0020-release-from-the-actions-form) | Release from the Actions form | Accepted | One run of the form on `main` checks everything before the tag, and one approval publishes all its modules in order; `CHANGELOG.md` gives the notes. |
 | [0021](/decisions/0021-the-rulebook-is-contributing-md) | The rulebook is CONTRIBUTING.md | Accepted | `CONTRIBUTING.md` is the rulebook for humans and agents; `ARCHITECTURE.md` tells how the runner works; `AGENTS.md` is short and imports both. |
 | [0022](/decisions/0022-the-logo-is-text) | The logo is text | Accepted | The ASCII art of the maintainer is the logotype and its "4" is the isomark; one script makes all the logo assets from the text, and CI checks them. |
-| [0023](/decisions/0023-sample-crowded-reactive-regions) | Sample crowded reactive regions | Accepted | At most 32 reactive regions keep a watcher; further regions are read in slices so loaded input does not wait for one fiber per row. |
+| [0023](/decisions/0023-sample-crowded-reactive-regions) | Sample crowded reactive regions | Accepted | Each parent watches its first 16 reactive children; further children are read in slices of 8. |
 
 Format: MADR-lite. Each record has the sections Status, Date, Context, Decision, Alternatives considered, Consequences and References. The text uses ASD-STE100. When a source does not record a reason, the record says "not recorded"; a reason that the record adds is marked PROPOSAL.

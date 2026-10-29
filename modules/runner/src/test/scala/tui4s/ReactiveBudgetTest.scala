@@ -137,8 +137,8 @@ class ReactiveBudgetTest extends Test[Any]:
       )
       val regions         = Vector(prompt) ++ statuses ++ tasks
       assert(ReactiveBudget.watchAnother(0))
-      assert(ReactiveBudget.watchAnother(1))
-      assert(ReactiveBudget.watchAnother(2) == false)
+      assert(ReactiveBudget.watchAnother(ReactiveBudget.watchedLimit - 1))
+      assert(ReactiveBudget.watchAnother(ReactiveBudget.watchedLimit) == false)
       val (input, held)   =
         ReactiveBudget.pulls(
           regions,

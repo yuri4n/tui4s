@@ -151,7 +151,10 @@ private[tui4s] final class Mount(
                         )
                       case _ =>
                         val (gen, w1) = w.gen
-                        if ReactiveBudget.watchAnother(w1.reactiveWatchers) then
+                        if ReactiveBudget.watchAnother(
+                              w1.reactiveWatchersUnder(path.parent),
+                            )
+                        then
                             for
                                 cur     <- r.signal.current
                                 watcher <- watch(r.signal, path, gen)

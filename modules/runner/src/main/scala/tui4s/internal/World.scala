@@ -193,12 +193,14 @@ private[tui4s] final case class World(
     def armed(p: Loc, g: Long): World =
       if unarmed.get(p).contains(g) then copy(unarmed = unarmed - p) else this
 
-    /** Reactive regions that own a watcher fiber. */
-    // cursor 2026-10-28: created: the mount spends the watcher budget in tree order.
-    def reactiveWatchers: Int =
+    /** Reactive regions under `parent` that own a watcher fiber. */
+    // cursor 2026-10-28: created: the mount spends the watcher budget per parent.
+    def reactiveWatchersUnder(parent: Loc): Int =
       regions.values.count {
-        case RegionState(_, Source.One(_), _, _, _, Some(_)) => true
-        case _                                               => false
+        case RegionState(p, Source.One(_), _, _, _, Some(_))
+            if p.parent == parent =>
+          true
+        case _ => false
       }
 
     /** True when at least one reactive region is sampled. */

@@ -1,6 +1,6 @@
 ---
 title: "0023. Sample crowded reactive regions"
-description: "The first 2 reactive regions keep a watcher. Further reactive regions are read in slices, so a loaded input frame does not wait for one fiber per region." # cursor 2026-10-28: changed: watch two reactive regions.
+description: "Each parent watches its first 16 reactive children. Further children are read in slices of 8."
 ---
 
 <!-- cursor 2026-10-28: created: ADR 0023, sample crowded reactive regions. -->
@@ -22,9 +22,9 @@ Accepted.
 
 ## Decision
 
-- The mount gives a watcher to at most 2 reactive regions, in tree order.
-  <!-- cursor 2026-10-28: changed: watch two reactive regions. -->
-- Each further reactive region is sampled. A background frame reads the current value of 32 sampled regions. The idle runner waits at most 16 ms for the next sample.
+- The mount gives a watcher to the first 16 reactive children of each parent.
+  <!-- cursor 2026-10-28: changed: watch two reactive regions; cursor 2026-10-28: changed: the cap is per parent. -->
+- Each further child is sampled. A background frame reads the current value of 8 sampled regions. The idle runner waits at most 16 ms for the next sample.
 - An input frame still reads every watched reactive region, every bound region, every `Foreach`, and a sampled region that holds the focus.
 - When input is already queued, the runner paints that input before the next background frame.
 - Bound regions and `Foreach` regions keep their watchers. The 1 s repair tick stays.
