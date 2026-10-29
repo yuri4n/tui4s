@@ -22,15 +22,15 @@ import java.time.Duration
   * @param pendingNanos
   *   `TuiOptions.pendingTimeout` in nanoseconds, from 0 to `Long.MaxValue`
   * @param settleNanos
-  *   the duration of `TuiOptions.settle` in nanoseconds (the `max` of
-  *   `Quiescent`, the `window` of `Hops`), from 0 to `Long.MaxValue`
+  *   the duration of `TuiOptions.settle` in nanoseconds (the `max` of `Local`
+  *   or `Quiescent`, the `window` of `Hops`), from 0 to `Long.MaxValue`
   * @param vars
   *   the custom properties of the stylesheet of the run
   * @param sheetProblems
   *   the entries and the selectors of that stylesheet that the runner ignores
   */
 // claude 2026-10-19: changed: the custom properties of the stylesheet, and
-// its problems (L1b)
+// its problems (L1b); codex 2026-10-23: changed: include Local in the checked-duration contract.
 private[tui4s] final case class RunOptions(
     options: TuiOptions,
     inboxCapacity: Int,
@@ -45,7 +45,7 @@ private[tui4s] object RunOptions:
     /** The checked values of `options`, and the custom properties of `sheet`
       * with the entries of it that the runner ignores ([[CssVars.of]]).
       */
-    // claude 2026-10-19: changed: the stylesheet (L1b)
+    // claude 2026-10-19: changed: the stylesheet (L1b); codex 2026-10-23: changed: validate the local active maximum.
     def of(
         options: TuiOptions,
         sheet: Stylesheet = Stylesheet.empty,
@@ -57,6 +57,7 @@ private[tui4s] object RunOptions:
           pollMillis = millis(options.pollInterval),
           pendingNanos = nanos(options.pendingTimeout),
           settleNanos = nanos(options.settle match
+              case Settle.Local(max, _, _)  => max
               case Settle.Quiescent(max, _) => max
               case Settle.Hops(_, window)   => window),
           vars = vars,

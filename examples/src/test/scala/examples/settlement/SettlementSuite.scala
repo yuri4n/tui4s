@@ -39,12 +39,14 @@ class SettlementSuite extends FunSuite:
         ),
       )
 
-    // codex 2026-10-22: created: the baseline has no background load.
+    // codex 2026-10-22: created: the baseline has no background load; changed: fanout and continuous notifications are off by default.
     test("the default configuration is quiet") {
       val config = Settlement.Settings.parse(Vector.empty).toOption.get
       assertEquals(config.workload, Settlement.Workload.Quiet)
       assertEquals(config.updatesPerSecond, 0)
       assertEquals(config.seconds, 10)
+      assertEquals(config.regions, 0)
+      assertEquals(config.cadence, Settlement.Cadence.Paced)
       assert(!config.active)
     }
 
@@ -64,7 +66,32 @@ class SettlementSuite extends FunSuite:
       assert(notifications.active)
     }
 
-    // codex 2026-10-22: created: bad CLI values do not silently select a baseline.
+    // codex 2026-10-22: created: fanout does not implicitly start a notification producer.
+    test(
+      "fanout and continuous notifications are explicit independent options",
+    ) {
+      val idle   = Settlement.Settings.parse(Vector("--regions=512")).toOption.get
+      assertEquals(idle.regions, 512)
+      assert(!idle.active)
+      val active = Settlement.Settings
+        .parse(
+          Vector("--regions=64", "--busy", "--continuous", "--duration=30"),
+        )
+        .toOption
+        .get
+      assertEquals(active.regions, 64)
+      assertEquals(active.cadence, Settlement.Cadence.Continuous)
+      assertEquals(active.workload, Settlement.Workload.Busy)
+      assertEquals(active.seconds, 30)
+      assert(active.notifications && active.active)
+      Vector(
+        Vector("--continuous", "--updates=1000"),
+        Vector("--updates=1000", "--continuous"),
+        Vector("--continuous", "--updates=0"),
+      ).foreach(args => assert(Settlement.Settings.parse(args).isLeft))
+    }
+
+    // codex 2026-10-22: created: bad CLI values do not silently select a baseline; changed: reject invalid fanout and cadence flags.
     test("unknown options and invalid bounds fail") {
       val invalid = Vector(
         "--updates=-1",
@@ -75,6 +102,11 @@ class SettlementSuite extends FunSuite:
         "--duration=3601",
         "--duration=2147483648",
         "--busy=false",
+        "--regions=-1",
+        "--regions=513",
+        "--regions=oops",
+        "--regions=",
+        "--continuous=false",
         "--unknown",
       )
       invalid.foreach(arg =>
@@ -102,12 +134,40 @@ class SettlementSuite extends FunSuite:
       assert(screen.contains("Load: done"), screen.text)
     }
 
-    // codex 2026-10-22: created: active producers survive input and both stop with their owning scope.
+    // codex 2026-10-22: created: each derived status region follows both source signals.
     test(
-      "input works with live producers and closing the scope stops their writes",
+      "fanout shows the prompt length and status value without covering the input",
+    ) {
+      val config       = Settlement.Settings.parse(Vector("--regions=4")).toOption.get
+      val (ok, screen) = run {
+        for
+            state  <- Settlement.init(config)
+            h      <- Headless.start(120, 20)(_ => Settlement.view(state))
+            _      <- state.updates.set(7L)
+            _      <- h.typeText("abc")
+            ok     <- h.awaitScreen(
+                        s =>
+                          (1 to 4).forall(i =>
+                            s.contains(s"Task $i: chars=3 updates=7"),
+                          ),
+                        5.seconds,
+                      )
+            screen <- h.screen
+        yield (ok, screen)
+      }
+      assert(ok, screen.text)
+      assert(screen.contains("Input: abc"), screen.text)
+      assert(screen.contains("Updates: 7"), screen.text)
+    }
+
+    // codex 2026-10-22: created: active producers survive input and both stop with their owning scope; changed: exercise continuous writes with 32 derived regions.
+    test(
+      "input works with continuous fanout and closing the scope stops both producers",
     ) {
       val config                                         = Settlement.Settings
-        .parse(Vector("--busy", "--updates=100", "--duration=3600"))
+        .parse(
+          Vector("--busy", "--continuous", "--regions=32", "--duration=3600"),
+        )
         .toOption
         .get
       val (active, stopped, later)                       = run {
@@ -201,5 +261,50 @@ class SettlementSuite extends FunSuite:
         yield end
       }
       assert(ended)
+    }
+
+    // codex 2026-10-22: created: a loaded quit ends the runner and closing the producer scope stops its writes.
+    test(
+      "Ctrl-C ends continuous fanout and its owner scope stops both producers",
+    ) {
+      val config                   = Settlement.Settings
+        .parse(
+          Vector("--busy", "--continuous", "--regions=32", "--duration=3600"),
+        )
+        .toOption
+        .get
+      val (active, stopped, later) = run {
+        for
+            state   <- Settlement.init(config)
+            active  <- Scope.run {
+                         for
+                             h       <- Headless.start(120, 20)(_ =>
+                                          Settlement
+                                            .start(state, config)
+                                            .andThen(Settlement.view(state)),
+                                        )
+                             started <- awaitProgress(state, (0L, 0L))
+                             _       <- h.key(
+                                          Keyboard.Char('c'),
+                                          UI.Modifiers(ctrl = true),
+                                        )
+                             ended   <- h.awaitEnd(5.seconds)
+                             load    <- state.load.get
+                         yield (started, ended, load)
+                       }
+            stopped <- progress(state)
+            _       <- Async.sleep(50.millis)
+            later   <- progress(state)
+        yield (active, stopped, later)
+      }
+      val (started, ended, load)   = active
+      assert(started, "both producers must run before the quit")
+      assert(ended, "the run must end while the configured load is active")
+      assertEquals(load, Settlement.Load.Running)
+      assertEquals(
+        later,
+        stopped,
+        "closing the producer scope after quit must stop its writes",
+      )
     }
 end SettlementSuite

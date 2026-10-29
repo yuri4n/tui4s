@@ -431,9 +431,10 @@ use them as an acceptance result.
   or two.
   <!-- claude 2026-10-12: changed this sentence (PR #11 review: Codex, Runner.scala:394) -->
   <!-- claude 2026-10-19: changed: runnerTestSettings gives the load flag (D25) -->
-  The runner settles on the JVM-wide Kyo scheduler, so core test suites run one
-  at a time: a suite that runs the runner extends `RunnerSuite` (sequential
-  leaves), and sbt runs one test JVM at a time. A test that writes a
+  Core test suites run one at a time to control contention and isolate tests
+  of explicit scheduler-based settlement. A suite that runs the runner
+  extends `RunnerSuite` (sequential leaves), and sbt runs one test JVM at a
+  time. The default uses local batching. A test that writes a
   `SignalRef` and reads the screen waits with `Headless.awaitScreen`; the kit
   itself never waits unless a method's name says so. After the run has ended, a
   kit method that waits for a frame (a key method, `paste`, `resize`,
@@ -442,7 +443,7 @@ use them as an acceptance result.
   frames after `awaitScreen` waits for them with `RunnerSuite.framesUntil`.
   <!-- claude 2026-10-12: created this item (D-17 c, RC-19); changed: the races inside Kyo, the glitch assertion and the load flag, one event is one write, framesUntil (review R2-6, R3-2, K2-2, R2-3) -->
   <!-- claude 2026-10-13: changed: the glitch test by keys, the CI load flag TUI4S_LOAD (C3, gate 1 item 2) -->
-  <!-- claude 2026-10-13: changed: rewrapped at 80 columns (review R1-7); the kit fails after the end of the run (review R1-8, R2-7) -->
+  <!-- claude 2026-10-13: changed: rewrapped at 80 columns (review R1-7); the kit fails after the end of the run (review R1-8, R2-7); codex 2026-10-23: changed: retain sequential tests with local batching. -->
 - A `Reactive` region whose UI holds a closure (a handler) or a nested signal
   never compares equal to its last render. The verify pass and the repair
   tick (every 1 s) render it again: the frame has `repaired > 0` and, when

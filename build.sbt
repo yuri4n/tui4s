@@ -72,9 +72,13 @@ ThisBuild / tpolecatDevModeOptions ++= Set(
 ThisBuild / tpolecatExcludeOptions += ScalacOptions.privateCheckAllPatmat
 
 // Unreleased inter-project deps can include an RC qualifier before +<distance>.
-// codex 2026-10-23: changed: ignore dynver snapshots of release candidates too.
-ThisBuild / versionPolicyIgnoredInternalDependencyVersions :=
-  Some("^\\d+\\.\\d+\\.\\d+(?:-(?:alpha|beta|M|RC)\\d+)?\\+\\d+".r)
+// The tags *-v0.1.1-RC1 are not on Maven. They still resolve to 0.1.1-RC1.
+// early-semver treats 0.1.0-RC1 to 0.1.1-RC1 as incompatible.
+// codex 2026-10-23: changed: ignore dynver snapshots of release candidates too.; cursor 2026-10-29: changed: ignore the unpublished exact version 0.1.1-RC1.
+ThisBuild / versionPolicyIgnoredInternalDependencyVersions := Some(
+  ("^\\d+\\.\\d+\\.\\d+(?:-(?:alpha|beta|M|RC)\\d+)?\\+\\d+" +
+    "|^0\\.1\\.1-RC1$").r,
+)
 
 // One test JVM at a time (D-9). The runner tests settle on the JVM-wide Kyo
 // scheduler. A second test JVM on the same CPUs raises the rate of split

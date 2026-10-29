@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "parent_commit": "e253fbd14e55a116ea5a104a018bb7b3ed110bfd",
+  "stage": "exact dirty-region membership and unchanged-World reuse",
+  "focused_checks": 10,
+  "full_check": "passed after explicit Quiescent canary correction",
+  "first_full_check": "failed: quiet scheduler canary inherited Local default",
+  "files": [
+    {
+      "path": "marking-128-off.json",
+      "sha256": "d01173696233c8385ef5f8eee4e875c4461b5fea37e0fe2aceaed7d99cd738d6"
+    },
+    {
+      "path": "marking-128-on.json",
+      "sha256": "a8d9b8d269674b7598dcd359fc9b4d8587ec69196198dcfef870ce592f66218a"
+    },
+    {
+      "path": "marking-128-on-diagnostics.json",
+      "sha256": "0241727a2e8d367a97995c2a1c6844db3244a1333daac53ceec23aba38eeeae5"
+    },
+    {
+      "path": "marking-512-off.json",
+      "sha256": "312a2b84c9167ac017ffa044b4a587722858eeff21b1540b144db0726a989dba"
+    },
+    {
+      "path": "marking-512-on.json",
+      "sha256": "5d1e93a2bd9b58a6c223a2abfe83f56e41e8f79b00dcecabc4fa0a7cfcdce5e0"
+    },
+    {
+      "path": "marking-512-on-diagnostics.json",
+      "sha256": "5e9423cb946899edb36a59e2e96ccad700c844752b4b77c23753eb1ed94a065f"
+    },
+    {
+      "path": "marking-cpu-summary.json",
+      "sha256": "c42129efc03e68a214068aefc7124c65d97fc1d17d4e7d0452b2f7dc44714072",
+      "kind": "separate instrumented profile; excluded from acceptance matrix"
+    }
+  ],
+  "source_hashes": {
+    "World.scala": "1f25dcf4546b73c998b40f9016532dcca4e3036ed45d56e2590de8fe2c01f931",
+    "Geometry.scala": "6632307e06bca910e0b8fb2078cc1b5710dc22a909412002c85697899b7a9d3e",
+    "Runner.scala": "1b048ccc16ac34b0e8c7a62815634bd94697b0d4de547963ed8e6dc792af6174",
+    "Layout.scala": "6f01f4a59bfd9cefff1c9f79b87856389eadecfcf9e200fbbe31c7a7d12415a8",
+    "BackgroundAdmission.scala": "3bc8ad887f6e5f7820e5f0c87d357df9dae263230720bfc0f2aacc3a76049071"
+  },
+  "binary_compatibility_checks": 8,
+  "binary_baseline": "0.1.0-RC1",
+  "full_check_log_sha256": "0753e78a9a6dda437e1fb310fda487d3a09fed1e588adee10993d4f729b670b5"
+}

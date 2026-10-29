@@ -21,7 +21,11 @@ private[tui4s] enum Msg:
     // armed (its `nextWith` is about to be registered); the repair tick
     case Armed(region: Loc, gen: Long)
     case Repair
+    // cursor 2026-10-28: created: an idle sample of regions that have no watcher.
+    case Sample
     case Quit
+    // codex 2026-10-23: created: a watcher invalidates its region without retaining an older signal value.
+    case Changed(region: Loc, gen: Long)
 end Msg
 
 /** What drives a region. */
@@ -140,6 +144,13 @@ private[tui4s] final case class World(
     // claude 2026-10-19: created (PF-b, F9b): the plan that the canvas holds
     // (the plan of the last frame that wrote)
     lastPlan: Option[Plan] = None,
+    // cursor 2026-10-28: created: the next index in the sorted sampled-region rotation.
+    sampleFrom: Int = 0,
+    // cursor 2026-10-28: created: reactive regions an input frame reads, with or without a watcher fiber.
+    tracked: Set[Loc] = Set.empty,
+    // cursor 2026-10-28: created: the walk's fork flag and remaining input reads for the current parent; cursor 2026-10-28: changed: a normal parent has no read cap.
+    rowFork: Boolean = true,
+    rowTracks: Int = Int.MaxValue,
 ):
     // claude 2026-10-19: changed: the terminal cursor shows the caret (L1c)
     def env: Scene =
@@ -155,9 +166,11 @@ private[tui4s] final case class World(
 
     def gen: (Long, World) = (nextGen, copy(nextGen = nextGen + 1))
 
-    def markRegion(p: Loc): World = copy(dirtyRegions =
-      if dirtyRegions.contains(p) then dirtyRegions else dirtyRegions :+ p,
-    )
+    // codex 2026-10-28: changed: compare exact path steps without vector equality or an unchanged copy.
+    def markRegion(p: Loc): World =
+      if dirtyRegions.exists(r => r.depth == p.depth && r.isAtOrUnder(p)) then
+          this
+      else copy(dirtyRegions = dirtyRegions :+ p)
     def markNode(p: Loc): World   = copy(dirtyNodes = dirtyNodes + p)
 
     /** The world after a key scrolled the viewport at `p` to `o`: the frame
@@ -184,6 +197,14 @@ private[tui4s] final case class World(
     // claude 2026-10-19: created (P2)
     def armed(p: Loc, g: Long): World =
       if unarmed.get(p).contains(g) then copy(unarmed = unarmed - p) else this
+
+    /** True when at least one reactive region is sampled. */
+    // cursor 2026-10-28: created: the idle sample wait runs only for this set.
+    def hasSampled: Boolean =
+      regions.values.exists {
+        case RegionState(_, Source.One(_), _, _, _, None) => true
+        case _                                            => false
+      }
 end World
 
 private[tui4s] object World:

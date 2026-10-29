@@ -578,39 +578,42 @@ class ComponentTest extends ComponentSuite:
       end for
     }
 
-    // claude 2026-10-13: changed (C4): 200 ms between the show and the hide (a
-    // loaded machine)
-    "pending frame: a component that mounts and unmounts inside one settle leaves no wait behind" in {
-      // pendingTimeout 3 s; the body takes 2 s. The handler of the key shows
-      // the component and hides it again 200 ms later (time for the watcher
-      // of `shown` to post the first value, also on a loaded machine), so the
-      // settle of the key mounts it and unmounts it. Allowance: the frame of
-      // the key (the handler's 200 ms included) comes before 1 s.
+    // claude 2026-10-13: changed (C4); codex 2026-10-23: changed: signal notices read the latest state, so an unobserved intermediate state does not mount.
+    "pending frame: signal writes that return to the initial state before consumption do not mount a transient component or wait for it" in {
+      // Both writes finish inside the handler. Neither the queued notices
+      // nor input verification may recover the intermediate true value.
+      // A body that did mount would never provide content; pendingTimeout
+      // remains 3 s, while the frame must complete before 1 s.
       val options = TuiOptions(pendingTimeout = JDuration.ofSeconds(3))
       for
-          h <- Headless.start(30, 4, options)(_ =>
-                 Signal.initRef(false).map { shown =>
-                   div.onKeyDown {
-                     case KeyboardEvent(Keyboard.Char('b'), _, _) =>
-                       shown
-                         .set(true)
-                         .andThen(Async.sleep(200.millis))
-                         .andThen(shown.set(false))
-                     case _                                       => ()
-                   }(
-                     span("[top]"),
-                     when(shown)(
-                       component(Async.sleep(2.seconds).andThen(span("[slow]"))),
-                     ),
-                   )
-                 },
-               )
-          f <- h.char('b')
-          s <- h.screen
+          starts  <- Sync.defer(AtomicInteger(0))
+          h       <- Headless.start(30, 4, options)(_ =>
+                       Signal.initRef(false).map { shown =>
+                         div.onKeyDown {
+                           case KeyboardEvent(Keyboard.Char('b'), _, _) =>
+                             shown
+                               .set(true)
+                               .andThen(shown.set(false))
+                           case _                                       => ()
+                         }(
+                           span("[top]"),
+                           when(shown)(
+                             component(
+                               Sync
+                                 .defer(starts.incrementAndGet())
+                                 .andThen(Async.never[UI]),
+                             ),
+                           ),
+                         )
+                       },
+                     )
+          f       <- h.char('b')
+          s       <- h.screen
+          mounted <- read(starts)
       yield
           assert(
-            f.updates >= 2,
-            s"the settle of the key did not mount and unmount the component: $f",
+            f.updates == 0 && mounted == 0,
+            s"an intermediate signal value mounted a component: starts=$mounted; $f",
           )
           assert(
             ms(f) < 1000L,
@@ -698,39 +701,70 @@ class ComponentTest extends ComponentSuite:
       end for
     }
 
-    // claude 2026-10-13: created (C4, review R1-2)
+    // claude 2026-10-13: created (C4, review R1-2); codex 2026-10-23: changed: prove an actual mount and unmount using a body-entry promise and queued notices.
     "pending frame: a component that mounts and gives its place to another region inside one settle leaves no wait behind" in {
-      // pendingTimeout 3 s; the body takes 2 s. The handler of the key shows
-      // the component and, 200 ms later, puts another `Reactive` region at its
-      // path (the `else` branch of the `render`). Allowance: the frame of the
-      // key (the handler's 200 ms included) comes before 1 s.
+      // The writer hides the component only after its body has started.
+      // Queued notifications survive the watcher's nextWith re-registration
+      // window. The body never provides content, so only its replacement can
+      // end the pending wait before the 3 s timeout.
       val options = TuiOptions(pendingTimeout = JDuration.ofSeconds(3))
       for
-          h <- Headless.start(30, 4, options)(_ =>
-                 for
-                     shown <- Signal.initRef(false)
-                     other <- Signal.initRef(0)
-                 yield div.onKeyDown {
-                   case KeyboardEvent(Keyboard.Char('b'), _, _) =>
-                     shown
-                       .set(true)
-                       .andThen(Async.sleep(200.millis))
-                       .andThen(shown.set(false))
-                   case _                                       => ()
-                 }(
-                   span("[top]"),
-                   shown.render(on =>
-                     if on then
-                         component(
-                           Async.sleep(2.seconds).andThen(span("[slow]")),
-                         )
-                     else other.render(v => span(s"[other=$v]")),
-                   ),
-                 ),
-               )
-          f <- h.char('b')
-          s <- h.screen
+          starts    <- Sync.defer(AtomicInteger(0))
+          ends      <- Sync.defer(AtomicInteger(0))
+          entered   <- Promise.init[Unit, Any]
+          ended     <- Promise.init[Unit, Any]
+          shown     <- Signal.initRef(false)
+          other     <- Signal.initRef(0)
+          notices   <- Channel.initUnscoped[Unit](1)
+          observed   = Signal.initRaw[Boolean](
+                         [B, S] => (f: Boolean => B < S) => shown.currentWith(f),
+                         [B, S] =>
+                           (f: Boolean => B < S) =>
+                             Abort
+                               .run[Closed](notices.take)
+                               .andThen(shown.currentWith(f)),
+                       )
+          _         <- Fiber.init(
+                         entered.get
+                           .andThen(shown.set(false))
+                           .andThen(Abort.run[Closed](notices.put(()))),
+                       )
+          h         <- Headless.start(30, 4, options)(_ =>
+                         div.onKeyDown {
+                           case KeyboardEvent(Keyboard.Char('b'), _, _) =>
+                             shown
+                               .set(true)
+                               .andThen(Abort.run[Closed](notices.put(())))
+                           case _                                       => ()
+                         }(
+                           span("[top]"),
+                           observed.render(on =>
+                             if on then
+                                 component(
+                                   Scope
+                                     .ensure(
+                                       Sync
+                                         .defer(ends.incrementAndGet())
+                                         .andThen(ended.completeUnit),
+                                     )
+                                     .andThen(Sync.defer(starts.incrementAndGet()))
+                                     .andThen(entered.completeUnit)
+                                     .andThen(Async.never[UI]),
+                                 )
+                             else other.render(v => span(s"[other=$v]")),
+                           ),
+                         ),
+                       )
+          f         <- h.char('b')
+          s         <- h.screen
+          _         <- ended.get
+          mounted   <- read(starts)
+          unmounted <- read(ends)
       yield
+          assert(
+            mounted == 1 && unmounted == 1,
+            s"the pending body did not mount and end once: starts=$mounted ends=$unmounted",
+          )
           assert(
             f.updates >= 2,
             s"the settle of the key did not mount the component and the other region: $f",

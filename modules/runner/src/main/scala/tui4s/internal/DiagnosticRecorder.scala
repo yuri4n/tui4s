@@ -49,19 +49,21 @@ private[tui4s] sealed abstract class DiagnosticRecorder(val enabled: Boolean):
             ),
           )
 
-    // codex 2026-10-22: created: count dequeued notifications, including a live settle
+    // codex 2026-10-22: created: count dequeued notifications, including a live settle; codex 2026-10-23: changed: include current-state change notices; cursor 2026-10-28: changed: a sample tick adds no counts.
     final def seen(msg: Msg): Unit =
       if enabled then
           val now = java.lang.System.nanoTime()
           update(s =>
             msg match
-                case Msg.Key(_, seq)    => s.see(seq, now)
-                case Msg.Paste(_, seq)  => s.see(seq, now)
-                case Msg.Resize(_, seq) => s.see(seq, now)
-                case _: Msg.Content     => s.copy(contents = s.contents + 1)
-                case _: Msg.Armed       => s.copy(armed = s.armed + 1)
-                case Msg.Repair         => s.copy(repairs = s.repairs + 1)
-                case Msg.Quit           => s,
+                case Msg.Key(_, seq)                 => s.see(seq, now)
+                case Msg.Paste(_, seq)               => s.see(seq, now)
+                case Msg.Resize(_, seq)              => s.see(seq, now)
+                case _: Msg.Content | _: Msg.Changed =>
+                  s.copy(contents = s.contents + 1)
+                case _: Msg.Armed                    => s.copy(armed = s.armed + 1)
+                case Msg.Repair                      => s.copy(repairs = s.repairs + 1)
+                // cursor 2026-10-28: created: a sample tick carries no application contents.
+                case Msg.Sample | Msg.Quit           => s,
           )
 
     // codex 2026-10-22: created: dispatch time includes time deferred in World.backlog
@@ -257,7 +259,7 @@ end DiagnosticRecorder
 
 // codex 2026-10-22: created: serialization of fixed names and numbers only
 private[tui4s] object DiagnosticJson:
-    // codex 2026-10-22: created: bounded snapshots do not serialize app data or file paths
+    // codex 2026-10-22: created: bounded snapshots do not serialize app data or file paths; codex 2026-10-23: changed: identify local settlement without fabricating global scheduler observations.
     def render(
         s: DiagnosticState,
         now: Long,
@@ -270,6 +272,7 @@ private[tui4s] object DiagnosticJson:
           .maxOption
           .getOrElse(0L)
         val mode               = options.options.settle match
+            case Settle.Local(_, _, _)  => "local"
             case Settle.Quiescent(_, _) => "quiescent"
             case Settle.Hops(_, _)      => "hops"
         val samples            = s.recent

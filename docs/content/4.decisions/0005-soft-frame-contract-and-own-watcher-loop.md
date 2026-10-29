@@ -9,6 +9,13 @@ description: "One frame per event with all its consequences, 0 split frames with
 
 Accepted
 
+<!-- codex 2026-10-23: changed: qualify the historical scheduler policy. -->
+The default scheduler policy below is superseded by bounded local batching
+and input-time reconciliation. Explicit `Settle.Quiescent` retains the
+probe. Watchers now publish change notices; the runner reads current signal
+state on consumption. See [input diagnostics](/guide/diagnostics) for the
+workloads and measurement boundaries.
+
 ## Date
 
 2026-10-11 (gate 0: D-17 c, K29 option 2). Changed on 2026-10-19 (C2, D21, D23).

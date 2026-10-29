@@ -20,6 +20,17 @@ issue #17). All the artifacts use the same packages (`tui4s`,
 `tui4s.internal`, `tui4s.spi`, `tui4s.testkit`).
 <!-- claude 2026-10-19: changed: the runner artifact and the composite core (D25) -->
 
+<!-- codex 2026-10-28: created: text updates retain layout ownership without whole-map removal. -->
+Incremental layout removes obsolete region ownership before it places a new
+item. This also covers text inside a new container. A text node has no child
+regions, so a later text change can replace that node directly. It keeps the
+same layout and paint rules without scanning every region for removal.
+
+<!-- codex 2026-10-28: created: exact dirty-region membership preserves first-seen order. -->
+The dirty region list keeps each exact path once, in first-seen order. A
+parent and a child can both be marked. Membership compares path steps only
+when their depths match. An already marked path keeps the current world.
+
 <!-- codex 2026-10-22: created: the opt-in diagnostic recorder and its lifetime. -->
 The JVM option `tui4s.diagnostics.file` enables a bounded recorder for a
 terminal run. The input thread and runner record timestamps and counters;
@@ -29,6 +40,58 @@ The session's release stack stops the recorder. Diagnostics do not change
 settlement decisions. Internal input-to-frame-pass timing is distinct from the
 PTY test's send-to-correct-screen timing. See
 [the diagnostics guide](docs/content/2.guide/14.diagnostics.md).
+
+<!-- codex 2026-10-22: created: bounded settlement and its cooperative limits; codex 2026-10-23: changed: use bounded local completion. -->
+The default is `Settle.Local`: a 16 ms active maximum, a 1 ms quiet window,
+and two empty observations one scheduler hop apart. It does not probe the
+global scheduler. Explicit `Settle.Quiescent` retains its scheduler rule.
+Each inbox drain takes a bounded batch. One active time budget covers settlement,
+verification and its re-check, including continuous notifications. A
+mounting component has a separate bounded wait. Only time blocked waiting
+for its messages pauses the active budget; processing those messages does
+not restore spent time. The budget cannot interrupt user code or a scheduler
+pause. Layout, paint and terminal output are outside this budget.
+`Settle.Hops` retains its quiet-window rule without a total time limit.
+
+<!-- codex 2026-10-23: created: background backpressure preserves room for input. -->
+Input events and background notices share one bounded inbox. Background
+admission waits when its occupancy reaches one quarter of the capacity,
+with a maximum of 64 and a minimum of one. The runner wakes waiting
+producers after removals and on shutdown. A capacity of one cannot reserve
+a separate input slot. Admission and removal preserve channel order;
+settlement can defer input while it batches later notifications.
+
+<!-- codex 2026-10-23: created: signal notifications describe current state rather than historical UI values. -->
+Watchers post region-change notices. The runner reads the signal's current
+value when it consumes a notice. Intermediate signal states can coalesce.
+Component startup results still carry their actual content. An input pass
+also reconciles current reactive values, from parents to children. It takes
+a snapshot of region generations so it skips descendants that a parent
+remount replaced. A queued change notice cannot replay an older UI value
+over this reconciliation. Same-key component state and hook scopes remain
+owned by their existing instances.
+
+<!-- codex 2026-10-22: created: settlement bounds do not guarantee input latency; codex 2026-10-23: changed: distinguish current-state reconciliation from asynchronous effects. -->
+Kyo's public signal API has no event-completion barrier. Settlement therefore
+batches updates on a best-effort basis. Verification and repair still recover
+missed notifications. An update that arrives after the batch closes appears
+in a later frame. Slow user code, rendering, terminal output and scheduler
+pauses can still delay input. Input correctness, derived-region consistency
+and input latency are separate checks.
+
+<!-- cursor 2026-10-28: created: sampled reactive regions keep input off the watcher storm; cursor 2026-10-28: changed: watch two reactive regions; cursor 2026-10-28: changed: the cap is per parent and a slice is 8; cursor 2026-10-28: changed: a crowded parent keeps the input read and drops the watcher fibers; cursor 2026-10-28: changed: a span that wraps a signal counts for the element that contains the span; cursor 2026-10-28: changed: that list is crowded only past the input read. -->
+An input frame reads the first 16 reactive children of each parent, every
+bound region and every `Foreach`. It also reads a sampled region that holds
+the focus. A parent with 2 reactive children or fewer gives each of those
+children a watcher fiber. A parent with more reactive children keeps none of
+those fibers. A span that only wraps a signal counts as one row of the element
+that contains the span. That element is crowded when every child is one such
+row and there are more than 16 rows. A shorter list, and a mixed element, keep
+one watcher per span. The runner reads one slice of 8 of those regions on a
+background frame, and reads their current values. The idle runner waits at most
+16 ms before the next sample when sampled regions exist. A background frame
+yields when input is already queued, so the input frame paints first. Sampled
+regions can trail the event that changed them. See ADR 0023.
 
 | Directory       | sbt id     | Artifact                         | UI DSL                                  | Release tag      | Published |
 | --------------- | ---------- | -------------------------------- | --------------------------------------- | ---------------- | --------- |

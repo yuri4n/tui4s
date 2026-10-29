@@ -13,8 +13,9 @@ import java.time.Duration
   *   nothing has the focus. A `focusAuto(true)` element that appears takes the
   *   focus also when this option is false, as in kyo-ui's client.
   * @param settle
-  *   how the runner decides that the consequences of an event are all in before
-  *   it flushes a frame (see [[tui4s.spi.Settle]])
+  *   how the runner batches reactive changes before it flushes a frame. The
+  *   default uses local batching with a 16 ms active budget (see
+  *   [[tui4s.spi.Settle]]).
   * @param ctrlCQuits
   *   the key Ctrl-C ends the run. A terminal in raw mode sends Ctrl-C as a key,
   *   not as a signal, so the runner quits on it before any handler sees it.
@@ -34,10 +35,12 @@ import java.time.Duration
   *   poll returns as soon as input is ready. An interval below 1 ms (also zero
   *   or a negative one) counts as 1 ms.
   * @param inboxCapacity
-  *   how many messages (keys, pastes, resizes and the new values of the
-  *   signals) can wait for the runner. When the inbox is full, the input thread
-  *   and the signal watchers wait until the runner takes a message: no key and
-  *   no value is dropped, and the typing waits. A value below 1 counts as 1.
+  *   how many input events, region-change notices and component results can
+  *   wait for the runner. Input events retain their order. Background notices
+  *   wait at a smaller occupancy limit to leave room for input. Signals hold
+  *   current state: the runner reads that state when it consumes a notice, and
+  *   intermediate signal states can be coalesced. A value below 1 counts as 1;
+  *   that capacity cannot reserve a separate input slot.
   * @param captureOutput
   *   while the UI is up in the real terminal, `System.out` and `System.err` go
   *   to the log of the run (see `logFile`), so that a stray print cannot draw
@@ -65,17 +68,17 @@ import java.time.Duration
   *   longer). When the body takes longer, the frame comes without it (the
   *   component's place is empty), and its content comes in a later frame; the
   *   frames between do not wait for it again. A negative value counts as zero.
-  *   After the wait, the frame settles as usual: the `max` of `settle` counts
-  *   from the end of the wait. A quit (`Tui.quit`, or Ctrl-C with `ctrlCQuits`)
-  *   ends the wait at once, and so does a body that fails (the component's
-  *   place stays empty).
+  *   The wait pauses the frame's active settlement budget. It does not restore
+  *   time spent before the wait. A quit (`Tui.quit`, or Ctrl-C with
+  *   `ctrlCQuits`) ends the wait at once, and so does a body that fails (the
+  *   component's place stays empty).
   */
 // claude 2026-10-19: changed: the Scaladoc of autoFocus: a focusAuto element
 // takes the focus also without autoFocus (L1b review)
-// claude 2026-10-19: changed: TuiApp is in tui4s-app, not a link (D25)
+// claude 2026-10-19: changed: TuiApp is in tui4s-app, not a link (D25); codex 2026-10-22: changed: document the shared active budget and pending allowance; codex 2026-10-23: changed: local default and current-state notification backpressure.
 final case class TuiOptions(
     autoFocus: Boolean = true,
-    settle: Settle = Settle.Quiescent(Duration.ofMillis(100)),
+    settle: Settle = Settle.Local(),
     ctrlCQuits: Boolean = true,
     paste: Boolean = true,
     pollInterval: Duration = Duration.ofMillis(25),

@@ -20,22 +20,28 @@ def draw(text, updates, running=True):
                  f"\x1b[3;1HLoad: {state}\x1b[K").encode())
 
 
-# codex 2026-10-22: created: status output continues while keys are delayed or lost.
+# codex 2026-10-22: created: status output continues while keys are delayed or lost; changed: expose independent shutdown faults after correct input.
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=("normal", "delay", "drop", "wrong", "batch", "hung", "no-ready"),
                         default="normal")
     parser.add_argument("--ignore-quit", action="store_true")
+    parser.add_argument("--no-restore", action="store_true")
+    parser.add_argument("--exit-code", type=int, default=0)
+    parser.add_argument("--leave-child", action="store_true")
+    parser.add_argument("--startup-delay", type=float, default=0)
     parser.add_argument("--exit-file", type=Path)
     args = parser.parse_args()
     saved = termios.tcgetattr(0)
     tty.setraw(0)
+    os.write(1, b"\x1b[?1049h\x1b[?25l")
     if args.ignore_quit or args.mode in ("hung", "no-ready"):
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
     text, pending, count, updates = "", [], 0, 0
     start = time.monotonic()
     next_status = start
     try:
+        time.sleep(args.startup_delay)
         if args.mode != "no-ready":
             draw(text, updates)
         while True:
@@ -44,7 +50,13 @@ def main():
             if ready:
                 data = os.read(0, 1024)
                 if not data or (b"\x03" in data and not args.ignore_quit):
-                    return
+                    # cursor 2026-10-28: changed: the sleeper ignores SIGHUP so the session end does not reap it before the harness.
+                    if args.leave_child and os.fork() == 0:
+                        signal.signal(signal.SIGHUP, signal.SIG_IGN)
+                        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+                        time.sleep(60)
+                        os._exit(0)
+                    return args.exit_code
                 data = data.replace(b"\x03", b"")
                 for char in data.decode():
                     count += 1
@@ -68,10 +80,13 @@ def main():
                 draw(shown, updates)
                 next_status = now + .01
     finally:
-        termios.tcsetattr(0, termios.TCSANOW, saved)
+        if not args.no_restore:
+            termios.tcsetattr(0, termios.TCSANOW, saved)
+            os.write(1, b"\x1b[?25h\x1b[?1049l")
         if args.exit_file:
             args.exit_file.write_text("graceful exit\n")
 
 
+# codex 2026-10-22: changed: propagate the fixture exit code to the parent harness.
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

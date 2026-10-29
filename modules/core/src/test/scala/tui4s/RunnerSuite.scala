@@ -5,11 +5,10 @@ import kyo.test.*
 import tui4s.FrameStats
 import tui4s.testkit.{Headless, Screen}
 
-/** A kyo-test suite for runner tests. Its leaves run one at a time: the runner
-  * settles on the JVM-wide Kyo scheduler, so a leaf that runs next to another
-  * one sees its load (RC-19).
+/** Runner test leaves run one at a time to control contention and isolate tests
+  * of explicit scheduler-based settlement (RC-19).
   */
-// claude 2026-10-12: created
+// claude 2026-10-12: created; codex 2026-10-23: changed: keep sequential tests with a local default.
 abstract class RunnerSuite extends Test[Any]:
     override def config: RunConfig = super.config.sequential
 
