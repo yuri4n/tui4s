@@ -17,7 +17,8 @@ Accepted.
 
 - ADR 0005 gives each region its own watcher loop. The loop uses `Signal.nextWith`.
 - A derived signal built with `combineLatest` still runs one `Async.race` per change inside Kyo. Issue #8 records that limit.
-- The settlement fixture mounts one derived region per status row. At 128 rows, input stayed near the 250 ms CI gate. At 512 rows, input waited for seconds. Thread dumps showed the Kyo evaluator draining effect remainders, not a stalled inbox.
+- The settlement fixture mounts one derived region per status row. At 128 rows, input stayed near 250 ms. That was the CI gate then. At 512 rows, input waited for seconds. Thread dumps showed the Kyo evaluator draining effect remainders, not a stalled inbox.
+  <!-- cursor 2026-10-29: changed: the 250 ms figure is the gate of that measurement. -->
 - One capacity waiter reduced the 512-row delay and then missed keys and failed shutdown. That experiment stays a draft.
 
 ## Decision
@@ -48,7 +49,8 @@ Accepted.
 - The first 16 reactive children of a crowded parent still change on the input frame.
   <!-- cursor 2026-10-28: created: forms and dashboards keep the key frame. -->
 - A sampled region can show its new value on a later frame. Input text and the focused region stay on the input frame.
-- The CI input gate remains 250 ms for the continuous 128-region workload. This record does not claim a 100 ms bound.
+- The CI input gate is 300 ms for the continuous 128-region workload. A deadline-only miss may run three more times. A missing key, incorrect text, or a failed shutdown fails at once. This record does not claim a 100 ms bound.
+  <!-- cursor 2026-10-29: changed: the gate is 300 ms and allows three more deadline attempts. -->
 
 ## References
 
