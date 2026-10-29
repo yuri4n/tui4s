@@ -162,6 +162,7 @@ object Workflow:
     // cursor 2026-10-29: created: the split width
     val wideFrom: Int = 80
 
+    // cursor 2026-10-29: created: the shared probe seed
     private val seed: Double = 0.35
 
     /** The next sample of a random walk in 0 to 1. */
