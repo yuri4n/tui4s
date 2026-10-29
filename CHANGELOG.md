@@ -21,10 +21,19 @@ to the GitHub release of the module (`scripts/changelog-section.sh`). The
 workflow stops before it creates a tag when a subsection is missing.
 
 ## [Unreleased]
-<!-- codex 2026-10-22: created: settlement progress fixes after the diagnostic baseline. -->
 
+## [0.1.1-RC1] - 2026-10-29
+<!-- codex 2026-10-23: changed: prepare the coordinated diagnostic release.; cursor 2026-10-29: changed: the date, and the notes include bounded settlement and sampled crowded regions. -->
+
+<!-- codex 2026-10-22: created: optional diagnostics, with settlement behavior unchanged. -->
 ### tui4s-runner
 
+- Added: opt-in bounded JSON diagnostics with
+  `-Dtui4s.diagnostics.file=<path>`. The report includes terminal receipt to
+  frame-pass timings, pending input, backlog, runner phases, notification
+  counts and settlement observations. It contains no application contents.
+- Added: a daemon exporter outside the Kyo scheduler. It can report a
+  stalled settlement before an input completes.
 - Improved: dirty-region membership compares path steps without temporary
   vector equality work. Repeated marks keep the current world and preserve
   first-seen order.
@@ -60,23 +69,10 @@ workflow stops before it creates a tag when a subsection is missing.
   becomes a new item, including text inside a new container. Later text
   changes reuse the leaf without scanning the region map for removal.
   <!-- codex 2026-10-28: created: preserve cleanup while reducing repeated text work. -->
-
-## [0.1.1-RC1] - 2026-10-23
-<!-- codex 2026-10-23: changed: prepare the coordinated diagnostic release. -->
-
-<!-- codex 2026-10-22: created: optional diagnostics, with settlement behavior unchanged. -->
-### tui4s-runner
-
-- Added: opt-in bounded JSON diagnostics with
-  `-Dtui4s.diagnostics.file=<path>`. The report includes terminal receipt to
-  frame-pass timings, pending input, backlog, runner phases, notification
-  counts and settlement observations. It contains no application contents.
-- Added: a daemon exporter outside the Kyo scheduler. It can report a
-  stalled settlement before an input completes.
-- Known issue: settlement still depends on global scheduler idleness.
-  Unrelated work can delay input, and continuous notifications can extend
-  settlement past its configured maximum. This release measures those
-  conditions; it does not fix them.
+- Known issue: a sampled region can show its new value on a later frame. A
+  slow callback, a signal read, a render or a terminal write can still delay
+  input. `Settle.Quiescent` still waits for scheduler idleness.
+  <!-- cursor 2026-10-29: changed: the known issue matches local settlement and sampling. -->
 
 <!-- codex 2026-10-23: created: app dependency for the coordinated diagnostic release. -->
 ### tui4s-app
