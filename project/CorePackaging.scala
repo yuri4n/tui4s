@@ -3,18 +3,27 @@ import sbt.io.CopyOptions
 import scala.xml.{Elem, Node}
 
 /** The published jar of tui4s-core holds the JVM classes of tui4s-app,
-  * tui4s-use and tui4s-widgets. Those projects are not published. The POM of
-  * core does not depend on them.
+  * tui4s-use and tui4s-widgets. Those projects are not published. The POM and
+  * the Ivy file from publishLocal do not depend on them.
   */
-// cursor 2026-10-29: created: merge app, use and widgets into the core jar (ADR 0024)
+// cursor 2026-10-29: created: merge app, use and widgets into the core jar (ADR 0024); cursor 2026-10-29: changed: publishLocal omits the bundled projects
 object CorePackaging {
 
-  /** Artifact ids (without a Scala suffix) that the core POM must not list. */
+  /** Artifact ids (without a Scala suffix) that the published metadata must not
+    * list.
+    */
   val internalArtifacts: Set[String] = Set(
     "tui4s-app",
     "tui4s-use",
     "tui4s-widgets",
   )
+
+  /** True when `name` is a bundled artifact. The name may already carry a Scala
+    * suffix (`tui4s-use_3`).
+    */
+  // cursor 2026-10-29: created: one check for the POM and the Ivy file
+  def isBundled(name: String): Boolean =
+    internalArtifacts.exists(id => name == id || name.startsWith(id + "_"))
 
   /** Class files and resources from the class directories of the bundled
     * projects. A manifest in those directories is left out: the jar of core has
@@ -74,10 +83,9 @@ object CorePackaging {
     drop(node)
   }
 
-  private def internal(dep: Elem): Boolean = {
-    val id = (dep \ "artifactId").text
-    internalArtifacts.exists(name => id == name || id.startsWith(name + "_"))
-  }
+  // cursor 2026-10-29: changed: the POM uses isBundled
+  private def internal(dep: Elem): Boolean =
+    isBundled((dep \ "artifactId").text)
 
   private def unique(
       pairs: Seq[(File, String)],

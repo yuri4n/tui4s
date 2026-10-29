@@ -15,12 +15,13 @@ screen. tui4s lays it out in terminal cells and paints it with
 replaces tui-scala. tui4s has no UI DSL of its own: the DSL is kyo-ui. The
 runner is the artifact tui4s-runner, "the terminal runner for kyo-ui". The
 artifact tui4s-core holds `TuiApp`, the composables (`tui4s.use`) and the
-widgets (`tui4s.widgets`). Its POM depends on tui4s-runner and tui4s-testkit
-(`Headless`), so one dependency gives the app (ADR 0024). The sources of the
+widgets (`tui4s.widgets`). Its POM and the Ivy file from `publishLocal` depend
+on tui4s-runner and tui4s-testkit (`Headless`), so one dependency gives the
+app (ADR 0024). The sources of the
 composables and the widgets still build for Scala.js, and those projects are
 not published. All the artifacts use the same packages (`tui4s`,
 `tui4s.internal`, `tui4s.spi`, `tui4s.testkit`, `tui4s.use`, `tui4s.widgets`).
-<!-- claude 2026-10-19: changed: the runner artifact and the composite core (D25); cursor 2026-10-29: changed: core holds TuiApp, use and widgets (ADR 0024) -->
+<!-- claude 2026-10-19: changed: the runner artifact and the composite core (D25); cursor 2026-10-29: changed: core holds TuiApp, use and widgets (ADR 0024); cursor 2026-10-29: changed: publishLocal lists the same dependencies as the POM -->
 
 <!-- codex 2026-10-28: created: text updates retain layout ownership without whole-map removal. -->
 Incremental layout removes obsolete region ownership before it places a new
@@ -100,7 +101,7 @@ regions can trail the event that changed them. See ADR 0023.
 | `modules/runner` | `runner`  | `io.github.yuri4n::tui4s-runner` | kyo-ui (the terminal runner for kyo-ui: `tui4s.internal`, `tui4s.spi`, `Tui`, the components, the screen types) | `runner-v<semver>` | yes |
 | `modules/app`   | `app`      | none (the classes ship in tui4s-core) | kyo-ui (`TuiApp`, on tui4s-runner) | none | no |
 | `modules/testkit` | `testkit` | `io.github.yuri4n::tui4s-testkit` | kyo-ui (`tui4s.testkit.Headless`, on tui4s-runner) | `testkit-v<semver>` | yes |
-| `modules/core`  | `core`     | `io.github.yuri4n::tui4s-core`   | kyo-ui (the jar holds `TuiApp`, `tui4s.use` and `tui4s.widgets`; the POM depends on tui4s-runner and tui4s-testkit; the test sources are the integration suites) | `core-v<semver>` | yes |
+| `modules/core`  | `core`     | `io.github.yuri4n::tui4s-core`   | kyo-ui (the jar holds `TuiApp`, `tui4s.use` and `tui4s.widgets`; the POM and the Ivy file from publishLocal depend on tui4s-runner and tui4s-testkit; the test sources are the integration suites) | `core-v<semver>` | yes |
 | `modules/use`   | `use` (`useJVM`, `useJS`) | none (the JVM classes ship in tui4s-core; Scala.js stays in the build) | kyo-ui (composables) | none | no |
 | `modules/widgets` | `widgets` (`widgetsJVM`, `widgetsJS`) | none (the JVM classes ship in tui4s-core; Scala.js stays in the build) | kyo-ui (widgets, on tui4s-use) | none | no |
 | `modules/assistant` | `assistant` (`assistantJVM`, `assistantJS`) | none | kyo-ui (the flagship example app: its domain, services, store and UI in `shared`, the interpreters of the JVM in `jvm` and of the browser in `js`) | none | no |
@@ -110,7 +111,7 @@ regions can trail the event that changed them. See ADR 0023.
 | `bench`         | none (its own sbt build: `bench/build.sbt`) | none | kyo-ui in its tui4s stack; the other stacks use other libraries (the bench of D10) | none | no |
 <!-- claude 2026-10-19: created the row of examples/web; changed: the js part of the assistant (L4) -->
 <!-- claude 2026-10-19: created the rows of use and widgets (L2a); changed: the widgets row (L2b) -->
-<!-- claude 2026-10-19: changed: the rows runner, app, testkit and the composite core (D25); cursor 2026-10-29: changed: app, use and widgets are not published; their JVM classes ship in core (ADR 0024) -->
+<!-- claude 2026-10-19: changed: the rows runner, app, testkit and the composite core (D25); cursor 2026-10-29: changed: app, use and widgets are not published; their JVM classes ship in core (ADR 0024); cursor 2026-10-29: changed: the core row names the Ivy file -->
 <!-- claude 2026-10-19: created the row of the assistant (L3) -->
 <!-- claude 2026-10-20: changed: the row of docs (L5); changed: the section "Docs" is in CONTRIBUTING.md (ADR 0021) -->
 <!-- claude 2026-10-20: created the row of bench (L5) -->

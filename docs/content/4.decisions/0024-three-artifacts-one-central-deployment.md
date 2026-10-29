@@ -25,7 +25,8 @@ Accepted. It changes the published set of [ADR 0008](/decisions/0008-artifact-sp
 ## Decision
 
 - The published artifacts are `tui4s-runner`, `tui4s-testkit` and `tui4s-core`.
-- The jar of `tui4s-core` holds `TuiApp`, `tui4s.use` and `tui4s.widgets`, and the object `tui4s.Core`. The POM depends on `tui4s-runner` and `tui4s-testkit`. It does not depend on `tui4s-app`, `tui4s-use` or `tui4s-widgets`.
+- The jar of `tui4s-core` holds `TuiApp`, `tui4s.use` and `tui4s.widgets`, and the object `tui4s.Core`. The POM and the Ivy file from `publishLocal` depend on `tui4s-runner` and `tui4s-testkit`. They do not depend on `tui4s-app`, `tui4s-use` or `tui4s-widgets`.
+  <!-- cursor 2026-10-29: changed: publishLocal lists the same dependencies as the POM -->
 - The sbt projects `app`, `use` and `widgets` stay. `use` and `widgets` still build for Scala.js, so the assistant web app compiles. Those projects are not published. Their version is the version of `core`. `versionPolicyCheck` does not compare them with `0.1.0-RC1`. The check of that code is the check of `core`.
 - A change in `modules/app`, `modules/use` or `modules/widgets` makes `core` unreleased. The release order is `runner`, then `testkit`, then `core`.
 - One run of the Release workflow pushes the tags and creates the GitHub Releases, then uploads every module that is not yet on Maven Central in one `sonaRelease`. A module that is already on Central stays out of the bundle.

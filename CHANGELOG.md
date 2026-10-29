@@ -25,10 +25,11 @@ workflow stops before it creates a tag when a subsection is missing.
 ### tui4s-core
 
 - Changed: the jar holds `TuiApp`, `tui4s.use` and `tui4s.widgets`. The POM
-  still depends on tui4s-runner and tui4s-testkit. `tui4s-app`, `tui4s-use`
-  and `tui4s-widgets` are not published. `0.1.0-RC1` of those coordinates
-  stays on Maven Central.
-  <!-- cursor 2026-10-29: created: three published artifacts (ADR 0024) -->
+  and the Ivy file from `publishLocal` depend on tui4s-runner and
+  tui4s-testkit. They do not depend on `tui4s-app`, `tui4s-use` or
+  `tui4s-widgets`. Those coordinates are not published. `0.1.0-RC1` of those
+  coordinates stays on Maven Central.
+  <!-- cursor 2026-10-29: created: three published artifacts (ADR 0024); cursor 2026-10-29: changed: publishLocal lists the same dependencies as the POM -->
 
 ## [0.1.1-RC1] - 2026-10-29
 <!-- codex 2026-10-23: changed: prepare the coordinated diagnostic release.; cursor 2026-10-29: changed: the date, and the notes include bounded settlement and sampled crowded regions. -->

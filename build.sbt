@@ -252,8 +252,10 @@ lazy val core    = module(
   .settings(runnerTestSettings)
   .settings(
     // The class directories of the bundled projects are on the classpath
-    // through dependsOn. The published jar must also contain those classes:
-    // the POM does not depend on the unpublished projects.
+    // through dependsOn. The published jar must also contain those classes.
+    // publishLocal writes an Ivy file from projectDependencies. pomPostProcess
+    // changes only the Maven POM. Both omit the bundled projects.
+    // cursor 2026-10-29: changed: the Ivy file matches the POM (ADR 0024)
     Compile / packageBin / mappings ++= CorePackaging.productMappings(
       (LocalProject("app") / Compile / products).value ++
         (LocalProject("useJVM") / Compile / products).value ++
@@ -278,6 +280,10 @@ lazy val core    = module(
       (LocalProject("app") / Compile / tastyFiles).value ++
         (LocalProject("useJVM") / Compile / tastyFiles).value ++
         (LocalProject("widgetsJVM") / Compile / tastyFiles).value,
+    projectDependencies    := projectDependencies.value.filterNot { dep =>
+      dep.organization == organization.value && CorePackaging
+        .isBundled(dep.name)
+    },
     pomPostProcess         := pomPostProcess.value.andThen(
       CorePackaging.dropInternalDependencies,
     ),
