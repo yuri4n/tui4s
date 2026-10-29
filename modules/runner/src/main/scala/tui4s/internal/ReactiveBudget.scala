@@ -1,5 +1,8 @@
 package tui4s.internal
 
+import kyo.UI
+import kyo.UI.Ast.*
+
 /** How many reactive regions keep a watcher, and which regions a frame reads. */
 // cursor 2026-10-28: created: pure watcher budget and sampled-region rotation.
 private[tui4s] object ReactiveBudget:
@@ -55,6 +58,64 @@ private[tui4s] object ReactiveBudget:
     // cursor 2026-10-28: created: three or more reactive children are sampled.
     def forkWatchers(reactiveChildren: Int): Boolean =
       reactiveChildren <= watcherLimit
+
+    /** Reactive texts under `ui`, with no budget boundary. */
+    // cursor 2026-10-28: created: a span around a signal is not a separate parent.
+    private def subtreeSlots(ui: UI): Int = ui match
+        case _: Reactive[?] => 1
+        case el: Element    => el.children.toSeq.map(subtreeSlots).sum
+        case f: Fragment[?] => f.children.toSeq.map(subtreeSlots).sum
+        case _              => 0
+
+    /** True when `ui` is text, one signal, or a wrapper of those. */
+    // cursor 2026-10-28: created: a row span rolls its signal up to the list.
+    private def transparent(ui: UI): Boolean = ui match
+        case _: Reactive[?] | _: Text => true
+        case el: Element              =>
+          subtreeSlots(el) <= 1 && el.children.forall(transparent)
+        case f: Fragment[?]           => f.children.forall(transparent)
+        case _                        => false
+
+    /** True when `el` wraps at most one signal. Its parent owns that signal. */
+    // cursor 2026-10-28: created: the fanout div owns each row signal.
+    def thin(el: Element): Boolean =
+      subtreeSlots(el) <= 1 && el.children.forall(transparent)
+
+    /** Signals `el` owns. A nested element with two or more signals keeps its
+      * own count.
+      */
+    // cursor 2026-10-28: created: count span-wrapped signals on the containing element.
+    def slots(el: Element): Int =
+      el.children.toSeq.map(contribute).sum
+
+    /** Signals a child adds to its parent. A list inside the child adds none. */
+    // cursor 2026-10-28: created: a crowded child list is its own parent.
+    private def contribute(ui: UI): Int = ui match
+        case _: Reactive[?]          => 1
+        case el: Element if thin(el) => subtreeSlots(el)
+        case f: Fragment[?]          => f.children.toSeq.map(contribute).sum
+        case _                       => 0
+
+    /** True when `ui` is one signal, or a wrapper of one signal. */
+    // cursor 2026-10-28: created: a row is one signal, not a widget.
+    private def signalRow(ui: UI): Boolean = ui match
+        case _: Reactive[?] => true
+        case el: Element    => thin(el) && subtreeSlots(el) == 1
+        case _              => false
+
+    /** The size of a list whose every child is one signal row. A mixed element
+      * is 0.
+      */
+    // cursor 2026-10-28: created: only a homogeneous row list can be crowded.
+    def rowList(el: Element): Int =
+        val kids = el.children.toSeq.flatMap {
+          case f: Fragment[?] => f.children.toSeq
+          case other          => Seq(other)
+        }
+        if kids.nonEmpty && kids.forall(signalRow) then
+            kids.map(subtreeSlots).sum
+        else 0
+    end rowList
 
     /** True when a queued message is input. A background frame yields to it. */
     // cursor 2026-10-28: created: keys, pastes and resizes are input.

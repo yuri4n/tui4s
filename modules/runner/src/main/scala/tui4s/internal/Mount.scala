@@ -14,9 +14,10 @@ import scala.annotation.unused
   * runner reads the signal's current value when it handles a notice. A reactive
   * region past [[ReactiveBudget.trackedLimit]] is not read on an input frame. A
   * parent with more than [[ReactiveBudget.watcherLimit]] reactive children
-  * keeps no reactive watcher; the runner samples those children.
+  * keeps no reactive watcher; the runner samples those children. A span that
+  * only wraps a signal counts as a child of the element that contains the span.
   */
-// claude 2026-10-19: changed: the gauge of the run, a parameter (P2, A7); codex 2026-10-23: changed: accept the run's background admission gate; cursor 2026-10-28: changed: sample reactive regions past the watcher budget.
+// claude 2026-10-19: changed: the gauge of the run, a parameter (P2, A7); codex 2026-10-23: changed: accept the run's background admission gate; cursor 2026-10-28: changed: sample reactive regions past the watcher budget; cursor 2026-10-28: changed: a span-wrapped signal counts for the element that contains the span.
 private[tui4s] final class Mount(
     @unused inbox: Channel[Msg],
     gauge: FiberGauge,
@@ -114,108 +115,81 @@ private[tui4s] final class Mount(
             case _                => None
     end boundRef
 
+    /** Spends one input read. `fork` is false when this parent is crowded or
+      * the read is past [[ReactiveBudget.trackedLimit]].
+      */
+    // cursor 2026-10-28: created: the containing element sets the budget before the row span.
+    private def admit(w: World, path: Loc): (Boolean, World) =
+        val track = w.rowTracks > 0
+        val next  =
+          if track then
+              w.copy(tracked = w.tracked + path, rowTracks = w.rowTracks - 1)
+          else w.copy(tracked = w.tracked - path)
+        (next.rowFork && track, next)
+
     /** Mounts one reactive region. The first [[ReactiveBudget.trackedLimit]]
       * children of the parent are read on an input frame. The parent keeps a
       * watcher fiber only while it has at most [[ReactiveBudget.watcherLimit]]
-      * reactive children. The next child stops those fibers.
+      * reactive children. The walk counts those children before the first fork.
       */
-    // cursor 2026-10-28: created: sample a crowded parent instead of racing every row.
+    // cursor 2026-10-28: created: sample a crowded parent instead of racing every row; cursor 2026-10-28: changed: use the budget the containing element already set.
     private def mountOne(
         signal: Signal[UI],
         path: Loc,
         w: World,
         reclaim: Map[Loc, RegionState],
     )(using Frame): World < Sync =
-        val (gen, w1)              = w.gen
-        val parent                 = path.parent
-        val track                  = ReactiveBudget.trackAnother(w1.reactiveTrackedUnder(parent))
-        val wT                     =
-          if track then w1.copy(tracked = w1.tracked + path)
-          else w1.copy(tracked = w1.tracked - path)
-        val existing               = wT.reactiveWatchersUnder(parent)
-        val fork                   = track && ReactiveBudget.forkWatchers(existing + 1)
-        val prepared: World < Sync =
-          if fork || existing == 0 then Kyo.lift[World, Sync](wT)
-          else releaseReactiveWatchers(wT, parent)
-        prepared.map { wP =>
-          if fork then
-              for
-                  cur     <- signal.current
-                  watcher <- watch(signal, path, gen)
-                  region   = RegionState(
-                               path,
-                               Source.One(signal),
-                               gen,
-                               Content.Single(cur),
-                               Vector.empty,
-                               Some(watcher),
-                             )
-                  w2      <- walk(
-                               cur,
-                               path.content,
-                               newWatcher(
-                                 wP.copy(regions = wP.regions.updated(path, region)),
-                                 path,
-                                 gen,
-                               ),
-                               reclaim,
-                             )
-              yield w2
-          else
-              for
-                  cur   <- signal.current
-                  region = RegionState(
+        val (gen, w1)  = w.gen
+        val (fork, wT) = admit(w1, path)
+        if fork then
+            for
+                cur     <- signal.current
+                watcher <- watch(signal, path, gen)
+                region   = RegionState(
                              path,
                              Source.One(signal),
                              gen,
                              Content.Single(cur),
                              Vector.empty,
-                             None,
+                             Some(watcher),
                            )
-                  w2    <- walk(
+                w2      <- walk(
                              cur,
                              path.content,
-                             wP.copy(regions = wP.regions.updated(path, region)),
+                             newWatcher(
+                               wT.copy(regions = wT.regions.updated(path, region)),
+                               path,
+                               gen,
+                             ),
                              reclaim,
                            )
-              yield w2
-        }
+            yield w2
+        else
+            for
+                cur   <- signal.current
+                region = RegionState(
+                           path,
+                           Source.One(signal),
+                           gen,
+                           Content.Single(cur),
+                           Vector.empty,
+                           None,
+                         )
+                w2    <- walk(
+                           cur,
+                           path.content,
+                           wT.copy(regions = wT.regions.updated(path, region)),
+                           reclaim,
+                         )
+            yield w2
+        end if
     end mountOne
-
-    /** Stops the reactive watcher fibers under `parent`. A parent that grew
-      * past [[ReactiveBudget.watcherLimit]] calls this once.
-      */
-    // cursor 2026-10-28: created: drop the fibers a crowded parent already started.
-    private def releaseReactiveWatchers(w: World, parent: Loc)(using
-        Frame,
-    ): World < Sync =
-        val live = w.regions.iterator.collect {
-          case (
-                p,
-                r @ RegionState(_, Source.One(_), _, _, _, Some(fiber)),
-              ) if p.parent == parent =>
-            (p, r, fiber)
-        }.toVector
-        Kyo
-          .foreachDiscard(live)((_, _, fiber) => fiber.interrupt.unit)
-          .andThen {
-            val regions = live.foldLeft(w.regions) { (map, item) =>
-              val (p, r, _) = item
-              map.updated(p, r.copy(watcher = None))
-            }
-            val dropped = live.map(_._1).toSet
-            w.copy(
-              regions = regions,
-              unarmed = w.unarmed.filterNot((p, _) => dropped.contains(p)),
-            )
-          }
-    end releaseReactiveWatchers
 
     /** Walks `ui` at `path`, mounting every region in it. A region of `reclaim`
       * with the same signal (or ref) is kept as is with its watcher and its
       * content.
       */
-    // claude 2026-10-19: changed: the steps of Loc (P2, A6); cursor 2026-10-28: changed: sample reactive regions past the watcher budget; cursor 2026-10-28: changed: a crowded parent keeps the input read and drops the watcher fibers.
+    // claude 2026-10-19: changed: the steps of Loc (P2, A6); cursor 2026-10-28: changed: sample reactive regions past the watcher budget; cursor 2026-10-28: changed: a crowded parent keeps the input read and drops the watcher fibers; cursor 2026-10-28: changed: set that budget on the element that owns the row spans.
     def walk(ui: UI, path: Loc, w: World, reclaim: Map[Loc, RegionState])(using
         Frame,
     ): World < Sync =
@@ -241,11 +215,24 @@ private[tui4s] final class Mount(
                               _,
                             ),
                           ) if sig eq r.signal =>
-                        walk(
-                          c,
-                          path.content,
-                          w.copy(regions = w.regions.updated(path, old)),
-                          reclaim,
+                        val (fork, w1) = admit(w, path)
+                        val drop       = old.watcher.filter(_ => !fork)
+                        val kept       =
+                          if drop.isDefined then old.copy(watcher = None)
+                          else old
+                        val stop       = drop.fold(Kyo.unit)(_.interrupt.unit)
+                        stop.andThen(
+                          walk(
+                            c,
+                            path.content,
+                            w1.copy(
+                              regions = w1.regions.updated(path, kept),
+                              unarmed =
+                                if drop.isDefined then w1.unarmed - path
+                                else w1.unarmed,
+                            ),
+                            reclaim,
+                          ),
                         )
                       case _ =>
                         mountOne(r.signal, path, w, reclaim)
@@ -291,16 +278,32 @@ private[tui4s] final class Mount(
                   end for
             end match
           case el: Element       =>
+            // A short list keeps one watcher per span. A homogeneous list longer
+            // than the input read is one crowded parent. Siblings after that
+            // list keep the budget from before the list.
+            val n                       = ReactiveBudget.rowList(el)
+            val crowded                 = w.rowFork && n > ReactiveBudget.trackedLimit
+            val savedFork               = w.rowFork
+            val savedTracks             = w.rowTracks
+            val wBudget                 =
+              if crowded then
+                  w.copy(
+                    rowFork = false,
+                    rowTracks = ReactiveBudget.trackedLimit,
+                  )
+              else w
             val withBound: World < Sync = boundRef(el) match
-                case None      => w
+                case None      => wBudget
                 case Some(ref) =>
                   reclaim.get(path) match
                       case Some(
                             old @ RegionState(_, Source.Bound(prev), _, _, _, _),
                           ) if prev eq ref =>
-                        w.copy(regions = w.regions.updated(path, old))
+                        wBudget.copy(regions =
+                          wBudget.regions.updated(path, old),
+                        )
                       case _ =>
-                        val (gen, w1) = w.gen
+                        val (gen, w1) = wBudget.gen
                         for
                             cur     <- ref.current
                             watcher <- watch(ref, path, gen)
@@ -323,13 +326,19 @@ private[tui4s] final class Mount(
                         )
                         end for
             withBound.map { w2 =>
-              el match
-                  case _: Select | _: Dropdown => w2
-                  case _                       =>
-                    Kyo.foldLeft(el.children.toSeq.zipWithIndex)(w2) {
-                      case (acc, (c, i)) =>
-                        walk(c, path.child(i), acc, reclaim)
-                    }
+              val walked =
+                el match
+                    case _: Select | _: Dropdown => Kyo.lift(w2)
+                    case _                       =>
+                      Kyo.foldLeft(el.children.toSeq.zipWithIndex)(w2) {
+                        case (acc, (c, i)) =>
+                          walk(c, path.child(i), acc, reclaim)
+                      }
+              if crowded then
+                  walked.map(
+                    _.copy(rowFork = savedFork, rowTracks = savedTracks),
+                  )
+              else walked
             }
           case _                 => w
 

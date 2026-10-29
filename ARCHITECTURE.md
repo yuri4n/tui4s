@@ -79,16 +79,19 @@ in a later frame. Slow user code, rendering, terminal output and scheduler
 pauses can still delay input. Input correctness, derived-region consistency
 and input latency are separate checks.
 
-<!-- cursor 2026-10-28: created: sampled reactive regions keep input off the watcher storm; cursor 2026-10-28: changed: watch two reactive regions; cursor 2026-10-28: changed: the cap is per parent and a slice is 8; cursor 2026-10-28: changed: a crowded parent keeps the input read and drops the watcher fibers. -->
+<!-- cursor 2026-10-28: created: sampled reactive regions keep input off the watcher storm; cursor 2026-10-28: changed: watch two reactive regions; cursor 2026-10-28: changed: the cap is per parent and a slice is 8; cursor 2026-10-28: changed: a crowded parent keeps the input read and drops the watcher fibers; cursor 2026-10-28: changed: a span that wraps a signal counts for the element that contains the span; cursor 2026-10-28: changed: that list is crowded only past the input read. -->
 An input frame reads the first 16 reactive children of each parent, every
 bound region and every `Foreach`. It also reads a sampled region that holds
 the focus. A parent with 2 reactive children or fewer gives each of those
 children a watcher fiber. A parent with more reactive children keeps none of
-those fibers. The runner reads one slice of 8 of those regions on a background
-frame, and reads their current values. The idle runner waits at most 16 ms
-before the next sample when sampled regions exist. A background frame yields
-when input is already queued, so the input frame paints first. Sampled regions
-can trail the event that changed them. See ADR 0023.
+those fibers. A span that only wraps a signal counts as one row of the element
+that contains the span. That element is crowded when every child is one such
+row and there are more than 16 rows. A shorter list, and a mixed element, keep
+one watcher per span. The runner reads one slice of 8 of those regions on a
+background frame, and reads their current values. The idle runner waits at most
+16 ms before the next sample when sampled regions exist. A background frame
+yields when input is already queued, so the input frame paints first. Sampled
+regions can trail the event that changed them. See ADR 0023.
 
 | Directory       | sbt id     | Artifact                         | UI DSL                                  | Release tag      | Published |
 | --------------- | ---------- | -------------------------------- | --------------------------------------- | ---------------- | --------- |

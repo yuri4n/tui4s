@@ -173,4 +173,73 @@ class ReactiveBudgetTest extends Test[Any]:
         )
       assert(tasks.forall(row => background.contains(row.path)))
     }
+
+    // cursor 2026-10-28: created: a span around a signal counts for the element that contains the span.
+    "a span-wrapped signal counts for the element that contains the span" in {
+      val line    = Signal.initConst("x")
+      val rows    = div(Vector.tabulate(4)(_ => span(line))*)
+      val labeled = div(Vector.tabulate(4)(_ => span("Task ", line))*)
+      val status  = div(span(line), span(line))
+      val screen  = div(span(line), span(line), rows)
+      assert(ReactiveBudget.thin(rows) == false)
+      assert(ReactiveBudget.slots(rows) == 4)
+      assert(ReactiveBudget.slots(labeled) == 4)
+      assert(ReactiveBudget.slots(status) == 2)
+      assert(ReactiveBudget.thin(status) == false)
+      assert(ReactiveBudget.slots(screen) == 2)
+      assert(ReactiveBudget.rowList(rows) == 4)
+      assert(ReactiveBudget.rowList(screen) == 0)
+      assert(ReactiveBudget.forkWatchers(ReactiveBudget.slots(rows)) == false)
+      assert(ReactiveBudget.forkWatchers(ReactiveBudget.slots(screen)))
+      assert(ReactiveBudget.forkWatchers(ReactiveBudget.slots(status)))
+    }
+
+    // cursor 2026-10-28: created: the fanout list forks no watcher and tracks 16 rows; cursor 2026-10-28: changed: a list of 4 spans keeps a watcher on each span.
+    "a crowded list of span-wrapped signals forks no watcher" in {
+      val line = Signal.initConst("row")
+      val rows = div(Vector.tabulate(20)(_ => span(line))*)
+      val ui   = div(span(line), span(line), rows, span(line))
+      Scope.run {
+        for
+            inbox <- Channel.init[Msg](32)
+            gauge <- FiberGauge.init
+            world <- new Mount(inbox, gauge).walk(
+                       ui,
+                       Loc.root,
+                       World.init(ui, Size(40, 12)),
+                       Map.empty,
+                     )
+            live  <- gauge.live
+            _     <- gauge.close
+        yield
+            val watchers = world.regions.values.count(_.watcher.nonEmpty)
+            assert(watchers == 3)
+            assert(live == 3)
+            assert(world.tracked.size == 3 + ReactiveBudget.trackedLimit)
+            assert(world.hasSampled)
+      }
+    }
+
+    // cursor 2026-10-28: created: four span-wrapped signals stay on the watcher loop.
+    "a short list of span-wrapped signals keeps a watcher each" in {
+      val line = Signal.initConst("row")
+      val ui   = div(Vector.tabulate(4)(_ => span(line))*)
+      Scope.run {
+        for
+            inbox <- Channel.init[Msg](32)
+            gauge <- FiberGauge.init
+            world <- new Mount(inbox, gauge).walk(
+                       ui,
+                       Loc.root,
+                       World.init(ui, Size(40, 12)),
+                       Map.empty,
+                     )
+            live  <- gauge.live
+            _     <- gauge.close
+        yield
+            assert(world.regions.values.count(_.watcher.nonEmpty) == 4)
+            assert(live == 4)
+            assert(world.hasSampled == false)
+      }
+    }
 end ReactiveBudgetTest

@@ -148,6 +148,9 @@ private[tui4s] final case class World(
     sampleFrom: Int = 0,
     // cursor 2026-10-28: created: reactive regions an input frame reads, with or without a watcher fiber.
     tracked: Set[Loc] = Set.empty,
+    // cursor 2026-10-28: created: the walk's fork flag and remaining input reads for the current parent; cursor 2026-10-28: changed: a normal parent has no read cap.
+    rowFork: Boolean = true,
+    rowTracks: Int = Int.MaxValue,
 ):
     // claude 2026-10-19: changed: the terminal cursor shows the caret (L1c)
     def env: Scene =
@@ -194,21 +197,6 @@ private[tui4s] final case class World(
     // claude 2026-10-19: created (P2)
     def armed(p: Loc, g: Long): World =
       if unarmed.get(p).contains(g) then copy(unarmed = unarmed - p) else this
-
-    /** Reactive regions under `parent` that own a watcher fiber. */
-    // cursor 2026-10-28: created: the mount spends the watcher budget per parent.
-    def reactiveWatchersUnder(parent: Loc): Int =
-      regions.values.count {
-        case RegionState(p, Source.One(_), _, _, _, Some(_))
-            if p.parent == parent =>
-          true
-        case _ => false
-      }
-
-    /** Reactive regions under `parent` that an input frame reads. */
-    // cursor 2026-10-28: created: the input read stays when the watcher fiber does not.
-    def reactiveTrackedUnder(parent: Loc): Int =
-      tracked.count(p => p.parent == parent && regions.contains(p))
 
     /** True when at least one reactive region is sampled. */
     // cursor 2026-10-28: created: the idle sample wait runs only for this set.

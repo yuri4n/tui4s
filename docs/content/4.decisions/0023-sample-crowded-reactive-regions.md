@@ -26,8 +26,10 @@ Accepted.
   <!-- cursor 2026-10-28: changed: watch two reactive regions; cursor 2026-10-28: changed: the cap is per parent; cursor 2026-10-28: changed: the 16 are an input read. -->
 - A parent with 2 reactive children or fewer gives each of those children a watcher fiber.
   <!-- cursor 2026-10-28: created: a small parent keeps the ADR 0005 loop. -->
-- A parent with 3 reactive children or more gives those children no watcher fiber. The child that crosses the limit stops the fibers the parent already started. A background frame reads the current value of 8 of those regions. The idle runner waits at most 16 ms for the next sample.
-  <!-- cursor 2026-10-28: created: a crowded parent samples every reactive child. -->
+- A parent with 3 reactive children or more gives those children no watcher fiber. The runner counts the children before it forks, so it does not start those fibers. A later mount stops a fiber that an earlier smaller mount left in place. A background frame reads the current value of 8 of those regions. The idle runner waits at most 16 ms for the next sample.
+  <!-- cursor 2026-10-28: created: a crowded parent samples every reactive child; cursor 2026-10-28: changed: count the rows before the first fork. -->
+- A span that only wraps a signal counts as one row of the element that contains the span. The span is not a separate parent for this count. The element is crowded when every child is one such row and there are more rows than the input read (16). A shorter list keeps one watcher on each span. A mixed element keeps one watcher on each span.
+  <!-- cursor 2026-10-28: created: the fanout row span was hiding the crowded parent; cursor 2026-10-28: changed: only a homogeneous list longer than the input read is crowded. -->
 - When input is already queued, the runner paints that input before the next background frame.
 - Bound regions and `Foreach` regions keep their watchers. The 1 s repair tick stays.
 
@@ -41,8 +43,8 @@ Accepted.
 
 - A parent with 2 reactive children or fewer keeps the ADR 0005 watcher behavior.
   <!-- cursor 2026-10-28: changed: watch two reactive regions; cursor 2026-10-28: changed: the limit is the children of one parent. -->
-- A crowded parent samples its reactive children.
-  <!-- cursor 2026-10-28: created: the fanout has no watcher fiber. -->
+- A crowded parent samples its reactive children. A homogeneous list of more than 16 signal rows is one crowded parent. A shorter list, and a mixed element, keep one watcher per span.
+  <!-- cursor 2026-10-28: created: the fanout has no watcher fiber; cursor 2026-10-28: changed: the row span counts for the list; cursor 2026-10-28: changed: a short list and a mixed element stay on the watcher loop. -->
 - The first 16 reactive children of a crowded parent still change on the input frame.
   <!-- cursor 2026-10-28: created: forms and dashboards keep the key frame. -->
 - A sampled region can show its new value on a later frame. Input text and the focused region stay on the input frame.
