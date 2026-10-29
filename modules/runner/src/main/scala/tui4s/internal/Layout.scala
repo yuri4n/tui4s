@@ -292,8 +292,13 @@ end Node
   * its `kids` reach. A kid path extends the path of its owner, and the items of
   * one container are prefix-free (`flatten` stops at an element or a text).
   * `layoutAll` and `relayout` keep the invariant.
+  *
+  * A text node has no region key or owner at or under its path. When a new item
+  * replaces flattened regions, `relayout` removes their old mappings before
+  * placement, also for a new container's descendants. A later text change can
+  * replace the node directly.
   */
-// claude 2026-10-19: changed: the paths of the layers (L1b)
+// claude 2026-10-19: changed: the paths of the layers (L1b); codex 2026-10-23: changed: document the text ownership invariant; codex 2026-10-28: changed: include text created inside new containers.
 private[tui4s] final case class Laid(
     nodes: Map[Loc, Node],
     regionOwner: Map[Loc, Loc],
@@ -2135,7 +2140,13 @@ private[tui4s] object Layout:
                             n,
                           )
                         case _                      =>
-                          val cleared = old.fold(l)(o => l.without(o.path))
+                          // codex 2026-10-23: changed: clear ownership when a text path first appears; replace later text leaves directly; codex 2026-10-28: changed: clear stale flattened regions before placing any new item.
+                          val cleared = (old.map(_.kind), m.item.ui) match
+                              case (Some(Kind.Txt(_, _)), _: Text) => l
+                              case _                               =>
+                                old.fold(l.without(m.item.path))(o =>
+                                  l.without(o.path),
+                                )
                           val placed  = place(
                             m,
                             r,

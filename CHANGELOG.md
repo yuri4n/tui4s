@@ -20,6 +20,16 @@ that heading, each module of the release has its subsection
 to the GitHub release of the module (`scripts/changelog-section.sh`). The
 workflow stops before it creates a tag when a subsection is missing.
 
+## [Unreleased]
+
+<!-- codex 2026-10-28: created: text layout ownership fix and update cost. -->
+### tui4s-runner
+
+- Fixed: remove obsolete region ownership when flattened reactive content
+  becomes a new item, including text inside a new container. Later text
+  changes reuse the leaf without scanning the region map for removal.
+  <!-- codex 2026-10-28: created: preserve cleanup while reducing repeated text work. -->
+
 ## [0.1.1-RC1] - 2026-10-23
 <!-- codex 2026-10-23: changed: prepare the coordinated diagnostic release. -->
 
