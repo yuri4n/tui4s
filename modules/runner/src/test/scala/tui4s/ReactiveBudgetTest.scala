@@ -12,19 +12,24 @@ class ReactiveBudgetTest extends Test[Any]:
     private def view(
         path: Loc,
         kind: ReactiveBudget.Kind,
-        watched: Boolean,
+        tracked: Boolean,
+        fiber: Boolean = false,
     ): ReactiveBudget.View =
-      ReactiveBudget.View(path, kind, watched)
+      ReactiveBudget.View(path, kind, tracked, fiber)
 
     private val bound = view(Loc.root, ReactiveBudget.Kind.Bound, true)
     private val many  =
       view(Loc.root.child(1), ReactiveBudget.Kind.Many, true)
 
-    // cursor 2026-10-28: created: the 33rd reactive region is sampled; cursor 2026-10-28: changed: watch two reactive regions.
-    "a reactive region past the watcher limit is sampled" in {
-      assert(ReactiveBudget.watchAnother(0))
-      assert(ReactiveBudget.watchAnother(ReactiveBudget.watchedLimit - 1))
-      assert(ReactiveBudget.watchAnother(ReactiveBudget.watchedLimit) == false)
+    // cursor 2026-10-28: created: the 33rd reactive region is sampled; cursor 2026-10-28: changed: watch two reactive regions; cursor 2026-10-28: changed: split the input read from the watcher fiber.
+    "a reactive region past the input budget is sampled, and a crowded parent forks no watcher" in {
+      assert(ReactiveBudget.trackAnother(0))
+      assert(ReactiveBudget.trackAnother(ReactiveBudget.trackedLimit - 1))
+      assert(ReactiveBudget.trackAnother(ReactiveBudget.trackedLimit) == false)
+      assert(ReactiveBudget.forkWatchers(ReactiveBudget.watcherLimit))
+      assert(
+        ReactiveBudget.forkWatchers(ReactiveBudget.watcherLimit + 1) == false,
+      )
     }
 
     // cursor 2026-10-28: created: input reads watched regions and leaves the sampled tail for later.
@@ -33,7 +38,8 @@ class ReactiveBudgetTest extends Test[Any]:
         view(
           Loc.root.child(i + 2),
           ReactiveBudget.Kind.Reactive,
-          true,
+          tracked = true,
+          fiber = true,
         ),
       )
       val sampled           = Vector.tabulate(ReactiveBudget.sampleBatch + 1)(i =>
@@ -125,7 +131,8 @@ class ReactiveBudgetTest extends Test[Any]:
         view(
           Loc.root.child(i + 1),
           ReactiveBudget.Kind.Reactive,
-          true,
+          tracked = true,
+          fiber = true,
         ),
       )
       val tasks           = Vector.tabulate(4)(i =>
@@ -136,9 +143,11 @@ class ReactiveBudgetTest extends Test[Any]:
         ),
       )
       val regions         = Vector(prompt) ++ statuses ++ tasks
-      assert(ReactiveBudget.watchAnother(0))
-      assert(ReactiveBudget.watchAnother(ReactiveBudget.watchedLimit - 1))
-      assert(ReactiveBudget.watchAnother(ReactiveBudget.watchedLimit) == false)
+      assert(ReactiveBudget.trackAnother(0))
+      assert(ReactiveBudget.trackAnother(ReactiveBudget.trackedLimit - 1))
+      assert(ReactiveBudget.trackAnother(ReactiveBudget.trackedLimit) == false)
+      assert(ReactiveBudget.forkWatchers(statuses.length))
+      assert(ReactiveBudget.forkWatchers(tasks.length) == false)
       val (input, held)   =
         ReactiveBudget.pulls(
           regions,

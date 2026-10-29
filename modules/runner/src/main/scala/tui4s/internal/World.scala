@@ -146,6 +146,8 @@ private[tui4s] final case class World(
     lastPlan: Option[Plan] = None,
     // cursor 2026-10-28: created: the next index in the sorted sampled-region rotation.
     sampleFrom: Int = 0,
+    // cursor 2026-10-28: created: reactive regions an input frame reads, with or without a watcher fiber.
+    tracked: Set[Loc] = Set.empty,
 ):
     // claude 2026-10-19: changed: the terminal cursor shows the caret (L1c)
     def env: Scene =
@@ -202,6 +204,11 @@ private[tui4s] final case class World(
           true
         case _ => false
       }
+
+    /** Reactive regions under `parent` that an input frame reads. */
+    // cursor 2026-10-28: created: the input read stays when the watcher fiber does not.
+    def reactiveTrackedUnder(parent: Loc): Int =
+      tracked.count(p => p.parent == parent && regions.contains(p))
 
     /** True when at least one reactive region is sampled. */
     // cursor 2026-10-28: created: the idle sample wait runs only for this set.

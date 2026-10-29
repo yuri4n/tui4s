@@ -347,7 +347,7 @@ private[tui4s] final class Runner private (
       */
     // claude 2026-10-12: created (RC-9, RC-11)
     // claude 2026-10-13: changed: the Scaladoc names the keys and the paste
-    // (C3); codex 2026-10-23: changed: pull input consequences from a finite generation snapshot; cursor 2026-10-28: changed: sample reactive regions past the watcher budget; cursor 2026-10-28: changed: skip the sample slice when a key is already queued.
+    // (C3); codex 2026-10-23: changed: pull input consequences from a finite generation snapshot; cursor 2026-10-28: changed: sample reactive regions past the watcher budget; cursor 2026-10-28: changed: skip the sample slice when a key is already queued; cursor 2026-10-28: changed: an input frame reads tracked rows that have no watcher fiber.
     private def verify(w: World, input: Boolean)(using Frame): World < Sync =
         // claude 2026-10-19: changed: a function of the World (P2)
         val unarmed         = if input then w.unarmedRegions else Set.empty[Loc]
@@ -355,15 +355,20 @@ private[tui4s] final class Runner private (
         // of `Signal` (the conditions of D-17 c).
         // https://github.com/yuri4n/tui4s/issues/9
         val views           = w.regions.iterator.map { (p, r) =>
-          val (kind, watched) = r.source match
+          r.source match
               case Source.One(_)   =>
-                (ReactiveBudget.Kind.Reactive, r.watcher.nonEmpty)
+                ReactiveBudget.View(
+                  p,
+                  ReactiveBudget.Kind.Reactive,
+                  w.tracked.contains(p),
+                  r.watcher.nonEmpty,
+                )
               case Source.Bound(_) =>
-                (ReactiveBudget.Kind.Bound, r.watcher.nonEmpty)
+                ReactiveBudget.View(p, ReactiveBudget.Kind.Bound, false, false)
               case Source.Many(_)  =>
-                (ReactiveBudget.Kind.Many, r.watcher.nonEmpty)
-              case _               => (ReactiveBudget.Kind.Other, false)
-          ReactiveBudget.View(p, kind, watched)
+                ReactiveBudget.View(p, ReactiveBudget.Kind.Many, false, false)
+              case _               =>
+                ReactiveBudget.View(p, ReactiveBudget.Kind.Other, false, false)
         }.toVector
         val (paths, cursor) =
           ReactiveBudget.pulls(

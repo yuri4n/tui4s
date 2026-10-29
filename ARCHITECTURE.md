@@ -79,15 +79,16 @@ in a later frame. Slow user code, rendering, terminal output and scheduler
 pauses can still delay input. Input correctness, derived-region consistency
 and input latency are separate checks.
 
-<!-- cursor 2026-10-28: created: sampled reactive regions keep input off the watcher storm; cursor 2026-10-28: changed: watch two reactive regions; cursor 2026-10-28: changed: the cap is per parent and a slice is 8. -->
-The first 16 reactive children of each parent keep a watcher fiber. Each
-further child is sampled. The runner reads one slice of 8 sampled regions
-on a background frame, and reads their current values. An input frame still
-reads every watched reactive region, every bound region and every `Foreach`.
-It also reads a sampled region that holds the focus. The idle runner waits at
-most 16 ms before the next sample when sampled regions exist. A background
-frame yields when input is already queued, so the input frame paints first.
-Sampled regions can trail the event that changed them. See ADR 0023.
+<!-- cursor 2026-10-28: created: sampled reactive regions keep input off the watcher storm; cursor 2026-10-28: changed: watch two reactive regions; cursor 2026-10-28: changed: the cap is per parent and a slice is 8; cursor 2026-10-28: changed: a crowded parent keeps the input read and drops the watcher fibers. -->
+An input frame reads the first 16 reactive children of each parent, every
+bound region and every `Foreach`. It also reads a sampled region that holds
+the focus. A parent with 2 reactive children or fewer gives each of those
+children a watcher fiber. A parent with more reactive children keeps none of
+those fibers. The runner reads one slice of 8 of those regions on a background
+frame, and reads their current values. The idle runner waits at most 16 ms
+before the next sample when sampled regions exist. A background frame yields
+when input is already queued, so the input frame paints first. Sampled regions
+can trail the event that changed them. See ADR 0023.
 
 | Directory       | sbt id     | Artifact                         | UI DSL                                  | Release tag      | Published |
 | --------------- | ---------- | -------------------------------- | --------------------------------------- | ---------------- | --------- |

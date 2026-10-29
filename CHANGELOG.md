@@ -29,11 +29,12 @@ workflow stops before it creates a tag when a subsection is missing.
   vector equality work. Repeated marks keep the current world and preserve
   first-seen order.
   <!-- codex 2026-10-28: created: reduce repeated work during notification bursts. -->
-- Changed: each parent keeps a watcher on its first 16 reactive children.
-  Further children are sampled in slices of 8. An input frame still reads the
-  watched regions, and a queued input paints before the next background frame.
-  Sampled regions can update on a later frame.
-  <!-- cursor 2026-10-28: created: keep loaded input off a watcher per derived region; cursor 2026-10-28: changed: watch two reactive regions; cursor 2026-10-28: changed: the cap is per parent and a slice is 8. -->
+- Changed: an input frame reads the first 16 reactive children of each parent.
+  A parent with 2 reactive children or fewer gives each one a watcher. A
+  parent with more reactive children samples them in slices of 8 and keeps no
+  watcher fiber on them. A queued input paints before the next background
+  frame. Sampled regions can update on a later frame.
+  <!-- cursor 2026-10-28: created: keep loaded input off a watcher per derived region; cursor 2026-10-28: changed: watch two reactive regions; cursor 2026-10-28: changed: the cap is per parent and a slice is 8; cursor 2026-10-28: changed: a crowded parent keeps the input read and drops the watcher fibers. -->
 <!-- codex 2026-10-22: created: bounded settlement with the existing public policies. -->
 - Fixed: bounded inbox batches keep continuous notifications from bypassing
   the settlement deadline. Verification and its re-check share the same
