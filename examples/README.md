@@ -19,6 +19,7 @@ package.
 | Forms          | `examples.forms.FormsApp`                  | `examples/target/bin/forms`         | The native inputs in one form: a text input with `maxLength`, a password, a number with `min`, `max` and `step`, a range, two checkboxes, two radios of one group, a select, a dropdown, a textarea of 3 rows, a read-only and a disabled field, Submit and Reset. Enter submits the form (in the textarea too: Alt-Enter or Ctrl-J gives a new line), and the result shows under the form; Esc quits (README "Forms and inputs"). |
 | Gallery        | `examples.gallery.GalleryApp`              | `examples/target/bin/gallery`       | Every widget of tui4s-widgets with live state: the family list at the left (the arrows, or F1 to F5: containers, data, input, feedback, navigation), the widgets of the family at the right (Tab goes from widget to widget; the keys of each widget are in its label), the hints of the keymap of the app at the bottom (`KeyHints`); Ctrl-P opens the command palette over that keymap, Ctrl-T shows a toast, Ctrl-Q quits. The colours are `Colors.defaults` (README "Widgets (tui4s-widgets)"). |
 | Assistant      | `examples.assistant.AssistantApp`          | `examples/target/bin/assistant [--fake]` | The flagship app: a chat with a language model (Anthropic, OpenAI, or a scripted fake provider). The list of the chats at the left, the transcript at the right (the reply streams in place and the view follows the end), the composer (Enter sends; Alt-Enter or Ctrl-J gives a new line), the status bar, the key hints, the command palette (Ctrl-P), the settings (Ctrl-S), the log pane (Ctrl-L), the help (F1); Esc stops a reply, Ctrl-Q quits. Its domain, services, store and UI are in the module `modules/assistant`; this main only wires (README "A real app: the assistant"). See "The keys of the assistant" below. |
+| Workflow       | `examples.workflow.WorkflowApp`            | `examples/target/bin/workflow [--quiet]` | A loaded operator session on one screen. Four gauges and sparklines track services. Twenty-four probe samplers, a scripted token stream, tool events and a status line run together. The default path is that script. It needs no API key and no network. `--quiet` holds the streams until Ctrl-G. Enter sends a line to the script. Esc quits. At 80 columns or more, the metrics and the transcript sit side by side. The probe list has more than 16 signal rows, so those rows update by sampling. |
 | Assistant (web) | `examples.assistant.AssistantWebApp` (project `assistantWeb`, in `examples/web`) | `bash scripts/web-build.sh`, then a static server on `dist/assistant` | The same assistant in a browser (Scala.js): static files, no server of tui4s. With no key the provider is the fake one; a key that you type in the settings stays in the `localStorage` of the browser and goes only to its provider. The look is "native web" (Alt-, opens the settings, where Look switches it to the terminal look); the commands have Alt chords (Alt-P: the commands; on macOS the Ctrl chords too), Enter sends, Shift-Enter starts a new line. `node scripts/web-smoke.mjs` tests it in Chromium (README "The same app on the web"). |
 | Widgets        | none (a library)                           | none                                | The terminal `Tabs` component adapter of `tui4s.widgets.Tabs` in `examples.widgets`. |
 | Native recipes | none (a library)                           | none                                | Five things that need no composable, each in one or two lines of native Kyo: a toggle, a counter, an interval, a timer that pauses (`Signal.observe`), a derived value (README "You may not need a composable"). |
@@ -34,6 +35,7 @@ package.
 <!-- claude 2026-10-19: changed: the Widgets row and the Tabs examples of the section below; Tabs is in tui4s-widgets and takes a Model (L2b); created the Gallery row (L2b) -->
 <!-- claude 2026-10-19: created the Assistant row and the section "The keys of the assistant" (L3); changed: no redirect, --fake keeps the settings, the fallbacks, the notes, the idle limit (L3 review) -->
 <!-- claude 2026-10-19: created the row of the web assistant (L4) -->
+<!-- cursor 2026-10-29: created: the Workflow row -->
 
 ## The keys of the assistant
 
@@ -393,9 +395,9 @@ The examples use sbt-native-packager's `JavaAppPackaging`.
 `examples/target/universal/stage/bin`, with the runtime JARs in `lib` and JVM
 configuration in `conf/application.ini`. The script names are the package names
 in the table above: `counter`, `counterkyo`, `twocounters`, `counterstyles`,
-`todo`, `dashboard`, `printing`, `forms`, and `gallery`. Two mains in one
-package stop the build.
-<!-- claude 2026-10-19: changed: forms (L1c), gallery (L2b) -->
+`todo`, `dashboard`, `printing`, `forms`, `gallery`, and `workflow`. Two mains
+in one package stop the build.
+<!-- claude 2026-10-19: changed: forms (L1c), gallery (L2b); cursor 2026-10-29: changed: workflow in the script names -->
 
 To produce a ZIP that can be unpacked elsewhere:
 
