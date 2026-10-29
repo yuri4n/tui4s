@@ -160,6 +160,11 @@ jobs:
             --require-graceful-exit --require-load-running --require-updates \
             --output "$PTY_WORK/latency-combined.json" \
             --command examples/target/bin/settlement --busy --updates=1000 --duration=60
+          # codex 2026-10-23: created: keep continuous reactive fanout inside the input regression gate.
+          python3 examples/ptycheck/latency.py --keys 60 --rate 10 --deadline-ms 250 \
+            --require-graceful-exit --require-load-running --require-updates \
+            --output "$PTY_WORK/latency-fanout.json" \
+            --command examples/target/bin/settlement --busy --continuous --regions=128 --duration=60
       # The same checklist with the AOT cache of each example (bin/aot-train
       # of the distribution; the start scripts then use the caches). aot-train
       # fails when the JVM cannot use a cache that it made (-XX:AOTMode=on).

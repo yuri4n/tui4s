@@ -149,4 +149,32 @@ class SettlementTest extends Test[Any]:
         ) == Settlement.Decision.Continue,
       )
     }
+    // codex 2026-10-23: created: local quiet requires both confirmations and a bounded window.
+    "Local checks its own quiet window without a global scheduler probe" in {
+      val p       = Settlement.policy(
+        RunOptions.of(
+          TuiOptions(
+            settle =
+              Settle.Local(Duration.ofNanos(10L), Duration.ofNanos(3L), 2),
+          ),
+        ),
+      )
+      val initial = p.begin(Settlement.Budget(p.maximum, 0L), 0L)
+      val first   = initial.observed(0L, true)
+      val second  = first.observed(1L, true)
+      val quiet   = second.observed(3L, true)
+      assert(!p.probesScheduler)
+      assert(p.decide(first, 0L, true) == Settlement.Decision.Continue)
+      assert(p.decide(second, 1L, true) == Settlement.Decision.Continue)
+      assert(p.decide(quiet, 3L, true) == Settlement.Decision.Complete)
+      val active  = quiet.observed(5L, false)
+      assert(p.decide(active, 5L, false) == Settlement.Decision.Continue)
+      assert(
+        p.decide(
+          active.observed(10L, false),
+          10L,
+          false,
+        ) == Settlement.Decision.Timeout,
+      )
+    }
 end SettlementTest

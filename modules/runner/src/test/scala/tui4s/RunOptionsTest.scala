@@ -14,12 +14,13 @@ import java.time.Duration
 class RunOptionsTest extends Test[Any]:
     private val huge = Duration.ofSeconds(Long.MaxValue)
 
+    // codex 2026-10-23: changed: check the local default's active allowance.
     "the defaults pass as they are" in {
       val r = RunOptions.of(TuiOptions())
       assert(r.options == TuiOptions())
       assert(r.inboxCapacity == 1024 && r.pollMillis == 25)
       assert(r.pendingNanos == 2_000_000_000L)
-      assert(r.settleNanos == 100_000_000L)
+      assert(r.settleNanos == 16_000_000L)
     }
 
     "inboxCapacity: zero and a negative value are 1" in {
@@ -49,11 +50,14 @@ class RunOptionsTest extends Test[Any]:
       assert(ns(huge) == Long.MaxValue)
     }
 
-    "settle: the max of Quiescent and the window of Hops, checked as pendingTimeout" in {
+    // codex 2026-10-23: changed: include Local maximum validation.
+    "settle: the finite maxima and the window of Hops, checked as pendingTimeout" in {
       def ns(s: Settle): Long =
         RunOptions.of(TuiOptions(settle = s)).settleNanos
       assert(ns(Settle.Quiescent(Duration.ofMillis(-3))) == 0L)
       assert(ns(Settle.Quiescent(huge)) == Long.MaxValue)
+      assert(ns(Settle.Local(max = Duration.ofMillis(-3))) == 0L)
+      assert(ns(Settle.Local(max = huge)) == Long.MaxValue)
       assert(ns(Settle.Hops(2, Duration.ZERO)) == 0L)
       assert(ns(Settle.Hops(2, Duration.ofNanos(250_000))) == 250_000L)
       assert(ns(Settle.Hops(2, huge)) == Long.MaxValue)

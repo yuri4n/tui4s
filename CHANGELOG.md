@@ -30,10 +30,18 @@ workflow stops before it creates a tag when a subsection is missing.
   active time budget. Component startup keeps its separate bounded wait.
   <!-- codex 2026-10-22: created: enforce progress under continuous traffic. -->
 - Fixed: quit is checked between notification batches, including with the
-  explicit `Settle.Hops` policy. The default remains `Quiescent(100 ms)`.
-  These bounds do not prevent heavy notifications from delaying input in
-  the shared inbox.
-  <!-- codex 2026-10-22: created: prompt shutdown and the remaining input-queue limitation. -->
+  explicit `Settle.Hops` policy.
+  <!-- codex 2026-10-22: created: prompt shutdown and the remaining input-queue limitation; codex 2026-10-23: changed: describe shutdown separately from admission. -->
+- Added: `Settle.Local(max, window, confirm)`, now the default, with values of
+  16 ms, 1 ms and two empty observations. Code that exhaustively matches
+  `Settle` must handle `Local`; an older compiled match can throw `MatchError`
+  for this new case. Explicit `Quiescent` and `Hops` remain available.
+  <!-- codex 2026-10-23: created: local settlement and its enum-match compatibility limit. -->
+- Changed: signal watchers send change notices and the runner reads their
+  current values. Intermediate signal states can coalesce. Input passes
+  reconcile reactive regions before painting. Background admission leaves
+  room for input in inboxes with capacity greater than one.
+  <!-- codex 2026-10-23: created: current-state reconciliation and notification backpressure. -->
 
 ## [0.1.1-RC1] - 2026-10-23
 <!-- codex 2026-10-23: changed: prepare the coordinated diagnostic release. -->

@@ -30,10 +30,11 @@ settlement decisions. Internal input-to-frame-pass timing is distinct from the
 PTY test's send-to-correct-screen timing. See
 [the diagnostics guide](docs/content/2.guide/14.diagnostics.md).
 
-<!-- codex 2026-10-22: created: bounded settlement and its cooperative limits. -->
-The default remains `Settle.Quiescent` with a 100 ms maximum. Unrelated Kyo
-tasks can keep its scheduler probe busy until that budget ends. Each inbox
-drain takes a bounded batch. One active time budget covers settlement,
+<!-- codex 2026-10-22: created: bounded settlement and its cooperative limits; codex 2026-10-23: changed: use bounded local completion. -->
+The default is `Settle.Local`: a 16 ms active maximum, a 1 ms quiet window,
+and two empty observations one scheduler hop apart. It does not probe the
+global scheduler. Explicit `Settle.Quiescent` retains its scheduler rule.
+Each inbox drain takes a bounded batch. One active time budget covers settlement,
 verification and its re-check, including continuous notifications. A
 mounting component has a separate bounded wait. Only time blocked waiting
 for its messages pauses the active budget; processing those messages does
@@ -41,13 +42,31 @@ not restore spent time. The budget cannot interrupt user code or a scheduler
 pause. Layout, paint and terminal output are outside this budget.
 `Settle.Hops` retains its quiet-window rule without a total time limit.
 
-<!-- codex 2026-10-22: created: settlement bounds do not guarantee input latency. -->
+<!-- codex 2026-10-23: created: background backpressure preserves room for input. -->
+Input events and background notices share one bounded inbox. Background
+admission waits when its occupancy reaches one quarter of the capacity,
+with a maximum of 64 and a minimum of one. The runner wakes waiting
+producers after removals and on shutdown. A capacity of one cannot reserve
+a separate input slot. Admission and removal preserve channel order;
+settlement can defer input while it batches later notifications.
+
+<!-- codex 2026-10-23: created: signal notifications describe current state rather than historical UI values. -->
+Watchers post region-change notices. The runner reads the signal's current
+value when it consumes a notice. Intermediate signal states can coalesce.
+Component startup results still carry their actual content. An input pass
+also reconciles current reactive values, from parents to children. It takes
+a snapshot of region generations so it skips descendants that a parent
+remount replaced. A queued change notice cannot replay an older UI value
+over this reconciliation. Same-key component state and hook scopes remain
+owned by their existing instances.
+
+<!-- codex 2026-10-22: created: settlement bounds do not guarantee input latency; codex 2026-10-23: changed: distinguish current-state reconciliation from asynchronous effects. -->
 Kyo's public signal API has no event-completion barrier. Settlement therefore
 batches updates on a best-effort basis. Verification and repair still recover
 missed notifications. An update that arrives after the batch closes appears
-in a later frame. Inputs and notifications share one bounded inbox. Heavy
-notification traffic can delay input admission and dispatch. Input
-correctness, derived-region consistency and input latency are separate checks.
+in a later frame. Slow user code, rendering, terminal output and scheduler
+pauses can still delay input. Input correctness, derived-region consistency
+and input latency are separate checks.
 
 | Directory       | sbt id     | Artifact                         | UI DSL                                  | Release tag      | Published |
 | --------------- | ---------- | -------------------------------- | --------------------------------------- | ---------------- | --------- |

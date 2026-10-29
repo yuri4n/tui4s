@@ -6,23 +6,33 @@ import kyo.*
 import kyo.UI.Ast.*
 import tui4s.Component
 
+import scala.annotation.unused
+
 /** Mounting and unmounting regions. A mount reads the signal's current value
   * synchronously (so the first frame needs no scheduler round trip) and starts
-  * one watcher fiber that posts every later value to the runner's inbox.
+  * one watcher fiber that posts change notices to the runner's inbox. The
+  * runner reads the signal's current value when it handles a notice.
   */
-// claude 2026-10-19: changed: the gauge of the run, a parameter (P2, A7)
+// claude 2026-10-19: changed: the gauge of the run, a parameter (P2, A7); codex 2026-10-23: changed: accept the run's background admission gate.
 private[tui4s] final class Mount(
-    inbox: Channel[Msg],
+    @unused inbox: Channel[Msg],
     gauge: FiberGauge,
-    knobs: Knobs = Knobs.default,
+    knobs: Knobs,
+    admission: BackgroundAdmission,
 ):
+    // codex 2026-10-23: created: preserve the original constructor and knobs default getter.
+    def this(
+        inbox: Channel[Msg],
+        gauge: FiberGauge,
+        knobs: Knobs = Knobs.default,
+    ) = this(inbox, gauge, knobs, BackgroundAdmission.direct(inbox))
 
     // claude 2026-10-13: created (C4, the C2 cut back): the hook mount posts
-    // its content with it
+    // its content with it; codex 2026-10-23: changed: apply background admission to initial component content.
     private def post(path: Loc, gen: Long, v: Any)(using
         Frame,
     ): Unit < Async =
-      Abort.run[Closed](inbox.put(Msg.Content(path, gen, v))).unit
+      Abort.run[Closed](admission.send(Msg.Content(path, gen, v))).unit
 
     /** Starts the watcher of the region at `path` (of generation `gen`). The
       * caller puts the region in `World.unarmed` ([[newWatcher]]): until its
@@ -53,28 +63,28 @@ private[tui4s] final class Mount(
     /* `nextWith` (`Signal.awaitAny`), which this loop cannot avoid (review
      * R2-6). */
     // https://github.com/yuri4n/tui4s/issues/8
-    /** The watcher loop (K29). It uses only `Signal.currentWith` and
-      * `Signal.nextWith`, no race: step 0 posts `Msg.Armed` and waits for the
-      * first change (the mount read the first value already); each later step
-      * reads `current`, posts it, and waits for the next change. A write that
-      * lands between the read of `current` and the registration of `nextWith`
-      * is missed here; the verify pass and the repair tick of the runner
-      * re-read `current` and repair it. `knobs.seam` holds that window open for
+    /** The watcher loop (K29). It uses `Signal.nextWith`: step 0 posts
+      * `Msg.Armed` and waits for the first change (the mount read the first
+      * value already); each later step posts a change notice and waits for the
+      * next change. The runner reads `current` when it handles the notice. A
+      * write after that read but before the registration of `nextWith` is
+      * missed here; the verify pass and repair tick re-read `current` and
+      * repair it. `knobs.seam` holds the notice-to-registration window open for
       * the tests.
       */
-    // claude 2026-10-12: created
+    // claude 2026-10-12: created; codex 2026-10-23: changed: gate change notices and leave current reads to the consumer.
     private def loop[A](signal: Signal[A], path: Loc, gen: Long)(using
         Frame,
     ): Unit < (Async & Abort[Closed]) =
       Loop(0) { n =>
         val post: Unit < (Async & Abort[Closed]) =
           if n == 0 then Kyo.unit
-          else signal.currentWith(cur => inbox.put(Msg.Content(path, gen, cur)))
+          else admission.send(Msg.Changed(path, gen))
         val delay                                = knobs.seam(n)
         // claude 2026-10-19: changed: the arm step only posts `Msg.Armed`; the
-        // runner takes the region out of `World.unarmed` (P2)
+        // runner takes the region out of `World.unarmed` (P2); codex 2026-10-23: changed: gate arm notices with other background messages.
         val arm: Unit < (Async & Abort[Closed])  =
-          if n == 0 then inbox.put(Msg.Armed(path, gen))
+          if n == 0 then admission.send(Msg.Armed(path, gen))
           else Kyo.unit
         post
           .andThen(if delay > Duration.Zero then Async.sleep(delay)

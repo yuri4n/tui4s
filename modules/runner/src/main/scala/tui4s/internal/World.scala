@@ -22,6 +22,8 @@ private[tui4s] enum Msg:
     case Armed(region: Loc, gen: Long)
     case Repair
     case Quit
+    // codex 2026-10-23: created: a watcher invalidates its region without retaining an older signal value.
+    case Changed(region: Loc, gen: Long)
 end Msg
 
 /** What drives a region. */

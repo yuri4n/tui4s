@@ -40,15 +40,17 @@ private[tui4s] object Settlement:
         window: Long,
         confirmations: Int,
     ):
-        // codex 2026-10-22: created: Quiescent reads global load; Hops does not.
+        // codex 2026-10-22: created: Quiescent reads global load; Hops does not; codex 2026-10-23: changed: Local observes only this inbox.
         def probesScheduler: Boolean = mode match
             case Settle.Quiescent(_, _) => true
             case Settle.Hops(_, _)      => false
+            case Settle.Local(_, _, _)  => false
 
-        // codex 2026-10-22: created: Hops keeps its documented quiet-window semantics.
+        // codex 2026-10-22: created: Hops keeps its documented quiet-window semantics; codex 2026-10-23: changed: enforce the Local maximum.
         def expired(budget: Budget): Boolean = mode match
             case Settle.Hops(_, _)      => false
             case Settle.Quiescent(_, _) => budget.remaining == 0L
+            case Settle.Local(_, _, _)  => budget.remaining == 0L
 
         // codex 2026-10-22: created: every batch, including a nonempty one, checks the budget.
         def decide(state: State, now: Long, empty: Boolean): Decision =
@@ -62,11 +64,18 @@ private[tui4s] object Settlement:
           State(budget.spend(now), 0, now)
     end Policy
 
-    // codex 2026-10-22: created: normalize public tuning values without changing RunOptions' constructor.
+    // codex 2026-10-22: created: normalize public tuning values without changing RunOptions' constructor; codex 2026-10-23: changed: normalize the local quiet window and confirmations.
     def policy(options: RunOptions): Policy = options.options.settle match
-        case mode @ Settle.Quiescent(_, confirm) =>
+        case mode @ Settle.Local(_, window, confirm) =>
+          Policy(
+            mode,
+            options.settleNanos,
+            RunOptions.nanos(window),
+            confirm.max(1),
+          )
+        case mode @ Settle.Quiescent(_, confirm)     =>
           Policy(mode, options.settleNanos, 0L, confirm.max(1))
-        case mode @ Settle.Hops(hops, _)         =>
+        case mode @ Settle.Hops(hops, _)             =>
           Policy(
             mode,
             Long.MaxValue,

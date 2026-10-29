@@ -13,11 +13,12 @@ import scala.language.strictEquality
 // claude 2026-10-12: created (RC-3, D-14; OS-16 lesson)
 class TuiOptionsTest extends Test[Any]:
 
-    "the defaults: autoFocus, Quiescent(100 ms, confirm = 2)" in {
+    // codex 2026-10-23: changed: assert the local default without changing existing constructor shapes.
+    "the defaults: autoFocus, Local settlement" in {
       val o = TuiOptions()
       assert(o.autoFocus)
-      assert(o.settle == Settle.Quiescent(Duration.ofMillis(100), 2))
-      assert(o == TuiOptions(settle = Settle.Quiescent(Duration.ofMillis(100))))
+      assert(o.settle == Settle.Local())
+      assert(o == TuiOptions(settle = Settle.Local()))
     }
 
     "a java.time.Duration builds every Settle; the cases compare with ==" in {

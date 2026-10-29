@@ -8,17 +8,17 @@ import tui4s.{FrameCause, FrameStats, TerminalSize, TuiError}
 
 /** The runner: one fiber that owns the world and the canvas.
   *
-  * Each step takes one message (a key, a resize, or a region's new value),
-  * applies it (the key handlers run here, through [[Dispatch]]), then SETTLES:
-  * it applies every queued region value until the settle rule of
-  * [[tui4s.spi.Settle]] ends the batch. The default uses the scheduler probe
-  * with a shared active time budget. Then it lays out what changed, paints it
-  * into the kept buffer and flushes the changed cells. Late reactive values
-  * reach a later frame.
+  * Each step takes one message (a key, a resize, or a region notice), applies
+  * it (the key handlers run here, through [[Dispatch]]), then SETTLES: it
+  * applies queued region changes until the settle rule of [[tui4s.spi.Settle]]
+  * ends the batch. The default uses local inbox quiet with a shared active time
+  * budget. Input verification reads current signal values. Then it lays out
+  * what changed, paints it into the kept buffer and flushes the changed cells.
+  * Late reactive values reach a later frame.
   */
 // claude 2026-10-13: changed: the Scaladoc names the dispatcher (C3)
 // claude 2026-10-19: changed: built by `Runner.init`, with the checked
-// options (RunOptions, A10), the gauge and the quit flag of the run (P2, A7); codex 2026-10-22: changed: describe bounded settlement.
+// options (RunOptions, A10), the gauge and the quit flag of the run (P2, A7); codex 2026-10-22: changed: describe bounded settlement; codex 2026-10-23: changed: describe local batching and input verification.
 private[tui4s] final class Runner private (
     inbox: Channel[Msg],
     canvas: Canvas,
@@ -32,6 +32,8 @@ private[tui4s] final class Runner private (
     terminal: SignalRef[TerminalSize],
     // codex 2026-10-22: created: optional observation, never a settlement input
     diagnostics: DiagnosticRecorder,
+    // codex 2026-10-23: created: one background admission gate owned by this run.
+    admission: BackgroundAdmission,
 ):
     private val options = runOpts.options
 
@@ -42,8 +44,8 @@ private[tui4s] final class Runner private (
     private inline def observe(inline action: Unit)(using Frame): Unit < Sync =
       if diagnostics.enabled then Sync.defer(action) else Kyo.unit
 
-    // claude 2026-10-19: changed: the mount gets the gauge (P2, A7)
-    private val mount = Mount(inbox, gauge, knobs)
+    // claude 2026-10-19: changed: the mount gets the gauge (P2, A7); codex 2026-10-23: changed: share background admission with the consumer.
+    private val mount = Mount(inbox, gauge, knobs, admission)
 
     /** The monotonic time in nanoseconds. Its value can be negative: the runner
       * uses only differences. The Kyo `Clock` is not used here, because it
@@ -64,8 +66,9 @@ private[tui4s] final class Runner private (
       * starts after the close is interrupted at once. It does not wait.
       */
     // claude 2026-10-19: changed: only the close of the gauge; the last
-    // world, the `stopped` flag and the tick handle are gone (P2, A7)
-    private def stop(using Frame): Unit < Sync = gauge.close
+    // world, the `stopped` flag and the tick handle are gone (P2, A7); codex 2026-10-23: changed: release waiting background senders before closing their fibers.
+    private def stop(using Frame): Unit < Sync =
+      admission.close.andThen(gauge.close)
 
     /** Asks the run to end: it posts the quit message and sets a flag that the
       * next step reads, in case the inbox is full and drops the message.
@@ -211,14 +214,16 @@ private[tui4s] final class Runner private (
             }
       }
 
-    // codex 2026-10-22: changed: record first inbox removal before a possible backlog wait
+    // codex 2026-10-22: changed: record first inbox removal before a possible backlog wait; codex 2026-10-23: changed: wake background senders after removal.
     private def next(w: World)(using Frame): (Msg, World) < Async =
       w.backlog.headOption match
           case Some(m) => (m, w.copy(backlog = w.backlog.tail))
           case None    =>
             Abort.run[Closed](inbox.take).map {
               case Result.Success(m) =>
-                observe(diagnostics.seen(m)).andThen((m, w))
+                admission.released
+                  .andThen(observe(diagnostics.seen(m)))
+                  .andThen((m, w))
               case _                 => (Msg.Quit, w)
             }
 
@@ -246,6 +251,9 @@ private[tui4s] final class Runner private (
               .andThen(terminal.set(TerminalSize(size.w, size.h)))
               .andThen(w.copy(size = size, full = true))
           case c: Msg.Content                                      => apply(w, c)
+          // codex 2026-10-23: created: consume signal notices by reading current state.
+          case Msg.Changed(p, g)                                   =>
+            verifyRegion(w, p, Some(g), repair = false)
           // claude 2026-10-12: created the two cases below (K29, D-16): a
           // watcher armed: verify its region one time; the repair tick
           // re-reads every region
@@ -303,14 +311,16 @@ private[tui4s] final class Runner private (
       * value with closures never compares equal).
       *
       * The pull check (D-17 c, spike S1 section 4.3) adds every bound and
-      * `Foreach` region: a derived signal computes `current` synchronously, so
-      * the re-read sees each write of the event, also one that the probe
-      * missed. `Reactive` regions are not pulled: their value is a UI with
-      * closures, so two renders never compare equal.
+      * `Foreach` region. An Input step also pulls each reactive region. A
+      * derived signal computes `current` synchronously, so this sees the
+      * event's writes before a watcher notice arrives. Targets are a snapshot
+      * of paths and generations, with parents first. A remount can replace a
+      * descendant; that older generation is skipped. Fresh descendants are read
+      * by their mount, without a recursive verification cascade.
       */
     // claude 2026-10-12: created (RC-9, RC-11)
     // claude 2026-10-13: changed: the Scaladoc names the keys and the paste
-    // (C3)
+    // (C3); codex 2026-10-23: changed: pull input consequences from a finite generation snapshot.
     private def verify(w: World, input: Boolean)(using Frame): World < Sync =
         // claude 2026-10-19: changed: a function of the World (P2)
         val unarmed = if input then w.unarmedRegions else Set.empty[Loc]
@@ -323,11 +333,17 @@ private[tui4s] final class Runner private (
                 RegionState(_, Source.Bound(_) | Source.Many(_), _, _, _, _),
               ) =>
             p
+          case (p, RegionState(_, Source.One(_), _, _, _, _)) if input =>
+            p
         }
-        val targets = (w.youngNow ++ w.youngPrev ++ unarmed ++ pulled).toSeq
+        val targets = (w.youngNow ++ w.youngPrev ++ unarmed ++ pulled).toVector
+          .flatMap(p => w.regions.get(p).map(r => (p, r.gen)))
+          .sortBy(_._1.depth)
         val keep    = w.youngNow
         Kyo
-          .foldLeft(targets)(w)((acc, p) => verifyRegion(acc, p, None))
+          .foldLeft(targets)(w) { case (acc, (p, gen)) =>
+            verifyRegion(acc, p, Some(gen))
+          }
           .map(_.copy(youngNow = keep))
     end verify
 
@@ -343,10 +359,16 @@ private[tui4s] final class Runner private (
       )
 
     /** Re-reads `current` of the region at `p` (of generation `gen`, when
-      * given) and applies a value that differs; counts it in `repaired`.
+      * given) and applies a value that differs. Ordinary watcher notices do not
+      * count as repairs.
       */
-    // claude 2026-10-12: created (K29, D-16; the S2 armkey verifyRegion)
-    private def verifyRegion(acc: World, p: Loc, gen: Option[Long])(using
+    // claude 2026-10-12: created (K29, D-16; the S2 armkey verifyRegion); codex 2026-10-23: changed: share current-state reads without counting notices as repairs.
+    private def verifyRegion(
+        acc: World,
+        p: Loc,
+        gen: Option[Long],
+        repair: Boolean = true,
+    )(using
         Frame,
     ): World < Sync =
       acc.regions.get(p).filter(r => gen.forall(_ == r.gen)) match
@@ -355,7 +377,8 @@ private[tui4s] final class Runner private (
               if content == Content.Single(cur) then acc
               else
                   apply(
-                    acc.copy(repaired = acc.repaired + 1),
+                    if repair then acc.copy(repaired = acc.repaired + 1)
+                    else acc,
                     Msg.Content(p, g, cur),
                   )
             }
@@ -364,7 +387,8 @@ private[tui4s] final class Runner private (
               if content == Content.Value(cur) then acc
               else
                   apply(
-                    acc.copy(repaired = acc.repaired + 1),
+                    if repair then acc.copy(repaired = acc.repaired + 1)
+                    else acc,
                     Msg.Content(p, g, cur),
                   )
             }
@@ -375,7 +399,8 @@ private[tui4s] final class Runner private (
               if Mount.sameValues(items, cur) then acc
               else
                   apply(
-                    acc.copy(repaired = acc.repaired + 1),
+                    if repair then acc.copy(repaired = acc.repaired + 1)
+                    else acc,
                     Msg.Content(p, g, cur),
                   )
             }
@@ -386,7 +411,7 @@ private[tui4s] final class Runner private (
       */
     // claude 2026-10-13: changed (C4, the C2 cut back): a component region
     // takes its content as a `Reactive` region does; the content of a hook
-    // component ends its wait (`pending`)
+    // component ends its wait (`pending`); codex 2026-10-23: changed: retain leaf text updates without scanning unrelated regions.
     private def apply(w: World, c: Msg.Content)(using Frame): World < Sync =
       w.regions.get(c.region) match
           case Some(r) if r.gen == c.gen =>
@@ -395,15 +420,21 @@ private[tui4s] final class Runner private (
                   val content = Content.Single(c.value.asInstanceOf[UI]) // scalafix:ok DisableSyntax.asInstanceOf; KEEP: true by construction (Msg.Content)
                   if r.content == content then w
                   else
-                      val w1 = w.copy(
+                      val w1      = w.copy(
                         regions = w.regions
                           .updated(c.region, r.copy(content = content)),
                         pending = w.pending - c.region,
                       )
-                      mount.remount(
-                        w1.markRegion(c.region).copy(updates = w1.updates + 1),
-                        c.region,
-                      )
+                      val changed = w1
+                        .markRegion(c.region)
+                        .copy(updates = w1.updates + 1)
+                      (r.content, content) match
+                          case (
+                                Content.Single(_: UI.Ast.Text),
+                                Content.Single(_: UI.Ast.Text),
+                              ) =>
+                            changed
+                          case _ => mount.remount(changed, c.region)
                   end if
                 // claude 2026-10-19: changed: the item type `a` of the Foreach
                 // (Source.Many is typed, P1)
@@ -444,17 +475,20 @@ private[tui4s] final class Runner private (
     private def absorb(w: World, msg: Msg)(using Frame): World < Sync =
       observe(diagnostics.seen(msg)).andThen {
         msg match
-            case c: Msg.Content  => apply(w, c)
-            case Msg.Quit        => w.copy(quit = true)
+            case c: Msg.Content    => apply(w, c)
+            // codex 2026-10-23: created: delayed notices cannot restore a captured older UI.
+            case Msg.Changed(p, g) =>
+              verifyRegion(w, p, Some(g), repair = false)
+            case Msg.Quit          => w.copy(quit = true)
             // claude 2026-10-12: created the two cases below (K29, D-16): an arm
             // inside a settle verifies its region; a tick inside a settle is kept
             // for the next step, once (review R2-7)
             // claude 2026-10-19: changed: the region leaves World.unarmed (P2)
-            case Msg.Armed(p, g) => verifyRegion(w.armed(p, g), p, Some(g))
-            case Msg.Repair      =>
+            case Msg.Armed(p, g)   => verifyRegion(w.armed(p, g), p, Some(g))
+            case Msg.Repair        =>
               if w.backlog.contains(Msg.Repair) then w
               else w.copy(backlog = w.backlog :+ Msg.Repair)
-            case other           => w.copy(backlog = w.backlog :+ other)
+            case other             => w.copy(backlog = w.backlog :+ other)
       }
 
     /** One scheduler round trip: lets the watcher fibers that a write woke up
@@ -472,7 +506,7 @@ private[tui4s] final class Runner private (
     // claude 2026-10-13: changed (C4, P-6): the deadline of the frame
     // claude 2026-10-13: changed (C4, review R1-3, R2-3): the start of the
     // frame; the time left is a difference
-    // claude 2026-10-13: changed (C4, review R1-1, R2-1): exclude the component wait; codex 2026-10-22: changed: bounded drains, shared active budget and prompt shutdown.
+    // claude 2026-10-13: changed (C4, review R1-1, R2-1): exclude the component wait; codex 2026-10-22: changed: bounded drains, shared active budget and prompt shutdown; codex 2026-10-23: changed: wake background senders after takes and drains.
     private def settle(
         w: World,
         frameStart: Long,
@@ -519,18 +553,20 @@ private[tui4s] final class Runner private (
                               val active = charged.resume(resumed)
                               taken match
                                   case Result.Success(m)         =>
-                                    absorb(w, m).map { w1 =>
-                                      nanos.map { after =>
-                                        Loop.continue(
-                                          w1,
-                                          Settlement.State(
-                                            active.spend(after),
-                                            0,
-                                            after,
-                                          ),
-                                        )
+                                    admission.released
+                                      .andThen(absorb(w, m))
+                                      .map { w1 =>
+                                        nanos.map { after =>
+                                          Loop.continue(
+                                            w1,
+                                            Settlement.State(
+                                              active.spend(after),
+                                              0,
+                                              after,
+                                            ),
+                                          )
+                                        }
                                       }
-                                    }
                                   case Result.Failure(_: Closed) =>
                                     finish(
                                       w.copy(quit = true, pending = Set.empty),
@@ -561,7 +597,10 @@ private[tui4s] final class Runner private (
                       else None
                     Abort.run[Closed](inbox.drainUpTo(64)).map {
                       case Result.Success(msgs) =>
-                        observe(diagnostics.drained(msgs.size, idleBefore))
+                        (if msgs.nonEmpty then admission.released else Kyo.unit)
+                          .andThen(
+                            observe(diagnostics.drained(msgs.size, idleBefore)),
+                          )
                           .andThen(
                             Kyo.foldLeft(msgs)(w)(absorb),
                           )
@@ -1059,11 +1098,13 @@ private[tui4s] object Runner:
         knobs: Knobs = Knobs.default,
     )(using Frame): Runner < Sync =
       for
-          gauge <- FiberGauge.init
-          quit  <- AtomicBoolean.init(false)
+          gauge     <- FiberGauge.init
+          quit      <- AtomicBoolean.init(false)
           // claude 2026-10-19: created (L1b): the size signal
-          size  <- Sync.defer(canvas.size)
-          term  <- Signal.initRef(TerminalSize(size.w, size.h))
+          size      <- Sync.defer(canvas.size)
+          term      <- Signal.initRef(TerminalSize(size.w, size.h))
+          // codex 2026-10-23: created: allocate admission once, before any watcher starts.
+          admission <- BackgroundAdmission.init(inbox)
       yield new Runner(
         inbox,
         canvas,
@@ -1074,5 +1115,6 @@ private[tui4s] object Runner:
         quit,
         term,
         diagnostics,
+        admission,
       )
 end Runner

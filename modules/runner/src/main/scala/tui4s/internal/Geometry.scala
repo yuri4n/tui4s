@@ -2,6 +2,8 @@ package tui4s.internal
 
 // claude 2026-10-13: changed (C3, gate 1 item 1): private[tui4s] on every top-level definition of this file (the seal of tui4s.internal)
 
+import scala.annotation.tailrec
+
 /** The position of a node in the UI tree. Element children are their index, the
   * content of a `Reactive` is `~`, the items of a `Foreach` are `#<key>`. Paths
   * are stable while the structure is stable, so focus, carets and component
@@ -20,6 +22,17 @@ private[tui4s] object Loc:
     val root: Loc   = Vector("0")
 
     given CanEqual[Loc, Loc] = CanEqual.derived
+
+    /** Compares path steps without allocating an iterator for each prefix
+      * check.
+      */
+    // codex 2026-10-23: created: avoid iterator allocation in region and layout scans.
+    private def hasPrefix(path: Loc, prefix: Loc): Boolean =
+        @tailrec def loop(index: Int): Boolean =
+          if index == prefix.size then true
+          else if path(index) != prefix(index) then false
+          else loop(index + 1)
+        path.size >= prefix.size && loop(0)
 
     /** The paths of `ps` that are not under another path of `ps`, in the order
       * of `ps` (a duplicate stays). A path is under another path of `ps` when
@@ -52,9 +65,11 @@ private[tui4s] object Loc:
 
         /** The number of steps (0 for the screen). */
         def depth: Int                        = p.size
+        // codex 2026-10-23: changed: compare steps without temporary iterators.
         def isUnder(prefix: Loc): Boolean     =
-          p.size > prefix.size && p.startsWith(prefix)
-        def isAtOrUnder(prefix: Loc): Boolean = p.startsWith(prefix)
+          p.size > prefix.size && hasPrefix(p, prefix)
+        // codex 2026-10-23: changed: compare steps without temporary iterators.
+        def isAtOrUnder(prefix: Loc): Boolean = hasPrefix(p, prefix)
 
         /** The text of the path for the logs and the frame stats: the steps
           * joined by `.`, or `<screen>`.

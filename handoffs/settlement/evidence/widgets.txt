@@ -1,0 +1,244 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/workspace/work/toolchain/downloads/sbt-launch-1.13.0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/workspace/work/toolchain/cache/sbt-boot/scala-2.12.21/org.scala-sbt/sbt/1.13.0/jna-5.19.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[info] welcome to sbt 1.13.0 (Eclipse Adoptium Java 25.0.5)
+[info] loading settings for project tui4s-loaded-input-build from plugins.sbt...
+[info] loading project definition from /workspace/tui4s-loaded-input/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project runner from build.sbt, compat.sbt...
+[info] loading settings for project app from build.sbt, compat.sbt...
+[info] loading settings for project testkit from build.sbt, compat.sbt...
+[info] loading settings for project core from build.sbt, compat.sbt...
+[info] loading settings for project use from compat.sbt...
+[info] loading settings for project widgets from compat.sbt...
+[info] loading settings for project assistant from compat.sbt...
+[info] loading settings for project pini4s-build from plugins.sbt...
+[info] loading project definition from /workspace/tui4s-loaded-input/vendor/pini4s/project
+[info] loading settings for project root from build.sbt...
+[info] resolving key references (21760 settings) ...
+[info] set current project to tui4s (in build file:/workspace/tui4s-loaded-input/)
+[info] scalafmt: Formatting 1 Scala sources (/workspace/tui4s-loaded-input/modules/runner)...
+[info] scalafmt: Formatting 2 Scala sources (/workspace/tui4s-loaded-input/modules/core)...
+[info] scalafmt: Reformatted 2 Scala sources
+[success] Total time: 5 s, completed Oct 23, 2026, 4:30:30 AM
+[info] scalafmt: Formatting 3 Scala sources (/workspace/tui4s-loaded-input)...
+[info] scalafmt: Formatting 1 Scala sources (/workspace/tui4s-loaded-input/modules/widgets)...
+[info] scalafmt: Formatting 2 Scala sources (/workspace/tui4s-loaded-input/modules/runner)...
+[info] scalafmt: Formatting 1 Scala sources (/workspace/tui4s-loaded-input/modules/use)...
+[info] scalafmt: Formatting 1 Scala sources (/workspace/tui4s-loaded-input/modules/assistant)...
+[info] scalafmt: Formatting 2 Scala sources (/workspace/tui4s-loaded-input/modules/app)...
+[info] scalafmt: Formatting 2 Scala sources (/workspace/tui4s-loaded-input/modules/testkit)...
+[info] scalafmt: Formatting 2 Scala sources (/workspace/tui4s-loaded-input/modules/core)...
+[info] scalafmt: Formatting 2 Scala sources (/workspace/tui4s-loaded-input)...
+[success] Total time: 1 s, completed Oct 23, 2026, 4:30:30 AM
+[info] compiling 1 Scala source to /workspace/tui4s-loaded-input/modules/runner/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 2 Scala sources to /workspace/tui4s-loaded-input/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+[info] compiling 30 Scala sources to /workspace/tui4s-loaded-input/modules/core/target/scala-3.9.0/test-classes ...
+[info] done compiling
+Running 1 suite(s) with parallelism 8
+
+=== ComponentTest ===
+  [PASS] R1: 0 effect fibers after an INTERRUPTED run (a hook component with useEffect and useInterval; a Component whose onMount starts an interval)  (369ms)
+  [PASS] R1: 0 effect fibers after a quit, also for a hook at the top of the app (before the kit's scope ends)  (518ms)
+  [PASS] R1: 0 effect fibers after an interrupt INSIDE A SETTLE (a component mounted in flight)  (1.2s)
+  [PASS] gauge: a fiber that joins the gauge after its close is interrupted at once (fork and add)  (8ms)
+  [PASS] gauge: a close during adds leaves no live fiber (50 rounds of 20 forks and one close behind a latch)  (224ms)
+  [PASS] state key: two Component classes at one position do not share state  (194ms)
+  [PASS] state key: a custom stateKey separates two instances of one class at one position; without it they share (the default)  (152ms)
+  [PASS] state key: two positions whose paths join to one string (a keyed item 'a/0', and the first child of the item 'a') do not share state  (252ms)
+  [PASS] Component.onMount runs once per mount: a parent that renders again (also the verify pass and the repair tick) keeps the mount, its state and its effects; the unmount ends them  (442ms)
+  [PASS] Component.onMount: an effect that it starts lives as long as the mount, also when onMount returns at once; the unmount ends it  (235ms)
+[pending] the frame of the key: 114 ms, without the content; then 1 Background frame(s) drew it
+  [PASS] pending frame: a component whose first content takes longer than pendingTimeout: the frame comes without it (an empty place), and the content follows in a later frame  (1.5s)
+  [PASS] pending frame: with a pendingTimeout longer than the body, the frame of the event waits and holds the content  (325ms)
+  [PASS] pending frame: the wait is bounded in total, also when other messages arrive while it waits (a region that changes every 50 ms keeps changing on the screen)  (3.1s)
+  [PASS] pending frame: signal writes that return to the initial state before consumption do not mount a transient component or wait for it  (34ms)
+  [PASS] pending frame: only the frame of the mount waits, once: the re-check of that frame and the later renders of the parent (the repair tick) do not wait again  (4.1s)
+  [PASS] pending frame: a quit inside the wait ends the wait at once: the run ends, and does not wait for the content  (316ms)
+  [PASS] pending frame: a Ctrl-C inside the wait ends the wait at once: the run ends, and does not wait for the content  (315ms)
+  [PASS] pending frame: a component that mounts and gives its place to another region inside one settle leaves no wait behind  (39ms)
+2026-10-23T04:32:56.100906271Z ERROR kyo.logs -- [ComponentTest.scala:808:17] tui4s: the body of the hook component ComponentTest.scala:803:25# at 0.1.~ panicked: java.lang.RuntimeException: the body of the component fails
+  [PASS] pending frame: a hook component whose body fails ends the wait at once; its place stays empty  (112ms)
+  [PASS] a failure of Component.onMount and of a hook body: one line each in the run's log (in memory: no log file); the app goes on and renders  (42ms)
+--- ComponentTest: 20 passed, 0 failed  (14.0s)
+
+Results: 20 passed, 0 failed  (total: 14.0s)
+[info] kyo-test: 0 tests, 0 passed, 0 failed, 0 cancelled, 0 pending, 0 ignored, 0 timed out, 0 skipped
+[success] Total time: 147 s (0:02:27.0), completed Oct 23, 2026, 4:32:57 AM
+[info] compiling 13 Scala sources to /workspace/tui4s-loaded-input/modules/use/jvm/target/scala-3.9.0/classes ...
+[info] compiling 2 Scala sources to /workspace/tui4s-loaded-input/vendor/pini4s/target/scala-3.9.0/classes ...
+[info] compiling 3 Scala sources to /workspace/tui4s-loaded-input/modules/runner/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] done compiling
+[info] compiling 15 Scala sources to /workspace/tui4s-loaded-input/modules/widgets/jvm/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] done compiling
+[info] compiling 18 Scala sources to /workspace/tui4s-loaded-input/modules/assistant/jvm/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] compiling 11 Scala sources to /workspace/tui4s-loaded-input/modules/assistant/jvm/target/scala-3.9.0/test-classes ...
+[info] compiling 21 Scala sources to /workspace/tui4s-loaded-input/examples/target/scala-3.9.0/classes ...
+[info] done compiling
+[info] done compiling
+[info] compiling 16 Scala sources to /workspace/tui4s-loaded-input/examples/target/scala-3.9.0/test-classes ...
+[info] done compiling
+2026-10-23T04:34:17.141838589Z WARN kyo.logs -- [DashboardSuite.scala:65:24] tui4s: the colour var(--tui4s-accent) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.0)
+2026-10-23T04:34:17.144898485Z WARN kyo.logs -- [DashboardSuite.scala:65:24] tui4s: the colour var(--tui4s-muted) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.1)
+2026-10-23T04:34:17.305059122Z WARN kyo.logs -- [DashboardSuite.scala:82:29] tui4s: the colour var(--tui4s-accent) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.0)
+2026-10-23T04:34:17.305211641Z WARN kyo.logs -- [DashboardSuite.scala:82:29] tui4s: the colour var(--tui4s-muted) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.1)
+2026-10-23T04:34:17.634265272Z WARN kyo.logs -- [DashboardSuite.scala:96:29] tui4s: the colour var(--tui4s-accent) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.0)
+2026-10-23T04:34:17.634446040Z WARN kyo.logs -- [DashboardSuite.scala:96:29] tui4s: the colour var(--tui4s-muted) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.1)
+2026-10-23T04:34:18.753430149Z WARN kyo.logs -- [DashboardSuite.scala:136:27] tui4s: the colour var(--tui4s-accent) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.0)
+2026-10-23T04:34:18.753550565Z WARN kyo.logs -- [DashboardSuite.scala:136:27] tui4s: the colour var(--tui4s-muted) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.1)
+2026-10-23T04:34:18.861736856Z WARN kyo.logs -- [DashboardSuite.scala:155:29] tui4s: the colour var(--tui4s-accent) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.0)
+2026-10-23T04:34:18.861962886Z WARN kyo.logs -- [DashboardSuite.scala:155:29] tui4s: the colour var(--tui4s-muted) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.1)
+2026-10-23T04:34:18.969364440Z WARN kyo.logs -- [DashboardSuite.scala:170:18] tui4s: the colour var(--tui4s-accent) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.0)
+2026-10-23T04:34:18.969526579Z WARN kyo.logs -- [DashboardSuite.scala:170:18] tui4s: the colour var(--tui4s-muted) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.1)
+2026-10-23T04:34:19.010954337Z WARN kyo.logs -- [DashboardSuite.scala:194:69] tui4s: the colour var(--tui4s-accent) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.0)
+2026-10-23T04:34:19.011177103Z WARN kyo.logs -- [DashboardSuite.scala:194:69] tui4s: the colour var(--tui4s-muted) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.1)
+2026-10-23T04:34:19.143009792Z WARN kyo.logs -- [DashboardSuite.scala:222:28] tui4s: the colour var(--tui4s-accent) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.0)
+2026-10-23T04:34:19.143139395Z WARN kyo.logs -- [DashboardSuite.scala:222:28] tui4s: the colour var(--tui4s-muted) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.1)
+2026-10-23T04:34:19.268643910Z WARN kyo.logs -- [DashboardSuite.scala:249:23] tui4s: the colour var(--tui4s-accent) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.0)
+2026-10-23T04:34:19.268780949Z WARN kyo.logs -- [DashboardSuite.scala:249:23] tui4s: the colour var(--tui4s-muted) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.1)
+2026-10-23T04:34:19.696906655Z WARN kyo.logs -- [DashboardSuite.scala:268:80] tui4s: the colour var(--tui4s-accent) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.0)
+2026-10-23T04:34:19.696993499Z WARN kyo.logs -- [DashboardSuite.scala:268:80] tui4s: the colour var(--tui4s-muted) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.1)
+2026-10-23T04:34:19.755003347Z WARN kyo.logs -- [DashboardSuite.scala:291:23] tui4s: the colour var(--tui4s-accent) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.0)
+2026-10-23T04:34:19.755124432Z WARN kyo.logs -- [DashboardSuite.scala:291:23] tui4s: the colour var(--tui4s-muted) has no colour value in the stylesheet of the run that the terminal can show (first seen at 0.0.~.0.0.~.0.1.~.~.0.1)
+Test run examples.dashboard.DashboardSuite started
+examples.dashboard.DashboardSuite: finished 3.711s
+Test run examples.dashboard.DashboardSuite finished: 0 failed, 0 ignored, 11 total 3.728s
+Test run examples.gallery.GallerySuite started
+examples.gallery.GallerySuite: finished 5.767s
+Test run examples.gallery.GallerySuite finished: 0 failed, 0 ignored, 35 total 5.767s
+Test run examples.settlement.SettlementSuite started
+examples.settlement.SettlementSuite: finished 1.453s
+Test run examples.settlement.SettlementSuite finished: 0 failed, 0 ignored, 10 total 1.453s
+[info] Passed: Total 56, Failed 0, Errors 0, Passed 56
+[success] Total time: 89 s (0:01:29.0), completed Oct 23, 2026, 4:34:27 AM
+[info] Wrote /workspace/tui4s-loaded-input/examples/target/scala-3.9.0/tui4s-examples_3-0.0.0+201-69851e9e+20261023-0430-SNAPSHOT.pom
+[info] Main Scala API documentation to /workspace/tui4s-loaded-input/examples/target/scala-3.9.0/api...
+[info] Skipping unused scalacOptions: -Werror, -Wvalue-discard, -Wnonunit-statement, -Wconf, -Xsemanticdb, -Xkind-projector, -Yexplicit-nulls, -semanticdb-target
+[warn] Option -classpath was updated
+[warn] one warning found
+[info] Main Scala API documentation successful.
+[info] Wrote /workspace/tui4s-loaded-input/modules/runner/target/scala-3.9.0/tui4s-runner_3-0.1.0-RC1+4-69851e9e+20261023-0430-SNAPSHOT.pom
+[info] Main Scala API documentation to /workspace/tui4s-loaded-input/modules/runner/target/scala-3.9.0/api...
+[info] Skipping unused scalacOptions: -Werror, -Wvalue-discard, -Wnonunit-statement, -Wconf, -Xsemanticdb, -Xkind-projector, -Yexplicit-nulls, -semanticdb-target
+[warn] Option -classpath was updated
+[warn] -- Warning: modules/runner/src/main/scala/tui4s/Hooks.scala:40:7 ---------------
+[warn] 40 |object Hooks:
+[warn]    |       ^
+[warn]    |       Variable $s undefined in comment for method useFold.
+[warn]    |       (You can escape with "\$" to produce a single '$' if necessary)
+[warn] two warnings found
+[info] Main Scala API documentation successful.
+[info] Wrote /workspace/tui4s-loaded-input/modules/app/target/scala-3.9.0/tui4s-app_3-0.1.0-RC1+4-69851e9e+20261023-0430-SNAPSHOT.pom
+[info] Main Scala API documentation to /workspace/tui4s-loaded-input/modules/app/target/scala-3.9.0/api...
+[info] Skipping unused scalacOptions: -Werror, -Wvalue-discard, -Wnonunit-statement, -Wconf, -Xsemanticdb, -Xkind-projector, -Yexplicit-nulls, -semanticdb-target
+[warn] Option -classpath was updated
+[warn] one warning found
+[info] Main Scala API documentation successful.
+[info] Wrote /workspace/tui4s-loaded-input/modules/testkit/target/scala-3.9.0/tui4s-testkit_3-0.1.0-RC1+4-69851e9e+20261023-0430-SNAPSHOT.pom
+[info] Main Scala API documentation to /workspace/tui4s-loaded-input/modules/testkit/target/scala-3.9.0/api...
+[info] Skipping unused scalacOptions: -Werror, -Wvalue-discard, -Wnonunit-statement, -Wconf, -Xsemanticdb, -Xkind-projector, -Yexplicit-nulls, -semanticdb-target
+[warn] Option -classpath was updated
+[warn] one warning found
+[info] Main Scala API documentation successful.
+[info] Wrote /workspace/tui4s-loaded-input/modules/core/target/scala-3.9.0/tui4s-core_3-0.1.0-RC1+4-69851e9e+20261023-0430-SNAPSHOT.pom
+[info] Main Scala API documentation to /workspace/tui4s-loaded-input/modules/core/target/scala-3.9.0/api...
+[info] Skipping unused scalacOptions: -Werror, -Wvalue-discard, -Wnonunit-statement, -Wconf, -Xsemanticdb, -Xkind-projector, -Yexplicit-nulls, -semanticdb-target
+[warn] Option -classpath was updated
+[warn] one warning found
+[info] Main Scala API documentation successful.
+[info] Wrote /workspace/tui4s-loaded-input/modules/use/jvm/target/scala-3.9.0/tui4s-use_3-0.1.0-RC1+4-69851e9e+20261023-0430-SNAPSHOT.pom
+[info] Main Scala API documentation to /workspace/tui4s-loaded-input/modules/use/jvm/target/scala-3.9.0/api...
+[info] Skipping unused scalacOptions: -Werror, -Wvalue-discard, -Wnonunit-statement, -Wconf, -Xsemanticdb, -Xkind-projector, -Yexplicit-nulls, -semanticdb-target
+[warn] Option -classpath was updated
+[warn] -- Warning: modules/use/shared/src/main/scala/tui4s/use/Persisted.scala:129:8 --
+[warn] 129 |    def forApp(app: String)(using Frame): Storage < Sync =
+[warn]     |        ^
+[warn]     |      Couldn't resolve a member for the given link query: LocalStorage
+[warn] -- Warning: modules/use/shared/src/main/scala/tui4s/use/Keymap.scala:125:7 -----
+[warn] 125 |object Keymap:
+[warn]     |       ^
+[warn]     |       Variable $k undefined in comment for method of.
+[warn]     |       (You can escape with "\$" to produce a single '$' if necessary)
+[warn] -- Warning: modules/use/shared/src/main/scala/tui4s/use/Processes.scala:52:0 ---
+[warn] 52 |def useProcess(cmd: Chunk[String])(using
+[warn]    |^
+[warn]    |Variable $c.toInt undefined in comment for method useProcess.
+[warn]    |(You can escape with "\$" to produce a single '$' if necessary)
+[warn] -- Warning: modules/use/shared/src/main/scala/tui4s/use/Tasks.scala:43:0 -------
+[warn] 43 |def useAsync[I, E, A](
+[warn]    |^
+[warn]    |Variable $e undefined in comment for method useAsync.
+[warn]    |(You can escape with "\$" to produce a single '$' if necessary)
+[warn] -- Warning: modules/use/shared/src/main/scala/tui4s/use/Persisted.scala:24:7 ---
+[warn] 24 |object TextCodec:
+[warn]    |       ^
+[warn]    |       Variable $t undefined in comment for method instance.
+[warn]    |       (You can escape with "\$" to produce a single '$' if necessary)
+[warn] -- Warning: modules/use/shared/src/main/scala/tui4s/use/Time.scala:19:0 --------
+[warn] 19 |def useNow(every: Duration)(using Frame): Signal[Instant] < (Sync & Scope) =
+[warn]    |^
+[warn]    |Variable $t undefined in comment for method timeAgo.
+[warn]    |(You can escape with "\$" to produce a single '$' if necessary)
+[warn] -- Warning: modules/use/shared/src/main/scala/tui4s/use/Timing.scala:24:0 ------
+[warn] 24 |def debounced[A](source: Signal[A], quiet: Duration)(using
+[warn]    |^
+[warn]    |Variable $p undefined in comment for method throttled.
+[warn]    |(You can escape with "\$" to produce a single '$' if necessary)
+[warn] 8 warnings found
+[info] Main Scala API documentation successful.
+[info] Wrote /workspace/tui4s-loaded-input/modules/widgets/jvm/target/scala-3.9.0/tui4s-widgets_3-0.1.0-RC1+4-69851e9e+20261023-0430-SNAPSHOT.pom
+[info] Main Scala API documentation to /workspace/tui4s-loaded-input/modules/widgets/jvm/target/scala-3.9.0/api...
+[info] Skipping unused scalacOptions: -Werror, -Wvalue-discard, -Wnonunit-statement, -Wconf, -Xsemanticdb, -Xkind-projector, -Yexplicit-nulls, -semanticdb-target
+[warn] Option -classpath was updated
+[warn] -- Warning: modules/widgets/shared/src/main/scala/tui4s/widgets/Theme.scala:111:12
+[warn] 111 |        def radius: Int = this match
+[warn]     |            ^
+[warn]     |            Couldn't resolve a member for the given link query: Square
+[warn] -- Warning: modules/widgets/shared/src/main/scala/tui4s/widgets/Feedback.scala:24:7
+[warn] 24 |object StatusBar:
+[warn]    |       ^
+[warn]    |       Variable $f.path undefined in comment for object StatusBar.
+[warn]    |       (You can escape with "\$" to produce a single '$' if necessary)
+[warn] -- Warning: modules/widgets/shared/src/main/scala/tui4s/widgets/Tabs.scala:36:12
+[warn] 36 |final class Tabs(using Frame)(first: String, rest: String*)(
+[warn]    |            ^
+[warn]    |         Variable $index undefined in comment for class Tabs.
+[warn]    |         (You can escape with "\$" to produce a single '$' if necessary)
+[warn] four warnings found
+[info] Main Scala API documentation successful.
+[info] Wrote /workspace/tui4s-loaded-input/modules/assistant/jvm/target/scala-3.9.0/tui4s-assistant_3-0.0.0+201-69851e9e+20261023-0430-SNAPSHOT.pom
+[info] Main Scala API documentation to /workspace/tui4s-loaded-input/modules/assistant/jvm/target/scala-3.9.0/api...
+[info] Skipping unused scalacOptions: -Werror, -Wvalue-discard, -Wnonunit-statement, -Wconf, -Xsemanticdb, -Xkind-projector, -Yexplicit-nulls, -semanticdb-target
+[warn] Option -classpath was updated
+[warn] -- Warning: modules/assistant/shared/src/main/scala/examples/assistant/Settings.scala:131:9
+[warn] 131 |    case Terminal
+[warn]     |         ^
+[warn]     |    Couldn't resolve a member for the given link query: Theme.terminal
+[warn] -- Warning: modules/assistant/shared/src/main/scala/examples/assistant/Settings.scala:134:9
+[warn] 134 |    case Web
+[warn]     |         ^
+[warn]     |         Couldn't resolve a member for the given link query: Theme.web
+[warn] -- Warning: modules/assistant/shared/src/main/scala/examples/assistant/Surface.scala:18:5
+[warn] 18 |enum Surface derives CanEqual:
+[warn]    |     ^
+[warn]    |    Couldn't resolve a member for the given link query: Theme.lineHeight
+[warn] four warnings found
+[info] Main Scala API documentation successful.
+[info] Wrote /workspace/tui4s-loaded-input/vendor/pini4s/target/scala-3.9.0/pini4s_3-0.1.0-SNAPSHOT.pom
+[info] Main Scala API documentation to /workspace/tui4s-loaded-input/vendor/pini4s/target/scala-3.9.0/api...
+[info] Skipping unused scalacOptions: -Werror, -Wvalue-discard, -Wnonunit-statement, -Wconf, -Yexplicit-nulls
+[warn] Option -classpath was updated
+[warn] one warning found
+[info] Main Scala API documentation successful.
+[success] Total time: 16 s, completed Oct 23, 2026, 4:34:43 AM

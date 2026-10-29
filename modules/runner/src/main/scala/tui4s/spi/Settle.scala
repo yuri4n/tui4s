@@ -3,11 +3,10 @@ package tui4s.spi
 import java.time.Duration
 
 /** How the runner batches an event's consequences before it flushes a frame.
-  * The default of [[tui4s.TuiOptions.settle]] is
-  * `Quiescent(100 ms, confirm = 2)`. These are soft batching rules, not a
-  * barrier for all asynchronous work in an application.
+  * The default of [[tui4s.TuiOptions.settle]] is `Local()`. These are soft
+  * batching rules, not a barrier for all asynchronous work in an application.
   */
-// claude 2026-10-12: changed: java.time.Duration (Kyo-free, D-14 a), CanEqual; codex 2026-10-22: changed: describe the soft batching contract.
+// claude 2026-10-12: changed: java.time.Duration (Kyo-free, D-14 a), CanEqual; codex 2026-10-22: changed: describe the soft batching contract; codex 2026-10-23: changed: use local batching with input-time reconciliation.
 enum Settle derives CanEqual:
     /** Until Kyo's scheduler has no queued or running task besides the runner
       * itself (bounded by `max`). Reads the scheduler's load through the public
@@ -31,4 +30,18 @@ enum Settle derives CanEqual:
       * the scheduler.
       */
     case Hops(hops: Int, window: Duration)
+
+    /** Batches until the inbox stays quiet for `window` and `confirm` empty
+      * observations, one scheduler hop apart. Completion does not require
+      * global scheduler idleness. `max` bounds active settlement across the
+      * frame's passes. Input reconciliation reads the current signal values
+      * before painting. Late asynchronous effects can reach a later frame. The
+      * bound is checked between batches and cannot interrupt user code.
+      */
+    // codex 2026-10-23: created: bounded local batching with current-state reconciliation.
+    case Local(
+        max: Duration = Duration.ofMillis(16),
+        window: Duration = Duration.ofMillis(1),
+        confirm: Int = 2,
+    )
 end Settle
