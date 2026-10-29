@@ -25,6 +25,11 @@ workflow stops before it creates a tag when a subsection is missing.
 
 ### tui4s-runner
 
+- Improved: background admission uses one capacity waiter to reduce producer
+  wakeups under notification pressure. Cancellation releases the async permit,
+  and closure ends both the holder and queued sends.
+  <!-- codex 2026-10-28: created: bound capacity-wakeup fanout without an extra worker. -->
+
 - Improved: dirty-region membership compares path steps without temporary
   vector equality work. Repeated marks keep the current world and preserve
   first-seen order.

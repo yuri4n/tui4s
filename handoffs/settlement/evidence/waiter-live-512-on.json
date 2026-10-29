@@ -1,0 +1,653 @@
+{
+  "schema": 1,
+  "ok": false,
+  "failures": [
+    "6 keys have no correct screen effect",
+    "54 visible keys exceeded the planned-send deadline",
+    "not every key was observed with Load: running"
+  ],
+  "endpoint": "decoded PTY input field; excludes physical display paint",
+  "deadline_basis": "planned send to correct screen effect; missing keys also fail",
+  "load_evidence": "screen observations only; a running marker can be stale",
+  "command": [
+    "examples/target/bin/settlement",
+    "--busy",
+    "--continuous",
+    "--regions=512",
+    "--duration=60"
+  ],
+  "rate_per_second": 10.0,
+  "columns": 120,
+  "expected_text": "ubnqofvbfjqljgexrpatolmlxvwyntlrhmbsbwtdrmxtszjlzasjsospnonh",
+  "extra_observation_ms": 1000,
+  "deadline_ms": 100.0,
+  "elapsed_ms": 8722.558,
+  "planned_count": 60,
+  "attempted_count": 60,
+  "written_count": 60,
+  "visible_count": 54,
+  "missing_count": 6,
+  "incorrect_count": 0,
+  "deadline_count": 60,
+  "final_text_matches": false,
+  "observed_load_running_count": 54,
+  "observed_update_changes": 63,
+  "observed_updates_bracket_input": true,
+  "send_to_visible_ms": {
+    "samples": 54,
+    "p50": 289.279,
+    "p95": 1335.502,
+    "p99": 1408.412,
+    "max": 1408.412
+  },
+  "planned_to_visible_ms": {
+    "samples": 54,
+    "p50": 289.531,
+    "p95": 1335.651,
+    "p99": 1408.598,
+    "max": 1408.598
+  },
+  "send_drift_ms": {
+    "samples": 60,
+    "p50": 0.166,
+    "p95": 1.971,
+    "p99": 13.703,
+    "max": 13.703
+  },
+  "send_blocking_ms": {
+    "samples": 60,
+    "p50": 0.054,
+    "p95": 0.976,
+    "p99": 4.534,
+    "max": 4.534
+  },
+  "bad_inputs": [],
+  "samples": [
+    {
+      "index": 1,
+      "planned_ms": 0.0,
+      "attempted_ms": 0.107,
+      "write_started_ms": 0.145,
+      "written_ms": 0.216,
+      "visible_ms": 412.167,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 2,
+      "planned_ms": 100.0,
+      "attempted_ms": 101.001,
+      "write_started_ms": 101.215,
+      "written_ms": 101.251,
+      "visible_ms": 508.87,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 3,
+      "planned_ms": 200.0,
+      "attempted_ms": 200.142,
+      "write_started_ms": 200.168,
+      "written_ms": 200.246,
+      "visible_ms": 595.315,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 4,
+      "planned_ms": 300.0,
+      "attempted_ms": 303.516,
+      "write_started_ms": 303.531,
+      "written_ms": 303.553,
+      "visible_ms": 666.838,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 5,
+      "planned_ms": 400.0,
+      "attempted_ms": 400.18,
+      "write_started_ms": 400.204,
+      "written_ms": 400.22,
+      "visible_ms": 806.505,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 6,
+      "planned_ms": 500.0,
+      "attempted_ms": 500.193,
+      "write_started_ms": 500.219,
+      "written_ms": 500.244,
+      "visible_ms": 889.318,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 7,
+      "planned_ms": 600.0,
+      "attempted_ms": 600.106,
+      "write_started_ms": 600.123,
+      "written_ms": 600.135,
+      "visible_ms": 948.717,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 8,
+      "planned_ms": 700.0,
+      "attempted_ms": 700.186,
+      "write_started_ms": 700.281,
+      "written_ms": 701.276,
+      "visible_ms": 1014.151,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 9,
+      "planned_ms": 800.0,
+      "attempted_ms": 800.781,
+      "write_started_ms": 800.894,
+      "written_ms": 800.919,
+      "visible_ms": 1072.101,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 10,
+      "planned_ms": 900.0,
+      "attempted_ms": 903.961,
+      "write_started_ms": 903.986,
+      "written_ms": 904.002,
+      "visible_ms": 1241.345,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 11,
+      "planned_ms": 1000.0,
+      "attempted_ms": 1000.149,
+      "write_started_ms": 1000.169,
+      "written_ms": 1000.194,
+      "visible_ms": 1307.068,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 12,
+      "planned_ms": 1100.0,
+      "attempted_ms": 1100.111,
+      "write_started_ms": 1100.133,
+      "written_ms": 1100.147,
+      "visible_ms": 1356.644,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 13,
+      "planned_ms": 1200.0,
+      "attempted_ms": 1200.126,
+      "write_started_ms": 1200.151,
+      "written_ms": 1200.176,
+      "visible_ms": 1411.264,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 14,
+      "planned_ms": 1300.0,
+      "attempted_ms": 1300.12,
+      "write_started_ms": 1300.141,
+      "written_ms": 1300.549,
+      "visible_ms": 1510.884,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 15,
+      "planned_ms": 1400.0,
+      "attempted_ms": 1400.252,
+      "write_started_ms": 1400.275,
+      "written_ms": 1400.289,
+      "visible_ms": 1689.531,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 16,
+      "planned_ms": 1500.0,
+      "attempted_ms": 1500.368,
+      "write_started_ms": 1500.393,
+      "written_ms": 1501.489,
+      "visible_ms": 1781.378,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 17,
+      "planned_ms": 1600.0,
+      "attempted_ms": 1600.219,
+      "write_started_ms": 1600.242,
+      "written_ms": 1600.273,
+      "visible_ms": 1861.87,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 18,
+      "planned_ms": 1700.0,
+      "attempted_ms": 1700.222,
+      "write_started_ms": 1700.241,
+      "written_ms": 1700.284,
+      "visible_ms": 1953.061,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 19,
+      "planned_ms": 1800.0,
+      "attempted_ms": 1800.164,
+      "write_started_ms": 1800.187,
+      "written_ms": 1800.201,
+      "visible_ms": 2044.337,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 20,
+      "planned_ms": 1900.0,
+      "attempted_ms": 1900.145,
+      "write_started_ms": 1900.17,
+      "written_ms": 1900.185,
+      "visible_ms": 2133.663,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 21,
+      "planned_ms": 2000.0,
+      "attempted_ms": 2000.112,
+      "write_started_ms": 2000.136,
+      "written_ms": 2004.646,
+      "visible_ms": 2226.253,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 22,
+      "planned_ms": 2100.0,
+      "attempted_ms": 2100.163,
+      "write_started_ms": 2100.182,
+      "written_ms": 2100.213,
+      "visible_ms": 2363.548,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 23,
+      "planned_ms": 2200.0,
+      "attempted_ms": 2200.154,
+      "write_started_ms": 2200.18,
+      "written_ms": 2200.234,
+      "visible_ms": 2436.416,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 24,
+      "planned_ms": 2300.0,
+      "attempted_ms": 2300.167,
+      "write_started_ms": 2300.19,
+      "written_ms": 2300.226,
+      "visible_ms": 2517.965,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 25,
+      "planned_ms": 2400.0,
+      "attempted_ms": 2400.17,
+      "write_started_ms": 2400.196,
+      "written_ms": 2400.228,
+      "visible_ms": 2689.896,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 26,
+      "planned_ms": 2500.0,
+      "attempted_ms": 2500.104,
+      "write_started_ms": 2500.126,
+      "written_ms": 2500.599,
+      "visible_ms": 2781.846,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 27,
+      "planned_ms": 2600.0,
+      "attempted_ms": 2600.217,
+      "write_started_ms": 2600.24,
+      "written_ms": 2600.269,
+      "visible_ms": 2870.58,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 28,
+      "planned_ms": 2700.0,
+      "attempted_ms": 2700.208,
+      "write_started_ms": 2700.228,
+      "written_ms": 2700.877,
+      "visible_ms": 3028.465,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 29,
+      "planned_ms": 2800.0,
+      "attempted_ms": 2800.117,
+      "write_started_ms": 2800.14,
+      "written_ms": 2800.153,
+      "visible_ms": 3107.237,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 30,
+      "planned_ms": 2900.0,
+      "attempted_ms": 2900.112,
+      "write_started_ms": 2900.132,
+      "written_ms": 2900.166,
+      "visible_ms": 3192.874,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 31,
+      "planned_ms": 3000.0,
+      "attempted_ms": 3000.143,
+      "write_started_ms": 3000.167,
+      "written_ms": 3000.202,
+      "visible_ms": 3342.617,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 32,
+      "planned_ms": 3100.0,
+      "attempted_ms": 3100.166,
+      "write_started_ms": 3100.19,
+      "written_ms": 3100.613,
+      "visible_ms": 3427.093,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 33,
+      "planned_ms": 3200.0,
+      "attempted_ms": 3201.971,
+      "write_started_ms": 3201.989,
+      "written_ms": 3202.009,
+      "visible_ms": 3493.039,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 34,
+      "planned_ms": 3300.0,
+      "attempted_ms": 3300.172,
+      "write_started_ms": 3300.19,
+      "written_ms": 3300.217,
+      "visible_ms": 3556.448,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 35,
+      "planned_ms": 3400.0,
+      "attempted_ms": 3400.696,
+      "write_started_ms": 3400.73,
+      "written_ms": 3400.763,
+      "visible_ms": 3795.941,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 36,
+      "planned_ms": 3500.0,
+      "attempted_ms": 3500.152,
+      "write_started_ms": 3500.171,
+      "written_ms": 3500.206,
+      "visible_ms": 3870.859,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 37,
+      "planned_ms": 3600.0,
+      "attempted_ms": 3600.268,
+      "write_started_ms": 3600.293,
+      "written_ms": 3600.334,
+      "visible_ms": 3937.786,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 38,
+      "planned_ms": 3700.0,
+      "attempted_ms": 3700.194,
+      "write_started_ms": 3700.212,
+      "written_ms": 3700.225,
+      "visible_ms": 4017.284,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 39,
+      "planned_ms": 3800.0,
+      "attempted_ms": 3800.113,
+      "write_started_ms": 3800.132,
+      "written_ms": 3800.691,
+      "visible_ms": 4075.334,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 40,
+      "planned_ms": 3900.0,
+      "attempted_ms": 3900.15,
+      "write_started_ms": 3900.177,
+      "written_ms": 3900.217,
+      "visible_ms": 4155.735,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 41,
+      "planned_ms": 4000.0,
+      "attempted_ms": 4000.139,
+      "write_started_ms": 4000.161,
+      "written_ms": 4000.201,
+      "visible_ms": 4225.382,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 42,
+      "planned_ms": 4100.0,
+      "attempted_ms": 4100.11,
+      "write_started_ms": 4100.131,
+      "written_ms": 4100.27,
+      "visible_ms": 4320.446,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 43,
+      "planned_ms": 4200.0,
+      "attempted_ms": 4200.161,
+      "write_started_ms": 4200.185,
+      "written_ms": 4200.217,
+      "visible_ms": 4380.1,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 44,
+      "planned_ms": 4300.0,
+      "attempted_ms": 4300.13,
+      "write_started_ms": 4300.155,
+      "written_ms": 4300.2,
+      "visible_ms": 4448.647,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 45,
+      "planned_ms": 4400.0,
+      "attempted_ms": 4400.47,
+      "write_started_ms": 4400.492,
+      "written_ms": 4400.508,
+      "visible_ms": 4579.847,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 46,
+      "planned_ms": 4500.0,
+      "attempted_ms": 4500.638,
+      "write_started_ms": 4500.66,
+      "written_ms": 4500.689,
+      "visible_ms": 4646.158,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 47,
+      "planned_ms": 4600.0,
+      "attempted_ms": 4600.147,
+      "write_started_ms": 4600.169,
+      "written_ms": 4600.194,
+      "visible_ms": 4765.049,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 48,
+      "planned_ms": 4700.0,
+      "attempted_ms": 4700.176,
+      "write_started_ms": 4700.196,
+      "written_ms": 4700.212,
+      "visible_ms": 4847.507,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 49,
+      "planned_ms": 4800.0,
+      "attempted_ms": 4800.11,
+      "write_started_ms": 4800.133,
+      "written_ms": 4800.16,
+      "visible_ms": 5695.962,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 50,
+      "planned_ms": 4900.0,
+      "attempted_ms": 4900.196,
+      "write_started_ms": 4900.222,
+      "written_ms": 4900.238,
+      "visible_ms": 5860.689,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 51,
+      "planned_ms": 5000.0,
+      "attempted_ms": 5000.194,
+      "write_started_ms": 5000.285,
+      "written_ms": 5000.316,
+      "visible_ms": 5954.011,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 52,
+      "planned_ms": 5100.0,
+      "attempted_ms": 5100.186,
+      "write_started_ms": 5100.215,
+      "written_ms": 5100.233,
+      "visible_ms": 6508.598,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 53,
+      "planned_ms": 5200.0,
+      "attempted_ms": 5200.065,
+      "write_started_ms": 5200.088,
+      "written_ms": 5200.108,
+      "visible_ms": 6585.503,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 54,
+      "planned_ms": 5300.0,
+      "attempted_ms": 5300.149,
+      "write_started_ms": 5300.172,
+      "written_ms": 5300.2,
+      "visible_ms": 6635.651,
+      "load_running_at_observation": true
+    },
+    {
+      "index": 55,
+      "planned_ms": 5400.0,
+      "attempted_ms": 5400.127,
+      "write_started_ms": 5400.151,
+      "written_ms": 5400.168,
+      "visible_ms": null,
+      "load_running_at_observation": false
+    },
+    {
+      "index": 56,
+      "planned_ms": 5500.0,
+      "attempted_ms": 5513.703,
+      "write_started_ms": 5513.952,
+      "written_ms": 5514.356,
+      "visible_ms": null,
+      "load_running_at_observation": false
+    },
+    {
+      "index": 57,
+      "planned_ms": 5600.0,
+      "attempted_ms": 5600.2,
+      "write_started_ms": 5600.277,
+      "written_ms": 5600.351,
+      "visible_ms": null,
+      "load_running_at_observation": false
+    },
+    {
+      "index": 58,
+      "planned_ms": 5700.0,
+      "attempted_ms": 5700.746,
+      "write_started_ms": 5700.765,
+      "written_ms": 5701.722,
+      "visible_ms": null,
+      "load_running_at_observation": false
+    },
+    {
+      "index": 59,
+      "planned_ms": 5800.0,
+      "attempted_ms": 5800.164,
+      "write_started_ms": 5800.191,
+      "written_ms": 5800.209,
+      "visible_ms": null,
+      "load_running_at_observation": false
+    },
+    {
+      "index": 60,
+      "planned_ms": 5900.0,
+      "attempted_ms": 5900.167,
+      "write_started_ms": 5900.196,
+      "written_ms": 5900.239,
+      "visible_ms": null,
+      "load_running_at_observation": false
+    }
+  ],
+  "screen_tail": [
+    "Settlement probe",
+    "Input: ubnqofvbfjqljgexrpatolmlxvwyntlrhmbsbwtdrmxtszjlzasjso",
+    "Updates: 188126",
+    "Load: running",
+    "Ctrl-C quits. The load stops at its deadline; the input stays open.",
+    "Task 1: chars=54 updates=188127",
+    "Task 2: chars=54 updates=188127",
+    "Task 3: chars=54 updates=188127",
+    "Task 4: chars=54 updates=188127",
+    "Task 5: chars=54 updates=188127",
+    "Task 6: chars=54 updates=188127",
+    "Task 7: chars=54 updates=188127",
+    "Task 8: chars=54 updates=188127",
+    "Task 9: chars=54 updates=188127",
+    "Task 10: chars=54 updates=188126",
+    "Task 11: chars=54 updates=188127",
+    "Task 12: chars=54 updates=188127",
+    "",
+    "",
+    ""
+  ],
+  "startup_to_ready_ms": 1670.685,
+  "require_graceful_exit": true,
+  "shutdown": {
+    "quit_sent": true,
+    "term_sent": false,
+    "kill_sent": false,
+    "exit_code": 0,
+    "terminal_restored": true,
+    "errors": [],
+    "elapsed_ms": 629.385,
+    "terminal": {
+      "cooked": true,
+      "alt_screen_left": true,
+      "cursor_visible": true
+    },
+    "graceful": true
+  },
+  "diagnostic_only": true,
+  "thread_dump": {
+    "pid": 16780,
+    "pending_age_ms": 528.544,
+    "captured_ns": 4369144131803,
+    "exit": 0
+  }
+}

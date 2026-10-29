@@ -115,3 +115,55 @@ must stay independent. Snapshot the generation before checking closure on
 every retry, then fail with Closed after shutdown. Preserve cancellation and
 lazy message construction. Meter does not guarantee FIFO fairness; do not
 claim starvation freedom or a latency fix before measurement.
+
+## Checkpoint 4: one capacity waiter
+
+<!-- codex 2026-10-29: created: record the admission experiment and its measured limits. -->
+The branch `perf/admission-capacity-waiter` is based on checkpoint 3. The
+sender holds the async mutex permit while it waits for inbox capacity. This
+leaves one sender waiting on the inbox generation. Other senders wait for the
+mutex. The consumer still signals capacity without taking that mutex. Closure
+ends the holder and queued senders. Cancellation releases the permit. The
+mutex does not promise FIFO order.
+
+<!-- codex 2026-10-29: created: report focused correctness checks without claiming a full candidate check. -->
+The focused checks passed: Admission 10/10, Quit 6/6, Component 20/20, and the
+example launchers built. The admission cases cover one capacity waiter,
+producer cancellation, closure of queued senders, closure between rejection
+and wait, lazy message construction, and capacity-one progress. **The full
+strict check has not run on this checkpoint.** The earlier full check covered
+checkpoint 3, not this mutex change.
+
+<!-- codex 2026-10-29: created: preserve the diagnostics-off acceptance results. -->
+The initial 128/512-region PTY runs fail the 100 ms deadline with
+diagnostics both off and on. The two diagnostics-off runs are summarized
+here.
+Missing input and a failed shutdown also occurred at 128 regions. At 512
+regions, all 60 inputs appeared but every input missed the deadline.
+
+| Regions | Visible | Missing | Deadline failures, including missing | p95 of observed | Maximum observed | Graceful shutdown |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| 128 | 52/60 | 8 | 22 | 274 ms | 382 ms | No |
+| 512 | 60/60 | 0 | 60 | 296 ms | 341 ms | Yes |
+
+<!-- codex 2026-10-29: created: separate diagnostic runs and repeated runs from acceptance. -->
+A later diagnostics-off repeat at 128 regions showed 60/60 inputs but 37
+missed deadlines; its p95 was 1.61 seconds and its maximum was 1.81 seconds.
+The 512-region repeat showed 60/60 inputs, all late, with a 437 ms p95 and a
+483 ms maximum. This variation does not show a stable improvement. The
+`waiter-live-*` runs captured thread dumps during long delays and are
+instrumented; they are not acceptance runs. Those dumps show one active Kyo
+worker and other workers parked, with no all-workers-blocked condition. They
+do not identify the cause of the queue backlog. Additional diagnostic-on
+reports and every repeat are in the
+[waiter evidence manifest](evidence/waiter-manifest.json).
+
+<!-- codex 2026-10-29: created: state the next decision and release boundary. -->
+This is an investigation checkpoint, not a fix or release candidate. The
+single-waiter change passes focused concurrency checks, but the loaded-input
+results do not meet latency acceptance and include a shutdown failure. Keep
+this pull request in draft. Do not treat the tests as proof of fairness or
+starvation freedom. The heap-capacity hypothesis remains unproven; the local
+profile from checkpoint 3 found a small post-GC heap, which only describes
+that run. Next work should identify the long runner delays in the no-diagnostics
+case, then repeat the same external PTY endpoint before changing acceptance.

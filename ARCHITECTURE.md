@@ -61,6 +61,13 @@ producers after removals and on shutdown. A capacity of one cannot reserve
 a separate input slot. Admission and removal preserve channel order;
 settlement can defer input while it batches later notifications.
 
+<!-- codex 2026-10-28: created: one capacity waiter limits producer wakeups. -->
+One background sender holds the async mutex permit while it waits for
+capacity. Other senders wait for that permit. The consumer releases capacity
+without acquiring the mutex. Each retry snapshots the wakeup generation
+before checking closure. Cancellation releases the permit; closure wakes the
+holder and queued senders. The mutex does not guarantee FIFO fairness.
+
 <!-- codex 2026-10-23: created: signal notifications describe current state rather than historical UI values. -->
 Watchers post region-change notices. The runner reads the signal's current
 value when it consumes a notice. Intermediate signal states can coalesce.

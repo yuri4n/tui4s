@@ -51,7 +51,7 @@ class AdmissionTest extends Test[Any]:
       assert(BackgroundAdmission.limit(1024) == 64)
     }
 
-    // codex 2026-10-23: created: concurrent writers cannot fill the input reservation.
+    // codex 2026-10-23: created: concurrent writers cannot fill the input reservation; codex 2026-10-28: changed: observe the sole capacity holder while retaining all eight producers.
     "background pressure leaves room for a direct input batch"
       .timeout(5.seconds) in {
       checked {
@@ -60,7 +60,7 @@ class AdmissionTest extends Test[Any]:
             blocked  <- Channel.init[Unit](8)
             gate     <- open(inbox, notify(blocked))
             _        <- Kyo.foreach(1L to 8L)(n => Fiber.init(gate.send(notice(n))))
-            _        <- blocked.takeExactly(6)
+            _        <- blocked.take
             size     <- inbox.size
             inputs    =
               Vector(Msg.Paste("a", 1L), Msg.Paste("b", 2L), Msg.Paste("c", 3L))
@@ -114,7 +114,7 @@ class AdmissionTest extends Test[Any]:
       }
     }
 
-    // codex 2026-10-23: created: one canceled producer cannot cancel another producer's notification.
+    // codex 2026-10-23: created: one canceled producer cannot cancel another producer's notification; codex 2026-10-28: changed: cancellation transfers the capacity-wait permit to the next sender.
     "canceling one rejected writer leaves another writer able to proceed"
       .timeout(5.seconds) in {
       checked {
@@ -130,9 +130,9 @@ class AdmissionTest extends Test[Any]:
             firstWait  <- blocked.take
             _          <- attached(firstWait)
             second     <- Fiber.init(gate.send(notice(3L)))
+            _          <- first.interrupt
             secondWait <- blocked.take
             _          <- attached(secondWait)
-            _          <- first.interrupt
             _          <- inbox.take
             _          <- gate.released
             _          <- second.get
@@ -141,21 +141,53 @@ class AdmissionTest extends Test[Any]:
       }
     }
 
-    // codex 2026-10-23: created: close wakes capacity waiters without any consumer progress.
+    // codex 2026-10-23: created: close wakes capacity waiters without any consumer progress; codex 2026-10-28: changed: close also ends all senders queued behind the holder.
     "close ends rejected sends even without another inbox removal"
       .timeout(5.seconds) in {
       checked {
         for
             inbox   <- Channel.init[Msg](4)
             blocked <- Channel.init[Unit](1)
+            started <- Channel.init[Unit](8)
             gate    <- open(inbox, notify(blocked))
             _       <- gate.send(notice(1L))
-            writer  <- Fiber.init(gate.send(notice(2L)))
+            writers <-
+              Kyo.foreach(2L to 9L)(n =>
+                Fiber.init(started.put(()).andThen(gate.send(notice(n)))),
+              )
+            _       <- started.takeExactly(8)
             _       <- blocked.take
             _       <- gate.close
-            result  <- Abort.run[Closed](writer.get)
+            results <-
+              Kyo.foreach(writers)(writer => Abort.run[Closed](writer.get))
             _       <- gate.close
             all     <- inbox.drainUpTo(4)
+        yield
+            assert(results.forall {
+              case Result.Failure(_) => true
+              case _                 => false
+            })
+            assert(all.toVector == Vector(notice(1L)))
+      }
+    }
+
+    // codex 2026-10-28: created: closure between rejection and await must not strand the holder on a fresh generation.
+    "close before the capacity holder starts waiting is not lost"
+      .timeout(5.seconds) in {
+      checked {
+        for
+            inbox    <- Channel.init[Msg](4)
+            rejected <- Promise.init[Unit, Any]
+            resume   <- Promise.init[Unit, Any]
+            gate     <-
+              open(inbox, _ => rejected.completeUnitDiscard.andThen(resume.get))
+            _        <- gate.send(notice(1L))
+            writer   <- Fiber.init(gate.send(notice(2L)))
+            _        <- rejected.get
+            _        <- gate.close
+            _        <- resume.completeUnitDiscard
+            result   <- Abort.run[Closed](writer.get)
+            all      <- inbox.drainUpTo(4)
         yield
             assert(result match
                 case Result.Failure(_) => true

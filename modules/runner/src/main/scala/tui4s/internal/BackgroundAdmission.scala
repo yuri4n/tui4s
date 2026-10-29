@@ -31,12 +31,12 @@ private[tui4s] object BackgroundAdmission:
     private[tui4s] def limit(capacity: Int): Int =
       (capacity / 4).min(64).max(1)
 
-    /** `beforeWait` is a test seam after rejection and outside the mutex. It
-      * receives the isolated waiter and has no work in a real run. The caller
-      * owns [[BackgroundAdmission.close]]. A zero-capacity channel retains its
-      * direct rendezvous behavior.
+    /** `beforeWait` is a test seam after rejection, while the async mutex
+      * permit is held. It receives the sole isolated capacity waiter and has no
+      * work in a real run. The caller owns [[BackgroundAdmission.close]]. A
+      * zero-capacity channel retains its direct rendezvous behavior.
       */
-    // codex 2026-10-23: created: only public Kyo primitives, with no worker fiber.
+    // codex 2026-10-23: created: only public Kyo primitives, with no worker fiber; codex 2026-10-28: changed: capture the creation frame for explicit closure errors.
     def init(
         inbox: Channel[Msg],
         beforeWait: Fiber[Unit, Any] => Unit < Async = _ => Kyo.unit,
@@ -53,6 +53,7 @@ private[tui4s] object BackgroundAdmission:
             mutex,
             generation,
             beforeWait,
+            summon[Frame],
           )
 
     /** Retains the original Mount constructor's direct inbox behavior. */
@@ -74,36 +75,42 @@ private[tui4s] object BackgroundAdmission:
         def close(using Frame): Unit < Sync = Kyo.unit
     end Direct
 
-    // codex 2026-10-23: created: serialize background admission without holding a permit while waiting.
+    // codex 2026-10-23: created: serialize background admission without holding a permit while waiting; codex 2026-10-28: changed: keep one permit across the capacity wait.
     private final class Bounded(
         inbox: Channel[Msg],
         maximum: Int,
         mutex: Meter,
         generation: AtomicRef[Promise[Unit, Any]],
         beforeWait: Fiber[Unit, Any] => Unit < Async,
+        createdAt: Frame,
     ) extends BackgroundAdmission:
-        // codex 2026-10-23: created: snapshot before checking so a removal cannot be missed.
+        // codex 2026-10-23: created: snapshot before checking so a removal cannot be missed; codex 2026-10-28: changed: one capacity waiter checks closure on every retry.
         def send(
             message: => Msg < Sync,
         )(using Frame): Unit < (Async & Abort[Closed]) =
-          Loop.foreach {
-            generation.get.map { changed =>
-              mutex
-                .run {
-                  inbox.size.map { size =>
-                    if size < maximum then message.map(inbox.offer)
-                    else false
-                  }
-                }
-                .map { accepted =>
-                  if accepted then Loop.done
+          mutex.run {
+            Loop.foreach {
+              generation.get.map { changed =>
+                mutex.closed.map { closed =>
+                  if closed then
+                      Abort.fail(Closed("BackgroundAdmission", createdAt))
                   else
-                      changed.uninterruptible.map { waiting =>
-                        beforeWait(waiting)
-                          .andThen(waiting.get)
-                          .andThen(Loop.continue)
+                      inbox.size.map { size =>
+                        val offered: Boolean < (Sync & Abort[Closed]) =
+                          if size < maximum then message.map(inbox.offer)
+                          else false
+                        offered.map { accepted =>
+                          if accepted then Loop.done
+                          else
+                              changed.uninterruptible.map { waiting =>
+                                beforeWait(waiting)
+                                  .andThen(waiting.get)
+                                  .andThen(Loop.continue)
+                              }
+                        }
                       }
                 }
+              }
             }
           }
 

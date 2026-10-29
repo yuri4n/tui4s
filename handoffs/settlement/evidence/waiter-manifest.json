@@ -1,0 +1,340 @@
+{
+  "attribution": "codex 2026-10-29: created: preserve one-waiter measurements and source identity.",
+  "candidate_branch": "perf/admission-capacity-waiter",
+  "candidate_parent": "1fe98316a9c47a25e9b2bf40a93890da4a7b57e3",
+  "measurement_date": "2026-10-29 UTC",
+  "workload": "60 generated keys at 10 keys/second, 100 ms planned-send deadline, continuous updates and unrelated CPU load; regions 128 and 512.",
+  "source_files": [
+    {
+      "file": "modules/runner/src/main/scala/tui4s/internal/BackgroundAdmission.scala",
+      "bytes": 5976,
+      "sha256": "91e23880e9eef23e8fd3863de55c28812368c082d943d965e5dd4878b8f26993"
+    },
+    {
+      "file": "modules/runner/src/test/scala/tui4s/AdmissionTest.scala",
+      "bytes": 10551,
+      "sha256": "7638693eb3db067c2d70ca593c5f5410e69402ce705e1cc809883cafce29e407"
+    }
+  ],
+  "reports": [
+    {
+      "file": "waiter-128-off.json",
+      "bytes": 16474,
+      "sha256": "54b55d09b54f8d89c12e9aad5fefc8ab2e3360533f0b69a13afbb406dfe96bda",
+      "kind": "pty_report",
+      "result": {
+        "ok": false,
+        "visible": 52,
+        "planned": 60,
+        "missing": 8,
+        "deadline_failures": 22,
+        "planned_to_visible_ms": {
+          "samples": 52,
+          "p50": 61.687,
+          "p95": 273.976,
+          "p99": 381.936,
+          "max": 381.936
+        },
+        "graceful_shutdown": false,
+        "exit_code": 143
+      }
+    },
+    {
+      "file": "waiter-128-on-diagnostics.json",
+      "bytes": 11752,
+      "sha256": "8c6b34b6d85e17fc10253f624a17935813a2cc84db022fa1a5eb1c56ab3a37f4",
+      "kind": "diagnostic_snapshot"
+    },
+    {
+      "file": "waiter-128-on.json",
+      "bytes": 16344,
+      "sha256": "53d6acee155014d954261c88d0342f09fa77e1c2ab7853a61621245fc749d53c",
+      "kind": "pty_report",
+      "result": {
+        "ok": false,
+        "visible": 60,
+        "planned": 60,
+        "missing": 0,
+        "deadline_failures": 4,
+        "planned_to_visible_ms": {
+          "samples": 60,
+          "p50": 59.885,
+          "p95": 107.168,
+          "p99": 213.983,
+          "max": 213.983
+        },
+        "graceful_shutdown": true,
+        "exit_code": 0
+      }
+    },
+    {
+      "file": "waiter-512-off.json",
+      "bytes": 16362,
+      "sha256": "8e6fb88650b4a663c618eb3890abf9fa0f186a1b7570fc49b955473f8d283ca6",
+      "kind": "pty_report",
+      "result": {
+        "ok": false,
+        "visible": 60,
+        "planned": 60,
+        "missing": 0,
+        "deadline_failures": 60,
+        "planned_to_visible_ms": {
+          "samples": 60,
+          "p50": 198.675,
+          "p95": 295.783,
+          "p99": 340.803,
+          "max": 340.803
+        },
+        "graceful_shutdown": true,
+        "exit_code": 0
+      }
+    },
+    {
+      "file": "waiter-512-on-diagnostics.json",
+      "bytes": 12047,
+      "sha256": "2480031aa38ee40604c1c86ea82ccd117ec6d9c3b16066852b4c7782f4ea3610",
+      "kind": "diagnostic_snapshot"
+    },
+    {
+      "file": "waiter-512-on.json",
+      "bytes": 16453,
+      "sha256": "4595c84377150b030981c5aa5a1041009fd9274c13340babdcfff8797132d36a",
+      "kind": "pty_report",
+      "result": {
+        "ok": false,
+        "visible": 56,
+        "planned": 60,
+        "missing": 4,
+        "deadline_failures": 60,
+        "planned_to_visible_ms": {
+          "samples": 56,
+          "p50": 1182.445,
+          "p95": 1501.079,
+          "p99": 1528.48,
+          "max": 1528.48
+        },
+        "graceful_shutdown": true,
+        "exit_code": 0
+      }
+    },
+    {
+      "file": "waiter-live-128-off-threads.txt.gz",
+      "bytes": 3339,
+      "sha256": "0d4fac8085f78fca14773624790293b284daba58801398465055b4bce42f8ea8",
+      "kind": "compressed_thread_dump",
+      "uncompressed_bytes": 23898,
+      "uncompressed_sha256": "2d1a27cfbeaa3281d957fc16b219760c5af2aa535ac204b8703b9a4e2eb410ab"
+    },
+    {
+      "file": "waiter-live-128-off.json",
+      "bytes": 16514,
+      "sha256": "0daf1e08cb6febd72e65c17f573c3a5b68d725b0abab33eaad245e8fedf12733",
+      "kind": "pty_report",
+      "result": {
+        "ok": false,
+        "visible": 60,
+        "planned": 60,
+        "missing": 0,
+        "deadline_failures": 41,
+        "planned_to_visible_ms": {
+          "samples": 60,
+          "p50": 431.8,
+          "p95": 1776.583,
+          "p99": 1995.207,
+          "max": 1995.207
+        },
+        "graceful_shutdown": true,
+        "exit_code": 0
+      }
+    },
+    {
+      "file": "waiter-live-128-on-diagnostics.json",
+      "bytes": 11924,
+      "sha256": "a490c01a7b20d64adc8e32f5ef378345bee178bf5a77dcad8e065f2b08bbe715",
+      "kind": "diagnostic_snapshot"
+    },
+    {
+      "file": "waiter-live-128-on-threads.txt.gz",
+      "bytes": 3444,
+      "sha256": "8c65e278cb7a7c8876efb96dd98b86c7c5e64e378291b9e3b83121d550c9c2f9",
+      "kind": "compressed_thread_dump",
+      "uncompressed_bytes": 24541,
+      "uncompressed_sha256": "decce381d1225e53460f7f88ac038266e77fc202f9659b0edcf7c5c5c199a1af"
+    },
+    {
+      "file": "waiter-live-128-on.json",
+      "bytes": 16514,
+      "sha256": "4c959d922ab3ff84a0b54c8cb23cc71ca1097fa5a55b0816e0870873080d4f52",
+      "kind": "pty_report",
+      "result": {
+        "ok": false,
+        "visible": 60,
+        "planned": 60,
+        "missing": 0,
+        "deadline_failures": 54,
+        "planned_to_visible_ms": {
+          "samples": 60,
+          "p50": 325.871,
+          "p95": 840.567,
+          "p99": 915.395,
+          "max": 915.395
+        },
+        "graceful_shutdown": true,
+        "exit_code": 0
+      }
+    },
+    {
+      "file": "waiter-live-512-on-diagnostics.json",
+      "bytes": 11916,
+      "sha256": "6bcb351208bcfba1d884753921e8037262b505f0ce1b68bf88ef3011321914a1",
+      "kind": "diagnostic_snapshot"
+    },
+    {
+      "file": "waiter-live-512-on-threads.txt.gz",
+      "bytes": 3422,
+      "sha256": "9063a680aa5323e16ab2c4185869030e1cd69f25e853d6be819a62982a13d02c",
+      "kind": "compressed_thread_dump",
+      "uncompressed_bytes": 24589,
+      "uncompressed_sha256": "a32fb322256a2913e0e59748ed7f27798cd6f061858b633b7dc7e3f13a76a16f"
+    },
+    {
+      "file": "waiter-live-512-on.json",
+      "bytes": 16587,
+      "sha256": "556cdde38fb5f17b0e28dc760d105640825e8ffd0fd2ed96fc1c7d2270c26aa9",
+      "kind": "pty_report",
+      "result": {
+        "ok": false,
+        "visible": 54,
+        "planned": 60,
+        "missing": 6,
+        "deadline_failures": 60,
+        "planned_to_visible_ms": {
+          "samples": 54,
+          "p50": 289.531,
+          "p95": 1335.651,
+          "p99": 1408.598,
+          "max": 1408.598
+        },
+        "graceful_shutdown": true,
+        "exit_code": 0
+      }
+    },
+    {
+      "file": "waiter-manifest.json",
+      "bytes": 9187,
+      "sha256": "6629dc7a439070a2ca490aaad3a85ccd14fd31ac0ef59fcfcc7c8897b4085836",
+      "kind": "pty_report",
+      "result": {
+        "ok": null,
+        "visible": null,
+        "planned": null,
+        "missing": null,
+        "deadline_failures": null,
+        "planned_to_visible_ms": null,
+        "graceful_shutdown": null,
+        "exit_code": null
+      }
+    },
+    {
+      "file": "waiter-scheduler-optout-128-off.json",
+      "bytes": 16364,
+      "sha256": "9a32a2eff5c50c4a83bdab14c98c396962492bf16cd464be28c9ab1c4e0f63ac",
+      "kind": "pty_report",
+      "result": {
+        "ok": false,
+        "visible": 60,
+        "planned": 60,
+        "missing": 0,
+        "deadline_failures": 37,
+        "planned_to_visible_ms": {
+          "samples": 60,
+          "p50": 229.003,
+          "p95": 1612.671,
+          "p99": 1812.132,
+          "max": 1812.132
+        },
+        "graceful_shutdown": true,
+        "exit_code": 0
+      }
+    },
+    {
+      "file": "waiter-scheduler-optout-128-on-diagnostics.json",
+      "bytes": 11555,
+      "sha256": "384828df0c554611519203d45c395622ab4b123583c8fea56c14c4ae6afd36a8",
+      "kind": "diagnostic_snapshot"
+    },
+    {
+      "file": "waiter-scheduler-optout-128-on.json",
+      "bytes": 16414,
+      "sha256": "154186fd1fc3e958f0929b96f22e60c09e027a94969addb89436aed5c9c83ce6",
+      "kind": "pty_report",
+      "result": {
+        "ok": false,
+        "visible": 60,
+        "planned": 60,
+        "missing": 0,
+        "deadline_failures": 4,
+        "planned_to_visible_ms": {
+          "samples": 60,
+          "p50": 52.015,
+          "p95": 111.623,
+          "p99": 220.397,
+          "max": 220.397
+        },
+        "graceful_shutdown": false,
+        "exit_code": 143
+      }
+    },
+    {
+      "file": "waiter-scheduler-optout-512-off.json",
+      "bytes": 16354,
+      "sha256": "4b1cf1bbdb4a7790e2a70bf320b36a5d2c287da70be16d9692825da82c9ea728",
+      "kind": "pty_report",
+      "result": {
+        "ok": false,
+        "visible": 60,
+        "planned": 60,
+        "missing": 0,
+        "deadline_failures": 60,
+        "planned_to_visible_ms": {
+          "samples": 60,
+          "p50": 225.119,
+          "p95": 437.417,
+          "p99": 483.167,
+          "max": 483.167
+        },
+        "graceful_shutdown": true,
+        "exit_code": 0
+      }
+    },
+    {
+      "file": "waiter-scheduler-optout-512-on-diagnostics.json",
+      "bytes": 11880,
+      "sha256": "60eabe9ea4607fe0addf318017ec986d3749211664a751baf142f728a6932684",
+      "kind": "diagnostic_snapshot"
+    },
+    {
+      "file": "waiter-scheduler-optout-512-on.json",
+      "bytes": 16352,
+      "sha256": "4c92deb08a413333c935d210dabe3cbf29979b2d2f7ab090469d3e8c993dc152",
+      "kind": "pty_report",
+      "result": {
+        "ok": false,
+        "visible": 60,
+        "planned": 60,
+        "missing": 0,
+        "deadline_failures": 60,
+        "planned_to_visible_ms": {
+          "samples": 60,
+          "p50": 218.011,
+          "p95": 337.354,
+          "p99": 403.81,
+          "max": 403.81
+        },
+        "graceful_shutdown": true,
+        "exit_code": 0
+      }
+    }
+  ],
+  "interpretation": "Every primary diagnostics-off run fails latency or input-completeness acceptance. Diagnostic-on and thread-dump runs are for diagnosis only and do not establish performance."
+}
