@@ -20,6 +20,12 @@ issue #17). All the artifacts use the same packages (`tui4s`,
 `tui4s.internal`, `tui4s.spi`, `tui4s.testkit`).
 <!-- claude 2026-10-19: changed: the runner artifact and the composite core (D25) -->
 
+<!-- codex 2026-10-28: created: text updates retain layout ownership without whole-map removal. -->
+Incremental layout removes obsolete region ownership before it places a new
+item. This also covers text inside a new container. A text node has no child
+regions, so a later text change can replace that node directly. It keeps the
+same layout and paint rules without scanning every region for removal.
+
 <!-- codex 2026-10-22: created: the opt-in diagnostic recorder and its lifetime. -->
 The JVM option `tui4s.diagnostics.file` enables a bounded recorder for a
 terminal run. The input thread and runner record timestamps and counters;

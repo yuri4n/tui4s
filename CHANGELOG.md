@@ -42,6 +42,10 @@ workflow stops before it creates a tag when a subsection is missing.
   reconcile reactive regions before painting. Background admission leaves
   room for input in inboxes with capacity greater than one.
   <!-- codex 2026-10-23: created: current-state reconciliation and notification backpressure. -->
+- Fixed: remove obsolete region ownership when flattened reactive content
+  becomes a new item, including text inside a new container. Later text
+  changes reuse the leaf without scanning the region map for removal.
+  <!-- codex 2026-10-28: created: preserve cleanup while reducing repeated text work. -->
 
 ## [0.1.1-RC1] - 2026-10-23
 <!-- codex 2026-10-23: changed: prepare the coordinated diagnostic release. -->

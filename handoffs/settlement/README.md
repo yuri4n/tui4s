@@ -1,16 +1,22 @@
 # Settlement and loaded-input handoff
 
-<!-- codex 2026-10-28: created: preserve the implementation, evidence, limits, and next steps. -->
-This is a work-in-progress checkpoint for [draft PR #58](https://github.com/yuri4n/tui4s/pull/58).
+<!-- codex 2026-10-28: created: preserve the implementation, evidence, limits, and next steps; changed: identify the historical checkpoint. -->
+This is the historical checkpoint saved in
+[0961aaa](https://github.com/yuri4n/tui4s/commit/0961aaaa1c9e10eb979fb508256e8f7f4715a51f)
+for [draft PR #58](https://github.com/yuri4n/tui4s/pull/58).
 The goal is correct, responsive typing while unrelated scheduler work,
 reactive notifications, and status updates continue. The private application
 is unavailable. The owner offered to rerun diagnostics when a candidate is ready.
 
-<!-- codex 2026-10-28: created: distinguish the saved code from tested snapshots. -->
-**The fix is not release-ready.** The 512-region workload still fails.
-The last edit in [Layout.scala](../../modules/runner/src/main/scala/tui4s/internal/Layout.scala)
-has not been compiled, tested, or measured. No regression test for that edit
-was added before this handoff. All performance results below exclude it.
+<!-- codex 2026-10-28: created: link subsequent checkpoints and validation. -->
+See [progress](progress.md) for the current checkpoints and their validation.
+
+<!-- codex 2026-10-28: created: distinguish the saved code from tested snapshots; changed: keep the old validation status historical. -->
+**Status at 0961aaa: the fix was not release-ready.** The 512-region workload
+failed. The last edit in
+[Layout.scala](../../modules/runner/src/main/scala/tui4s/internal/Layout.scala)
+had not been compiled, tested, or measured. No regression test for that edit
+existed at this checkpoint. All performance results below exclude it.
 
 ## Revisions and files
 
@@ -133,9 +139,9 @@ allocation pressure. GC pauses peaked at 42.4 ms; retained heap after the
 last collection was about 23 MB. This does not support a full-heap explanation
 for that local run. It says nothing conclusive about the private application.
 
-## Resume in this order
+## Next steps recorded at 0961aaa
 
-<!-- codex 2026-10-28: created: make the first next step concrete. -->
+<!-- codex 2026-10-28: created: make the first next step concrete; changed: label the recorded steps as historical. -->
 1. Review the last Layout edit. Add the missing RelayoutTest for nested
    Reactive/Fragment content becoming Text, then changing Text again.
    Compare regionOwner, layers, layout, and paint with a full layout.
