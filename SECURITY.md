@@ -43,5 +43,5 @@ Out of scope:
 
 - A problem in Kyo, kyo-ui, jatatui or the JDK. Report it to that project.
   Tell us too when tui4s must change because of it.
-- The bench (`bench/`), the experiments (`experiments/`) and the docs site,
-  unless they publish a secret.
+- The bench (`bench/`) and the docs site, unless they publish a secret.
+  <!-- cursor 2026-10-29: changed: the experiments directory left the repository. -->

@@ -41,7 +41,7 @@ Accepted
 - Good: tui4s is an example of a third-party kyo-ui backend that uses only the public surface.
 - Bad: the copied rules can drift from kyo-ui. The guard reduces this risk but does not remove it.
 - Bad: `UI.scrollIntoView` is a no-op in the terminal, with no error. An app uses the focus or `aria-activedescendant` instead.
-- Note: `experiments/ui-state/frame` has a diagnostic fixture in package `kyo.framespike`. It is not part of a published module.
+<!-- cursor 2026-10-29: changed: the framespike fixture note left with the experiments. -->
 
 ## References
 
