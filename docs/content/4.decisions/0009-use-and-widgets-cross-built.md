@@ -18,7 +18,8 @@ Accepted
 - The user asked for "enough widgets to build most terminal applications", a hook library "like VueUse", and one widget tree for the terminal and the web.
 - Research of 2026-10-17: most of VueUse is 1 to 3 lines of native Kyo. About 13 composables earn their place. Of 28 common terminal widgets, 5 worked, 22 had only a workaround, and 1 (textarea) could not be built before L1.
 - kyo-ui runs one UI value in the browser (Scala.js `runMount`). A widget written as a plain kyo-ui function, with no tui4s import, works on both targets.
-- The user's experiments (`experiments/ui-state`) found that model and event wrappers did not simplify the real call site.
+- Model and event wrappers did not simplify the real call site.
+  <!-- cursor 2026-10-29: changed: drop the path of the removed experiments. -->
 
 ## Decision
 

@@ -1779,8 +1779,7 @@ agents: the commands, the code rules and the release process.
 Run `git submodule update --init --recursive` after cloning to fetch the
 optional [pini4s](https://github.com/yuri4n/pini4s) example dependency under
 `vendor/pini4s`. The core and the reusable widgets use Kyo directly.
-The [API experiments](experiments/ui-state/README.md) record the alternatives
-and the upstream API audit behind that choice.
+<!-- cursor 2026-10-29: changed: the API experiment link left with experiments/ui-state. -->
 
 ## License
 
