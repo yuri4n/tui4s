@@ -215,30 +215,40 @@ private[tui4s] final class Runner private (
             }
       }
 
-    // codex 2026-10-22: changed: record first inbox removal before a possible backlog wait; codex 2026-10-23: changed: wake background senders after removal; cursor 2026-10-28: changed: sample idle reactive regions.
+    // codex 2026-10-22: changed: record first inbox removal before a possible backlog wait; codex 2026-10-23: changed: wake background senders after removal; cursor 2026-10-28: changed: sample idle reactive regions without interrupting a take.
     private def next(w: World)(using Frame): (Msg, World) < Async =
       w.backlog.headOption match
           case Some(m) => (m, w.copy(backlog = w.backlog.tail))
           case None    =>
-            val wait =
-              if w.hasSampled then
-                  Abort.run[Timeout | Closed](
-                    Async.timeout(
-                      Duration.fromNanos(ReactiveBudget.sampleNanos),
-                    )(
-                      inbox.take,
-                    ),
-                  )
-              else Abort.run[Closed](inbox.take)
-            wait.map {
-              case Result.Success(m)          =>
-                admission.released
-                  .andThen(observe(diagnostics.seen(m)))
-                  .andThen((m, w))
-              case Result.Failure(_: Timeout) =>
-                observe(diagnostics.seen(Msg.Sample)).andThen((Msg.Sample, w))
-              case _                          => (Msg.Quit, w)
-            }
+            def accept(m: Msg): (Msg, World) < Async =
+              admission.released
+                .andThen(observe(diagnostics.seen(m)))
+                .andThen((m, w))
+            def polled(result: Result[Closed, Maybe[Msg]]): (Msg, World) < Async =
+              result match
+                  case Result.Success(Present(m)) => accept(m)
+                  case Result.Success(Absent)     =>
+                    if w.hasSampled then sampleAfterWait
+                    else
+                        Abort.run[Closed](inbox.take).map {
+                          case Result.Success(m) => accept(m)
+                          case _                 => (Msg.Quit, w)
+                        }
+                  case _                          => (Msg.Quit, w)
+            // A timeout around take can interrupt a key that was already
+            // removed. Poll, wait, and poll again leave that key in the inbox.
+            def sampleAfterWait: (Msg, World) < Async =
+              Async.sleep(Duration.fromNanos(ReactiveBudget.sampleNanos)).map {
+                _ =>
+                  Abort.run[Closed](inbox.poll).map {
+                    case Result.Success(Present(m)) => accept(m)
+                    case Result.Success(Absent)     =>
+                      observe(diagnostics.seen(Msg.Sample))
+                        .andThen((Msg.Sample, w))
+                    case _                          => (Msg.Quit, w)
+                  }
+              }
+            Abort.run[Closed](inbox.poll).map(polled)
 
     // claude 2026-10-13: created (C3)
     private def isCtrlC(ev: UI.KeyboardEvent): Boolean =

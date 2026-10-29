@@ -50,7 +50,10 @@ def main():
             if ready:
                 data = os.read(0, 1024)
                 if not data or (b"\x03" in data and not args.ignore_quit):
+                    # cursor 2026-10-28: changed: the sleeper ignores SIGHUP so the session end does not reap it before the harness.
                     if args.leave_child and os.fork() == 0:
+                        signal.signal(signal.SIGHUP, signal.SIG_IGN)
+                        signal.signal(signal.SIGTERM, signal.SIG_IGN)
                         time.sleep(60)
                         os._exit(0)
                     return args.exit_code

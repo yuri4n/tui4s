@@ -8,6 +8,7 @@ The endpoint is terminal output, not the paint of a physical display.
 # codex 2026-10-22: created: the PTY input-latency probe.
 
 import argparse
+import errno
 import json
 import math
 import os
@@ -169,6 +170,9 @@ class ProbeSession(Session):
             with self.lock:
                 self.reader_error = f"{type(error).__name__}: {error}"
                 self.lock.notify_all()
+        finally:
+            # cursor 2026-10-28: created: a reader that already stopped still unblocks the drain wait.
+            self.output_drained.set()
 
     # codex 2026-10-22: created: signal the private process group without Linux /proc; changed: report whether a group received the signal.
     def _signal_group(self, sig):
@@ -181,7 +185,18 @@ class ProbeSession(Session):
     # codex 2026-10-22: created: check the same cooked-mode, alternate-screen and cursor contract as the PTY kit.
     def terminal_state(self):
         with self.lock:
-            actual = termios.tcgetattr(self.slave)
+            gone = {"cooked": True, "alt_screen_left": not self.screen.in_alt,
+                    "cursor_visible": self.screen.cursor_shown}
+            try:
+                actual = termios.tcgetattr(self.slave)
+            except (OSError, termios.error) as error:
+                # cursor 2026-10-28: changed: a revoked slave after exit is ENOTTY, not a failed restore.
+                number = getattr(error, "errno", None)
+                if number is None and error.args:
+                    number = error.args[0]
+                if number in (errno.ENOTTY, errno.EIO):
+                    return gone
+                raise
             bits = termios.ICANON | termios.ECHO | termios.ISIG
             cooked = ((actual[3] & bits) == (self.saved[3] & bits)
                       and (actual[0] & termios.ICRNL) == (self.saved[0] & termios.ICRNL))
@@ -220,9 +235,11 @@ class ProbeSession(Session):
                 outcome["errors"].append("process did not exit after SIGKILL")
             outcome["exit_code"] = self.proc.returncode
             outcome["elapsed_ms"] = round((time.monotonic_ns() - started) / 1e6, 3)
-            self.output_drained.clear()
-            if not self.output_drained.wait(1):
-                outcome["errors"].append("terminal output did not drain after exit")
+            # cursor 2026-10-28: changed: do not wait on a reader that has already stopped.
+            if self.reader.is_alive():
+                self.output_drained.clear()
+                if not self.output_drained.wait(1):
+                    outcome["errors"].append("terminal output did not drain after exit")
             try:
                 outcome["terminal"] = self.terminal_state()
                 outcome["terminal_restored"] = all(outcome["terminal"].values())
